@@ -1,18 +1,18 @@
 {
     "_schema": "principia-flavour_v1",
     "_notes": [
-      "Each unit has 'lines': an array of strings.",
-      "  - 1 line:  shown once, sits until mode change or click re-rolls.",
-      "  - N lines: sequences through all lines, then auto-picks a new unit.",
-      "weight: relative probability of selection (default 1).",
-      "modes:  which render modes suit this unit. Omit or 'any' for universal.",
+      "Each unit has 'lines': an array of strings",
+      "  - 1 line:  shown once, sits until mode change or click re-rolls",
+      "  - N lines: sequences through all lines, then auto-picks a new unit",
+      "weight: relative probability of selection (default 1)",
+      "modes:  which render modes suit this unit. Omit or 'any' for universal",
       "          'diffusion' | 'phase' | 'phase+diffusion' | 'event' | 'any'",
-      "themes: semantic tags for optional filtering.",
+      "themes: semantic tags for optional filtering",
       "          'chaos' | 'boundary' | 'error' | 'time' | 'identity'",
       "          'stability' | 'mathematics' | 'physics' | 'language'",
       "          'dark' | 'wry' | 'existential' | 'hazard' | 'terse'",
       "          'literary' | 'technical' | 'poetic' | 'classified'",
-      "interval: ms between lines in a multi-line unit (default 4000)."
+      "interval: ms between lines in a multi-line unit (default 4000)"
     ],
   
     "subtitles": [
@@ -2384,7 +2384,7 @@
         "weight": 1,
         "modes": ["any"],
         "themes": ["hazard"],
-        "lines": ["It winks when you aren't looking."]
+        "lines": ["It winks when you aren't looking"]
       },
 
       {
@@ -2408,7 +2408,7 @@
         "interval": 4000,
         "lines": [
           "Why was the Hamiltonian so good at hiding bodies?",
-          "It always conserved the evidence."
+          "It always conserved the evidence"
         ]
       },
 
@@ -2440,8 +2440,8 @@
         "themes": ["poetic", "existential"],
         "interval": 5000,
         "lines": [
-          "The Parrot had one pattern.",
-          "Principia has infinite."
+          "The Parrot had one pattern",
+          "Principia has infinite"
         ]
       },
 
@@ -2451,8 +2451,8 @@
         "themes": ["poetic", "existential", "dark"],
         "interval": 5000,
         "lines": [
-          "The swirl ate his shadow first.",
-          "Then the rest followed quietly."
+          "The swirl ate his shadow first",
+          "Then the rest followed quietly"
         ]
       },
 
@@ -2462,8 +2462,8 @@
         "themes": ["poetic", "existential", "dark"],
         "interval": 5000,
         "lines": [
-          "One final render.",
-          "Zero final thoughts."
+          "One final render",
+          "Zero final thoughts"
         ]
       },
 
@@ -2473,8 +2473,8 @@
         "themes": ["poetic", "existential", "dark"],
         "interval": 5500,
         "lines": [
-          "He wanted to understand.",
-          "Understanding wanted him instead."
+          "He wanted to understand",
+          "Understanding wanted him instead"
         ]
       },
 
@@ -2484,8 +2484,8 @@
         "themes": ["poetic", "existential", "dark"],
         "interval": 4000,
         "lines": [
-          "The beauty was absolute.",
-          "So was the decision."
+          "The beauty was absolute",
+          "So was the decision"
         ]
       },
 
@@ -2495,8 +2495,8 @@
         "themes": ["poetic", "existential", "dark"],
         "interval": 4000,
         "lines": [
-          "My therapist told me to find my center.",
-          "I told her I was still looking for the fixed point."
+          "My therapist told me to find my center",
+          "I told her I was still looking for the fixed point"
         ]
       },
 
@@ -2507,7 +2507,7 @@
         "interval": 4000,
         "lines": [
           "Why did the strange attractor ghost the limit cycle?",
-          "It said it needed more phase space."
+          "It said it needed more phase space"
         ]
       },
 
@@ -2518,7 +2518,7 @@
         "interval": 4000,
         "lines": [
           "What's a fractal's least favorite type of music?",
-          "Smooth jazz. They prefer things with a bit more self-similarity and edge."
+          "Smooth jazz. They prefer things with a bit more self-similarity and edge"
         ]
       },
 
@@ -2576,7 +2576,7 @@
         "lines": [
           "Why don't Lyapunov exponents date?",
           "They're afraid of commitment…",
-          "…and positive values anyway."
+          "…and positive values anyway"
         ]
       },
 
@@ -2586,11 +2586,11 @@
         "themes": ["physics", "joke"],
         "interval": 4000,
         "lines": [
-          "Newton walks into a bar.",
-          "Orders three apples.",
+          "Newton walks into a bar",
+          "Orders three apples",
           "The bartender says:",
           "'Sir this is a Hamiltonian system —",
-          "we only serve conserved quantities.'"
+          "we only serve conserved quantities'"
         ]
       },
 
@@ -2601,7 +2601,7 @@
         "interval": 4500,
         "lines": [
           "Why did the homoclinic orbit break up with the heteroclinic orbit?",
-          "Too much baggage between saddle points."
+          "Too much baggage between saddle points"
         ]
       },
 
@@ -2612,7 +2612,7 @@
         "interval": 4000,
         "lines": [
           "What's the difference between God and a numerical integrator?",
-          "God doesn't accumulate round-off error before dooming you."
+          "God doesn't accumulate round-off error before dooming you"
         ]
       },
 
@@ -2622,8 +2622,8 @@
         "themes": ["existential", "dark"],
         "interval": 5000,
         "lines": [
-          "You came for pretty pictures.",
-          "The pictures came for you."
+          "You came for pretty pictures",
+          "The pictures came for you"
         ]
       },
 
@@ -2634,8 +2634,8 @@
         "interval": 4300,
         "lines": [
           "Why did the three-body problem go to therapy?",
-          "It couldn't commit to any single orbit.",
-          "Too many attractive options."
+          "It couldn't commit to any single orbit",
+          "Too many attractive options"
         ]
       },
 
@@ -2647,7 +2647,7 @@
         "lines": [
           "What's the three-body problem's favorite pickup line?",
           "'Hey baby, are you initial conditions?",
-          "Because one tiny change and I'm completely ejected.'"
+          "Because one tiny change and I'm completely ejected'"
         ]
       },
 
@@ -2657,9 +2657,9 @@
         "themes": ["existential", "dark", "poetic"],
         "interval": 5200,
         "lines": [
-          "You zoomed in to find meaning.",
-          "The boundary zoomed back.",
-          "Now you're both lost."
+          "You zoomed in to find meaning",
+          "The boundary zoomed back",
+          "Now you're both lost"
         ]
       },
 
@@ -2669,8 +2669,8 @@
         "themes": ["poetic", "existential", "dark"],
         "interval": 5300,
         "lines": [
-          "Every pixel remembers the initial condition.",
-          "Most pixels wish they didn't."
+          "Every pixel remembers the initial condition",
+          "Most pixels wish they didn't"
         ]
       },
 
@@ -2694,7 +2694,7 @@
         "lines": [
           "Why was the Poincaré section always single?",
           "It kept reducing higher dimensions",
-          "until nothing was left to date."
+          "until nothing was left to date"
         ]
       },
 
@@ -2704,8 +2704,8 @@
         "themes": ["existential", "meta"],
         "interval": 5000,
         "lines": [
-          "You thought this was art.",
-          "This thought you were prey."
+          "You thought this was art",
+          "This thought you were prey"
         ]
       },
 
@@ -2715,11 +2715,11 @@
         "themes": ["mathematics", "joke", "ieee754"],
         "interval": 4600,
         "lines": [
-          "IEEE-754 walks into therapy.",
+          "IEEE-754 walks into therapy",
           "Therapist: 'What's wrong?'",
-          "IEEE-754: 'I keep losing tiny pieces of myself.'",
-          "Therapist: 'That's just round-off.'",
-          "IEEE-754: 'No. That's the tragedy.'"
+          "IEEE-754: 'I keep losing tiny pieces of myself'",
+          "Therapist: 'That's just round-off'",
+          "IEEE-754: 'No. That's the tragedy'"
         ]
       }
     ]
