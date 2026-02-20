@@ -431,6 +431,20 @@ canvas#uiCanvas {
   text-transform: uppercase;
   color: var(--muted);
   white-space: nowrap;
+  cursor: pointer;
+}
+.text-cursor {
+  display: inline-block;
+  color: var(--muted);
+  margin-left: 2px;
+  opacity: 1;
+}
+.text-cursor.blinking {
+  animation: cursor-blink 1s step-end infinite;
+}
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 #canvas-controls {
   position: fixed;

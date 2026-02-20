@@ -1,0 +1,2726 @@
+{
+    "_schema": "principia-flavour_v1",
+    "_notes": [
+      "Each unit has 'lines': an array of strings.",
+      "  - 1 line:  shown once, sits until mode change or click re-rolls.",
+      "  - N lines: sequences through all lines, then auto-picks a new unit.",
+      "weight: relative probability of selection (default 1).",
+      "modes:  which render modes suit this unit. Omit or 'any' for universal.",
+      "          'diffusion' | 'phase' | 'phase+diffusion' | 'event' | 'any'",
+      "themes: semantic tags for optional filtering.",
+      "          'chaos' | 'boundary' | 'error' | 'time' | 'identity'",
+      "          'stability' | 'mathematics' | 'physics' | 'language'",
+      "          'dark' | 'wry' | 'existential' | 'hazard' | 'terse'",
+      "          'literary' | 'technical' | 'poetic' | 'classified'",
+      "interval: ms between lines in a multi-line unit (default 4000)."
+    ],
+  
+    "subtitles": [
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["identity", "existential"],
+        "interval": 4500,
+        "lines": [
+          "You found this",
+          "This found you"
+        ]
+      },
+      
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["identity", "language"],
+        "interval": 4500,
+        "lines": [
+          "A question you asked",
+          "A question that asked you"
+        ]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "language", "existential"],
+        "interval": 4000,
+        "lines": [
+          "A simulation pretending to be real",
+          "Something real pretending to be a simulation"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "mathematics"],
+        "interval": 4000,
+        "lines": [
+          "A map pretending to be a territory",
+          "A territory pretending to be a map"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["existential", "time"],
+        "interval": 4500,
+        "lines": [
+          "A story you tell yourself about the future",
+          "A future that tells itself a story"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics", "existential"],
+        "interval": 4000,
+        "lines": [
+          "Something finite pretending to be infinite",
+          "Something infinite pretending to be finite"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "mathematics"],
+        "interval": 4000,
+        "lines": [
+          "Order pretending to be chaos",
+          "Chaos pretending to be order"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["language", "mathematics"],
+        "interval": 4500,
+        "lines": [
+          "An answer pretending to be a question",
+          "A question pretending to be an answer"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "time"],
+        "interval": 4500,
+        "lines": [
+          "A future that pretends to be a past",
+          "A past that pretends to be a future"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "mathematics"],
+        "interval": 4000,
+        "lines": [
+          "A boundary pretending to be a region",
+          "A region pretending to be a boundary"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "boundary"],
+        "interval": 4000,
+        "lines": [
+          "A prediction pretending to be a description",
+          "A description pretending to be a prediction"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["mathematics", "dark", "wry"],
+        "interval": 4000,
+        "lines": [
+          "A theorem pretending to be a stain",
+          "A stain pretending to be a theorem"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion", "event"],
+        "themes": ["hazard", "wry"],
+        "interval": 4000,
+        "lines": [
+          "A harmless image at low magnification",
+          "Safe at this scale"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion"],
+        "themes": ["poetic", "dark"],
+        "interval": 4000,
+        "lines": [
+          "Thin-film destiny",
+          "Iridescence, but deterministic"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion"],
+        "themes": ["poetic", "dark", "boundary"],
+        "interval": 4000,
+        "lines": [
+          "An iridescent argument"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics", "language"],
+        "interval": 4000,
+        "lines": [
+          "Stability (n.): a temporary misunderstanding between a trajectory and infinity",
+          "Chaos (n.): what happens when the universe stops pretending to be predictable",
+          "Initial Condition (n.): the thing you thought didn't matter"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["error", "wry"],
+        "interval": 3500,
+        "lines": [
+          "ERROR: Future not found",
+          "ERROR: Boundary condition violated",
+          "Please specify a deterministic universe and try again"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["wry", "hazard"],
+        "interval": 4000,
+        "lines": [
+          "Cognitively hazardous in 3 of 7 tested configurations",
+          "BLIT-adjacent. Consult your neurologist"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["wry", "hazard"],
+        "interval": 4000,
+        "lines": [
+          "No fatalities recorded. Yet",
+          "Berryman classification: pending"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "boundary"],
+        "interval": 3000,
+        "lines": [
+          "So close",
+          "Not yet",
+          "Just past",
+          "Either way",
+          "Too close to tell",
+          "It mattered",
+          "Elsewhere, the other ending"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["technical", "mathematics"],
+        "interval": 3500,
+        "lines": [
+          "Substeps: 64",
+          "Horizon reached. No verdict",
+          "T equals fifty. Nothing resolved"
+        ]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["technical", "physics"],
+        "interval": 3500,
+        "lines": [
+          "G = 1. M = 1. Good luck",
+          "Symplectic, not sorry"
+        ]
+      },
+  
+      {
+        "weight": 3,
+        "modes": ["event"],
+        "themes": ["chaos", "boundary"],
+        "lines": ["The edge produces more edge"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["chaos", "mathematics"],
+        "lines": ["Outcomes detected: unstable interleaving"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Where the future frays at the edges"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The seam between almost and inevitable"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Dancing at the edge of complexity"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Where prediction runs out"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary"],
+        "lines": ["The edge where answers change"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary"],
+        "lines": ["The border that won't hold still"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary"],
+        "lines": ["A seam you can't measure"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The hinge of the future"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "chaos"],
+        "lines": ["The smallest nudge matters"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["Where the zoom never ends"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["A decision boundary in disguise"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A coastline of outcomes"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A map of almosts"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "dark"],
+        "lines": ["An atlas of endings"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["chaos", "boundary"],
+        "lines": ["Futures, finely interleaved"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["A boundary with infinite teeth"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A boundary you can feel"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary"],
+        "lines": ["Where outcomes refuse to separate"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["A line that multiplies"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A quiet war of basins"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A spectrum of endings"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A braid of possibilities"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A whirlpool of ifs"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["boundary", "dark"],
+        "lines": ["The throat of the attractor"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A mandala of endpoints"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["chaos"],
+        "lines": ["A Rorschach test for order"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "poetic"],
+        "lines": ["Order with a frayed hem"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "boundary"],
+        "lines": ["Chaos with rules"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "mathematics"],
+        "lines": ["Determinism, in threads"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["poetic", "dark"],
+        "lines": ["A love letter to instability"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "dark"],
+        "lines": ["A lullaby for the sensitive"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "chaos"],
+        "lines": ["Where similarity goes to die"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "chaos"],
+        "lines": ["The quiet treason of initial conditions"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["dark", "poetic"],
+        "lines": ["Three shadows arguing in silence"]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["dark", "poetic"],
+        "lines": ["Infinite courts, one verdict"]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A ledger of near-misses"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["phase", "phase+diffusion"],
+        "themes": ["poetic", "dark"],
+        "lines": ["A confession written in phase"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "mathematics"],
+        "lines": ["A cathedral of decimals"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "dark"],
+        "lines": ["The afterimage of an equation"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "boundary"],
+        "lines": ["A field guide to indecision"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "chaos"],
+        "lines": ["A treaty signed in turbulence"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["dark", "boundary"],
+        "lines": ["A recursive bruise"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["dark", "poetic"],
+        "lines": ["An omen in the pixels"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["literary", "mathematics"],
+        "lines": ["A halting problem in colour"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["literary", "mathematics"],
+        "lines": ["Gödel in the margins"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["literary", "mathematics", "boundary"],
+        "lines": ["Wada's whisper"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["literary", "mathematics"],
+        "lines": ["Laplace's demon squints"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["technical", "boundary"],
+        "lines": ["IEEE-754's quiet apocalypse"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "poetic"],
+        "lines": ["A shrine to epsilon"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics", "boundary"],
+        "lines": ["A measure-zero knife that cuts everything"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["A border shared by everything"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "literary"],
+        "lines": ["A coastline that eats cartographers"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "chaos"],
+        "lines": ["A different ending for every epsilon"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["literary", "boundary"],
+        "lines": ["Ariadne's thread, frayed"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["literary", "mathematics"],
+        "lines": ["Zeno's zoom"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["literary", "boundary"],
+        "lines": ["A Borges map that exceeds the empire"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["literary", "boundary"],
+        "lines": ["A garden of forking basins"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "poetic"],
+        "lines": ["An autograph of chaos"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["mathematics", "poetic"],
+        "lines": ["Beauty with a Lyapunov exponent"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["The geometry of fate"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["literary", "chaos"],
+        "lines": ["Heraclitus was right about the basin"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["literary", "boundary"],
+        "lines": ["Borges would not be surprised"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["literary", "boundary"],
+        "lines": ["What the oracle saw"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["Wada, but three bodies"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics", "boundary"],
+        "lines": ["The Birkhoff boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics", "boundary"],
+        "lines": ["The Langford boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Field Note: Boundary Instability"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Incident Log #001: Edge Behaviour"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Case File #005: The Frayed Line"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Specimen #003: Outcome Boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion", "event"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Recovered Artefact: Basin Map"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Observed Anomaly: Self-Similar Border"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Uncatalogued Structure"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Residual Pattern: Non-Settling Edge"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Containment Failure at the Boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Warning: The Legend Is Incomplete"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["This Boundary Resists Measurement"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Do Not Trust Nearby Points"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Handle With Finite Precision"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Anomaly Persists Under Zoom"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["classified"],
+        "lines": ["Classified: Outcome Interleaving"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "dark"],
+        "lines": ["Signal Detected in the Decimals"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Unstable Agreement Detected"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["The Boundary Answers Back"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["classified", "boundary"],
+        "lines": ["INFOHAZARD #083: Outcome Basilisk"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["CLASSIFIED: BASIN BOUNDARY (FRACTAL)"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["MEMETIC WARNING: SELF-SIMILAR EDGE"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Containment Protocol: Limit magnification"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Field Note: The boundary escalates under zoom"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["SCP Advisory: Do not approach the boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Containment Class: Keter (Fractal)"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Addendum: Boundary behaviour under magnification"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Outcome resolution: failed"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Error margin: infinite"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Precision insufficient at all scales"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["classified", "boundary"],
+        "lines": ["Final state: contested"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["classified", "wry"],
+        "lines": ["See attached: uncertainty"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["classified", "poetic"],
+        "lines": ["Margin notes from the edge"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Do not attempt to integrate"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry", "hazard"],
+        "lines": ["Prolonged exposure not recommended"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["classified"],
+        "lines": ["Resolution classified"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Safe word: epsilon"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["You have been warned at this scale"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["classified", "wry"],
+        "lines": ["Not a BLIT. Probably"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "literary"],
+        "lines": ["Trust no one"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "literary"],
+        "lines": ["The truth is out there"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "literary"],
+        "lines": ["I want to believe"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "literary"],
+        "lines": ["Beware of the leopard (near the boundary)"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "boundary"],
+        "lines": ["The limit does not exist"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "boundary"],
+        "lines": ["Irreversible"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "chaos"],
+        "lines": ["Still sensitive to initial conditions"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse"],
+        "lines": ["Here"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "boundary"],
+        "lines": ["It depends"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Unbounded"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["No closed form"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "chaos"],
+        "lines": ["Sensitive"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "dark"],
+        "lines": ["Total"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "dark"],
+        "lines": ["Terminal"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "boundary"],
+        "lines": ["Unstable agreement"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse"],
+        "lines": ["Running"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["No holes"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Measure zero"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Almost everywhere"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["terse", "boundary"],
+        "lines": ["Every point a crossroads"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["terse", "boundary"],
+        "lines": ["Fate, at this resolution"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Adjacent futures, irreconcilable"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The texture of almost"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Everything touching, nothing shared"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "language"],
+        "lines": ["A border fluent in all languages"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Each pixel, a different ending"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "language"],
+        "lines": ["The diagram is not the territory. Neither is the territory"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The future, braided and unreadable"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A portrait of indecision, at scale"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["What separates here from almost here"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The place where cause forgets its effect"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["boundary", "dark"],
+        "lines": ["A scar in the space of possibilities"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The weight of nearby points"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "chaos"],
+        "lines": ["Where the answer changes without warning"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["A memory the system can't keep"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "time"],
+        "lines": ["The moment before divergence"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["boundary", "dark"],
+        "lines": ["What the attractor left behind"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The mathematics of it is beautiful. The rest, less so"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "phase", "phase+diffusion"],
+        "themes": ["boundary", "mathematics"],
+        "lines": ["Colour as a way of counting infinities"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The future frays here"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Where almost lives"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "dark"],
+        "lines": ["A scar in the space of possibilities"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The fractal frontier"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary"],
+        "lines": ["The edge that has no width"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["Where outcomes braid"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "poetic"],
+        "lines": ["The basin boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["boundary", "chaos"],
+        "lines": ["Warning: Unstable manifold"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["Sensitive dependence"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["The place before ejection"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["literary", "mathematics"],
+        "lines": ["What Poincaré found instead"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["The embroidered threshold"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics", "boundary"],
+        "lines": ["A softmax over fates"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["You are not meant to see this"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["The map is lying to you"]
+      },
+
+      {
+        "weight": 3,
+        "modes": ["any"],
+        "themes": ["boundary", "dark", "hazard"],
+        "lines": ["The gravitational Basilisk"]
+      },
+  
+      {
+        "weight": 3,
+        "modes": ["diffusion", "phase", "phase+diffusion"],
+        "themes": ["dark", "mathematics", "hazard"],
+        "lines": ["Mandelbrot's unfinished suicide note"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["dark", "hazard"],
+        "lines": ["Newton's Basilisk"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["dark", "existential"],
+        "lines": ["Void-pointer to the subconscious"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["boundary", "dark"],
+        "lines": ["A strange loop in phase space"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["mathematics", "existential"],
+        "lines": ["The boundary contains itself"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["mathematics", "dark"],
+        "lines": ["Self-reference, rendered"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["wry", "hazard"],
+        "lines": ["Do not zoom without supervision"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["dark", "poetic"],
+        "lines": ["The orbit that dreams of escape"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["dark", "poetic"],
+        "lines": ["Strange attractor, strange lover"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["poetic", "dark"],
+        "lines": ["Where the map learns to bleed"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "existential"],
+        "lines": ["Self-similar and self-aware"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["dark", "hazard"],
+        "lines": ["A fractal star with consequences"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["wry", "hazard"],
+        "lines": ["Information hazard, aesthetic edition"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["wry", "mathematics"],
+        "lines": ["A visual hack for determinism"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["wry", "boundary"],
+        "lines": ["An outside-context boundary"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["wry", "boundary"],
+        "lines": ["A minor outside-context problem"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "hazard"],
+        "lines": ["Mostly harmless. Until you zoom"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["poetic", "dark"],
+        "lines": ["Prolonged exposure may cause recursive wonder"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["dark", "poetic"],
+        "lines": ["A basilisk, but for outcomes"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["wry", "hazard"],
+        "lines": ["A Gödelian spoiler in false colour"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion", "event"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["A library of outcomes"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["phase", "phase+diffusion"],
+        "themes": ["mathematics", "dark"],
+        "lines": ["An angle that shouldn't exist"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics"],
+        "lines": ["Non-Euclidean, locally"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["dark", "boundary"],
+        "lines": ["The boundary is older than the system"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["wry", "boundary"],
+        "lines": ["The edge is bigger on the inside"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["wry"],
+        "lines": ["This boundary does not stay put"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "hazard"],
+        "lines": ["Do not read past this scale"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["wry", "existential"],
+        "lines": ["Not a bug. A feature of the void"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["existential", "dark"],
+        "lines": ["Zero is not empty. It is listening"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "technical"],
+        "lines": ["Precision is an illusion rendered at 2048²"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "dark"],
+        "lines": ["This slice has been previously occupied"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["poetic", "boundary"],
+        "lines": ["A map the empire couldn't contain"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["dark", "existential"],
+        "lines": ["Initial Condition (n.): the thing you thought didn't matter"]
+      },
+    
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Irreversible"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["The decimal that changed everything"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Infinity, locally"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["A proof with no last line"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["terse", "chaos"],
+        "lines": ["Continuous everywhere, predictable nowhere"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["terse", "stability"],
+        "lines": ["Convergent. Until it isn't"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse", "dark"],
+        "lines": ["An equation that refuses to close"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Structure all the way down"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["A Poincaré section, sideways"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["terse", "boundary"],
+        "lines": ["Quotiented"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Degenerate"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Collinear"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["diffusion"],
+        "themes": ["terse"],
+        "lines": ["Tagged"]
+      },
+  
+      {
+        "weight": 3,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The kinetic energy admits a rescale"]
+      },
+  
+      {
+        "weight": 3,
+        "modes": ["any"],
+        "themes": ["physics"],
+        "lines": ["Phase-space volume preservation protocol"]
+      },
+  
+      {
+        "weight": 3,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["Conserving energy in a dying manifold"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["Leapfrog into the abyss"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["physics", "poetic"],
+        "lines": ["Time-reversible trauma"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Symmetry is the only constant"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Hamiltonian structure: preserved"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The symplectic structure holds"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["A conserved quantity, mostly"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "poetic"],
+        "lines": ["Energy, negotiated"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["Angular momentum: contested"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion", "phase+diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The basin of the Hamiltonian"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A shape on a sphere"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The hyperradius holds"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Two vectors, one argument"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Longitude of a restless shape"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The shape-sphere turns"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["An angle between Jacobi vectors"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Phase, unwrapped"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A seam where chirality flips"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The gauge that won't fix itself"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Quotiented, but not calm"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A fundamental domain with teeth"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Rotation removed. Chaos retained"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The canonical frame holds"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A wedge with no inside"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["Mirror rule: contested"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Translation removed. Everything else: open"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["diffusion"],
+        "themes": ["physics", "dark"],
+        "lines": ["Three shadows, one verdict"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["physics", "wry"],
+        "lines": ["The escape heuristic fired"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["Persistent stiffness detected"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["physics", "dark"],
+        "lines": ["A collision at t=0"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "chaos"],
+        "lines": ["The outer Jacobi mass escapes"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event", "diffusion"],
+        "themes": ["physics", "stability"],
+        "lines": ["Bounded, until the horizon"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase+diffusion", "diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Frequency diffusion: significant"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["No softening. No mercy"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["The integrator disagreed"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["KDK, into oblivion"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The shape-sphere has its own area element"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "poetic"],
+        "lines": ["A longitude of restless triangles"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Three bodies sharing one constraint"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["The COM frame knows nothing of beauty"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A map that eats its own coordinates"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Smooth, away from the seam"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["The orbit that doesn't close"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["What the horizon didn't resolve"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "stability"],
+        "lines": ["Above the parabola"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The feasible region holds"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["K is nonnegative. Everything else: negotiable"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A domain warp into the possible"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["E minus U, positive"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Angular momentum: realised"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The invariant chart lands inside"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The macro-step completed"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The leapfrog preserved the structure"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "dark"],
+        "lines": ["The window saw a drift"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["phase", "phase+diffusion", "diffusion"],
+        "themes": ["physics", "chaos"],
+        "lines": ["A frequency that wouldn't settle"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["event"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["Two windows, two answers"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["Canonicalised chaos"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The Jacobian of this map is complicated"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "wry"],
+        "lines": ["Mass-weighted, canonicalised, still chaotic"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["A smooth decoder with rough consequences"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["physics", "mathematics"],
+        "lines": ["The KDK scheme holds"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["z₀ ∈ ℝ¹⁰"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["F = C(D(Φ(s)))"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["α ∈ (0, π/2)"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["β ∈ [0, π]"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Σᵢ pᵢ = 0"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["E ≥ U"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["I = 1"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["A 12D configuration, reduced"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Twelve degrees of freedom, minus two"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["phase", "phase+diffusion"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["The shape sphere is S²"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["SO(2) removed. S¹ remains"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "mathematics"],
+        "lines": ["Modulo rotation and reflection"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Quotiented"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Infeasible"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Bounded"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Regular, probably"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "chaos"],
+        "lines": ["Chaotic, locally"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Seam"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["Collinear"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["event"],
+        "themes": ["terse", "physics"],
+        "lines": ["Degenerate"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["terse", "physics"],
+        "lines": ["G equals one"]
+      },
+  
+      {
+        "weight": 3,
+        "modes": ["any"],
+        "themes": ["wry", "mathematics"],
+        "lines": ["*Results may vary exponentially"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "time"],
+        "lines": ["Your future is sensitive to conditions you didn't record"]
+      },
+  
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["chaos", "wry"],
+        "lines": ["Consult a longer horizon"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "existential"],
+        "lines": ["Gödel's incompleteness protocol"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "dark"],
+        "lines": ["The dimensions bleed"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["existential", "dark"],
+        "lines": ["Non-convergent psychosis"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "wry"],
+        "lines": ["A topological insult to Euclid"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["existential", "dark"],
+        "lines": ["Recursive trauma magnified"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "existential"],
+        "lines": ["A self-referential wound"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["time", "dark"],
+        "lines": ["Asymptotic to the end of time"]
+      },
+  
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "chaos"],
+        "lines": ["Cantor's dust in the engine"]
+      },
+      
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["hazard"],
+        "lines": ["It winks when you aren't looking."]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["wry", "hazard"],
+        "lines": ["Berryman Logical Image Technique"]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["hazard", "classified"],
+        "lines": ["DANGER: memotoxins"]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "physics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "Why was the Hamiltonian so good at hiding bodies?",
+          "It always conserved the evidence."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "physics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "What do you call a Hamiltonian that's lost all hope?",
+          "Time-independent"
+        ]
+      },
+      
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["joke", "existential", "dark"],
+        "interval": 5000,
+        "lines": [
+          "Last words of every viewer:",
+          "“Wait… I get it now.”"
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "existential"],
+        "interval": 5000,
+        "lines": [
+          "The Parrot had one pattern.",
+          "Principia has infinite."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "existential", "dark"],
+        "interval": 5000,
+        "lines": [
+          "The swirl ate his shadow first.",
+          "Then the rest followed quietly."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "existential", "dark"],
+        "interval": 5000,
+        "lines": [
+          "One final render.",
+          "Zero final thoughts."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "existential", "dark"],
+        "interval": 5500,
+        "lines": [
+          "He wanted to understand.",
+          "Understanding wanted him instead."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "existential", "dark"],
+        "interval": 4000,
+        "lines": [
+          "The beauty was absolute.",
+          "So was the decision."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["poetic", "existential", "dark"],
+        "interval": 4000,
+        "lines": [
+          "My therapist told me to find my center.",
+          "I told her I was still looking for the fixed point."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "Why did the strange attractor ghost the limit cycle?",
+          "It said it needed more phase space."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "What's a fractal's least favorite type of music?",
+          "Smooth jazz. They prefer things with a bit more self-similarity and edge."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "How long have you been bound?",
+          "Define bound"
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics","joke"],
+        "interval": 4000,
+        "lines": [
+          "Welcome to Unstable Trajectories Anonymous",
+          "Please take a seat anywhere",
+          "It won't matter"
+        ]
+      },
+      
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "Poinçare proved it was unsolvable in 1890",
+          "You are still trying"
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics","joke" ],
+        "interval": 4000,
+        "lines": [
+          "The simulation knows where the body is",
+          "The simulation knows where the body is going",
+          "The simulation is lying about both"
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "physics", "joke"],
+        "interval": 4200,
+        "lines": [
+          "Why don't Lyapunov exponents date?",
+          "They're afraid of commitment…",
+          "…and positive values anyway."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["physics", "joke"],
+        "interval": 4000,
+        "lines": [
+          "Newton walks into a bar.",
+          "Orders three apples.",
+          "The bartender says:",
+          "'Sir this is a Hamiltonian system —",
+          "we only serve conserved quantities.'"
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "joke"],
+        "interval": 4500,
+        "lines": [
+          "Why did the homoclinic orbit break up with the heteroclinic orbit?",
+          "Too much baggage between saddle points."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "joke","existential"],
+        "interval": 4000,
+        "lines": [
+          "What's the difference between God and a numerical integrator?",
+          "God doesn't accumulate round-off error before dooming you."
+        ]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["existential", "dark"],
+        "interval": 5000,
+        "lines": [
+          "You came for pretty pictures.",
+          "The pictures came for you."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "joke", "physics"],
+        "interval": 4300,
+        "lines": [
+          "Why did the three-body problem go to therapy?",
+          "It couldn't commit to any single orbit.",
+          "Too many attractive options."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "joke"],
+        "interval": 4100,
+        "lines": [
+          "What's the three-body problem's favorite pickup line?",
+          "'Hey baby, are you initial conditions?",
+          "Because one tiny change and I'm completely ejected.'"
+        ]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["existential", "dark", "poetic"],
+        "interval": 5200,
+        "lines": [
+          "You zoomed in to find meaning.",
+          "The boundary zoomed back.",
+          "Now you're both lost."
+        ]
+      },
+
+      {
+        "weight": 3,
+        "modes": ["any"],
+        "themes": ["poetic", "existential", "dark"],
+        "interval": 5300,
+        "lines": [
+          "Every pixel remembers the initial condition.",
+          "Most pixels wish they didn't."
+        ]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["mathematics","joke" ],
+        "interval": 4500,
+        "lines": [
+          "Unpopular opinion: The three-body problem is solved",
+          "It just doesn't have a closed form solution",
+          "That's your problem, not mathematics"
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "joke"],
+        "interval": 4200,
+        "lines": [
+          "Why was the Poincaré section always single?",
+          "It kept reducing higher dimensions",
+          "until nothing was left to date."
+        ]
+      },
+
+      {
+        "weight": 2,
+        "modes": ["any"],
+        "themes": ["existential", "meta"],
+        "interval": 5000,
+        "lines": [
+          "You thought this was art.",
+          "This thought you were prey."
+        ]
+      },
+
+      {
+        "weight": 1,
+        "modes": ["any"],
+        "themes": ["mathematics", "joke", "ieee754"],
+        "interval": 4600,
+        "lines": [
+          "IEEE-754 walks into therapy.",
+          "Therapist: 'What's wrong?'",
+          "IEEE-754: 'I keep losing tiny pieces of myself.'",
+          "Therapist: 'That's just round-off.'",
+          "IEEE-754: 'No. That's the tragedy.'"
+        ]
+      }
+    ]
+  }

@@ -1229,6 +1229,9 @@ export function fitTitle() {
 
   subEl.style.display = "block";
   subEl.style.whiteSpace = "nowrap";
+  
+  // Clear any animation minWidth constraints before recalculating
+  subEl.style.minWidth = "";
 
   // ---- Tunables ----
   const TITLE_LEFT_PX = 20; // matches CSS
@@ -1241,6 +1244,10 @@ export function fitTitle() {
   const TITLE_LINEH    = 0.90;
   const SUB_LINEH      = 1.00;
   const GAP_EM         = 0.18; // title-to-sub gap scales with size
+  
+  // Optical alignment tunables
+  const OPTICAL_LEFT_CORRECTION = 0.088;  // Left edge correction (% of title size)
+  const SUBTITLE_WIDTH_RATIO    = 0.97;   // How wide subtitle should be vs title (0.97 = 97%)
 
   nameEl.style.lineHeight = String(TITLE_LINEH);
   subEl.style.lineHeight  = String(SUB_LINEH);
@@ -1257,7 +1264,20 @@ export function fitTitle() {
     const gapPx = setSizes(px);
     const n = nameEl.getBoundingClientRect();
     const s = subEl.getBoundingClientRect();
-    return { titleW: n.width, blockH: n.height + gapPx + s.height };
+    
+    // Check if subtitle is too wide and needs font reduction
+    const maxSubWidth = canvasWrap.getBoundingClientRect().width - (TITLE_LEFT_PX * 2) - MARGIN_PX;
+    if (s.width > maxSubWidth) {
+      // Reduce subtitle font size to fit - NO MINIMUM, shrink as needed
+      const scaleFactor = maxSubWidth / s.width;
+      const newSubSize = px * SUB_RATIO * scaleFactor;
+      subEl.style.fontSize = `${newSubSize}px`;
+      // Re-measure after adjustment
+      const sAdjusted = subEl.getBoundingClientRect();
+      return { titleW: n.width, blockH: n.height + gapPx + sAdjusted.height, subW: sAdjusted.width };
+    }
+    
+    return { titleW: n.width, blockH: n.height + gapPx + s.height, subW: s.width };
   }
 
   function fitTrackingToWidth(el, targetW) {
@@ -1450,25 +1470,38 @@ export function fitTitle() {
   // Subtitle tracking to match title width
   const titleWidth = nameEl.getBoundingClientRect().width;
   
-  // Reset subtitle to measure natural width with default tracking
+  // Reset subtitle positioning completely
   subEl.style.letterSpacing = "0em";
-  subEl.style.transform = "translateX(0px)";
+  subEl.style.transform = "none";
+  subEl.style.marginLeft = "0px";
+  subEl.style.paddingLeft = "0px";
+  
+  // Force layout recalculation
+  void subEl.offsetHeight;
+  
   const naturalWidth = subEl.getBoundingClientRect().width;
   
-  // Optical alignment offset (matches the visual weight of the first characters)
-  const leftOffset = size * 0.077; // 7.5% of title font size
+  // Apply optical correction: Helvetica Neue bold "P" has visual weight
+  // slightly inset from bounding box, while IBM Plex Mono is more uniform.
+  // Add small positive offset to align the visual strokes, not just boxes.
+  const OPTICAL_CORRECTION = size * OPTICAL_LEFT_CORRECTION; 
   
-  // Target width slightly shorter to account for optical overhang
-  const targetWidth = titleWidth * 0.99; // 98% of title width
+  console.log('Optical alignment:', {
+    fontSize: size,
+    opticalCorrection: OPTICAL_CORRECTION,
+    widthRatio: SUBTITLE_WIDTH_RATIO
+  });
+  
+  // Target width for subtitle (adjustable to prevent right overhang)
+  const targetWidth = titleWidth * SUBTITLE_WIDTH_RATIO;
   
   // If natural width is less than title, expand with letter-spacing
   if (naturalWidth < targetWidth) {
     fitTrackingToWidth(subEl, targetWidth);
-    subEl.style.transform = `translateX(${leftOffset}px)`;
   } else {
-    // If natural width is more, we need to shrink it
-    // Use negative letter-spacing or just set to 0
     subEl.style.letterSpacing = "0em";
-    subEl.style.transform = `translateX(${leftOffset}px)`;
   }
+  
+  // Apply optical alignment
+  subEl.style.marginLeft = `${OPTICAL_CORRECTION}px`;
 }

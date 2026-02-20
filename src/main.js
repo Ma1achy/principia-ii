@@ -1,5 +1,5 @@
 import { createThreeBodyRenderer } from './renderer.js';
-import { state, encodeStateHash, decodeStateHash, applyPackedHash } from './state.js';
+import { state, encodeStateHash, decodeStateHash, applyPackedHash, MODE_INFO } from './state.js';
 import { GlTooltip } from './tooltip.js';
 import {
   buildResolutions, buildPresets, buildAxisSelects, buildZ0Sliders,
@@ -8,41 +8,45 @@ import {
   showGL, showOut, bindUI, setRenderingState, fitTitle,
 } from './ui.js';
 import { attachGestures, attachProbe, attachHintTooltips } from './nav.js';
+import { FlavourText, attachFlavourText } from './flavourText.js';
 
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
 const uiCanvas  = document.getElementById('uiCanvas');
 const ui2d      = uiCanvas.getContext('2d');
 
-// ─── Random subtitle ──────────────────────────────────────────────────────────
+// ─── Flavour text ─────────────────────────────────────────────────────────────
 
-async function loadRandomSubtitle() {
-  try {
-    const response = await fetch('flavour_text.json');
-    const data = await response.json();
-    
-    const totalWeight = data.subtitles.reduce((sum, item) => sum + item.weight, 0);
-    let random = Math.random() * totalWeight;
-    
-    let selectedText = data.subtitles[0].text;
-    for (const item of data.subtitles) {
-      random -= item.weight;
-      if (random <= 0) {
-        selectedText = item.text;
-        break;
-      }
-    }
-    
-    const subtitleElement = document.getElementById('canvas-title-sub');
-    if (subtitleElement) {
-      subtitleElement.textContent = selectedText;
-    }
-  } catch (error) {
-    console.error('Error loading subtitle:', error);
-  }
+const MODE_MAP = {
+  'Event classification': 'event',
+  'Diffusion':            'diffusion',
+  'Phase + Diffusion':    'phase+diffusion',
+  'Shape sphere phase':   'phase',
+  'Shape sphere RGB':     'phase',  // Use 'phase' for shape sphere modes
+};
+
+function getCurrentMode() {
+  const modeName = MODE_INFO[state.mode]?.name || 'Event classification';
+  return MODE_MAP[modeName] ?? 'any';
 }
 
-loadRandomSubtitle();
+const subtitleEl = document.getElementById('canvas-title-sub');
+const flavour = new FlavourText('src/resources/flavour.json', {
+  defaultInterval: 4000,
+  crossfadeMs:      600,
+  bufferSize:        32,
+  randomMinMs:      8000,   // 8 seconds minimum
+  randomMaxMs:     15000,   // 15 seconds maximum
+});
+
+await flavour.load();
+attachFlavourText(flavour, getCurrentMode, subtitleEl, [], fitTitle);
+
+// Add click-to-reroll
+subtitleEl.style.cursor = 'pointer';
+subtitleEl.addEventListener('click', () => {
+  attachFlavourText(flavour, getCurrentMode, subtitleEl, [], fitTitle);
+});
 
 const renderer     = await createThreeBodyRenderer(glCanvas, outCanvas);
 const probeTooltip = new GlTooltip();
