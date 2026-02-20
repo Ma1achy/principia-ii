@@ -1,0 +1,1610 @@
+:root {
+  --bg: #f5f4f0;
+  --panel: #efede8;
+  --border: #c8c4bc;
+  --border-strong: #8a8680;
+  --text: #1a1916;
+  --muted: #4a4845;
+  --faint: #7a7772;
+  --accent: #1a1916;
+  --accent2: #5a4a3a;
+  --danger: #8b2020;
+  --highlight: #e8e4dc;
+  --rule: #d4d0c8;
+
+  /* Glass effect — override per-element or per-theme */
+  --glass: 1;        /* 1 = glass effect on, 0 = plain opaque panel */
+  --glass-blur: 1.0; /* blur radius scale: 0.5 = tight, 1.0 = default, 2.0 = wide */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  height: 100vh;
+  display: flex;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+}
+body:not(.loaded) {
+  background: white;
+  overflow: hidden;
+}
+body:not(.loaded) > * {
+  opacity: 0;
+  visibility: hidden;
+}
+body.loaded > * {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease-in-out;
+}
+/* ─── Viewer ─── */
+#main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  padding: 24px 24px 16px;
+  gap: 0;
+}
+/* Outer wrapper: axis labels sit here, canvas is inset */
+#canvas-outer {
+  position: relative;
+  padding-left: 48px;
+  padding-bottom: 42px;
+  flex-shrink: 0;
+}
+/* The actual canvas area */
+#canvas-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  box-shadow: 0 -4px 18px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.38), 0 1px 4px rgba(0,0,0,0.22);
+}
+#viewer {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+canvas#glCanvas, canvas#outCanvas {
+  width: min(calc(100vw - 460px), 80vh);
+  height: min(calc(100vw - 460px), 80vh);
+  max-width: 100%;
+  max-height: 100%;
+  border: 1px solid var(--border-strong);
+  background: #0a0a0a;
+  touch-action: none;
+  display: block;
+}
+canvas#uiCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+/* ─── Axis rulers (DOM-based, outside canvas) ─── */
+.axis-ruler {
+  position: absolute;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  pointer-events: none;
+  user-select: none;
+}
+/* Bottom axis (u) */
+#axis-bottom {
+  bottom: 0;
+  left: 48px;
+  right: 0;
+  height: 42px;
+  display: flex;
+  align-items: flex-start;
+}
+#axis-bottom .axis-label-u {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', monospace;
+}
+#axis-bottom .tick-label {
+  position: absolute;
+  top: 5px;
+  transform: translateX(-50%);
+}
+/* Left axis (v) */
+#axis-left {
+  top: 0;
+  left: 0;
+  width: 48px;
+  bottom: 42px;
+  display: flex;
+  align-items: flex-end;
+}
+#axis-left .axis-label-v {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#axis-left .tick-label {
+  position: absolute;
+  right: 10px;
+  transform: translateY(-50%);
+}
+/* Axis tick marks that sit right against the canvas */
+.axis-tick-line {
+  position: absolute;
+  background: var(--border);
+  pointer-events: none;
+}
+/* bottom ticks */
+#axis-bottom .axis-tick-line {
+  top: 0;
+  width: 1px;
+  height: 5px;
+}
+/* left ticks */
+#axis-left .axis-tick-line {
+  right: 0;
+  height: 1px;
+  width: 5px;
+}
+/* ─── HUD info panel (DOM, below canvas) ─── */
+#hud-panel {
+  margin-left: 48px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-bottom: none;
+  padding: 7px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--text);
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  width: min(calc(100vw - 460px), 80vh);
+  box-shadow: 0 -6px 20px rgba(0,0,0,0.22), 0 -2px 6px rgba(0,0,0,0.14);
+  position: relative;
+  z-index: 1;
+}
+.hud-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.hud-label {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.hud-val {
+  color: var(--text);
+  font-size: 10px;
+}
+/* ─── Canvas column wrapper ─── */
+#canvas-col {
+  overflow: visible;
+}
+/* ─── Legend panel (below canvas) ─── */
+#legend-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.30), 0 -2px 8px rgba(0,0,0,0.18), 0 6px 20px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08);
+  position: relative;
+  z-index: 2;
+  margin-left: 48px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  min-height: 34px;
+  box-sizing: border-box;
+  width: min(calc(100vw - 460px), 80vh);
+}
+#legend-panel .leg-title {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  align-self: center;
+  padding-right: 6px;
+  border-right: 1px solid var(--rule);
+  margin-right: 2px;
+}
+#legend-panel .leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+#legend-panel .leg-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+#legend-panel .leg-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 100px;
+}
+#legend-panel .leg-bar {
+  height: 8px;
+  width: 100%;
+  flex-shrink: 0;
+}
+#legend-panel .leg-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--muted);
+  width: 100%;
+}
+/* ─── Progress overlay (hidden — progress now lives in #status) ─── */
+#overlay { display: none !important; }
+/* ─── Settings side panel ─── */
+#settingsPanelOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#settingsPanelOverlay.open { display: block; }
+#settingsPanel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 33vw;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex; flex-direction: column;
+  z-index: 201; overflow: hidden;
+}
+#settingsPanelHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
+  position: relative; z-index: 1;
+}
+#settingsPanelTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text);
+}
+#settingsPanelClose {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1; padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+#settingsPanelClose:hover { background: var(--text); color: var(--bg); }
+#settingsPanelContent {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px 16px;
+  scrollbar-width: none;
+}
+#settingsPanelContent::-webkit-scrollbar { display: none; }
+.stg-group { margin-bottom: 16px; }
+.stg-group-title {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--muted); margin-bottom: 6px;
+  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.stg-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; color: var(--text);
+}
+.stg-row:last-child { border-bottom: none; }
+/* .stg-slider-row removed — settings sliders now use .sl-row structure */
+/* ─── Info side panel ─── */
+#infoPanelOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#infoPanelOverlay.open { display: block; }
+#infoPanel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 33vw;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex; flex-direction: column;
+  z-index: 201; overflow: hidden;
+}
+#infoPanelHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
+  position: relative; z-index: 1;
+}
+#infoPanelTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text);
+}
+#infoPanelClose {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1; padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+#infoPanelClose:hover { background: var(--text); color: var(--bg); }
+#infoPanelContent {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px 16px;
+  scrollbar-width: none;
+}
+#infoPanelContent::-webkit-scrollbar { display: none; }
+.info-group { margin-bottom: 14px; }
+.info-group-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 5px;
+  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.info-row:last-child { border-bottom: none; }
+.info-key { color: var(--text); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.info-val { color: var(--muted); font-weight: 400; text-align: right; }
+/* ─── Canvas-overlay title + controls ─── */
+#canvas-title {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  pointer-events: none;
+  user-select: none;
+}
+#canvas-title-name {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+#canvas-title-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+#canvas-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.canvas-ctrl-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  font-weight: 600;
+}
+/* ─── Sidebar ─── */
+#sidebar {
+  width: 380px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -6px 0 28px rgba(0,0,0,0.22), -1px 0 6px rgba(0,0,0,0.14);
+  position: relative;
+  z-index: 10;
+}
+/* ─── Sidebar scroll + custom scrollbar ─── */
+#scroll-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+#sidebar-scroll {
+  flex: 1;
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  min-height: 0;
+}
+#sidebar-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari — hide native */
+}
+#custom-sb {
+  width: 20px;
+  flex-shrink: 0;
+  display: none; /* shown by JS when needed */
+  flex-direction: column;
+  border-left: 1px solid var(--border-strong);
+}
+/* Arrow buttons */
+#custom-sb-up, #custom-sb-down {
+  width: 100%;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
+}
+#custom-sb-down {
+  border-bottom: none;
+  border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), 0 -2px 6px rgba(0,0,0,0.10), inset 0 -1px 0 rgba(255,255,255,0.20);
+}
+#custom-sb-up:hover, #custom-sb-down:hover {
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+#custom-sb-up:active, #custom-sb-down:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+  transform: translateY(1px);
+}
+/* Track — recessed channel, slightly darker warm white */
+#custom-sb-track {
+  flex: 1;
+  position: relative;
+  background: var(--highlight);
+  /* deep inset shadow on all 4 sides — looks sunken */
+  box-shadow:
+    inset  3px  0   6px rgba(0,0,0,0.13),
+    inset -3px  0   6px rgba(0,0,0,0.13),
+    inset  0    3px 6px rgba(0,0,0,0.13),
+    inset  0   -3px 6px rgba(0,0,0,0.13);
+  cursor: pointer;
+}
+/* Thumb — matches .btn secondary: raised, bg coloured, border, drop shadow */
+#custom-sb-thumb {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  min-height: 28px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  /* raised drop shadow — casts into the track around it */
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.28),
+    0 1px 3px rgba(0,0,0,0.18),
+    0 -1px 4px rgba(0,0,0,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.50);
+  cursor: grab;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
+}
+#custom-sb-thumb:hover {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.22),
+    0 1px 3px rgba(0,0,0,0.14),
+    0 -1px 4px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+#custom-sb-thumb:active {
+  cursor: grabbing;
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+}
+/* (info modal webkit scrollbar rules removed — now a side panel with hidden scrollbar) */
+
+/* ─── Picker lists — hide native scrollbar (DOM scrollbar used instead) ─── */
+#modePickerList, #customDimPickerList, #resPickerList, #tiltPickerList {
+  scrollbar-width: none;
+  overflow-y: scroll;
+}
+#modePickerList::-webkit-scrollbar,
+#customDimPickerList::-webkit-scrollbar,
+#resPickerList::-webkit-scrollbar,
+#tiltPickerList::-webkit-scrollbar { display: none; }
+
+/* ─── Picker list wrapper + DOM scrollbar ─── */
+.picker-list-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+.picker-sb {
+  width: 20px;
+  flex-shrink: 0;
+  display: none; /* shown by JS */
+  flex-direction: column;
+  border-left: 1px solid var(--border-strong);
+}
+.picker-sb-up, .picker-sb-down {
+  width: 100%;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.20);
+}
+.picker-sb-down {
+  border-bottom: none;
+  border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), inset 0 -1px 0 rgba(255,255,255,0.20);
+}
+.picker-sb-up:hover, .picker-sb-down:hover { background: var(--text); color: var(--bg); }
+.picker-sb-up:active, .picker-sb-down:active { box-shadow: inset 0 2px 5px rgba(0,0,0,0.22); }
+.picker-sb-track {
+  flex: 1;
+  position: relative;
+  background: var(--highlight);
+  box-shadow: inset 3px 0 6px rgba(0,0,0,0.13), inset -3px 0 6px rgba(0,0,0,0.13),
+              inset 0 3px 6px rgba(0,0,0,0.13), inset 0 -3px 6px rgba(0,0,0,0.13);
+  cursor: pointer;
+}
+.picker-sb-thumb {
+  position: absolute;
+  top: 0; left: 2px; right: 2px;
+  min-height: 24px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.28), 0 -1px 4px rgba(0,0,0,0.14),
+              inset 0 1px 0 rgba(255,255,255,0.50);
+  cursor: grab;
+  transition: background 0.12s ease;
+}
+.picker-sb-thumb:hover { background: var(--text); border-color: var(--text); }
+.picker-sb-thumb:active { cursor: grabbing; background: var(--text); box-shadow: inset 0 2px 5px rgba(0,0,0,0.30); }
+/* ─── Sections ─── */
+.section {
+  border-bottom: 1px solid var(--border-strong);
+}
+.section-head {
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.10);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.section-head:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+.section-head .arrow {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.15s, color 0.12s ease;
+}
+.section-head.open .arrow { transform: rotate(90deg); }
+.section-body {
+  padding: 10px 16px 14px;
+  display: none;
+}
+.section-body.open { display: block; }
+/* ─── Controls section (always visible) ─── */
+#ctrl-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12);
+  position: relative;
+  z-index: 1;
+}
+/* ─── Form elements ─── */
+label {
+  display: block;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+select, input[type="number"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.10), inset 0 2px 6px rgba(0,0,0,0.06);
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+select:focus, input[type="number"]:focus {
+  border-color: var(--border-strong);
+  box-shadow: inset 0 1px 5px rgba(0,0,0,0.14), inset 0 2px 8px rgba(0,0,0,0.09);
+}
+/* ─── stateBox custom scrollbar wrap ─── */
+#stateBox-wrap {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid var(--border);
+  margin-top: 0;
+  overflow: hidden;
+  transition: border-color 0.1s;
+}
+#stateBox-wrap:focus-within {
+  border-color: var(--border-strong);
+}
+#stateBox {
+  flex: 1;
+  height: 140px;
+  padding: 8px;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  outline: none;
+  resize: none;
+  overflow-y: scroll;
+  scrollbar-width: none;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.10), inset 0 2px 6px rgba(0,0,0,0.06);
+}
+#stateBox::-webkit-scrollbar { display: none; }
+/* stateBox scrollbar — same as sidebar */
+#stateBox-sb {
+  width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-strong);
+}
+#stateBox-sb-up, #stateBox-sb-down {
+  width: 100%;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
+}
+#stateBox-sb-down {
+  border-bottom: none;
+  border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), 0 -2px 6px rgba(0,0,0,0.10), inset 0 -1px 0 rgba(255,255,255,0.20);
+}
+#stateBox-sb-up:hover, #stateBox-sb-down:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+#stateBox-sb-up:active, #stateBox-sb-down:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+}
+#stateBox-sb-track {
+  flex: 1;
+  position: relative;
+  background: var(--highlight);
+  box-shadow:
+    inset  3px  0   6px rgba(0,0,0,0.13),
+    inset -3px  0   6px rgba(0,0,0,0.13),
+    inset  0    3px 6px rgba(0,0,0,0.13),
+    inset  0   -3px 6px rgba(0,0,0,0.13);
+  cursor: pointer;
+}
+#stateBox-sb-thumb {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  min-height: 24px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.28),
+    0 1px 3px rgba(0,0,0,0.18),
+    0 -1px 4px rgba(0,0,0,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.50);
+  cursor: grab;
+  transition: background 0.12s ease, box-shadow 0.08s ease;
+}
+#stateBox-sb-thumb:hover {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22), 0 -1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+#stateBox-sb-thumb:active {
+  cursor: grabbing;
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+}
+textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  outline: none;
+  resize: vertical;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.10), inset 0 2px 6px rgba(0,0,0,0.06);
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+textarea:focus {
+  border-color: var(--border-strong);
+  box-shadow: inset 0 1px 5px rgba(0,0,0,0.14), inset 0 2px 8px rgba(0,0,0,0.09);
+}
+/* ─── Range inputs ─── */
+input[type="range"] {
+  width: 100%;
+  margin: 0;
+  height: 18px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--border-strong);
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 18px;
+  background: var(--text);
+  border-radius: 0;
+  margin-top: -7.5px;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.35), 0 4px 4px rgba(0,0,0,0.2);
+  transition: background 0.1s ease, box-shadow 0.08s ease;
+}
+input[type="range"]:hover::-webkit-slider-thumb,
+input[type="range"]:active::-webkit-slider-thumb {
+  background: var(--muted);
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.25);
+}
+input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--border-strong);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 8px;
+  height: 16px;
+  background: var(--text);
+  border: none;
+  border-radius: 0;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.2);
+  transition: background 0.1s ease, box-shadow 0.08s ease;
+}
+input[type="range"]:hover::-moz-range-thumb,
+input[type="range"]:active::-moz-range-thumb {
+  background: var(--muted);
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.25);
+}
+/* ─── Editable slider value inputs ─── */
+input.slider-num {
+  width: 100%;
+  min-width: 0;
+  background: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--text);
+  color: var(--bg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  text-align: right;
+  padding: 6px 6px;
+  outline: none;
+  -moz-appearance: textfield;
+  box-shadow: none;
+  cursor: text;
+  transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+input.slider-num::-webkit-outer-spin-button,
+input.slider-num::-webkit-inner-spin-button { -webkit-appearance: none; }
+input.slider-num:hover, input.slider-num:focus {
+  background: var(--border);
+  color: var(--text);
+  border-bottom-color: var(--border-strong);
+  box-shadow: none;
+}
+/* ─── Slider row: label above, track + value inline ─── */
+.sl-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 7px 9px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 1px 4px rgba(0,0,0,0.09),
+    inset 0 2px 7px rgba(0,0,0,0.05),
+    0 1px 0 rgba(255,255,255,0.70);
+}
+.section-body > .sl-row:first-child,
+.section-body > *:first-child .sl-row:first-child {
+  margin-top: 0;
+}
+.sl-row label {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  line-height: 1.3;
+}
+.sl-track-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sl-track-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  margin: 0;
+}
+.sl-row .sl-val-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 52px; /* fixed width — enough for 4dp + optional unit glyph */
+}
+/* ─── Paired dim-label layout (half-width each) ─── */
+.dim-pair-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 0;
+}
+.dim-pair-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dim-pair-cell label {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  line-height: 1.3;
+}
+.dim-pair-cell .sl-dim-label {
+  align-self: stretch; /* fill the cell width */
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* Clickable label — styled as a primary button (dark fill, white text) */
+.sl-dim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--text);
+  border: 1px solid var(--text);
+  cursor: pointer;
+  user-select: none;
+  align-self: flex-start;
+  white-space: nowrap;
+  padding: 4px 8px;
+  height: 28px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.10);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.08s ease;
+}
+.sl-dim-label:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+.sl-dim-label:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+  transform: translateY(1px);
+}
+/* Dotted underline on the text content only (not the arrow) */
+.sl-dim-text {
+  border-bottom: 1px dashed rgba(255,255,255,0.55);
+  padding-bottom: 1px;
+}
+.sl-dim-label:hover .sl-dim-text {
+  border-bottom-color: rgba(0,0,0,0.35);
+}
+.sl-dim-label .sl-dim-arrow {
+  font-size: 16px;
+  opacity: 1;
+  flex-shrink: 0;
+  margin-left: 2px;
+  line-height: 1;
+  position: relative;
+  top: -1px;
+}
+
+/* ─── Large resolution warning dialog ─── */
+#largeResOverlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#largeResOverlay.open { display: flex; }
+#largeResBox {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.18);
+  padding: 18px 20px 16px;
+  width: 460px;
+  max-width: calc(100vw - 32px);
+}
+#largeResTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text); margin-bottom: 8px;
+}
+#largeResMsg {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ─── Value-edit dialog ─── */
+#valEditOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none; align-items: flex-start; justify-content: center;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#valEditOverlay.open { display: flex; }
+#valEditBox {
+  margin-top: 15vh;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.18);
+  padding: 18px 20px 16px;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+}
+#valEditTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text); margin-bottom: 6px;
+}
+#valEditDesc {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; color: var(--faint);
+  line-height: 1.5; margin-bottom: 12px;
+}
+#valEditInput {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  margin-bottom: 12px;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.10), inset 0 2px 6px rgba(0,0,0,0.06);
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+#valEditInput::-webkit-outer-spin-button,
+#valEditInput::-webkit-inner-spin-button { -webkit-appearance: none; }
+#valEditInput:focus {
+  border-color: var(--text);
+  box-shadow: inset 0 1px 5px rgba(0,0,0,0.14), inset 0 2px 8px rgba(0,0,0,0.09);
+}
+.val-edit-btns {
+  display: flex; gap: 6px;
+}
+/* When hovering the button row, dim the primary button to signal it's not about to be clicked */
+.val-edit-btns:hover .btn.primary:not(:hover) {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+.val-edit-btns .btn {
+  flex: 1; padding: 6px 8px; font-size: 10px;
+}
+
+/* ─── Render mode picker overlay ─── */
+#modePickerOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  background: transparent;
+}
+#modePickerOverlay.open { display: block; }
+#modePickerPanel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 220px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  overflow: hidden;
+}
+#modePickerHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#modePickerTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted);
+}
+#modePickerClose {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+  border-radius: 0;
+}
+#modePickerClose:hover { background: var(--text); color: var(--bg); padding: 2px 4px; }
+#modePickerList {
+  flex: 1; overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Custom dim picker overlay ─── */
+#customDimPickerOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  background: transparent;
+}
+#customDimPickerOverlay.open { display: block; }
+#customDimPickerPanel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 220px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  overflow: hidden;
+}
+#customDimPickerHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#customDimPickerTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted);
+}
+#customDimPickerClose {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+#customDimPickerClose:hover { background: var(--text); color: var(--bg); }
+#customDimPickerList {
+  flex: 1; overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Resolution picker overlay ─── */
+#resPickerOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  background: transparent;
+}
+#resPickerOverlay.open { display: block; }
+#resPickerPanel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 220px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  overflow: hidden;
+}
+#resPickerHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#resPickerTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted);
+}
+#resPickerClose {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+#resPickerClose:hover { background: var(--text); color: var(--bg); }
+#resPickerList {
+  flex: 1; overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Tilt dimension picker overlay ─── */
+#tiltPickerOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  background: transparent;
+}
+#tiltPickerOverlay.open { display: block; }
+#tiltPickerPanel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 220px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  overflow: hidden;
+}
+#tiltPickerHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#tiltPickerTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted);
+}
+#tiltPickerClose {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+#tiltPickerClose:hover { background: var(--text); color: var(--bg); }
+#tiltPickerList {
+  flex: 1; overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tilt-pick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 9px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s ease, color 0.12s ease;
+  letter-spacing: 0.04em;
+}
+.tilt-pick-btn:hover { background: var(--text); color: var(--bg); }
+.tilt-pick-btn.active {
+  background: var(--text); color: var(--bg);
+}
+.tilt-pick-btn.active:hover {
+  background: var(--border);
+  color: var(--text);
+}
+/* When hovering a non-active sibling, dim the active item to signal it will deselect */
+#modePickerList:hover .tilt-pick-btn.active:not(:hover),
+#customDimPickerList:hover .tilt-pick-btn.active:not(:hover),
+#resPickerList:hover .tilt-pick-btn.active:not(:hover),
+#tiltPickerList:hover .tilt-pick-btn.active:not(:hover) {
+  background: var(--border);
+  color: var(--text);
+}
+.tilt-pick-idx {
+  font-size: 9px;
+  color: var(--faint);
+  min-width: 16px;
+  flex-shrink: 0;
+}
+.tilt-pick-btn.active .tilt-pick-idx { color: var(--bg); opacity: 0.6; }
+/* Dim active .tilt-pick-idx when active is being de-emphasised */
+#modePickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx,
+#customDimPickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx,
+#resPickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx,
+#tiltPickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx {
+  color: var(--muted);
+  opacity: 1;
+}
+/* Dividing lines between picker items + no top padding gap */
+.tilt-pick-btn {
+  border-bottom: 1px solid var(--border);
+}
+.tilt-pick-btn:last-child { border-bottom: none; }
+/* Drop shadow below all picker headers */
+#modePickerHeader, #customDimPickerHeader, #resPickerHeader, #tiltPickerHeader {
+  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
+  position: relative;
+  z-index: 1;
+}
+/* All picker + panel titles share the same weight/colour treatment */
+#modePickerTitle, #customDimPickerTitle, #resPickerTitle, #tiltPickerTitle {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+/* All picker close buttons */
+#modePickerClose, #customDimPickerClose, #resPickerClose, #tiltPickerClose {
+  font-weight: 600;
+}
+/* ─── Buttons ─── */
+.btn {
+  border: 1px solid var(--border-strong);
+  padding: 7px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease, border-color 0.1s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
+}
+.btn:hover {
+  background: var(--text); color: var(--bg);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.btn:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+  transform: translateY(1px);
+}
+.btn.primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.10);
+}
+.btn.primary:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+.btn.primary:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+  transform: translateY(1px);
+}
+.btn.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn.danger:hover { background: var(--danger); color: var(--bg); }
+.btn.danger:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+  transform: translateY(1px);
+}
+.btn.danger:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; box-shadow: none; }
+/* ─── Icon buttons (SVG + text label) ─── */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 10px;
+  padding: 5px 8px;
+}
+.icon-btn svg {
+  flex-shrink: 0;
+  display: block;
+}
+/* ─── Layout helpers ─── */
+.row { display: flex; gap: 6px; }
+.row > * { flex: 1; min-width: 0; }
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--faint);
+}
+.kv code {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+/* ─── Checkbox ─── */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.check input[type="checkbox"],
+#settingsPanel input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: var(--bg);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  /* unchecked = recessed/inset, looks sunken */
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.18), inset 0 1px 3px rgba(0,0,0,0.12);
+  transition: background 0.12s ease, box-shadow 0.08s ease, border-color 0.1s ease;
+}
+.check input[type="checkbox"]:hover,
+#settingsPanel input[type="checkbox"]:hover {
+  background: var(--muted);
+  border-color: var(--text);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.18);
+}
+.check input[type="checkbox"]:checked,
+#settingsPanel input[type="checkbox"]:checked {
+  background: var(--text);
+  border-color: var(--text);
+  /* checked = raised, like a button */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+.check input[type="checkbox"]:checked:hover,
+#settingsPanel input[type="checkbox"]:checked:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.14), 0 2px 5px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+.check input[type="checkbox"]::after,
+#settingsPanel input[type="checkbox"]::after {
+  content: '';
+  display: none;
+  position: absolute;
+  /* centered tick: 15px box, tick is ~5×9px, offset to visually center */
+  left: 4px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid var(--bg);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, 0px);
+}
+.check input[type="checkbox"]:checked::after,
+#settingsPanel input[type="checkbox"]:checked::after {
+  display: block;
+}
+.check label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 11px; color: inherit; cursor: pointer; }
+/* ─── Presets ─── */
+.presetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 8px;
+}
+.preset {
+  /* grid-tile overrides only — all shadow/hover/active from .btn */
+  padding: 7px 8px;
+  font-size: 10px;
+  text-align: center;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-color: var(--border-strong);
+}
+.preset.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.28), inset 0 1px 3px rgba(0,0,0,0.18);
+}
+.preset.active:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.28), inset 0 1px 3px rgba(0,0,0,0.18);
+}
+/* Dim active preset when hovering a sibling */
+.presetGrid:hover .preset.active:not(:hover) {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.28), inset 0 1px 3px rgba(0,0,0,0.18);
+}
+/* ─── Status ─── */
+#status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 0;
+  border-top: 1px solid var(--rule);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+#statusText {
+  padding: 8px 16px;
+  display: block;
+}
+#statusProgressWrap {
+  height: 2px;
+  background: var(--rule);
+  display: none;
+}
+#statusProgress {
+  height: 100%;
+  width: 0%;
+  background: var(--text);
+  transition: width 0.1s linear;
+}
+#status.progress-active #statusProgressWrap {
+  display: block;
+}
+/* ─── Kbd ─── */
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+/* ─── Hint text ─── */
+.hint {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--faint);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+/* ─── Range row (legacy, kept for settings modal) ─── */
+.range-row {
+  margin-top: 8px;
+}
+.range-row label { margin-top: 0; margin-bottom: 2px; }

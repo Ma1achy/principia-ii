@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Principia II</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="canvas-title">
+  <div id="canvas-title-name">Principia</div>
+  <div id="canvas-title-sub">A Rorschach test for order</div>
+</div>
+<div id="canvas-controls">
+  <button id="infoBtn" data-tip="Controls and information." class="btn canvas-ctrl-btn" title="Controls &amp; info">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="8" cy="8" r="6.5"/>
+      <line x1="8" y1="7" x2="8" y2="11.5"/>
+      <circle cx="8" cy="4.5" r="0.7" fill="currentColor" stroke="none"/>
+    </svg>
+    <span>Info</span>
+  </button>
+  <button id="settingsBtn" data-tip="Navigation and rendering settings." class="btn canvas-ctrl-btn" title="Settings">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" stroke="none">
+      <path fill-rule="evenodd" d="M6.5 1a.5.5 0 0 0-.493.42l-.24 1.47a5.1 5.1 0 0 0-.99.578l-1.394-.557a.5.5 0 0 0-.612.213l-1.5 2.598a.5.5 0 0 0 .12.645l1.187.918a5.17 5.17 0 0 0 0 1.43L1.39 9.213a.5.5 0 0 0-.12.645l1.5 2.598a.5.5 0 0 0 .612.213l1.394-.557c.31.22.641.41.99.578l.24 1.47A.5.5 0 0 0 6.5 14.58h3a.5.5 0 0 0 .493-.42l.24-1.47c.349-.168.68-.358.99-.578l1.394.557a.5.5 0 0 0 .612-.213l1.5-2.598a.5.5 0 0 0-.12-.645l-1.187-.918a5.17 5.17 0 0 0 0-1.43l1.187-.918a.5.5 0 0 0 .12-.645l-1.5-2.598a.5.5 0 0 0-.612-.213l-1.394.557a5.1 5.1 0 0 0-.99-.578l-.24-1.47A.5.5 0 0 0 9.5 1h-3zm1.5 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/>
+    </svg>
+    <span>Settings</span>
+  </button>
+</div>
+<div id="main">
+  <div id="canvas-col" style="display:flex; flex-direction:column; align-items:flex-start; flex-shrink:0;">
+  <div id="canvas-outer">
+    <div class="axis-ruler" id="axis-left"></div>
+    <div id="canvas-wrap">
+      <div id="viewer">
+        <canvas id="glCanvas"></canvas>
+        <canvas id="outCanvas" style="display:none;"></canvas>
+        <canvas id="uiCanvas"></canvas>
+        <div id="overlay">
+          <div id="overlayBox">
+            <div id="overlayTitle">Rendering</div>
+            <div id="overlayMsg">Preparing&hellip;</div>
+            <div id="overlayBarWrap"><div id="overlayBar"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="axis-ruler" id="axis-bottom"></div>
+  </div>
+  <div id="hud-panel" style="display:none;"></div>
+  <div id="legend-panel"></div>
+  </div>
+</div>
+
+<aside id="sidebar">
+  <div id="ctrl-section">
+    <div class="row">
+      <button id="renderBtn" data-tip="Render at the selected resolution. High resolutions use tiled rendering." class="btn primary" style="width:100%;">Render</button>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <button id="copyLinkBtn" data-tip="Copy a shareable URL encoding the current state." class="btn icon-btn" title="Copy URL">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M9.5 6.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
+        <span>URL</span>
+      </button>
+      <button id="copyJsonBtn" data-tip="Copy the full state as JSON to clipboard." class="btn icon-btn" title="Copy JSON">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="1" width="9" height="11" rx="1"/><rect x="2" y="4" width="9" height="11" rx="1"/></svg>
+        <span>JSON</span>
+      </button>
+      <button id="savePngBtn" data-tip="Save the current canvas as a PNG image." class="btn icon-btn" title="Save PNG">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M5 7l3 3 3-3"/><path d="M2 12v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1"/></svg>
+        <span>PNG</span>
+      </button>
+      <button id="resetAllBtn" data-tip="Reset all parameters to defaults." class="btn icon-btn" title="Reset">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="5" y1="5" x2="11" y2="11"/><line x1="11" y1="5" x2="5" y2="11"/></svg>
+        <span>Reset</span>
+      </button>
+    </div>
+  </div>
+  <div id="scroll-wrap">
+  <div id="sidebar-scroll">
+    <div class="section">
+      <div class="section-head open" data-target="sec-mode"><span>Display</span><span class="arrow">&#8250;</span></div>
+      <div class="section-body open" id="sec-mode">
+        <div class="dim-pair-row">
+          <div class="dim-pair-cell">
+            <label>Render mode</label>
+            <span class="sl-dim-label" id="modeLabel" title="Click to change render mode"><span class="sl-dim-text" id="modeName">Event classification</span><span class="sl-dim-arrow">&#9662;</span></span>
+            <select id="mode" style="display:none;" data-tip="Render mode: event classification, phase + diffusion, shape sphere phase, diffusion, or shape sphere RGB.">
+              <option value="0">Event classification</option>
+              <option value="1">Phase + Diffusion</option>
+              <option value="2">Shape sphere phase</option>
+              <option value="3">Diffusion</option>
+              <option value="4">Shape sphere RGB</option>
+            </select>
+          </div>
+          <div class="dim-pair-cell">
+            <label>Resolution</label>
+            <span class="sl-dim-label" id="resLabel" title="Click to change resolution"><span class="sl-dim-text" id="resName">1024 × 1024</span><span class="sl-dim-arrow">&#9662;</span></span>
+            <select id="resolution" style="display:none;"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head open" data-target="sec-presets"><span>Slice Basis</span><span class="arrow">&#8250;</span></div>
+      <div class="section-body open" id="sec-presets">
+        <div class="presetGrid" id="presetGrid"></div>
+        <div id="customBasisPanel" style="display:none; margin-top:10px; border-top:1px solid var(--border-strong); padding-top:10px;">
+          <div class="dim-pair-row">
+            <div class="dim-pair-cell">
+              <label>H-axis (&rarr;)</label>
+              <span class="sl-dim-label" id="customDimHLabel" title="Click to change H-axis dimension"><span class="sl-dim-text" id="customDimHName">z&#x2080;</span><span class="sl-dim-arrow">&#9662;</span></span>
+              <select id="customDimH" style="display:none;"></select>
+            </div>
+            <div class="dim-pair-cell">
+              <label>V-axis (&uarr;)</label>
+              <span class="sl-dim-label" id="customDimVLabel" title="Click to change V-axis dimension"><span class="sl-dim-text" id="customDimVName">z&#x2081;</span><span class="sl-dim-arrow">&#9662;</span></span>
+              <select id="customDimV" style="display:none;"></select>
+            </div>
+          </div>
+          <div class="sl-row" style="margin-top:8px;">
+            <label>&#xb1;mag</label>
+            <div class="sl-track-row">
+              <input id="customMag" data-tip="Half-range magnitude for the custom basis vectors." type="range" min="0.1" max="4.0" step="0.05" value="1.0" />
+              <div class="sl-val-wrap">
+                <input type="number" class="slider-num" id="customMagVal" value="1.00" step="0.05" min="0.1" max="4.0" data-title="Half-range magnitude" data-tip="Half-range magnitude for the custom basis vectors." />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head open" data-target="sec-z0"><span>Slice Offset z&#8320; (10D)</span><span class="arrow">&#8250;</span></div>
+      <div class="section-body open" id="sec-z0">
+        <div class="row">
+          <button id="z0Zero" data-tip="Set all z0 offset dimensions to zero." class="btn" style="font-size:10px; padding:5px 8px;">Zero</button>
+          <button id="z0SmallRand" data-tip="Apply a small random perturbation to z0." class="btn" style="font-size:10px; padding:5px 8px;">Small random</button>
+        </div>
+        <div class="sl-row" style="margin-top:8px;">
+          <label>&#xb1;range</label>
+          <div class="sl-track-row">
+            <input id="z0Range" data-tip="Range of the z0 offset sliders (+-value)." type="range" min="0.25" max="8.0" step="0.25" value="2.0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="z0RangeVal" value="2.0" step="0.25" min="0.25" max="8.0" data-title="z&#x2080; Range" data-tip="Range of the z0 offset sliders (+-value)." />
+            </div>
+          </div>
+        </div>
+        <div id="z0Sliders"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head open" data-target="sec-orient"><span>Orientation (&gamma; + tilts)</span><span class="arrow">&#8250;</span></div>
+      <div class="section-body open" id="sec-orient">
+        <div class="sl-row">
+          <label>&gamma; &mdash; rotate within plane</label>
+          <div class="sl-track-row">
+            <input id="gamma" data-tip="Rotate the slice plane within the q1-q2 basis by gamma degrees." type="range" min="0" max="360" step="0.25" value="0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="gammaVal" value="0.00" step="0.25" min="0" max="360" data-title="&#x3b3; rotation (&#xb0;)" data-tip="Rotate the slice plane within the q1-q2 basis by gamma degrees." />
+            </div>
+          </div>
+        </div>
+        <div class="sl-row" style="margin-top:10px;">
+          <span class="sl-dim-label" id="tiltDim1Label" title="Click to change tilt axis"><span class="sl-dim-text">q&#8321; tilt into <span id="tiltDim1Name">z&#8328;</span></span><span class="sl-dim-arrow">&#9662;</span></span>
+          <div class="sl-track-row">
+            <input id="tiltAmt1" data-tip="Tilt q1 into the selected extra dimension." type="range" min="-2.0" max="2.0" step="0.01" value="0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="tiltAmt1Val" value="0.00" step="0.01" min="-2.0" max="2.0" data-title="Tilt q&#x2081; amount" data-tip="Tilt q1 into the selected extra dimension." />
+            </div>
+          </div>
+        </div>
+        <div class="sl-row" style="margin-top:8px;">
+          <span class="sl-dim-label" id="tiltDim2Label" title="Click to change tilt axis"><span class="sl-dim-text">q&#8322; tilt into <span id="tiltDim2Name">z&#8329;</span></span><span class="sl-dim-arrow">&#9662;</span></span>
+          <div class="sl-track-row">
+            <input id="tiltAmt2" data-tip="Tilt q2 into the selected extra dimension." type="range" min="-2.0" max="2.0" step="0.01" value="0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="tiltAmt2Val" value="0.00" step="0.01" min="-2.0" max="2.0" data-title="Tilt q&#x2082; amount" data-tip="Tilt q2 into the selected extra dimension." />
+            </div>
+          </div>
+        </div>
+        <!-- hidden selects kept for JS compat; hidden from view -->
+        <select id="tiltDim1" style="display:none;"></select>
+        <select id="tiltDim2" style="display:none;"></select>
+        <div class="check">
+          <input id="doOrtho" data-tip="Orthonormalise q1 and q2 so the slice axes are perpendicular." type="checkbox" checked />
+          <label for="doOrtho">Orthonormalise q&#8321;, q&#8322;</label>
+        </div>
+        <button id="rotReset" data-tip="Reset gamma rotation and all tilt amounts to zero." class="btn" style="margin-top:10px; font-size:10px; padding:5px 8px;">Reset tilts + &gamma;</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head" data-target="sec-sim"><span>Simulation</span><span class="arrow">&#8250;</span></div>
+      <div class="section-body" id="sec-sim">
+        <div class="sl-row">
+          <label>Horizon</label>
+          <div class="sl-track-row">
+            <input id="horizon" data-tip="Integration time horizon. Larger = longer trajectories before classification." type="range" min="10" max="200" step="10" value="50" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="horizonVal" value="50" step="10" min="10" max="200" data-title="Horizon" data-tip="Integration time horizon. Larger = longer trajectories before classification." />
+            </div>
+          </div>
+        </div>
+        <div class="sl-row" style="margin-top:8px;">
+          <label>Max steps</label>
+          <div class="sl-track-row">
+            <input id="maxSteps" data-tip="Maximum integrator steps per pixel before forced termination." type="range" min="1000" max="40000" step="1000" value="20000" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="maxStepsVal" value="20000" step="1000" min="1000" max="40000" data-title="Max steps" data-tip="Maximum integrator steps per pixel before forced termination." />
+            </div>
+          </div>
+        </div>
+        <div class="sl-row" style="margin-top:8px;">
+          <label>dt macro</label>
+          <div class="sl-track-row">
+            <input id="dtMacro" data-tip="Macro timestep for the leapfrog integrator. Smaller = more accurate." type="range" min="0.0005" max="0.01" step="0.0005" value="0.002" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="dtMacroVal" value="0.0020" step="0.0005" min="0.0005" max="0.01" data-title="dt macro" data-tip="Macro timestep for the leapfrog integrator. Smaller = more accurate." />
+            </div>
+          </div>
+        </div>
+        <div class="sl-row" style="margin-top:8px;">
+          <label>r_coll</label>
+          <div class="sl-track-row">
+            <input id="rColl" data-tip="Collision detection radius." type="range" min="0.005" max="0.06" step="0.001" value="0.02" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="rCollVal" value="0.020" step="0.001" min="0.005" max="0.06" data-title="r_coll" data-tip="Collision detection radius." />
+            </div>
+          </div>
+        </div>
+        <div class="sl-row" style="margin-top:8px;">
+          <label>r_esc</label>
+          <div class="sl-track-row">
+            <input id="rEsc" data-tip="Escape detection radius." type="range" min="1.0" max="12.0" step="0.25" value="5.0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="rEscVal" value="5.00" step="0.25" min="1.0" max="12.0" data-title="r_esc" data-tip="Escape detection radius." />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head" data-target="sec-state"><span>Export / Import</span><span class="arrow">&#8250;</span></div>
+      <div class="section-body" id="sec-state">
+        <div class="row">
+          <button id="pasteJsonBtn" data-tip="Apply the JSON in the text box to restore a saved state." class="btn" style="font-size:10px; padding:5px 8px;">Apply JSON</button>
+          <button id="downloadJsonBtn" data-tip="Download the current state as a JSON file." class="btn" style="font-size:10px; padding:5px 8px;">Download JSON</button>
+        </div>
+        <label style="margin-top:10px;">State JSON</label>
+        <div id="stateBox-wrap">
+          <textarea id="stateBox" spellcheck="false"></textarea>
+          <div id="stateBox-sb">
+            <button id="stateBox-sb-up" aria-label="Scroll up">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg>
+            </button>
+            <div id="stateBox-sb-track"><div id="stateBox-sb-thumb"></div></div>
+            <button id="stateBox-sb-down" aria-label="Scroll down">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="custom-sb">
+    <button id="custom-sb-up" aria-label="Scroll up">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg>
+    </button>
+    <div id="custom-sb-track">
+      <div id="custom-sb-thumb"></div>
+    </div>
+    <button id="custom-sb-down" aria-label="Scroll down">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg>
+    </button>
+  </div>
+  </div>
+  <div id="status">
+    <span id="statusText">Idle.</span>
+    <div id="statusProgressWrap"><div id="statusProgress"></div></div>
+  </div>
+</aside>
+
+<!-- Settings side panel -->
+<div id="settingsPanelOverlay">
+  <div id="settingsPanel">
+    <div id="settingsPanelHeader">
+      <span id="settingsPanelTitle">Settings</span>
+      <button id="settingsPanelClose" title="Close">&#x2715;</button>
+    </div>
+    <div id="settingsPanelContent">
+      <div class="stg-group">
+        <div class="stg-group-title">Rendering</div>
+        <div class="stg-row"><span>Auto-render</span><input type="checkbox" id="autoRender" checked /></div>
+        <div class="stg-row"><span>Preview while moving</span><input type="checkbox" id="previewWhileDrag" checked /></div>
+        <div class="stg-row"><span>Show probe</span><input type="checkbox" id="showHud" checked /></div>
+      </div>
+      <div class="stg-group">
+        <div class="stg-group-title">Scroll / Zoom</div>
+        <div class="stg-row"><span>Invert scroll direction</span><input type="checkbox" id="stgInvertScroll" /></div>
+        <div class="sl-row">
+          <label>Zoom speed</label>
+          <div class="sl-track-row">
+            <input type="range" id="stgZoomSpeed" min="0.2" max="4.0" step="0.1" value="1.0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="stgZoomSpeedVal" value="1.0" step="0.1" min="0.2" max="4.0" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stg-group">
+        <div class="stg-group-title">Panning</div>
+        <div class="stg-row"><span>Invert pan X</span><input type="checkbox" id="stgInvertPanX" /></div>
+        <div class="stg-row"><span>Invert pan Y</span><input type="checkbox" id="stgInvertPanY" /></div>
+        <div class="sl-row">
+          <label>Pan speed</label>
+          <div class="sl-track-row">
+            <input type="range" id="stgPanSpeed" min="0.2" max="4.0" step="0.1" value="1.0" />
+            <div class="sl-val-wrap">
+              <input type="number" class="slider-num" id="stgPanSpeedVal" value="1.0" step="0.1" min="0.2" max="4.0" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Info side panel -->
+<div id="infoPanelOverlay">
+  <div id="infoPanel">
+    <div id="infoPanelHeader">
+      <span id="infoPanelTitle">Controls &amp; Info</span>
+      <button id="infoPanelClose" title="Close">&#x2715;</button>
+    </div>
+    <div id="infoPanelContent">
+      <div class="info-group">
+        <div class="info-group-title">Navigation</div>
+        <div class="info-row"><span class="info-key">Pan</span><span class="info-val">Drag</span></div>
+        <div class="info-row"><span class="info-key">Zoom</span><span class="info-val">Scroll wheel</span></div>
+        <div class="info-row"><span class="info-key">Reset view</span><span class="info-val">Double-click</span></div>
+      </div>
+      <div class="info-group">
+        <div class="info-group-title">Slice orientation</div>
+        <div class="info-row"><span class="info-key">Rotate &gamma;</span><span class="info-val">&#x21E7; + drag</span></div>
+        <div class="info-row"><span class="info-key">Tilt q&#8321;/q&#8322;</span><span class="info-val">&#x2325; + drag</span></div>
+      </div>
+      <div class="info-group">
+        <div class="info-group-title">About</div>
+        <div class="info-row"><span class="info-key">Pipeline</span><span class="info-val">10D slice &rarr; IC decode &rarr; integrate &rarr; classify</span></div>
+        <div class="info-row"><span class="info-key">Integrator</span><span class="info-val">KDK leapfrog + adaptive substeps</span></div>
+      </div>
+      <div class="info-group">
+        <div class="info-group-title">Render modes</div>
+        <div class="info-row"><span class="info-key">Event</span><span class="info-val">Collision / escape / bounded</span></div>
+        <div class="info-row"><span class="info-key">Phase + Diffusion</span><span class="info-val">Hue = &theta;, brightness = chaos</span></div>
+        <div class="info-row"><span class="info-key">Shape sphere phase</span><span class="info-val">Hue = shape phase &theta;</span></div>
+        <div class="info-row"><span class="info-key">Diffusion</span><span class="info-val">Greyscale chaos proxy</span></div>
+        <div class="info-row"><span class="info-key">Shape sphere RGB</span><span class="info-val">RGB &larr; surface normal</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Value-edit dialog -->
+<div id="valEditOverlay">
+  <div id="valEditBox">
+    <div id="valEditTitle">Value</div>
+    <div id="valEditDesc"></div>
+    <input type="number" id="valEditInput" />
+    <div class="val-edit-btns">
+      <button id="valEditCancel" class="btn">Cancel</button>
+      <button id="valEditSubmit" class="btn primary">Set</button>
+    </div>
+  </div>
+</div>
+
+<!-- Large resolution warning dialog -->
+<div id="largeResOverlay">
+  <div id="largeResBox">
+    <div id="largeResTitle">Large texture</div>
+    <div id="largeResMsg"></div>
+    <div class="check" style="margin-top:12px;">
+      <input type="checkbox" id="largeResDisableAutoRender" />
+      <label for="largeResDisableAutoRender">Disable auto-render for this session</label>
+    </div>
+    <div class="check" style="margin-top:6px;">
+      <input type="checkbox" id="largeResSuppressWarn" />
+      <label for="largeResSuppressWarn">Don't warn me about this resolution again</label>
+    </div>
+    <div class="val-edit-btns" style="margin-top:14px;">
+      <button id="largeResCancel" class="btn">Cancel</button>
+      <button id="largeResConfirm" class="btn primary">Render anyway</button>
+    </div>
+  </div>
+</div>
+
+<!-- Render mode picker overlay -->
+<div id="modePickerOverlay">
+  <div id="modePickerPanel">
+    <div id="modePickerHeader">
+      <span id="modePickerTitle">Render mode</span>
+      <button id="modePickerClose">&#x2715;</button>
+    </div>
+    <div class="picker-list-wrap">
+      <div id="modePickerList"></div>
+      <div class="picker-sb">
+        <button class="picker-sb-up"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg></button>
+        <div class="picker-sb-track"><div class="picker-sb-thumb"></div></div>
+        <button class="picker-sb-down"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom dim picker overlay -->
+<div id="customDimPickerOverlay">
+  <div id="customDimPickerPanel">
+    <div id="customDimPickerHeader">
+      <span id="customDimPickerTitle">H-axis dimension</span>
+      <button id="customDimPickerClose">&#x2715;</button>
+    </div>
+    <div class="picker-list-wrap">
+      <div id="customDimPickerList"></div>
+      <div class="picker-sb">
+        <button class="picker-sb-up"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg></button>
+        <div class="picker-sb-track"><div class="picker-sb-thumb"></div></div>
+        <button class="picker-sb-down"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resolution picker overlay -->
+<div id="resPickerOverlay">
+  <div id="resPickerPanel">
+    <div id="resPickerHeader">
+      <span id="resPickerTitle">Resolution</span>
+      <button id="resPickerClose">&#x2715;</button>
+    </div>
+    <div class="picker-list-wrap">
+      <div id="resPickerList"></div>
+      <div class="picker-sb">
+        <button class="picker-sb-up"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg></button>
+        <div class="picker-sb-track"><div class="picker-sb-thumb"></div></div>
+        <button class="picker-sb-down"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tilt dimension picker overlay -->
+<div id="tiltPickerOverlay">
+  <div id="tiltPickerPanel">
+    <div id="tiltPickerHeader">
+      <span id="tiltPickerTitle">Tilt into</span>
+      <button id="tiltPickerClose">&#x2715;</button>
+    </div>
+    <div class="picker-list-wrap">
+      <div id="tiltPickerList"></div>
+      <div class="picker-sb">
+        <button class="picker-sb-up"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg></button>
+        <div class="picker-sb-track"><div class="picker-sb-thumb"></div></div>
+        <button class="picker-sb-down"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+<script>
+(function() {
+  const scroller  = document.getElementById('sidebar-scroll');
+  const sb        = document.getElementById('custom-sb');
+  const track     = document.getElementById('custom-sb-track');
+  const thumb     = document.getElementById('custom-sb-thumb');
+  const btnUp     = document.getElementById('custom-sb-up');
+  const btnDown   = document.getElementById('custom-sb-down');
+  const STEP      = 80; // px per arrow click
+
+  const INSET = 3; // px gap on all sides between thumb and track edge
+
+  function update() {
+    const visible    = scroller.clientHeight;
+    const total      = scroller.scrollHeight;
+    const scrolled   = scroller.scrollTop;
+    const trackH     = track.clientHeight;
+    const available  = trackH - INSET * 2;
+    const thumbH     = Math.max(24, (visible / total) * available);
+    const thumbTop   = total > visible
+      ? INSET + (scrolled / (total - visible)) * (available - thumbH)
+      : INSET;
+    thumb.style.height    = thumbH + 'px';
+    thumb.style.top       = thumbTop + 'px';
+    sb.style.display      = total > visible ? 'flex' : 'none';
+  }
+
+  scroller.addEventListener('scroll', update, { passive: true }); // scroll needs immediate update for smooth thumb
+
+  // rAF-debounced update so layout is settled before measuring
+  let rafId = null;
+  function scheduleUpdate() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = null; update(); });
+  }
+
+  // ResizeObserver on the scroller viewport itself (window resize, sidebar resize)
+  new ResizeObserver(scheduleUpdate).observe(scroller);
+
+  // MutationObserver on the full subtree — catches section open/close, any DOM changes
+  new MutationObserver(scheduleUpdate).observe(scroller, {
+    childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class']
+  });
+
+  window.addEventListener('load', scheduleUpdate);
+  scheduleUpdate(); // initial call
+
+  // Arrow buttons — hold to repeat
+  function makeArrowScroll(dir) {
+    let interval = null;
+    function step() { scroller.scrollTop += dir * STEP; }
+    function start(e) {
+      e.preventDefault();
+      step();
+      interval = setInterval(step, 120);
+      document.addEventListener('mouseup', stop, { once: true });
+    }
+    function stop() { clearInterval(interval); interval = null; }
+    return start;
+  }
+  btnUp.addEventListener('mousedown',   makeArrowScroll(-1));
+  btnDown.addEventListener('mousedown', makeArrowScroll(1));
+
+  // Drag thumb
+  thumb.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const startY      = e.clientY;
+    const startScroll = scroller.scrollTop;
+    const trackH      = track.clientHeight;
+    const total       = scroller.scrollHeight;
+    const visible     = scroller.clientHeight;
+    const available   = trackH - INSET * 2;
+    const thumbH      = Math.max(24, (visible / total) * available);
+    const ratio       = (total - visible) / (available - thumbH);
+    function onMove(e) {
+      scroller.scrollTop = startScroll + (e.clientY - startY) * ratio;
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Click track to jump
+  track.addEventListener('mousedown', e => {
+    if (e.target === thumb) return;
+    const rect      = track.getBoundingClientRect();
+    const trackH    = track.clientHeight;
+    const total     = scroller.scrollHeight;
+    const visible   = scroller.clientHeight;
+    const available = trackH - INSET * 2;
+    const thumbH    = Math.max(24, (visible / total) * available);
+    const frac      = Math.max(0, Math.min(1,
+      (e.clientY - rect.top - INSET - thumbH / 2) / (available - thumbH)));
+    scroller.scrollTop = frac * (total - visible);
+  });
+
+  update();
+})();
+
+// ── Reusable DOM scrollbar ─────────────────────────────────────────────────
+function initScrollbar(scroller, sb, track, thumb, btnUp, btnDown, STEP) {
+  const INSET = 3;
+
+  function update() {
+    const visible   = scroller.clientHeight;
+    const total     = scroller.scrollHeight;
+    const scrolled  = scroller.scrollTop;
+    const trackH    = track.clientHeight;
+    const available = trackH - INSET * 2;
+    const thumbH    = Math.max(24, (visible / total) * available);
+    const thumbTop  = total > visible
+      ? INSET + (scrolled / (total - visible)) * (available - thumbH)
+      : INSET;
+    thumb.style.height = thumbH + 'px';
+    thumb.style.top    = thumbTop + 'px';
+    sb.style.display   = total > visible ? 'flex' : 'none';
+  }
+
+  scroller.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(scroller);
+  new MutationObserver(() => requestAnimationFrame(update))
+    .observe(scroller, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
+
+  function makeArrow(dir) {
+    let iv = null;
+    function step() { scroller.scrollTop += dir * STEP; }
+    function start(e) { e.preventDefault(); step(); iv = setInterval(step, 120); document.addEventListener('mouseup', () => clearInterval(iv), { once: true }); }
+    return start;
+  }
+  btnUp.addEventListener('mousedown',   makeArrow(-1));
+  btnDown.addEventListener('mousedown', makeArrow(1));
+
+  thumb.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const startY = e.clientY, startScroll = scroller.scrollTop;
+    const available = track.clientHeight - INSET * 2;
+    const thumbH = Math.max(24, (scroller.clientHeight / scroller.scrollHeight) * available);
+    const ratio  = (scroller.scrollHeight - scroller.clientHeight) / (available - thumbH);
+    function onMove(e) { scroller.scrollTop = startScroll + (e.clientY - startY) * ratio; }
+    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  track.addEventListener('mousedown', e => {
+    if (e.target === thumb) return;
+    const rect = track.getBoundingClientRect();
+    const available = track.clientHeight - INSET * 2;
+    const thumbH = Math.max(24, (scroller.clientHeight / scroller.scrollHeight) * available);
+    const frac   = Math.max(0, Math.min(1, (e.clientY - rect.top - INSET - thumbH / 2) / (available - thumbH)));
+    scroller.scrollTop = frac * (scroller.scrollHeight - scroller.clientHeight);
+  });
+
+  window.addEventListener('load', update);
+  update();
+}
+
+// ── stateBox scrollbar ─────────────────────────────────────────────────────
+initScrollbar(
+  document.getElementById('stateBox'),
+  document.getElementById('stateBox-sb'),
+  document.getElementById('stateBox-sb-track'),
+  document.getElementById('stateBox-sb-thumb'),
+  document.getElementById('stateBox-sb-up'),
+  document.getElementById('stateBox-sb-down'),
+  60
+);
+
+// ── Picker scrollbars ──────────────────────────────────────────────────────
+['modePicker','customDimPicker','resPicker','tiltPicker'].forEach(id => {
+  const list  = document.getElementById(id + 'List');
+  const wrap  = list.closest('.picker-list-wrap');
+  const sb    = wrap.querySelector('.picker-sb');
+  const track = wrap.querySelector('.picker-sb-track');
+  const thumb = wrap.querySelector('.picker-sb-thumb');
+  const up    = wrap.querySelector('.picker-sb-up');
+  const down  = wrap.querySelector('.picker-sb-down');
+  initScrollbar(list, sb, track, thumb, up, down, 60);
+});
+</script>
+</body>
+</html>
