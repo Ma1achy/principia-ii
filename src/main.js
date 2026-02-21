@@ -5,38 +5,36 @@ import {
   buildResolutions, buildPresets, buildAxisSelects, buildZ0Sliders,
   setZ0Range, applyCustomBasis, updateStateBox,
   syncUIFromState, drawOverlayHUD, showProbeAtEvent, setOverlay, setStatus,
-  showGL, showOut, bindUI, setRenderingState, fitTitle,
+  showGL, showOut, bindUI, setRenderingState,
 } from './ui.js';
 import { attachGestures, attachProbe, attachHintTooltips } from './nav.js';
-import { FlavourText, attachFlavourText } from './flavourText.js';
+import { Chazy } from './Chazy/index.js';
+import { computeTitleBoundingBox } from './layout.js';
 
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
 const uiCanvas  = document.getElementById('uiCanvas');
 const ui2d      = uiCanvas.getContext('2d');
 
-// ─── Flavour text ─────────────────────────────────────────────────────────────
+// ─── Mode mapping and interaction state ──────────────────────────────────────
 
 const MODE_MAP = {
   'Event classification': 'event',
   'Diffusion':            'diffusion',
   'Phase + Diffusion':    'phase+diffusion',
   'Shape sphere phase':   'phase',
-  'Shape sphere RGB':     'phase',  // Use 'phase' for shape sphere modes
+  'Shape sphere RGB':     'phase',
 };
 
-// Interaction state tracker for reactive mode switching
 const interactionState = {
   isZooming: false,
   isDragging: false,
   isRendering: false,
-  isLongRender: false, // Only true for tiled/slow renders
+  isLongRender: false,
   lastActionTime: Date.now(),
-  idleThresholdMs: 30000, // 30 seconds of no input = idle
-  pageLoadTime: Date.now(), // Track when page loaded
-  graceGracePeriodMs: 5000, // 5 second grace period after page load before considering "idle"
-  
-  // Probe state - updated when hovering over rendered output
+  idleThresholdMs: 30000,
+  pageLoadTime: Date.now(),
+  graceGracePeriodMs: 5000,
   probeActive: false,
   hasCollision: false,
   hasEscape: false,
@@ -44,21 +42,16 @@ const interactionState = {
 };
 
 function getCurrentMode() {
-  // Active interaction states (highest priority)
   if (interactionState.isZooming) return 'zoom';
   if (interactionState.isDragging) return 'drag';
-  
-  // Long render mode (only for tiled/slow renders, not quick previews)
   if (interactionState.isLongRender) return 'render';
   
-  // Contextual modes when hovering (only when actively probing)
   if (interactionState.probeActive) {
     if (interactionState.hasCollision) return 'collision';
     if (interactionState.stabilityValue < 0.15) return 'stable';
     if (interactionState.hasEscape) return 'ejection';
   }
   
-  // Check for idle (no input for a while) - but not during grace period after page load
   const timeSincePageLoad = Date.now() - interactionState.pageLoadTime;
   const idleTime = Date.now() - interactionState.lastActionTime;
   if (timeSincePageLoad > interactionState.graceGracePeriodMs && 
@@ -66,71 +59,73 @@ function getCurrentMode() {
     return 'idle';
   }
   
-  // Default: use the simulation mode
   const modeName = MODE_INFO[state.mode]?.name || 'Event classification';
   return MODE_MAP[modeName] ?? 'event';
 }
 
-// Track user activity for idle detection
 function trackActivity() {
   interactionState.lastActionTime = Date.now();
 }
 
-const subtitleEl = document.getElementById('canvas-title-sub');
-const flavour = new FlavourText('src/resources/flavour.json', {
-  defaultInterval: 4000,
-  crossfadeMs:      600,
-  bufferSize:        32,
-  displayMinMs:     2000,
-  displayMaxMs:    10000,
-  multiLineMultiplier: 2.5,
+export { interactionState };
+
+// ─── Chazy (subtitle system) ─────────────────────────────────────────────────
+
+const chazy = new Chazy({
+  textPath: 'src/Chazy/flavour.json',
+  displayMinMs: 2000,
+  displayMaxMs: 10000,
+  selector: {
+    bufferSize: 32,
+    multiLineMultiplier: 2.5
+  }
 });
 
-await flavour.load();
-attachFlavourText(flavour, getCurrentMode, subtitleEl, [], fitTitle);
+// Update layout on resize/changes
+let layoutUpdateTimeout = null;
+function updateChazyLayout() {
+  // Debounce to prevent excessive recalculations
+  if (layoutUpdateTimeout) return;
+  
+  const bbox = computeTitleBoundingBox();
+  console.log('[Main] Layout calculated:', bbox);
+  chazy.updateLayout(bbox);
+  
+  // Throttle: allow one update per frame
+  layoutUpdateTimeout = setTimeout(() => {
+    layoutUpdateTimeout = null;
+  }, 16); // ~60fps
+}
 
 // Watch for collision/ejection events and try to interrupt
 let lastObservedMode = null;
 setInterval(() => {
-  // Only try to interrupt if we're in a reactive mode
   const mode = getCurrentMode();
   
-  // Feed new events to Chazy
   if (mode !== lastObservedMode) {
-    // Mode changed, observe the event
     if (mode === 'collision' || mode === 'ejection' || mode === 'stable' || 
         mode === 'zoom' || mode === 'drag' || mode === 'idle' || mode === 'render') {
       
-      // Prepare event data
       const eventData = {
         stability: interactionState.stabilityValue,
         hasCollision: interactionState.hasCollision,
         hasEscape: interactionState.hasEscape,
       };
       
-      flavour.chazy.observe(mode, eventData);
+      chazy.observe(mode, eventData);
       
-      // Try to interrupt if Chazy thinks this event is emotionally significant
-      if (flavour.chazy.shouldInterrupt(mode)) {
-        flavour.interrupt();
+      if (chazy.mind.shouldInterrupt(mode)) {
+        chazy.interrupt();
       }
     }
     
     lastObservedMode = mode;
   }
   
-  // Also try to interrupt for collision/ejection even without mode change
   if (mode === 'collision' || mode === 'ejection') {
-    flavour.interrupt();
+    chazy.interrupt();
   }
-}, 1000); // Check every second
-
-// Add click-to-reroll
-subtitleEl.style.cursor = 'pointer';
-subtitleEl.addEventListener('click', () => {
-  trackActivity();
-  attachFlavourText(flavour, getCurrentMode, subtitleEl, [], fitTitle);
-});
+}, 1000);
 
 // Track activity on any user interaction
 document.addEventListener('mousemove', trackActivity, { passive: true });
@@ -138,9 +133,6 @@ document.addEventListener('mousedown', trackActivity, { passive: true });
 document.addEventListener('keydown', trackActivity, { passive: true });
 document.addEventListener('wheel', trackActivity, { passive: true });
 document.addEventListener('touchstart', trackActivity, { passive: true });
-
-// Export interaction state for other modules to update
-export { interactionState };
 
 const renderer     = await createThreeBodyRenderer(glCanvas, outCanvas);
 const probeTooltip = new GlTooltip();
@@ -261,7 +253,14 @@ function showProbe(e) {
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
-function boot() {
+async function boot() {
+  // FIRST: Wait for fonts to load before doing anything
+  await document.fonts.ready;
+  console.log('[Boot] Fonts loaded');
+  
+  // SECOND: Initialize Chazy (title + subtitle system)
+  await chazy.init(document.body, getCurrentMode);
+  
   buildResolutions(renderer);
   buildPresets(scheduleRender, writeHash, updateStateBox, drawHUD);
   buildAxisSelects();
@@ -286,9 +285,9 @@ function boot() {
   attachProbe(outCanvas, probeTooltip, showProbe, interactionState);
   attachHintTooltips(hintTooltip);
 
-  fitTitle();
-  new ResizeObserver(fitTitle).observe(document.getElementById('main'));
-  window.addEventListener('resize', fitTitle);
+  // Set up layout observers
+  new ResizeObserver(updateChazyLayout).observe(document.getElementById('main'));
+  window.addEventListener('resize', updateChazyLayout);
 
   writeHash();
   updateStateBox();
@@ -302,6 +301,10 @@ function boot() {
   }).finally(() => {
     document.body.classList.add('loaded');
   });
+
+  // Update layout and start Chazy
+  updateChazyLayout();
+  chazy.start();
 
   requestAnimationFrame(() => resizeUiCanvasToMatch());
 }

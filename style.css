@@ -408,49 +408,7 @@ canvas#uiCanvas {
 .info-row:last-child { border-bottom: none; }
 .info-key { color: var(--text); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
 .info-val { color: var(--muted); font-weight: 400; text-align: right; }
-/* ─── Canvas-overlay title + controls ─── */
-#canvas-title {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 5;
-  pointer-events: none;
-  user-select: none;
-}
-#canvas-title-name {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  line-height: 1.05;
-  white-space: nowrap;
-}
-#canvas-title-sub {
-  font-family: 'IBM Plex Mono', monospace;
-  font-weight: 500;
-  text-transform: uppercase;
-  color: var(--muted);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.text-cursor {
-  display: inline-block;
-  color: var(--muted);
-  margin-left: 2px;
-  opacity: 1;
-}
-.text-cursor.blinking {
-  animation: cursor-blink 1s step-end infinite;
-}
-@keyframes cursor-blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
-}
-/* Text selection effect for deletion strategies */
-#canvas-subtitle span.selected {
-  background-color: var(--muted);
-  color: var(--bg);
-}
+/* ─── Canvas-overlay controls ─── */
 #canvas-controls {
   position: fixed;
   bottom: 20px;

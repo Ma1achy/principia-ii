@@ -292,7 +292,7 @@ function getTypingParams(emotion, intensity) {
   const params = {
     baseSpeed: 50,
     speedVariation: 0.3,
-    typoChance: 0.08,
+    typoChance: 0.03,
     pauseChance: 0.1,
     pauseDuration: 200,
   };
@@ -301,7 +301,7 @@ function getTypingParams(emotion, intensity) {
     case 'BORED':
       params.baseSpeed = 120 + (1.0 - intensity) * 80;
       params.speedVariation = 0.6;
-      params.typoChance = 0.02;
+      params.typoChance = 0.008;
       params.pauseChance = 0.3;
       params.pauseDuration = 400 + (1.0 - intensity) * 300;
       break;
@@ -309,7 +309,7 @@ function getTypingParams(emotion, intensity) {
     case 'EXCITED':
       params.baseSpeed = 30 - intensity * 10;
       params.speedVariation = 0.4;
-      params.typoChance = 0.08 + intensity * 0.07;
+      params.typoChance = 0.025 + intensity * 0.025;
       params.pauseChance = 0.05;
       params.pauseDuration = 100;
       break;
@@ -317,7 +317,7 @@ function getTypingParams(emotion, intensity) {
     case 'CONCERNED':
       params.baseSpeed = 80 + (1.0 - intensity) * 40;
       params.speedVariation = 0.3;
-      params.typoChance = 0.06 + intensity * 0.04;
+      params.typoChance = 0.02 + intensity * 0.015;
       params.pauseChance = 0.2;
       params.pauseDuration = 300 + intensity * 200;
       break;
@@ -325,7 +325,7 @@ function getTypingParams(emotion, intensity) {
     case 'SURPRISED':
       params.baseSpeed = 35 - intensity * 10;
       params.speedVariation = 0.5;
-      params.typoChance = 0.10 + intensity * 0.08;
+      params.typoChance = 0.035 + intensity * 0.03;
       params.pauseChance = 0.15;
       params.pauseDuration = 200;
       break;
@@ -333,7 +333,7 @@ function getTypingParams(emotion, intensity) {
     case 'AMUSED':
       params.baseSpeed = 55;
       params.speedVariation = 0.35;
-      params.typoChance = 0.05;
+      params.typoChance = 0.018;
       params.pauseChance = 0.12;
       params.pauseDuration = 250;
       break;
@@ -341,7 +341,7 @@ function getTypingParams(emotion, intensity) {
     case 'ANALYTICAL':
       params.baseSpeed = 60;
       params.speedVariation = 0.2;
-      params.typoChance = 0.04;
+      params.typoChance = 0.012;
       params.pauseChance = 0.15;
       params.pauseDuration = 300;
       break;
@@ -349,7 +349,7 @@ function getTypingParams(emotion, intensity) {
     case 'CONTEMPLATIVE':
       params.baseSpeed = 90 + (1.0 - intensity) * 60;
       params.speedVariation = 0.4;
-      params.typoChance = 0.03;
+      params.typoChance = 0.01;
       params.pauseChance = 0.25;
       params.pauseDuration = 350 + (1.0 - intensity) * 250;
       break;
@@ -357,7 +357,7 @@ function getTypingParams(emotion, intensity) {
     case 'CURIOUS':
       params.baseSpeed = 50;
       params.speedVariation = 0.35;
-      params.typoChance = 0.06;
+      params.typoChance = 0.02;
       params.pauseChance = 0.12;
       params.pauseDuration = 220;
       break;
@@ -476,35 +476,35 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
     const emotionUpper = String(emotion).toUpperCase();
     const isFastEmotion = emotionUpper === 'EXCITED' || emotionUpper === 'SURPRISED';
     if (isFastEmotion) {
-      chance *= (1.15 + 0.45 * intensity); // up to ~1.6x
+      chance *= (1.05 + 0.25 * intensity); // up to ~1.3x (was 1.6x)
     }
 
     // Analytical / contemplative => fewer typos
     if (emotionUpper === 'ANALYTICAL' || emotionUpper === 'CONTEMPLATIVE') {
-      chance *= (0.9 - 0.25 * intensity); // down to ~0.65x
+      chance *= (0.85 - 0.3 * intensity); // down to ~0.55x (more reduction)
     }
 
     // Immediately after punctuation: "smarter" / more deliberate
     if (isPunctuation(prevChar)) {
-      chance *= 0.35;
+      chance *= 0.25; // was 0.35
     }
 
     // First letter after a space (word start) slightly more deliberate
     if (isWordBoundaryChar(prevChar)) {
-      chance *= 0.8;
+      chance *= 0.65; // was 0.8
     }
 
     // Repeated letters / awkward transitions can be a little typo-prone
     // Only check for simple alphabetic characters to avoid grapheme issues
     if (char && nextChar && /^[a-zA-Z]$/.test(char) && /^[a-zA-Z]$/.test(nextChar)) {
       if (char.toLowerCase() === nextChar.toLowerCase()) {
-        chance *= 1.1;
+        chance *= 1.05; // was 1.1
       }
     }
 
     // Shift-heavy chars are a bit more error-prone
     if (isShiftLikelyChar(char)) {
-      chance *= 1.15;
+      chance *= 1.08; // was 1.15
     }
 
     // Math context modulation
@@ -573,18 +573,34 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
   let cursorBoundary = 0;
 
   function placeCursorAtBoundary(boundary) {
+    // Bail early if animation was cancelled
+    if (cancelled) return;
+    
+    // Verify cursor is still part of the document (not removed by interrupt)
+    if (!cursor.parentNode) return;
+    
     if (boundary <= 0) {
-      element.insertBefore(cursor, charSpans[0] || null);
+      // Check if target span still exists in DOM
+      const firstSpan = charSpans[0];
+      if (firstSpan && firstSpan.parentNode === element) {
+        element.insertBefore(cursor, firstSpan);
+      }
       return;
     }
     if (boundary >= charSpans.length) {
       element.appendChild(cursor);
       return;
     }
-    element.insertBefore(cursor, charSpans[boundary]);
+    // Check if target span still exists in DOM
+    const targetSpan = charSpans[boundary];
+    if (targetSpan && targetSpan.parentNode === element) {
+      element.insertBefore(cursor, targetSpan);
+    }
   }
 
   function setCursorBoundary(boundary) {
+    // Bail early if animation was cancelled or cursor removed
+    if (cancelled || !cursor.parentNode) return;
     cursorBoundary = Math.max(0, Math.min(boundary, chars.length));
     placeCursorAtBoundary(cursorBoundary);
   }

@@ -1,0 +1,57 @@
+/* Chazy Component Styles */
+
+.chazy-wrapper {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  pointer-events: none;
+  user-select: none;
+}
+
+.chazy-title {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 0.90;
+  white-space: nowrap;
+}
+
+.chazy-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.00;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  pointer-events: auto;
+}
+
+/* Cursor animation */
+.chazy-subtitle .text-cursor {
+  display: inline-block;
+  color: var(--muted);
+  margin-left: 2px;
+  opacity: 1;
+}
+
+.chazy-subtitle .text-cursor.blinking {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* Selection effect for deletion */
+.chazy-subtitle span.selected {
+  background-color: var(--muted);
+  color: var(--bg);
+}

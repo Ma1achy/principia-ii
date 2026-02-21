@@ -1,6 +1,6 @@
 /**
- * Chazy — The Voice
- * ─────────────────────────────────────────────────────────────────────────
+ * Chazy  The Voice
+ *
  * Named after Jean Chazy (1882-1955), French astronomer and mathematician
  * who classified the final states of gravitational three-body systems.
  * 
@@ -211,7 +211,7 @@ export class ChazyMind {
     
     if (intensityBoost[event.type]) {
       this.intensity = Math.min(1.0, this.intensity + intensityBoost[event.type]);
-      console.log(`[Chazy] Event ${event.type} boosts intensity → ${this.intensity.toFixed(2)}`);
+      console.log(`[Chazy] Event ${event.type} boosts intensity 뿯↽ ${this.intensity.toFixed(2)}`);
     }
     
     // Check if we're in cooldown
@@ -365,7 +365,7 @@ export class ChazyMind {
    * Transition to a new emotional state
    */
   _transitionTo(newEmotion, reason) {
-    console.log(`[Chazy] ${this.emotion} → ${newEmotion} (${reason})`);
+    console.log(`[Chazy] ${this.emotion} 뿯↽ ${newEmotion} (${reason})`);
     
     const oldEmotion = this.emotion;
     this.emotion = newEmotion;
@@ -402,14 +402,14 @@ export class ChazyMind {
       this.intensity - this.intensityDecayRate
     );
     
-    console.log(`[Chazy] Intensity decay → ${this.intensity.toFixed(2)}`);
+    console.log(`[Chazy] Intensity decay 뿯↽ ${this.intensity.toFixed(2)}`);
     
     // If intensity is very low and we're not already neutral, drift toward neutral
     if (this.intensity <= 0.12 && this.emotion !== 'NEUTRAL') {  // Lower threshold (was 0.15)
       const timeInEmotion = now - this.emotionStartTime;
       // After 45s at low intensity, drift to neutral (was 30s - longer before fade)
       if (timeInEmotion > 45000) {
-        console.log(`[Chazy] Low intensity drift → NEUTRAL`);
+        console.log(`[Chazy] Low intensity drift 뿯↽ NEUTRAL`);
         this._transitionTo('NEUTRAL', 'low engagement fade');
       }
     }
@@ -527,7 +527,7 @@ export class ChazyMind {
     let pressureIncrease = influence * (avgWeight / 3.0) * intensityMultiplier;
     
     // Add random noise to prevent perfectly predictable transitions
-    const randomNoise = (Math.random() - 0.5) * 0.1; // ±0.05
+    const randomNoise = (Math.random() - 0.5) * 0.1; // 뿯½0.05
     pressureIncrease += randomNoise;
     
     this.transitionPressure += pressureIncrease;
@@ -540,7 +540,7 @@ export class ChazyMind {
     
     // Adjust intensity based on message strength
     // Strong messages increase engagement, weak messages decrease it
-    const intensityTarget = avgWeight / 3.5; // Map [0-3.5] → [0-1.0]
+    const intensityTarget = avgWeight / 3.5; // Map [0-3.5] 뿯↽ [0-1.0]
     const intensityDrift = (intensityTarget - this.intensity) * 0.15; // 15% pull
     
     this.intensity = Math.max(
@@ -589,7 +589,7 @@ export class ChazyMind {
         const allEmotions = Object.keys(this.emotionGraph);
         const kickEmotion = allEmotions[Math.floor(Math.random() * allEmotions.length)];
         if (kickEmotion !== this.emotion) {
-          console.log(`[Chazy] Random kick! ${this.emotion} → ${kickEmotion} (ignoring graph)`);
+          console.log(`[Chazy] Random kick! ${this.emotion} 뿯↽ ${kickEmotion} (ignoring graph)`);
           this._transitionTo(kickEmotion, 'random perturbation');
           this.transitionPressure = 0;
           return;
@@ -597,11 +597,16 @@ export class ChazyMind {
       }
       
       // Weighted sample from modulated edges
-      const nextEmotion = this._weightedChoice(modulatedEdges);
+      // Convert object to array format expected by _weightedChoice
+      const choicesArray = Object.entries(modulatedEdges).map(([emotion, weight]) => ({
+        emotion,
+        weight
+      }));
+      const nextEmotion = this._weightedChoice(choicesArray);
       
       if (nextEmotion && nextEmotion !== this.emotion) {
         const topThemes = themes.slice(0, 2).join(', ');
-        console.log(`[Chazy] Graph traversal: ${this.emotion} → ${nextEmotion} (following ${topThemes || 'momentum'})`);
+        console.log(`[Chazy] Graph traversal: ${this.emotion} 뿯↽ ${nextEmotion} (following ${topThemes || 'momentum'})`);
         this._transitionTo(nextEmotion, `graph traversal via ${topThemes || 'text momentum'}`);
         this.transitionPressure = 0; // Reset after transition
       } else {
