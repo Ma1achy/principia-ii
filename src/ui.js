@@ -283,15 +283,94 @@ export function zAtUV(u, v, renderer) {
   return state.z0.map((z0i, i) => z0i + uu * q1[i] + vv * q2[i]);
 }
 
-export function showProbeAtEvent(e, probeTooltip, glCanvas, outCanvas, renderer) {
-  if (!$("showHud").checked) return;
-  const { u, v } = uvFromClientXY(e.clientX, e.clientY, glCanvas, outCanvas);
+export function showProbeAtEvent(e, probeTooltip, glCanvas, outCanvas, renderer, interactionState) {
+  if (!$("showHud").checked) {
+    // Even if HUD is hidden, still update probe state for mode detection
+    if (interactionState) {
+      interactionState.probeActive = false;
+    }
+    return;
+  }
+  
+  const { u, v, rect } = uvFromClientXY(e.clientX, e.clientY, glCanvas, outCanvas);
   const z = zAtUV(u, v, renderer);
   const p = decodeICParamsFromZ(z);
   const topZ = z.map((val, i) => ({ i, val, a: Math.abs(val) })).sort((a, b) => b.a - a.a).slice(0, 4);
   const view = renderer.fullViewTile(state);
   const wx = view.offX + u * view.scX;
   const wy = view.offY + v * view.scY;
+  
+  // Throttle pixel sampling - only every ~100ms to reduce lag
+  const now = Date.now();
+  if (!showProbeAtEvent.lastSampleTime || now - showProbeAtEvent.lastSampleTime > 100) {
+    showProbeAtEvent.lastSampleTime = now;
+    
+    // Sample pixel data for event detection
+    if (interactionState) {
+      const activeCanvas = outCanvas.style.display !== "none" ? outCanvas : glCanvas;
+      const pixelX = Math.floor((e.clientX - rect.left) * (activeCanvas.width / rect.width));
+      const pixelY = Math.floor((e.clientY - rect.top) * (activeCanvas.height / rect.height));
+      
+      try {
+        // WebGL canvases need gl.readPixels, not getImageData
+        const gl = activeCanvas.getContext('webgl2') || activeCanvas.getContext('webgl');
+        if (gl) {
+          const pixel = new Uint8Array(4);
+          // WebGL coordinates are bottom-up, so flip Y
+          const glY = activeCanvas.height - pixelY - 1;
+          gl.readPixels(pixelX, glY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+          
+          // Event classification mode: detect collision and escape using shader colors
+          if (state.mode === 0) { // Event classification
+            const r = pixel[0] / 255;
+            const g = pixel[1] / 255;
+            const b = pixel[2] / 255;
+            
+            // Collision colors (lines 235-237 in shader):
+            // Red (pair 0-1), Green (pair 0-2), Blue (pair 1-2)
+            const isRed = r > 0.1 && g < 0.1 && b < 0.1;
+            const isGreen = g > 0.1 && r < 0.1 && b < 0.1;
+            const isBlue = b > 0.1 && r < 0.1 && g < 0.1;
+            const hasCollision = isRed || isGreen || isBlue;
+            
+            // Escape colors (lines 217-219 in shader):
+            // Yellow (0.8,0.8,0), Magenta (0.8,0,0.8), Cyan (0,0.8,0.8)
+            const isYellow = r > 0.7 && g > 0.7 && b < 0.1;
+            const isMagenta = r > 0.7 && b > 0.7 && g < 0.1;
+            const isCyan = g > 0.7 && b > 0.7 && r < 0.1;
+            const hasEscape = isYellow || isMagenta || isCyan;
+            
+            // Black = bounded/timeout (line 239)
+            // (neither collision nor escape)
+            
+            interactionState.probeActive = true;
+            interactionState.hasCollision = hasCollision;
+            interactionState.hasEscape = hasEscape;
+            interactionState.stabilityValue = 0;
+          } 
+          // Diffusion mode: extract stability from color intensity
+          else if (state.mode === 1) { // Diffusion
+            const intensity = (pixel[0] + pixel[1] + pixel[2]) / (3 * 255);
+            interactionState.probeActive = true;
+            interactionState.hasCollision = false;
+            interactionState.hasEscape = false;
+            interactionState.stabilityValue = intensity; // Low intensity = stable
+          } else {
+            interactionState.probeActive = true;
+            interactionState.hasCollision = false;
+            interactionState.hasEscape = false;
+            interactionState.stabilityValue = 0;
+          }
+        } else {
+          interactionState.probeActive = false;
+        }
+      } catch (err) {
+        console.warn('Failed to read pixel data:', err);
+        interactionState.probeActive = false;
+      }
+    }
+  }
+  
   const lines = [
     { type: "row", label: "world", val: `(${wx.toFixed(5)}, ${wy.toFixed(5)})` },
     { type: "row", label: "m",     val: `[${p.m.map(x => x.toFixed(5)).join(", ")}]` },
@@ -1230,8 +1309,9 @@ export function fitTitle() {
   subEl.style.display = "block";
   subEl.style.whiteSpace = "nowrap";
   
-  // Clear any animation minWidth constraints before recalculating
+  // Clear any animation width constraints before recalculating
   subEl.style.minWidth = "";
+  subEl.style.maxWidth = "";
 
   // ---- Tunables ----
   const TITLE_LEFT_PX = 20; // matches CSS
@@ -1263,18 +1343,78 @@ export function fitTitle() {
   function measureBlock(px) {
     const gapPx = setSizes(px);
     const n = nameEl.getBoundingClientRect();
-    const s = subEl.getBoundingClientRect();
+    let s = subEl.getBoundingClientRect();
     
-    // Check if subtitle is too wide and needs font reduction
-    const maxSubWidth = canvasWrap.getBoundingClientRect().width - (TITLE_LEFT_PX * 2) - MARGIN_PX;
+    // Check if subtitle is too wide and needs adjustment
+    const maxSubWidth = n.width * 0.95; // Allow subtitle to be 95% of title width (more conservative)
+    
     if (s.width > maxSubWidth) {
-      // Reduce subtitle font size to fit - NO MINIMUM, shrink as needed
-      const scaleFactor = maxSubWidth / s.width;
-      const newSubSize = px * SUB_RATIO * scaleFactor;
-      subEl.style.fontSize = `${newSubSize}px`;
-      // Re-measure after adjustment
-      const sAdjusted = subEl.getBoundingClientRect();
-      return { titleW: n.width, blockH: n.height + gapPx + sAdjusted.height, subW: sAdjusted.width };
+      // Strategy: Try to keep font size as large as possible
+      // 1. Try adjusting kerning first (at current font size)
+      // 2. If kerning limit reached, reduce font size slightly and reset kerning
+      // 3. Repeat until it fits
+      
+      const originalFontSize = px * SUB_RATIO;
+      let currentFontSize = originalFontSize;
+      const minKerning = -0.05; // em
+      const fontSizeStep = 0.95; // Reduce by 5% each step
+      
+      let foundFit = false;
+      
+      // Try up to 10 font size steps
+      for (let fontStep = 0; fontStep < 10 && !foundFit; fontStep++) {
+        subEl.style.fontSize = `${currentFontSize}px`;
+        
+        // Binary search for optimal kerning at this font size
+        let lo = minKerning;
+        let hi = 0.0;
+        let bestKerning = 0;
+        
+        for (let i = 0; i < 12; i++) {
+          const mid = (lo + hi) / 2;
+          subEl.style.letterSpacing = `${mid}em`;
+          const testWidth = subEl.getBoundingClientRect().width;
+          
+          if (testWidth <= maxSubWidth) {
+            bestKerning = mid;
+            hi = mid; // Try looser
+            foundFit = true;
+          } else {
+            lo = mid; // Need tighter
+          }
+        }
+        
+        if (foundFit) {
+          subEl.style.letterSpacing = `${bestKerning}em`;
+          console.log('Subtitle fit:', {
+            fontSize: currentFontSize,
+            letterSpacing: bestKerning,
+            steps: fontStep,
+            finalWidth: subEl.getBoundingClientRect().width,
+            maxWidth: maxSubWidth
+          });
+          break;
+        }
+        
+        // Didn't fit even at tightest kerning, reduce font size
+        currentFontSize *= fontSizeStep;
+      }
+      
+      if (!foundFit) {
+        // Emergency fallback - should rarely happen
+        console.warn('Could not fit subtitle, using minimum size');
+      }
+      
+      if (currentFontSize < originalFontSize) {
+        subEl.dataset.reducedFontSize = currentFontSize;
+      }
+      
+      s = subEl.getBoundingClientRect();
+      return { titleW: n.width, blockH: n.height + gapPx + s.height, subW: s.width };
+    } else {
+      // Clear any previous adjustments
+      delete subEl.dataset.reducedFontSize;
+      subEl.style.letterSpacing = '';
     }
     
     return { titleW: n.width, blockH: n.height + gapPx + s.height, subW: s.width };
@@ -1282,8 +1422,18 @@ export function fitTitle() {
 
   function fitTrackingToWidth(el, targetW) {
     // subtitle is IBM Plex Mono-ish: tracking works well
+    const cursor = el.querySelector('.text-cursor');
+    
     const widthAt = (em) => {
       el.style.letterSpacing = `${em}em`;
+      if (cursor) {
+        // Exclude cursor from measurement
+        const cursorDisplay = cursor.style.display;
+        cursor.style.display = 'none';
+        const width = el.getBoundingClientRect().width;
+        cursor.style.display = cursorDisplay;
+        return width;
+      }
       return el.getBoundingClientRect().width;
     };
 
@@ -1470,16 +1620,28 @@ export function fitTitle() {
   // Subtitle tracking to match title width
   const titleWidth = nameEl.getBoundingClientRect().width;
   
-  // Reset subtitle positioning completely
+  // Reset subtitle positioning and sizing completely
   subEl.style.letterSpacing = "0em";
   subEl.style.transform = "none";
   subEl.style.marginLeft = "0px";
   subEl.style.paddingLeft = "0px";
+  subEl.style.maxWidth = ""; // Clear any previous max-width constraint
   
   // Force layout recalculation
   void subEl.offsetHeight;
   
-  const naturalWidth = subEl.getBoundingClientRect().width;
+  // Measure width excluding cursor if present
+  const cursor = subEl.querySelector('.text-cursor');
+  let naturalWidth;
+  if (cursor) {
+    // Temporarily hide cursor for accurate text measurement
+    const cursorDisplay = cursor.style.display;
+    cursor.style.display = 'none';
+    naturalWidth = subEl.getBoundingClientRect().width;
+    cursor.style.display = cursorDisplay;
+  } else {
+    naturalWidth = subEl.getBoundingClientRect().width;
+  }
   
   // Apply optical correction: Helvetica Neue bold "P" has visual weight
   // slightly inset from bounding box, while IBM Plex Mono is more uniform.
@@ -1499,7 +1661,30 @@ export function fitTitle() {
   if (naturalWidth < targetWidth) {
     fitTrackingToWidth(subEl, targetWidth);
   } else {
-    subEl.style.letterSpacing = "0em";
+    // Natural width is too wide - need to compress it
+    subEl.style.maxWidth = `${targetWidth}px`;
+    
+    // Use negative letter-spacing to compress
+    const widthAt = (em) => {
+      subEl.style.letterSpacing = `${em}em`;
+      if (cursor) {
+        const cursorDisplay = cursor.style.display;
+        cursor.style.display = 'none';
+        const width = subEl.getBoundingClientRect().width;
+        cursor.style.display = cursorDisplay;
+        return width;
+      }
+      return subEl.getBoundingClientRect().width;
+    };
+    
+    // Binary search for negative letter-spacing that fits
+    let lo = -0.15, hi = 0.0; // -0.15em to 0em
+    for (let i = 0; i < 15; i++) {
+      const mid = (lo + hi) / 2;
+      if (widthAt(mid) < targetWidth) hi = mid;
+      else lo = mid;
+    }
+    subEl.style.letterSpacing = `${hi}em`;
   }
   
   // Apply optical alignment

@@ -76,7 +76,7 @@ canvas#glCanvas, canvas#outCanvas {
   height: min(calc(100vw - 460px), 80vh);
   max-width: 100%;
   max-height: 100%;
-  border: 1px solid var(--border-strong);
+  border: none;
   background: #0a0a0a;
   touch-action: none;
   display: block;
@@ -445,6 +445,11 @@ canvas#uiCanvas {
 @keyframes cursor-blink {
   0%, 50% { opacity: 1; }
   50.01%, 100% { opacity: 0; }
+}
+/* Text selection effect for deletion strategies */
+#canvas-subtitle span.selected {
+  background-color: var(--muted);
+  color: var(--bg);
 }
 #canvas-controls {
   position: fixed;

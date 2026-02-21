@@ -25,9 +25,55 @@ const MODE_MAP = {
   'Shape sphere RGB':     'phase',  // Use 'phase' for shape sphere modes
 };
 
+// Interaction state tracker for reactive mode switching
+const interactionState = {
+  isZooming: false,
+  isDragging: false,
+  isRendering: false,
+  isLongRender: false, // Only true for tiled/slow renders
+  lastActionTime: Date.now(),
+  idleThresholdMs: 30000, // 30 seconds of no input = idle
+  pageLoadTime: Date.now(), // Track when page loaded
+  graceGracePeriodMs: 5000, // 5 second grace period after page load before considering "idle"
+  
+  // Probe state - updated when hovering over rendered output
+  probeActive: false,
+  hasCollision: false,
+  hasEscape: false,
+  stabilityValue: 0,
+};
+
 function getCurrentMode() {
+  // Active interaction states (highest priority)
+  if (interactionState.isZooming) return 'zoom';
+  if (interactionState.isDragging) return 'drag';
+  
+  // Long render mode (only for tiled/slow renders, not quick previews)
+  if (interactionState.isLongRender) return 'render';
+  
+  // Contextual modes when hovering (only when actively probing)
+  if (interactionState.probeActive) {
+    if (interactionState.hasCollision) return 'collision';
+    if (interactionState.stabilityValue < 0.15) return 'stable';
+    if (interactionState.hasEscape) return 'ejection';
+  }
+  
+  // Check for idle (no input for a while) - but not during grace period after page load
+  const timeSincePageLoad = Date.now() - interactionState.pageLoadTime;
+  const idleTime = Date.now() - interactionState.lastActionTime;
+  if (timeSincePageLoad > interactionState.graceGracePeriodMs && 
+      idleTime > interactionState.idleThresholdMs) {
+    return 'idle';
+  }
+  
+  // Default: use the simulation mode
   const modeName = MODE_INFO[state.mode]?.name || 'Event classification';
-  return MODE_MAP[modeName] ?? 'any';
+  return MODE_MAP[modeName] ?? 'event';
+}
+
+// Track user activity for idle detection
+function trackActivity() {
+  interactionState.lastActionTime = Date.now();
 }
 
 const subtitleEl = document.getElementById('canvas-title-sub');
@@ -35,18 +81,66 @@ const flavour = new FlavourText('src/resources/flavour.json', {
   defaultInterval: 4000,
   crossfadeMs:      600,
   bufferSize:        32,
-  randomMinMs:      8000,   // 8 seconds minimum
-  randomMaxMs:     15000,   // 15 seconds maximum
+  displayMinMs:     2000,
+  displayMaxMs:    10000,
+  multiLineMultiplier: 2.5,
 });
 
 await flavour.load();
 attachFlavourText(flavour, getCurrentMode, subtitleEl, [], fitTitle);
 
+// Watch for collision/ejection events and try to interrupt
+let lastObservedMode = null;
+setInterval(() => {
+  // Only try to interrupt if we're in a reactive mode
+  const mode = getCurrentMode();
+  
+  // Feed new events to Chazy
+  if (mode !== lastObservedMode) {
+    // Mode changed, observe the event
+    if (mode === 'collision' || mode === 'ejection' || mode === 'stable' || 
+        mode === 'zoom' || mode === 'drag' || mode === 'idle' || mode === 'render') {
+      
+      // Prepare event data
+      const eventData = {
+        stability: interactionState.stabilityValue,
+        hasCollision: interactionState.hasCollision,
+        hasEscape: interactionState.hasEscape,
+      };
+      
+      flavour.chazy.observe(mode, eventData);
+      
+      // Try to interrupt if Chazy thinks this event is emotionally significant
+      if (flavour.chazy.shouldInterrupt(mode)) {
+        flavour.interrupt();
+      }
+    }
+    
+    lastObservedMode = mode;
+  }
+  
+  // Also try to interrupt for collision/ejection even without mode change
+  if (mode === 'collision' || mode === 'ejection') {
+    flavour.interrupt();
+  }
+}, 1000); // Check every second
+
 // Add click-to-reroll
 subtitleEl.style.cursor = 'pointer';
 subtitleEl.addEventListener('click', () => {
+  trackActivity();
   attachFlavourText(flavour, getCurrentMode, subtitleEl, [], fitTitle);
 });
+
+// Track activity on any user interaction
+document.addEventListener('mousemove', trackActivity, { passive: true });
+document.addEventListener('mousedown', trackActivity, { passive: true });
+document.addEventListener('keydown', trackActivity, { passive: true });
+document.addEventListener('wheel', trackActivity, { passive: true });
+document.addEventListener('touchstart', trackActivity, { passive: true });
+
+// Export interaction state for other modules to update
+export { interactionState };
 
 const renderer     = await createThreeBodyRenderer(glCanvas, outCanvas);
 const probeTooltip = new GlTooltip();
@@ -113,9 +207,17 @@ function scheduleRender(reason = '') {
 
 async function doRender(res) {
   const maxGpu = renderer.getMaxDrawableSize();
+  interactionState.isRendering = true;
+  
+  // Only set long render mode for large/tiled renders
+  const isLongRender = res >= 8192 || res > maxGpu;
+  if (isLongRender) {
+    interactionState.isLongRender = true;
+  }
+  
   setRenderingState(true);
   renderer.setAbort(false);
-  if (res >= 8192 || res > maxGpu) {
+  if (isLongRender) {
     const preview = Math.min(1024, maxGpu);
     showGL_();
     renderer.renderNormal(state, preview);
@@ -127,6 +229,8 @@ async function doRender(res) {
       setOverlay(true, `${done}/${total} tiles (${w}x${h})`, (done / total) * 100);
     });
     setOverlay(false);
+    interactionState.isRendering = false;
+    interactionState.isLongRender = false;
     setRenderingState(false);
     if (result.aborted) { setStatus('Stopped.'); drawHUD(); return; }
     setStatus(`Done: ${res}x${res} (tiled)`);
@@ -137,6 +241,7 @@ async function doRender(res) {
   setOverlay(true, `Rendering ${res}x${res}...`, 40);
   renderer.renderNormal(state, res);
   setOverlay(false);
+  interactionState.isRendering = false;
   setRenderingState(false);
   setStatus(`Done: ${res}x${res}`);
   drawHUD();
@@ -151,7 +256,7 @@ function writeHash() {
 // ─── Probe ───────────────────────────────────────────────────────────────────
 
 function showProbe(e) {
-  showProbeAtEvent(e, probeTooltip, glCanvas, outCanvas, renderer);
+  showProbeAtEvent(e, probeTooltip, glCanvas, outCanvas, renderer, interactionState);
 }
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
@@ -177,8 +282,8 @@ function boot() {
 
   attachGestures(glCanvas,  glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe);
   attachGestures(outCanvas, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe);
-  attachProbe(glCanvas,  probeTooltip, showProbe);
-  attachProbe(outCanvas, probeTooltip, showProbe);
+  attachProbe(glCanvas,  probeTooltip, showProbe, interactionState);
+  attachProbe(outCanvas, probeTooltip, showProbe, interactionState);
   attachHintTooltips(hintTooltip);
 
   fitTitle();

@@ -1,9 +1,11 @@
 import { state, navPrefs } from './state.js';
+import { interactionState } from './main.js';
 
 export let dragging = false;
 export let dragMode = "pan";
 
 let lastX = 0, lastY = 0;
+let zoomTimeout = null; // For debouncing zoom state
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -42,6 +44,7 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
 
   el.addEventListener("pointerdown", (e) => {
     dragging = true; lastX = e.clientX; lastY = e.clientY;
+    interactionState.isDragging = true; // Set dragging state
     probeTooltip.hide();
     dragMode = e.shiftKey ? "gamma" : e.altKey ? "tilt" : "pan";
     el.setPointerCapture?.(e.pointerId);
@@ -49,6 +52,7 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
 
   window.addEventListener("pointerup", () => {
     dragging = false;
+    interactionState.isDragging = false; // Clear dragging state
   });
 
   el.addEventListener("pointermove", (e) => {
@@ -79,11 +83,21 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
   el.addEventListener("wheel", (e) => {
     e.preventDefault();
     probeTooltip.hide();
+    
+    // Set zooming state
+    interactionState.isZooming = true;
+    
     const sign = navPrefs.invertScroll ? -1 : 1;
     const rate = 0.0015 * navPrefs.zoomSpeed;
     const delta = sign * e.deltaY * rate;
     zoomAt(e.clientX, e.clientY, Math.exp(delta), glCanvas, outCanvas);
     scheduleRender("zoom"); writeHash(); updateStateBox(); drawOverlayHUD();
+    
+    // Clear zooming state after a short delay (debounce)
+    clearTimeout(zoomTimeout);
+    zoomTimeout = setTimeout(() => {
+      interactionState.isZooming = false;
+    }, 500); // Consider zooming stopped after 500ms of no wheel events
   }, { passive: false });
 
   el.addEventListener("dblclick", () => resetView(scheduleRender, writeHash, updateStateBox, drawOverlayHUD));
@@ -96,12 +110,22 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
   }, { passive: true });
 }
 
-export function attachProbe(el, probeTooltip, showProbeAtEvent) {
+export function attachProbe(el, probeTooltip, showProbeAtEvent, interactionState) {
   el.addEventListener("pointermove", (e) => {
     if (e.pointerType === "mouse" && !dragging) showProbeAtEvent(e);
-    else if (dragging) probeTooltip.hide();
+    else if (dragging) {
+      probeTooltip.hide();
+      if (interactionState) interactionState.probeActive = false;
+    }
   });
-  el.addEventListener("pointerleave", () => probeTooltip.hide());
+  el.addEventListener("pointerleave", () => {
+    probeTooltip.hide();
+    if (interactionState) {
+      interactionState.probeActive = false;
+      interactionState.hasCollision = false;
+      interactionState.hasEscape = false;
+    }
+  });
 }
 
 export function attachHintTooltips(hintTooltip) {
