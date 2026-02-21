@@ -51,7 +51,24 @@
 }
 
 /* Selection effect for deletion */
-.chazy-subtitle span.selected {
+.chazy-subtitle.has-selection {
   background-color: var(--muted);
+  padding-left: 0.35em;
+  padding-right: 0.35em;
+}
+
+.chazy-subtitle.has-selection span {
+  color: var(--bg);
+}
+
+/* For word-level selection, wrap selected words */
+.chazy-subtitle .word-selection-wrapper {
+  background-color: var(--muted);
+  display: inline;
+  padding-left: 0.35em;
+  padding-right: 0.35em;
+}
+
+.chazy-subtitle .word-selection-wrapper span {
   color: var(--bg);
 }

@@ -1087,12 +1087,17 @@ export function animateTextOut(element, onComplete, options = {}) {
   cursor.className = 'text-cursor';
   cursor.textContent = '█';
   element.appendChild(cursor);
-
+  
   if (deletionStrategy === 'select_all') {
-    // Visual "selection" effect - invert colors (like real selection)
+    // Visual "selection" effect - apply background to parent container
+    element.classList.add('has-selection');
+    
+    // Hide cursor during selection
+    cursor.style.opacity = '0';
+    
+    // Ensure all spans are visible for selection effect
     charSpans.forEach(span => {
-      span.classList.add('selected');
-      span.style.opacity = '1';  // Ensure visible for selection effect
+      span.style.opacity = '1';
     });
 
     const selectionPause = 800 + Math.random() * 600;
@@ -1100,6 +1105,13 @@ export function animateTextOut(element, onComplete, options = {}) {
     const timeout = setTimeout(() => {
       if (cancelled) return;
 
+      // Remove selection styling
+      element.classList.remove('has-selection');
+      
+      // Show cursor again
+      cursor.style.opacity = '1';
+      
+      // Fade out characters
       charSpans.forEach(span => span.style.opacity = '0');
 
       const deleteTimeout = setTimeout(() => {
@@ -1156,6 +1168,8 @@ export function animateTextOut(element, onComplete, options = {}) {
       if (cancelled) return;
 
       if (wordIndex < 0) {
+        // Show cursor again when done
+        cursor.style.opacity = '1';
         cursor.className = 'text-cursor blinking';
         element.style.minWidth = '';
         element.style.maxWidth = '';
@@ -1165,10 +1179,25 @@ export function animateTextOut(element, onComplete, options = {}) {
 
       const word = words[wordIndex];
 
-      // "Select" the word (invert colors like real selection)
+      // Hide cursor during selection
+      cursor.style.opacity = '0';
+
+      // Wrap word spans in a selection wrapper for proper background
+      const wrapper = document.createElement('span');
+      wrapper.className = 'word-selection-wrapper';
+      
+      // Ensure all word spans are visible
       word.forEach(span => {
-        span.classList.add('selected');
-        span.style.opacity = '1';  // Ensure visible for selection effect
+        span.style.opacity = '1';
+      });
+      
+      // Insert wrapper before first span in word
+      const firstSpan = word[0];
+      firstSpan.parentNode.insertBefore(wrapper, firstSpan);
+      
+      // Move all word spans into wrapper
+      word.forEach(span => {
+        wrapper.appendChild(span);
       });
 
       const selectionPause = 200 + Math.random() * 300;
@@ -1176,8 +1205,14 @@ export function animateTextOut(element, onComplete, options = {}) {
       const timeout = setTimeout(() => {
         if (cancelled) return;
 
-        word.forEach(span => span.remove());
+        // Remove the entire wrapper (with all word spans)
+        wrapper.remove();
         wordIndex--;
+
+        // Show cursor briefly between words
+        if (wordIndex >= 0) {
+          cursor.style.opacity = '1';
+        }
 
         const nextTimeout = setTimeout(deleteNextWord, 100 + Math.random() * 150);
         timeouts.push(nextTimeout);

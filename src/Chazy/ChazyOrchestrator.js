@@ -103,7 +103,8 @@ export class Chazy {
   _cycle() {
     if (!this.running) return;
     
-    const mode = this.getCurrentMode();
+    // On first cycle, use 'welcome' mode to trigger welcome messages
+    const mode = this.selector.isFirstSelection ? 'welcome' : this.getCurrentMode();
     const emotion = this.mind.emotion;
     const intensity = this.mind.intensity;
     
@@ -112,7 +113,7 @@ export class Chazy {
       themes: this.mind.getPreferredThemes(),
       emotion: emotion.toLowerCase(),
       intensity,
-      excludeWelcome: !this.selector.isFirstSelection
+      excludeWelcome: false  // Always allow welcome messages on first selection
     });
     
     if (!selected) {

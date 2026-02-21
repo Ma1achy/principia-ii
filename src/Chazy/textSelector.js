@@ -175,9 +175,9 @@ export class TextSelector {
   select(context) {
     const { mode, themes = [], emotion, intensity, excludeWelcome = false } = context;
     
-    // Handle welcome text on first selection
-    if (this.isFirstSelection && !excludeWelcome) {
-      const welcomeIndex = this._pickIndexForWelcome(themes, emotion);
+    // Handle welcome text on first selection (when mode is 'welcome')
+    if (this.isFirstSelection && mode === 'welcome') {
+      const welcomeIndex = this._pickIndexForWelcome(themes, emotion, intensity);
       if (welcomeIndex !== -1) {
         this.isFirstSelection = false;
         this._addToBuffer(welcomeIndex);
@@ -189,6 +189,7 @@ export class TextSelector {
           isMultiLine: unit.lines.length > 1
         };
       }
+      // If no welcome message found, mark as no longer first selection
       this.isFirstSelection = false;
     }
     
@@ -222,7 +223,7 @@ export class TextSelector {
   
   // ─── Internal ──────────────────────────────────────────────────────────────
   
-  _pickIndexForWelcome(themes, emotion) {
+  _pickIndexForWelcome(themes, emotion, intensity) {
     const all = this.data.subtitles;
     
     let candidates = all
@@ -234,7 +235,7 @@ export class TextSelector {
     
     if (candidates.length === 0) return -1;
     
-    return this._weightedRandom(candidates, emotion, 1.0);
+    return this._weightedRandom(candidates, emotion, intensity);
   }
   
   _pickIndex(visualMode, themes, emotion, intensity, excludeWelcome) {
