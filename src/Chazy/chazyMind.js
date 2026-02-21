@@ -1,5 +1,5 @@
 /**
- * Chazy  The Voice
+ * Chazy The Voice
  *
  * Named after Jean Chazy (1882-1955), French astronomer and mathematician
  * who classified the final states of gravitational three-body systems.
@@ -73,9 +73,22 @@ export class ChazyMind {
       coherence: 0.35,     // How much text selection influences graph traversal (0-1)
     };
     
-    // Emotional momentum (smooth transitions)
-    this.transitionCooldown = 0; // ms until next transition allowed
+    // Unified transition cooldown (applies to all transition pathways)
+    this.nextTransitionAllowedAt = 0;
     this.minTransitionInterval = 15000; // Min 15s between emotion changes
+    
+    // Per-emotion pressure thresholds (emotional "mass")
+    this.transitionThresholds = {
+      NEUTRAL: 1.0,
+      CURIOUS: 1.0,
+      ANALYTICAL: 1.2,      // Sticky when analyzing
+      AMUSED: 0.9,
+      CONCERNED: 1.1,
+      CONTEMPLATIVE: 1.3,   // Very resistant to leaving
+      EXCITED: 0.85,        // Fast transitions
+      BORED: 0.95,
+      SURPRISED: 0.75,      // Very quick to transition
+    };
     
     // Emotion graph: defines possible transitions and base weights
     this.emotionGraph = {
@@ -211,12 +224,13 @@ export class ChazyMind {
     
     if (intensityBoost[event.type]) {
       this.intensity = Math.min(1.0, this.intensity + intensityBoost[event.type]);
-      console.log(`[Chazy] Event ${event.type} boosts intensity 뿯↽ ${this.intensity.toFixed(2)}`);
+      console.log(`[Chazy] Event ${event.type} boosts intensity -> ${this.intensity.toFixed(2)}`);
     }
     
-    // Check if we're in cooldown
-    if (timeSinceTransition < this.minTransitionInterval) {
-      console.log(`[Chazy] Emotion locked (cooldown: ${(this.minTransitionInterval - timeSinceTransition) / 1000}s)`);
+    // Check unified transition cooldown
+    if (now < this.nextTransitionAllowedAt) {
+      const cooldownRemaining = (this.nextTransitionAllowedAt - now) / 1000;
+      console.log(`[Chazy] Emotion locked (cooldown: ${cooldownRemaining.toFixed(1)}s)`);
       return;
     }
     
@@ -322,6 +336,9 @@ export class ChazyMind {
     // After 45s in same emotion, consider drift
     if (timeInEmotion < 45000) return;
     
+    // Check unified transition cooldown
+    if (now < this.nextTransitionAllowedAt) return;
+    
     const current = this.emotion;
     const drifts = [];
     
@@ -365,11 +382,14 @@ export class ChazyMind {
    * Transition to a new emotional state
    */
   _transitionTo(newEmotion, reason) {
-    console.log(`[Chazy] ${this.emotion} 뿯↽ ${newEmotion} (${reason})`);
+    console.log(`[Chazy] ${this.emotion} -> ${newEmotion} (${reason})`);
     
     const oldEmotion = this.emotion;
     this.emotion = newEmotion;
     this.emotionStartTime = Date.now();
+    
+    // Set unified cooldown for all transition pathways
+    this.nextTransitionAllowedAt = Date.now() + this.minTransitionInterval;
     
     // Set intensity based on new emotion
     if (newEmotion === 'NEUTRAL') {
@@ -391,25 +411,25 @@ export class ChazyMind {
     const now = Date.now();
     const timeSinceDecay = now - this.lastIntensityDecay;
     
-    // Check every 5 seconds
-    if (timeSinceDecay < this.intensityDecayInterval) return;
+    // Passive decay check every 8 seconds
+    if (timeSinceDecay >= this.intensityDecayInterval) {
+      this.lastIntensityDecay = now;
+      
+      // Passive decay (idle drains engagement)
+      this.intensity = Math.max(
+        this.intensityFloor,
+        this.intensity - this.intensityDecayRate
+      );
+      
+      console.log(`[Chazy] Intensity decay -> ${this.intensity.toFixed(2)}`);
+    }
     
-    this.lastIntensityDecay = now;
-    
-    // Passive decay (idle drains engagement)
-    this.intensity = Math.max(
-      this.intensityFloor,
-      this.intensity - this.intensityDecayRate
-    );
-    
-    console.log(`[Chazy] Intensity decay 뿯↽ ${this.intensity.toFixed(2)}`);
-    
-    // If intensity is very low and we're not already neutral, drift toward neutral
-    if (this.intensity <= 0.12 && this.emotion !== 'NEUTRAL') {  // Lower threshold (was 0.15)
+    // Check fade-to-neutral every time (more responsive than decay gate)
+    if (this.intensity <= 0.12 && this.emotion !== 'NEUTRAL') {
       const timeInEmotion = now - this.emotionStartTime;
-      // After 45s at low intensity, drift to neutral (was 30s - longer before fade)
-      if (timeInEmotion > 45000) {
-        console.log(`[Chazy] Low intensity drift 뿯↽ NEUTRAL`);
+      // After 45s at low intensity, drift to neutral
+      if (timeInEmotion > 45000 && now >= this.nextTransitionAllowedAt) {
+        console.log(`[Chazy] Low intensity drift -> NEUTRAL`);
         this._transitionTo('NEUTRAL', 'low engagement fade');
       }
     }
@@ -527,7 +547,7 @@ export class ChazyMind {
     let pressureIncrease = influence * (avgWeight / 3.0) * intensityMultiplier;
     
     // Add random noise to prevent perfectly predictable transitions
-    const randomNoise = (Math.random() - 0.5) * 0.1; // 뿯½0.05
+    const randomNoise = (Math.random() - 0.5) * 0.1; // ±0.05
     pressureIncrease += randomNoise;
     
     this.transitionPressure += pressureIncrease;
@@ -538,9 +558,12 @@ export class ChazyMind {
     const intensityDecayFactor = 1.0 - (0.2 * this.intensity); // 1.0x at intensity 0, 0.8x at intensity 1.0
     this.transitionPressure *= (0.97 * intensityDecayFactor); // Base 3% decay, adjusted by intensity
     
+    // Clamp pressure to non-negative (makes tuning easier)
+    this.transitionPressure = Math.max(0, this.transitionPressure);
+    
     // Adjust intensity based on message strength
     // Strong messages increase engagement, weak messages decrease it
-    const intensityTarget = avgWeight / 3.5; // Map [0-3.5] 뿯↽ [0-1.0]
+    const intensityTarget = avgWeight / 3.5; // Map [0-3.5] -> [0-1.0]
     const intensityDrift = (intensityTarget - this.intensity) * 0.15; // 15% pull
     
     this.intensity = Math.max(
@@ -550,8 +573,17 @@ export class ChazyMind {
     
     console.log(`[Chazy] Reflecting on text (avg weight: ${avgWeight.toFixed(1)}), pressure: ${this.transitionPressure.toFixed(2)}, intensity: ${this.intensity.toFixed(2)} (target: ${intensityTarget.toFixed(2)})`);
     
+    // Check unified transition cooldown
+    const now2 = Date.now();
+    if (now2 < this.nextTransitionAllowedAt) {
+      return;
+    }
+    
+    // Use per-emotion threshold (emotional "mass")
+    const threshold = this.transitionThresholds[this.emotion] || 1.0;
+    
     // Threshold reached - time to traverse the graph
-    if (this.transitionPressure >= 1.0) {
+    if (this.transitionPressure >= threshold) {
       const edges = this.emotionGraph[this.emotion];
       
       if (!edges || Object.keys(edges).length === 0) {
@@ -560,11 +592,16 @@ export class ChazyMind {
         return;
       }
       
+      // Normalize textWeights keys to lowercase for safe lookup
+      const normalizedWeights = Object.fromEntries(
+        Object.entries(textWeights).map(([k, v]) => [k.toLowerCase(), v])
+      );
+      
       // Modulate edge weights based on selected message's emotional content
       const modulatedEdges = {};
       for (const [targetEmotion, edge] of Object.entries(edges)) {
         // Message weight for target emotion pulls that edge stronger
-        const pull = textWeights[targetEmotion.toLowerCase()] ?? 1.0;
+        const pull = normalizedWeights[targetEmotion.toLowerCase()] ?? 1.0;
         let modulatedWeight = edge.base * pull;
         
         // Make return-to-NEUTRAL harder when highly engaged
@@ -589,7 +626,7 @@ export class ChazyMind {
         const allEmotions = Object.keys(this.emotionGraph);
         const kickEmotion = allEmotions[Math.floor(Math.random() * allEmotions.length)];
         if (kickEmotion !== this.emotion) {
-          console.log(`[Chazy] Random kick! ${this.emotion} 뿯↽ ${kickEmotion} (ignoring graph)`);
+          console.log(`[Chazy] Random kick! ${this.emotion} -> ${kickEmotion} (ignoring graph)`);
           this._transitionTo(kickEmotion, 'random perturbation');
           this.transitionPressure = 0;
           return;
@@ -606,7 +643,7 @@ export class ChazyMind {
       
       if (nextEmotion && nextEmotion !== this.emotion) {
         const topThemes = themes.slice(0, 2).join(', ');
-        console.log(`[Chazy] Graph traversal: ${this.emotion} 뿯↽ ${nextEmotion} (following ${topThemes || 'momentum'})`);
+        console.log(`[Chazy] Graph traversal: ${this.emotion} -> ${nextEmotion} (following ${topThemes || 'momentum'})`);
         this._transitionTo(nextEmotion, `graph traversal via ${topThemes || 'text momentum'}`);
         this.transitionPressure = 0; // Reset after transition
       } else {
