@@ -517,10 +517,10 @@ export class ChazyMind {
    * Creates emergent behavior - saying amused things guides toward contemplation,
    * not just more amusement
    * 
-   * @param {Object} textWeights - Emotional weights of selected text
+   * @param {Object} textData - Text data object from selection (contains reflect_pull, weights, etc.)
    * @param {Array} themes - Themes of selected text
    */
-  reflectOnText(textWeights = {}, themes = []) {
+  reflectOnText(textData = {}, themes = []) {
     const now = Date.now();
     const timeSinceLastReflection = now - this.lastTextReflection;
     
@@ -537,10 +537,13 @@ export class ChazyMind {
     // Coherence trait controls how much text influences graph traversal
     const influence = this.traits.coherence; // 0.35 = 35% influence
     
+    // Extract reflect_pull, fallback to weights for backwards compat
+    const reflectPull = textData.reflect_pull || textData.weights || {};
+    
     // Accumulate pressure to leave current state
     // Each reflection adds pressure based on how "strong" the message was
-    const totalWeight = Object.values(textWeights).reduce((sum, w) => sum + w, 0);
-    const avgWeight = totalWeight / Math.max(Object.keys(textWeights).length, 1);
+    const totalWeight = Object.values(reflectPull).reduce((sum, w) => sum + w, 0);
+    const avgWeight = totalWeight / Math.max(Object.keys(reflectPull).length, 1);
     
     // High intensity = faster pressure build (engaged states transition sooner if conversation is "hot")
     const intensityMultiplier = 1.0 + (0.3 * this.intensity); // 1.0x at intensity 0, 1.3x at intensity 1.0
@@ -592,9 +595,9 @@ export class ChazyMind {
         return;
       }
       
-      // Normalize textWeights keys to lowercase for safe lookup
+      // Normalize reflectPull keys to lowercase for safe lookup
       const normalizedWeights = Object.fromEntries(
-        Object.entries(textWeights).map(([k, v]) => [k.toLowerCase(), v])
+        Object.entries(reflectPull).map(([k, v]) => [k.toLowerCase(), v])
       );
       
       // Modulate edge weights based on selected message's emotional content

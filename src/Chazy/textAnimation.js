@@ -1,11 +1,17 @@
 // Character pool for scramble animations
 const CHAR_POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
 
+// Superscript characters (Unicode)
+const SUPERSCRIPTS = '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ';
+
+// Subscript characters (Unicode)
+const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ';
+
 // Mathematical and Greek symbols pool
 const MATH_GREEK_POOL = 'αβγδεζηθικλμνξοπρστυφχψωΓΔΘΛΞΠΣΦΨΩ∑∫∂∇∞≈≠≤≥±×÷√∛∜∝∈∉⊂⊃∪∩∧∨¬∀∃∄←→↔⇐⇒⇔';
 
-// Extended math pool including ASCII operators and digits for equation scrambling
-const MATH_EXTENDED_POOL = MATH_GREEK_POOL + '0123456789+-=*/()[]{}<>^|';
+// Extended math pool including subscripts, superscripts, digits, operators
+const MATH_EXTENDED_POOL = MATH_GREEK_POOL + SUPERSCRIPTS + SUBSCRIPTS + '0123456789+-=*/()[]{}<>^|·∙•ℏπℯ∅φϕ∏∐℮';
 
 // Debug flags for tuning (set to true to enable logging)
 const DEBUG_TYPING = false;
@@ -95,6 +101,7 @@ const MATH_TYPO_NEIGHBORS = {
   'χ': ['x', '×'],
   'ψ': ['Ψ', 'y'],
   'ω': ['Ω', 'w'],
+  'ϕ': ['φ', 'θ'],
 
   // Greek uppercase
   'Γ': ['γ', 'Π'],
@@ -107,6 +114,55 @@ const MATH_TYPO_NEIGHBORS = {
   'Φ': ['φ', 'Θ', '∅'],
   'Ψ': ['ψ', 'Y'],
   'Ω': ['ω', 'O'],
+
+  // Superscript digits (can confuse with normal digits or each other)
+  '⁰': ['0', 'º', '°'],
+  '¹': ['1', 'i', 'l'],
+  '²': ['2', '^2'],
+  '³': ['3', '^3'],
+  '⁴': ['4', '^4'],
+  '⁵': ['5', '^5'],
+  '⁶': ['6', '^6'],
+  '⁷': ['7', '^7'],
+  '⁸': ['8', '^8'],
+  '⁹': ['9', '^9'],
+  '⁺': ['+', '^+'],
+  '⁻': ['-', '^-'],
+  '⁼': ['=', '^='],
+  '⁽': ['(', '^('],
+  '⁾': [')', '^)'],
+  'ⁿ': ['n', '^n'],
+  'ⁱ': ['i', '^i'],
+
+  // Subscript digits (can confuse with normal digits or each other)
+  '₀': ['0', '_0'],
+  '₁': ['1', '_1'],
+  '₂': ['2', '_2'],
+  '₃': ['3', '_3'],
+  '₄': ['4', '_4'],
+  '₅': ['5', '_5'],
+  '₆': ['6', '_6'],
+  '₇': ['7', '_7'],
+  '₈': ['8', '_8'],
+  '₉': ['9', '_9'],
+  '₊': ['+', '_+'],
+  '₋': ['-', '_-'],
+  '₌': ['=', '_='],
+  '₍': ['(', '_('],
+  '₎': [')', '_)'],
+  'ₐ': ['a', '_a'],
+  'ₑ': ['e', '_e'],
+  'ₒ': ['o', '_o'],
+  'ₓ': ['x', '_x'],
+  'ₔ': ['e', 'ₑ'],
+  'ₕ': ['h', '_h'],
+  'ₖ': ['k', '_k'],
+  'ₗ': ['l', '_l'],
+  'ₘ': ['m', '_m'],
+  'ₙ': ['n', '_n'],
+  'ₚ': ['p', '_p'],
+  'ₛ': ['s', '_s'],
+  'ₜ': ['t', '_t'],
 
   // Relations / operators
   '=': ['≈', '≠', '≡', '-'],
@@ -121,8 +177,10 @@ const MATH_TYPO_NEIGHBORS = {
   '±': ['+', '-'],
   '×': ['x', '·', '*'],
   '÷': ['/', '-'],
-  '*': ['×', '·'],
-  '·': ['.', '×', '*'],
+  '*': ['×', '·', '∙'],
+  '·': ['.', '×', '*', '∙'],
+  '∙': ['·', '•', '*'],
+  '•': ['∙', '·', 'o'],
   '/': ['÷', '|'],
   '∝': ['∞', 'α'],
   '∞': ['8', '∝'],
@@ -131,6 +189,13 @@ const MATH_TYPO_NEIGHBORS = {
   '√': ['∛', 'v'],
   '∛': ['√', '∜'],
   '∜': ['∛', '√'],
+
+  // Special math constants
+  'ℏ': ['h', 'ħ'],
+  'ℯ': ['e', 'ε'],
+  '∅': ['φ', 'ϕ', 'Φ', '0'],
+  '∏': ['Π', 'π'],
+  '∐': ['∏', '∑', 'Π'],
 
   // Set / logic symbols
   '∈': ['ε', '∉'],
@@ -204,7 +269,7 @@ function isMathContext(index, chars) {
 
   // Nearby math symbols/operators suggest we're in an equation fragment
   const neighborhood = `${prev}${char}${next}`;
-  if (/[=+\-*/^()[\]{}<>|∑∫∂∇∞≈≠≤≥±×÷√∛∜∝∈∉⊂⊃∪∩∧∨¬∀∃∄←→↔⇐⇒⇔α-ωΑ-Ω]/.test(neighborhood)) {
+  if (/[=+\-*/^()[\]{}<>|∑∫∂∇∞≈≠≤≥±×÷√∛∜∝∈∉⊂⊃∪∩∧∨¬∀∃∄←→↔⇐⇒⇔α-ωΑ-Ω₀-₉ₐ-ₜ⁰-⁹ⁱⁿ·∙•ℏℯ∅φϕ∏∐]/.test(neighborhood)) {
     return true;
   }
 
@@ -252,6 +317,16 @@ function getQwertyTypo(char) {
   const typo = pickRandom(neighbors);
   const isLetter = /[a-zA-Z]/.test(char);
   return isLetter && char === char.toUpperCase() ? typo.toUpperCase() : typo;
+}
+
+// Helper: check if character is a subscript
+function isSubscript(char) {
+  return /[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ]/.test(char);
+}
+
+// Helper: check if character is a superscript
+function isSuperscript(char) {
+  return /[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ]/.test(char);
 }
 
 // Context-aware typo: prefers math confusions in math context, QWERTY otherwise
@@ -369,6 +444,78 @@ function getTypingParams(emotion, intensity) {
   return params;
 }
 
+/**
+ * Apply tone-based modifiers to typing parameters
+ * Tone is a delivery style layer on top of emotion
+ * 
+ * @param {Object} params - Base typing params from getTypingParams()
+ * @param {string} tone - Tone modifier (whisper, clinical, wry, etc.)
+ * @param {string} emotion - Current emotion (for context-aware modulation)
+ * @returns {Object} Modified typing params
+ */
+function applyToneModifiers(params, tone, emotion) {
+  if (!tone || tone === 'neutral') return params;
+  
+  const modifiers = {
+    whisper: {
+      speedMult: 1.2,        // Slower, more careful
+      typoMult: 0.5,         // Fewer mistakes
+      pauseMult: 1.3,        // Longer pauses
+      variationMult: 0.8     // Less variation
+    },
+    
+    clinical: {
+      speedMult: 0.95,       // Precise timing
+      typoMult: 0.3,         // Very few typos
+      pauseMult: 1.0,        // Regular pauses
+      variationMult: 0.5     // Low variation (mechanical)
+    },
+    
+    wry: {
+      speedMult: 0.9,        // Slightly quicker
+      typoMult: 1.1,         // Normal typos
+      pauseMult: 0.9,        // Shorter pauses
+      variationMult: 1.0,    // Normal variation
+      chuckleBoost: 0.15     // Increase chuckle pause chance
+    },
+    
+    ominous: {
+      speedMult: 1.5,        // Much slower
+      typoMult: 0.2,         // Very deliberate
+      pauseMult: 2.0,        // Long, dramatic pauses
+      variationMult: 0.6     // Controlled variation
+    },
+    
+    warm: {
+      speedMult: 1.05,       // Comfortable pace
+      typoMult: 0.9,         // Relaxed accuracy
+      pauseMult: 1.1,        // Natural pauses
+      variationMult: 1.1     // Slightly more natural variation
+    },
+    
+    deadpan: {
+      speedMult: 1.0,        // Completely consistent
+      typoMult: 0.1,         // Almost no typos
+      pauseMult: 1.0,        // Metronomic
+      variationMult: 0.05    // Kill almost all variation
+    }
+  };
+  
+  const mod = modifiers[tone];
+  if (!mod) {
+    console.warn(`[Chazy] Unknown tone: "${tone}", using neutral`);
+    return params;
+  }
+  
+  return {
+    baseSpeed: params.baseSpeed * (mod.speedMult || 1.0),
+    speedVariation: params.speedVariation * (mod.variationMult || 1.0),
+    typoChance: params.typoChance * (mod.typoMult || 1.0),
+    pauseChance: params.pauseChance + (mod.chuckleBoost || 0),
+    pauseDuration: params.pauseDuration * (mod.pauseMult || 1.0)
+  };
+}
+
 // Character classification helpers for typing psychology
 function isWhitespace(char) {
   return /\s/.test(char);
@@ -410,6 +557,12 @@ function isMathOrGreekSymbol(char) {
   if (/[α-ωΑ-Ω]/.test(char)) return true;
   // Common math symbols
   if (/[∑∫∂∇∞≈≠≤≥±×÷√∛∜∝∈∉⊂⊃∪∩∧∨¬∀∃∄←→↔⇐⇒⇔]/.test(char)) return true;
+  // Subscripts
+  if (/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ]/.test(char)) return true;
+  // Superscripts
+  if (/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ]/.test(char)) return true;
+  // Additional math symbols
+  if (/[·∙•ℏπℯ∅φϕ∏∐]/.test(char)) return true;
   return false;
 }
 
@@ -430,9 +583,14 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
   const {
     emotion = 'NEUTRAL',
     intensity = 0.5,
+    tone = 'neutral',  // NEW
   } = options;
 
-  const typingParams = getTypingParams(emotion, intensity);
+  let typingParams = getTypingParams(emotion, intensity);
+  
+  // NEW: Apply tone modifiers
+  typingParams = applyToneModifiers(typingParams, tone, emotion);
+  
   const cascadeDelay = typingParams.baseSpeed;
   const cycleSpeed = 30;
 
@@ -528,11 +686,16 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
         chance *= 0.8;
       }
     } else {
-      // Non-math context: reduce typo chance for isolated math symbols
-      if (isMathOrGreekSymbol(char)) {
-        chance *= 0.15;
-      }
+    // Non-math context: reduce typo chance for isolated math symbols
+    if (isMathOrGreekSymbol(char)) {
+      chance *= 0.15;
     }
+    
+    // Subscripts and superscripts are typed deliberately (special input)
+    if (isSubscript(char) || isSuperscript(char)) {
+      chance *= 0.3;
+    }
+  }
 
     // Keep sane bounds
     return clamp01(chance);
@@ -738,6 +901,11 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
     // Unicode/accented chars can take a little longer
     if (isUnicodeOrAccented(targetChar)) {
       duration += 40 + Math.random() * 100;
+    }
+    
+    // Subscripts and superscripts require special input (longer)
+    if (isSubscript(targetChar) || isSuperscript(targetChar)) {
+      duration += 60 + Math.random() * 120;
     }
 
     // Punctuation often "snaps" in a bit faster visually, but pause is handled in cadence

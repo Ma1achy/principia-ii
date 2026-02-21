@@ -1,0 +1,402 @@
+{
+  "_file": "collision",
+  "_description": "Lines triggered by body collisions",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "collision"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "surprised": 2.8,
+        "amused": 2.5
+      },
+      "reflect_pull": {
+        "surprised": 2.5,
+        "contemplative": 1.3
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "terse"
+      ],
+      "lines": [
+        "Oh"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "That was always going to happen"
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 3.0,
+        "concerned": 2.5,
+        "amused": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "concerned": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "dark",
+        "impact",
+        "mathematics"
+      ],
+      "lines": [
+        "Singularity adjacent"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "wry",
+      "themes": [
+        "technical",
+        "wry"
+      ],
+      "lines": [
+        "The softening radius had one job"
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 3.0,
+        "concerned": 2.5,
+        "amused": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 1.8,
+        "concerned": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "dark",
+        "impact"
+      ],
+      "lines": [
+        "A collision at t = now"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.8
+      },
+      "tone": "wry",
+      "themes": [
+        "dark",
+        "joke"
+      ],
+      "lines": [
+        "They had so much potential energy together"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "contemplative": 1.8
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "Two became one",
+        "The maths got simpler",
+        {
+          "t": "The drama did not",
+          "rarity": 0.7
+        },
+        {
+          "t": "The universe did not",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 2.8,
+        "concerned": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 1.8,
+        "concerned": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "dark",
+        "terse"
+      ],
+      "lines": [
+        {
+          "t": "Merger",
+          "rarity": 0.8
+        },
+        {
+          "t": "Merger event",
+          "rarity": 0.2,
+          "tone": "whisper"
+        },
+        "Unscheduled"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "patience",
+        "poetic"
+      ],
+      "lines": [
+        "They were always going to find each other",
+        {
+          "t": "Gravity is patient",
+          "rarity": 0.75
+        },
+        {
+          "t": "Gravity doesn't forget",
+          "rarity": 0.25,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "CLOSE APPROACH: exceeded",
+        {
+          "t": "Outcome: consolidated",
+          "rarity": 0.8
+        },
+        {
+          "t": "Outcome: irreversible",
+          "rarity": 0.2,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "The N in N-body just decreased",
+        {
+          "t": "The chaos did not",
+          "rarity": 0.75
+        },
+        {
+          "t": "The uncertainty increased",
+          "rarity": 0.25,
+          "tone": "clinical"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "This is what the basin was pointing toward",
+        {
+          "t": "All along",
+          "rarity": 0.7
+        },
+        {
+          "t": "Since the beginning",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "contemplative": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "dissolution",
+        "joke"
+      ],
+      "lines": [
+        "They literally could not stay apart",
+        {
+          "t": "Physics is romantic like that",
+          "rarity": 0.7
+        },
+        {
+          "t": "Fate is inevitable like that",
+          "rarity": 0.3,
+          "tone": "whisper"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 1.8,
+        "contemplative": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "technical"
+      ],
+      "lines": [
+        "No softening left to give",
+        {
+          "t": "Proceed with the wreckage",
+          "rarity": 0.8
+        },
+        {
+          "t": "Witness the wreckage",
+          "rarity": 0.2,
+          "tone": "whisper",
+          "duration_mult": 1.3
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "analytical": 1.3
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "A point mass met another point mass",
+        {
+          "t": "There were consequences",
+          "rarity": 0.75
+        },
+        {
+          "t": "There are always consequences",
+          "rarity": 0.25,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "The initial conditions led here",
+        {
+          "t": "They always lead somewhere",
+          "rarity": 0.7
+        },
+        {
+          "t": "They led exactly here",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "_file": "render",
+  "_description": "Lines about rendering/visual modes",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "render"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Thinking about your choices"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "technical",
+        "wry"
+      ],
+      "lines": [
+        "Integrating",
+        "Do not disturb"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "The bodies are mid-argument",
+        "Please hold"
+      ]
+    },
+    {
+      "weights": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "poetic",
+        "technical"
+      ],
+      "lines": [
+        "Substeps accumulating",
+        "Destiny: pending"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "time",
+        "wry"
+      ],
+      "lines": [
+        "Computing the inevitable",
+        "This won't take long",
+        "Relatively speaking"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "technical"
+      ],
+      "lines": [
+        "Leapfrogging into the future",
+        "One tiny timestep at a time"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Running the numbers",
+        "The numbers are not cooperating"
+      ]
+    },
+    {
+      "weights": {
+        "bored": 3.5,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "patience",
+        "technical",
+        "waiting",
+        "wry"
+      ],
+      "lines": [
+        "G = 1. M = 1. Patience: required"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "The integrator is doing its best",
+        "The integrator is not enough"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "poetic",
+        "time"
+      ],
+      "lines": [
+        "Each frame a small prophecy",
+        "Each prophecy contested"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Fate: rendering",
+        "ETA: nonlinear"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "Symplectic structure: held",
+        "Sanity structure: negotiable"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "T + dt",
+        "T + 2dt",
+        "T + something"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Your initial conditions are being taken very seriously"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "The futures are being sorted",
+        "There are more than you'd expect"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "wry"
+      ],
+      "lines": [
+        "Hold on",
+        "The Hamiltonian is having a moment"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "Processing",
+        "Outcome classification: ongoing",
+        "Do not refresh"
+      ]
+    }
+  ]
+}

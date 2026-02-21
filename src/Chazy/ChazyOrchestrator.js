@@ -122,7 +122,7 @@ export class Chazy {
       return;
     }
     
-    this.mind.reflectOnText(selected.weights, selected.themes);
+    this.mind.reflectOnText(selected, selected.themes);
     
     const displayTime = this.selector.getDisplayTime(emotion, intensity);
     const idleTime = this.selector.getIdleTime(emotion, intensity, displayTime);
@@ -132,6 +132,7 @@ export class Chazy {
       idleTime,
       emotion,
       intensity,
+      tone: selected.tone || 'neutral',  // NEW: Pass tone from selection
       themes: selected.themes,
       isMultiLine: selected.isMultiLine
     });
@@ -141,7 +142,30 @@ export class Chazy {
     let index = 0;
     
     const showLine = (lineIndex) => {
-      const line = lines[lineIndex];
+      // Handle string vs object line format
+      const lineItem = lines[lineIndex];
+      const isObject = typeof lineItem === 'object' && lineItem !== null && lineItem.t;
+      
+      // Check rarity for object lines
+      if (isObject && lineItem.rarity !== undefined) {
+        if (Math.random() > lineItem.rarity) {
+          console.log(`[Chazy] Rare line skipped (rarity=${lineItem.rarity})`);
+          
+          // Skip this line, try next
+          if (lineIndex < lines.length - 1) {
+            showLine(lineIndex + 1);
+          } else {
+            // No more lines, go to next cycle
+            this._cycle();
+          }
+          return;
+        }
+      }
+      
+      // Extract line properties
+      const line = isObject ? lineItem.t : lineItem;
+      const lineTone = isObject ? (lineItem.tone || config.tone) : config.tone;
+      const durationMult = isObject ? (lineItem.duration_mult || 1.0) : 1.0;
       
       let nextIdleTime;
       let nextCallback;
@@ -160,11 +184,12 @@ export class Chazy {
       }
       
       this.view.showText(line, {
-        displayTime: config.displayTime,
+        displayTime: config.displayTime * durationMult,  // Apply duration multiplier
         idleTime: nextIdleTime,
         onComplete: nextCallback,
         emotion: config.emotion,
         intensity: config.intensity,
+        tone: lineTone,  // NEW: Pass tone (per-line or entry-level)
         themes: config.themes
       });
     };

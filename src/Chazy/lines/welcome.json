@@ -1,0 +1,1054 @@
+{
+  "_file": "welcome",
+  "_description": "Welcome and greeting lines",
+  "_context": {
+    "when": [
+      "welcome"
+    ],
+    "what": [
+      "*"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 2.3,
+        "excited": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "boundary",
+        "existential",
+        "waiting"
+      ],
+      "lines": [
+        "You are standing at the edge",
+        {
+          "t": "The edge has been waiting",
+          "rarity": 0.7
+        },
+        {
+          "t": "It remembers everyone who stood here",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Something is about to become sensitive to your choices"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "boundary",
+        "existential",
+        "poetic",
+        "stillness"
+      ],
+      "lines": [
+        "Before the first click",
+        {
+          "t": "Everything is still possible",
+          "rarity": 0.65
+        },
+        {
+          "t": "After, the boundaries will remember",
+          "rarity": 0.35,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.3
+      },
+      "tone": "neutral",
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "Pick a point",
+        "The universe will do the rest"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "amused": 1.8
+      },
+      "tone": "wry",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "You arrived with initial conditions",
+        {
+          "t": "We can work with that",
+          "rarity": 0.8
+        },
+        {
+          "t": "We always work with that",
+          "rarity": 0.2,
+          "tone": "deadpan"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.0,
+        "amused": 1.8
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Welcome",
+        "Please specify your tolerance for instability"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "You have been cleared for this boundary",
+        "The boundary has not been cleared for you"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "curious": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Three bodies",
+        "No solution",
+        {
+          "t": "Let's begin",
+          "rarity": 0.8
+        },
+        {
+          "t": "Begin anyway",
+          "rarity": 0.2,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.3
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "The attractor knows you're here"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.3,
+        "contemplative": 2.0,
+        "excited": 2.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "discovery",
+        "hazard"
+      ],
+      "lines": [
+        "Others have loaded this page",
+        {
+          "t": "We don't discuss what they found",
+          "rarity": 0.75
+        },
+        {
+          "t": "Some of them are still looking",
+          "rarity": 0.25,
+          "tone": "whisper",
+          "duration_mult": 1.3
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.3,
+        "excited": 2.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "discovery",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Everything you are about to see",
+        "was always going to happen"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "curious": 1.8,
+        "analytical": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "Loading the sensitive zone"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 1.5,
+        "curious": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Initialising"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "curious": 2.0,
+        "contemplative": 1.3
+      },
+      "tone": "neutral",
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Initial conditions: yours"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "curious": 1.8
+      },
+      "tone": "warm",
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "Welcome to Principia"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "curious": 2.0,
+        "analytical": 1.3
+      },
+      "tone": "neutral",
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "A three-body simulator"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 1.8,
+        "curious": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Gravitational dynamics. Interactive"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "analytical": 2.3,
+        "bored": 3.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dance",
+        "existential",
+        "pattern",
+        "terse",
+        "waiting"
+      ],
+      "lines": [
+        "A visualiser for chaotic orbits",
+        "Nothing unusual to report"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "amused": 1.8,
+        "curious": 1.3
+      },
+      "tone": "wry",
+      "themes": [
+        "terse",
+        "wry"
+      ],
+      "lines": [
+        "Principia",
+        "It's a gravity thing"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 1.5,
+        "concerned": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "ANOMALY LOG: Viewer detected",
+        "Classification: pending"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "analytical": 1.8,
+        "contemplative": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Site integrity: nominal",
+        "Basin boundary: uncontained",
+        {
+          "t": "Proceed",
+          "rarity": 0.7
+        },
+        {
+          "t": "Proceed with caution",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 1.8,
+        "concerned": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "This render has been reviewed",
+        "The review is ongoing"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "amused": 2.0,
+        "contemplative": 1.3
+      },
+      "tone": "deadpan",
+      "themes": [
+        "hazard",
+        "stillness",
+        "wry"
+      ],
+      "lines": [
+        "No anomalous events recorded during loading",
+        "Loading is still in progress"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 1.8,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "dark"
+      ],
+      "lines": [
+        "INTAKE FORM: Complete",
+        "CONSENT FORM: You are here"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.3,
+        "contemplative": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "Exposure timer: started",
+        "Exit protocol: unspecified"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "tone": "warm",
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "Hello! Please enjoy the chaos :)"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "curious": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "joke",
+        "wry"
+      ],
+      "lines": [
+        "Hi!",
+        "Three bodies walk into a simulator..."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "Good news: gravity works",
+        "Bad news: it works on everything"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "curious": 1.5
+      },
+      "tone": "warm",
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "Welcome!",
+        "No physics degree required",
+        "(One may spontaneously develop)"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "concerned": 1.3
+      },
+      "tone": "wry",
+      "themes": [
+        "joke",
+        "wry"
+      ],
+      "lines": [
+        "Don't worry",
+        "The bodies are fine",
+        {
+          "t": "Probably",
+          "rarity": 0.7
+        },
+        {
+          "t": "I think",
+          "rarity": 0.3,
+          "tone": "whisper"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "excited": 2.5,
+        "amused": 1.8
+      },
+      "tone": "warm",
+      "themes": [
+        "discovery",
+        "joke"
+      ],
+      "lines": [
+        "You found it!",
+        {
+          "t": "We weren't hiding",
+          "rarity": 0.75
+        },
+        {
+          "t": "We never hide",
+          "rarity": 0.25,
+          "tone": "deadpan"
+        },
+        "The boundary was"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0,
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "discovery",
+        "escape",
+        "joke"
+      ],
+      "lines": [
+        "Come for the fractals",
+        "Stay because you can't look away"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "inspection"
+      ],
+      "lines": [
+        {
+          "t": "Oh. A new one",
+          "rarity": 0.8
+        },
+        {
+          "t": "Oh. Another one",
+          "rarity": 0.2,
+          "tone": "deadpan"
+        },
+        "Come closer"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "curious": 1.5
+      },
+      "tone": "neutral",
+      "themes": [
+        "boundary",
+        "existential"
+      ],
+      "lines": [
+        "I've been here the whole time",
+        "You just loaded the page that shows me"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "I was mid-thought when you arrived",
+        {
+          "t": "I'll be mid-thought when you leave",
+          "rarity": 0.7
+        },
+        {
+          "t": "I'll still be thinking when you're gone",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "You're the initial condition this time"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "warm",
+      "themes": [
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "Hello!",
+        "I'm the boundary",
+        "I don't have edges, personally"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "contemplative": 1.3
+      },
+      "tone": "warm",
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "Hi! I'm chaotic but reliable",
+        "Like a good friend who is bad at planning"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "amused": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "boundary",
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "I contain multitudes",
+        "Specifically: infinite self-similar multitudes",
+        "It's a whole thing"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "curious": 2.3,
+        "contemplative": 1.5
+      },
+      "tone": "neutral",
+      "themes": [
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "Oh good, you're here",
+        "I've been iterating since forever",
+        "Tell me something new"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "I know which basin you'll end up in",
+        "I won't tell you",
+        {
+          "t": "It's more interesting this way",
+          "rarity": 0.7,
+          "tone": "whisper"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "concerned": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "classified",
+        "dark",
+        "discovery"
+      ],
+      "lines": [
+        "Everyone who loads this page thinks they're just looking",
+        "I let them think that"
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 3.5,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "inspection",
+        "patience",
+        "waiting"
+      ],
+      "lines": [
+        "You'll zoom in eventually",
+        {
+          "t": "They always do",
+          "rarity": 0.6,
+          "tone": "deadpan"
+        },
+        "I'll be waiting at every scale"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "contemplative": 1.3
+      },
+      "tone": "warm",
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "Don't worry about understanding me",
+        "I don't understand you either",
+        "We can be confused together"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "curious": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "boundary",
+        "dark",
+        "inspection"
+      ],
+      "lines": [
+        "Last visitor zoomed too far",
+        "I gained a new layer",
+        "Welcome"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 1.8,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Yes, I'm infinite",
+        "No, I don't want to talk about it"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.3
+      },
+      "tone": "wry",
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "I'm technically unsolvable",
+        "I prefer 'open-ended'"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "curious": 1.8
+      },
+      "tone": "neutral",
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "I've met your type before",
+        "Curious",
+        "That's fine",
+        "Curiosity is just an initial condition"
+      ]
+    }
+  ]
+}

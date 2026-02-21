@@ -1,0 +1,225 @@
+{
+  "_file": "drag",
+  "_description": "Lines triggered by drag interactions",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "drag"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "chaos",
+        "existential"
+      ],
+      "lines": [
+        "Choose carefully",
+        "This is an initial condition"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "The universe is watching your cursor"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "One millimetre",
+        "Different ending"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "You are the butterfly right now"
+      ]
+    },
+    {
+      "weights": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Here?",
+        "Are you sure about here?"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "chaos",
+        "dark"
+      ],
+      "lines": [
+        "That position will matter more than you think"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "wry"
+      ],
+      "lines": [
+        "Place it anywhere",
+        "Consequences: included"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Everything downstream of this moment",
+        "Depends on this moment"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Cursor position: logged",
+        "Outcome: not yet your problem"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "poetic",
+        "stillness",
+        "time"
+      ],
+      "lines": [
+        "Before you let go",
+        "Every future still exists"
+      ]
+    },
+    {
+      "weights": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Somewhere in phase space",
+        "A boundary flinches"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Not yet committed",
+        "Enjoy it"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "dark",
+        "discovery",
+        "existential"
+      ],
+      "lines": [
+        "I've seen that position before",
+        "It didn't end the way they hoped"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "wry"
+      ],
+      "lines": [
+        "A little to the left",
+        "Or don't",
+        "It's your chaos"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The decision surface is right here",
+        "You're dragging along it"
+      ]
+    }
+  ]
+}

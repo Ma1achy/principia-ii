@@ -1,0 +1,470 @@
+{
+  "_file": "zoom",
+  "_description": "Lines triggered by zoom interactions",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "zoom"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "boundary",
+        "dark",
+        "stillness"
+      ],
+      "lines": [
+        "Deeper",
+        {
+          "t": "Still deeper",
+          "rarity": 0.7
+        },
+        {
+          "t": "Always deeper",
+          "rarity": 0.3,
+          "tone": "whisper"
+        },
+        "There is no bottom"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "boundary",
+        "existential"
+      ],
+      "lines": [
+        "You won't find the edge this way",
+        {
+          "t": "The edge scales with you",
+          "rarity": 0.75
+        },
+        {
+          "t": "The edge knows you're looking",
+          "rarity": 0.25,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "I told you I'd be here at every scale"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "technical",
+        "wry"
+      ],
+      "lines": [
+        "Magnification increasing",
+        {
+          "t": "Complexity: unaffected",
+          "rarity": 0.7
+        },
+        {
+          "t": "Clarity: diminishing",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "boundary",
+        "stillness",
+        "wry"
+      ],
+      "lines": [
+        "Still fractal",
+        {
+          "t": "Still fractal",
+          "rarity": 0.7
+        },
+        {
+          "t": "Forever fractal",
+          "rarity": 0.3,
+          "tone": "ominous"
+        },
+        "Still fractal"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "boundary",
+        "dark",
+        "inspection"
+      ],
+      "lines": [
+        "The boundary is not impressed by your zoom level"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "Careful",
+        {
+          "t": "Some people don't come back from this direction",
+          "rarity": 0.5,
+          "tone": "whisper"
+        },
+        {
+          "t": "The last person didn't come back from here",
+          "rarity": 0.5,
+          "tone": "ominous",
+          "duration_mult": 1.25
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Getting warmer",
+        {
+          "t": "Getting colder",
+          "rarity": 0.8
+        },
+        {
+          "t": "Getting closer",
+          "rarity": 0.2,
+          "tone": "ominous"
+        },
+        "Those mean the same thing here"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "boundary",
+        "pattern",
+        "poetic"
+      ],
+      "lines": [
+        "The structure repeats",
+        {
+          "t": "The structure repeats",
+          "rarity": 0.7
+        },
+        {
+          "t": "It's watching you repeat",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        },
+        "You knew it would"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.5,
+        "contemplative": 2.0
+      },
+      "tone": "neutral",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "How far is far enough?",
+        {
+          "t": "I don't know either",
+          "rarity": 0.7
+        },
+        {
+          "t": "There is no far enough",
+          "rarity": 0.3,
+          "tone": "ominous"
+        },
+        "Keep going"
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "boundary",
+        "discovery",
+        "wry"
+      ],
+      "lines": [
+        "You are now smaller than the detail you came to see"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The country has no scale bar",
+        {
+          "t": "The coastline disagrees with itself",
+          "rarity": 0.75
+        },
+        {
+          "t": "The coastline is infinite",
+          "rarity": 0.25,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Resolution: exceeded",
+        {
+          "t": "Boundary: unresolved",
+          "rarity": 0.75
+        },
+        {
+          "t": "Boundary: unresolvable",
+          "rarity": 0.25,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "discovery",
+        "existential"
+      ],
+      "lines": [
+        "Every level looks like the last one",
+        {
+          "t": "This is a feature",
+          "rarity": 0.7
+        },
+        {
+          "t": "This is intentional",
+          "rarity": 0.3,
+          "tone": "ominous"
+        },
+        "Not a comfort"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.8
+      },
+      "tone": "warm",
+      "themes": [
+        "inspection",
+        "wry"
+      ],
+      "lines": [
+        "Please note: zooming does not help",
+        {
+          "t": "I say this with love",
+          "rarity": 0.75
+        },
+        {
+          "t": "I say this from experience",
+          "rarity": 0.25,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "hazard",
+        "inspection"
+      ],
+      "lines": [
+        "ZOOM LEVEL: inadvisable",
+        {
+          "t": "Containment Protocol: already failed",
+          "rarity": 0.7
+        },
+        {
+          "t": "Containment Protocol: never existed",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "boundary",
+        "existential",
+        "terse"
+      ],
+      "lines": [
+        "Infinite teeth",
+        {
+          "t": "All the way down",
+          "rarity": 0.7
+        },
+        {
+          "t": "Waiting all the way down",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.2
+        }
+      ]
+    }
+  ]
+}

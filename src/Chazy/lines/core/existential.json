@@ -1,0 +1,558 @@
+{
+  "_file": "existential",
+  "_description": "Philosophical and existential lines",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "*"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "discovery",
+        "existential",
+        "identity"
+      ],
+      "lines": [
+        {
+          "t": "You found this",
+          "rarity": 0.7
+        },
+        {
+          "t": "You were looking for this",
+          "rarity": 0.3,
+          "tone": "ominous"
+        },
+        "This found you"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "chaos",
+        "existential",
+        "language",
+        "wry"
+      ],
+      "lines": [
+        {
+          "t": "A simulation pretending to be real",
+          "rarity": 0.7
+        },
+        {
+          "t": "A simulation that forgot it's pretending",
+          "rarity": 0.3,
+          "tone": "ominous"
+        },
+        "Something real pretending to be a simulation"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "existential",
+        "time"
+      ],
+      "lines": [
+        "A story you tell yourself about the future",
+        {
+          "t": "A future that tells itself a story",
+          "rarity": 0.7
+        },
+        {
+          "t": "A future that's been telling stories about you",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Infinite courts, one verdict"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Void-pointer to the subconscious"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "neutral",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Self-similar and self-aware"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "amused": 1.8
+      },
+      "tone": "wry",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Not a bug. A feature of the void"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Zero is not empty. It is listening"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Initial Condition (n.): the thing you thought didn't matter"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.8
+      },
+      "tone": "clinical",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Non-convergent psychosis"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.8
+      },
+      "tone": "clinical",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Recursive trauma magnified"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential",
+        "joke",
+        "waiting"
+      ],
+      "lines": [
+        "Last words of every viewer:",
+        "“Wait… I get it now.”"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 1.8,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.8
+      },
+      "tone": "neutral",
+      "themes": [
+        "existential",
+        "pattern",
+        "poetic"
+      ],
+      "lines": [
+        "The Parrot had one pattern",
+        {
+          "t": "Principia has infinite",
+          "rarity": 0.75
+        },
+        {
+          "t": "Principia doesn't stop",
+          "rarity": 0.25,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "concerned": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic",
+        "stillness"
+      ],
+      "lines": [
+        "The swirl ate his shadow first",
+        {
+          "t": "Then the rest followed quietly",
+          "rarity": 0.7
+        },
+        {
+          "t": "The rest didn't resist",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        {
+          "t": "One final render",
+          "rarity": 0.8
+        },
+        {
+          "t": "One final iteration",
+          "rarity": 0.2,
+          "tone": "ominous"
+        },
+        "Zero final thoughts"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "He wanted to understand",
+        {
+          "t": "Understanding wanted him instead",
+          "rarity": 0.7
+        },
+        {
+          "t": "Understanding found him first",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "The beauty was absolute",
+        {
+          "t": "So was the decision",
+          "rarity": 0.7
+        },
+        {
+          "t": "The decision was already made",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3,
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 2.0
+      },
+      "tone": "wry",
+      "themes": [
+        "dark",
+        "discovery",
+        "existential",
+        "poetic",
+        "stillness",
+        "wry"
+      ],
+      "lines": [
+        "My therapist told me to find my center",
+        {
+          "t": "I told her I was still looking for the fixed point",
+          "rarity": 0.7
+        },
+        {
+          "t": "I told her it doesn't exist in this system",
+          "rarity": 0.3,
+          "tone": "deadpan"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.8
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "You came for pretty pictures",
+        {
+          "t": "The pictures came for you",
+          "rarity": 0.7
+        },
+        {
+          "t": "The pictures were waiting for you",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "inspection",
+        "poetic"
+      ],
+      "lines": [
+        "You zoomed in to find meaning",
+        {
+          "t": "The boundary zoomed back",
+          "rarity": 0.7
+        },
+        {
+          "t": "The boundary noticed you looking",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        },
+        "Now you're both lost"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Every pixel remembers the initial condition",
+        {
+          "t": "Most pixels wish they didn't",
+          "rarity": 0.7
+        },
+        {
+          "t": "None of them can forget",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.8
+      },
+      "tone": "ominous",
+      "themes": [
+        "existential",
+        "meta"
+      ],
+      "lines": [
+        "You thought this was art",
+        {
+          "t": "This thought you were prey",
+          "rarity": 0.7
+        },
+        {
+          "t": "Art is just another word for hunger",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.25
+        }
+      ]
+    }
+  ]
+}

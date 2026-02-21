@@ -1,0 +1,2160 @@
+{
+  "_file": "boundary",
+  "_description": "Lines about boundaries, edges, limits - Chazy's signature theme",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "*"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "themes": [
+        "boundary",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "A map pretending to be a territory",
+        "A territory pretending to be a map"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "time"
+      ],
+      "lines": [
+        "A future that pretends to be a past",
+        "A past that pretends to be a future"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "themes": [
+        "boundary",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "A boundary pretending to be a region",
+        "A region pretending to be a boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos",
+        "wry"
+      ],
+      "lines": [
+        "A prediction pretending to be a description",
+        "A description pretending to be a prediction"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "An iridescent argument"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "So close",
+        "Not yet",
+        "Just past",
+        "Either way",
+        "Too close to tell",
+        "It mattered",
+        "Elsewhere, the other ending"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "The edge produces more edge"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Where the future frays at the edges"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The seam between almost and inevitable"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Dancing at the edge of complexity"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Where prediction runs out"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "control"
+      ],
+      "lines": [
+        "The edge where answers change"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "stillness"
+      ],
+      "lines": [
+        "The border that won't hold still"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary"
+      ],
+      "lines": [
+        "A seam you can't measure"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The hinge of the future"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "The smallest nudge matters"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "inspection",
+        "mathematics"
+      ],
+      "lines": [
+        "Where the zoom never ends"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "A decision boundary in disguise"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A coastline of outcomes"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A map of almosts"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "An atlas of endings"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "Futures, finely interleaved"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "mathematics"
+      ],
+      "lines": [
+        "A boundary with infinite teeth"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A boundary you can feel"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary"
+      ],
+      "lines": [
+        "Where outcomes refuse to separate"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "A line that multiplies"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic",
+        "stillness"
+      ],
+      "lines": [
+        "A quiet war of basins"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A spectrum of endings"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A braid of possibilities"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A whirlpool of ifs"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "The throat of the attractor"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A mandala of endpoints"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "Chaos with rules"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "Where similarity goes to die"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos",
+        "stillness"
+      ],
+      "lines": [
+        "The quiet treason of initial conditions"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A ledger of near-misses"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "wry"
+      ],
+      "lines": [
+        "A field guide to indecision"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "A recursive bruise"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "literary",
+        "mathematics",
+        "poetic"
+      ],
+      "lines": [
+        "Wada's whisper"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "stillness",
+        "technical"
+      ],
+      "lines": [
+        "IEEE-754's quiet apocalypse"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "mathematics"
+      ],
+      "lines": [
+        "A measure-zero knife that cuts everything"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "mathematics"
+      ],
+      "lines": [
+        "A border shared by everything"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "literary"
+      ],
+      "lines": [
+        "A coastline that eats cartographers"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "A different ending for every epsilon"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "literary"
+      ],
+      "lines": [
+        "Ariadne's thread, frayed"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "literary"
+      ],
+      "lines": [
+        "A Borges map that exceeds the empire"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "literary"
+      ],
+      "lines": [
+        "A garden of forking basins"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "The geometry of fate"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "literary",
+        "unexpected"
+      ],
+      "lines": [
+        "Borges would not be surprised"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "literary"
+      ],
+      "lines": [
+        "What the oracle saw"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "amused": 3.5
+      },
+      "themes": [
+        "boundary",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Wada, but three bodies"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "The Birkhoff boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "The Langford boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Field Note: Boundary Instability"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Incident Log #001: Edge Behaviour"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Case File #005: The Frayed Line"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Specimen #003: Outcome Boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Recovered Artefact: Basin Map"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Observed Anomaly: Self-Similar Border"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "pattern"
+      ],
+      "lines": [
+        "Uncatalogued Structure"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "pattern"
+      ],
+      "lines": [
+        "Residual Pattern: Non-Settling Edge"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Containment Failure at the Boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "This Boundary Resists Measurement"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "inspection"
+      ],
+      "lines": [
+        "Anomaly Persists Under Zoom"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "pattern"
+      ],
+      "lines": [
+        "Unstable Agreement Detected"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "The Boundary Answers Back"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "INFOHAZARD #083: Outcome Basilisk"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "CLASSIFIED: BASIN BOUNDARY (FRACTAL)"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "MEMETIC WARNING: SELF-SIMILAR EDGE"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Containment Protocol: Limit magnification"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified",
+        "inspection"
+      ],
+      "lines": [
+        "Field Note: The boundary escalates under zoom"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Addendum: Boundary behaviour under magnification"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Outcome resolution: failed"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Precision insufficient at all scales"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Final state: contested"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "The limit does not exist"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "Irreversible"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "It depends"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "boundary",
+        "pattern",
+        "terse"
+      ],
+      "lines": [
+        "Unstable agreement"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "Every point a crossroads"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "Fate, at this resolution"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Adjacent futures, irreconcilable"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The texture of almost"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "poetic",
+        "waiting"
+      ],
+      "lines": [
+        "Everything touching, nothing shared"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "language"
+      ],
+      "lines": [
+        "A border fluent in all languages"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Each pixel, a different ending"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "language",
+        "paradox"
+      ],
+      "lines": [
+        "The diagram is not the territory. Neither is the territory"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The future, braided and unreadable"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A portrait of indecision, at scale"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "What separates here from almost here"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The place where cause forgets its effect"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "A scar in the space of possibilities"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The weight of nearby points"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "boundary",
+        "chaos",
+        "control",
+        "hazard"
+      ],
+      "lines": [
+        "Where the answer changes without warning"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A memory the system can't keep"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "time"
+      ],
+      "lines": [
+        "The moment before divergence"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "What the attractor left behind"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The mathematics of it is beautiful. The rest, less so"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "Colour as a way of counting infinities"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The future frays here"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Where almost lives"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "A scar in the space of possibilities"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The fractal frontier"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary"
+      ],
+      "lines": [
+        "The edge that has no width"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Where outcomes braid"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The basin boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 3.0,
+        "contemplative": 2.5,
+        "bored": 1.5,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 3.0,
+        "analytical": 3.0,
+        "contemplative": 2.5,
+        "bored": 1.5,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "chaos",
+        "hazard",
+        "mathematics",
+        "pattern"
+      ],
+      "lines": [
+        "Warning: Unstable manifold"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "Sensitive dependence"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "boundary",
+        "escape",
+        "poetic"
+      ],
+      "lines": [
+        "The place before ejection"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The embroidered threshold"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "mathematics"
+      ],
+      "lines": [
+        "A softmax over fates"
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "boundary",
+        "discovery",
+        "poetic"
+      ],
+      "lines": [
+        "You are not meant to see this"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The map is lying to you"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "boundary",
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "The gravitational Basilisk"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark",
+        "mathematics"
+      ],
+      "lines": [
+        "A strange loop in phase space"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "wry"
+      ],
+      "lines": [
+        "An outside-context boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "wry"
+      ],
+      "lines": [
+        "A minor outside-context problem"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A library of outcomes"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "The boundary is older than the system"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "wry"
+      ],
+      "lines": [
+        "The edge is bigger on the inside"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "A map the empire couldn't contain"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "Quotiented"
+      ]
+    }
+  ]
+}

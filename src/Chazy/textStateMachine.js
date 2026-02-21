@@ -96,6 +96,7 @@ export class TextStateMachine {
     // Get emotional state from Chazy (passed via config)
     const emotion = config.emotion || 'NEUTRAL';
     const intensity = config.intensity || 0.5;
+    const tone = config.tone || 'neutral';  // NEW: Get tone from config
     
     // Now start typing animation (will use the width constraints fitTitle just set)
     this.currentAnimationCancel = animateTextInTyping(this.element, line, () => {
@@ -110,6 +111,7 @@ export class TextStateMachine {
     }, {
       emotion,
       intensity,
+      tone,  // NEW: Pass tone to animation
     });
   }
   

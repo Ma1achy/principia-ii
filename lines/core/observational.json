@@ -1,0 +1,231 @@
+{
+  "_file": "observational",
+  "_description": "Neutral observations and other content",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "any"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "identity",
+        "language"
+      ],
+      "lines": [
+        "A question you asked",
+        "A question that asked you"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos"
+      ],
+      "lines": [
+        "A Rorschach test for order"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "Order with a frayed hem"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "A treaty signed in turbulence"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "An autograph of chaos"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "literary"
+      ],
+      "lines": [
+        "Heraclitus was right about the basin"
+      ],
+      "when": [
+        "event",
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "chaos",
+        "stillness",
+        "terse"
+      ],
+      "lines": [
+        "Still sensitive to initial conditions"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "Here"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Sensitive"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "Running"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Continuous everywhere, predictable nowhere"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "stability",
+        "terse"
+      ],
+      "lines": [
+        "Convergent. Until it isn't"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "Tagged"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Chaotic, locally"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "time"
+      ],
+      "lines": [
+        "Your future is sensitive to conditions you didn't record"
+      ]
+    }
+  ]
+}

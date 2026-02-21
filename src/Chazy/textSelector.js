@@ -162,15 +162,69 @@ export class TextSelector {
   }
   
   async load() {
-    const res = await fetch(this.jsonPath);
-    this.data = await res.json();
+    // Define all split files
+    const files = [
+      'welcome.json',
+      'collision.json', 'ejection.json', 'stable.json', 'idle.json',
+      'zoom.json', 'drag.json', 'render.json',
+      'core/boundary.json', 'core/mathematical.json', 'core/existential.json',
+      'core/infohazard.json', 'core/dark-humor.json', 'core/observational.json'
+    ];
+    
+    // Load all files in parallel
+    const basePath = this.jsonPath.replace('flavour.json', 'lines/');
+    const promises = files.map(f => 
+      fetch(basePath + f)
+        .then(r => r.json())
+        .catch(err => {
+          console.warn(`[TextSelector] Failed to load ${f}:`, err);
+          return { lines: [] }; // Graceful fallback
+        })
+    );
+    
+    const allData = await Promise.all(promises);
+    
+    // Reconstruct original structure for backwards compatibility
+    this.data = {
+      _schema: "principia-flavour_v2_emotional",
+      subtitles: []
+    };
+    
+    // Helper to normalize wildcard ("*" -> "any")
+    const normalizeWildcard = (val) => val === '*' ? 'any' : val;
+    
+    for (const fileData of allData) {
+      const context = fileData._context || {};
+      const defaultWhen = (context.when || ['any']).map(normalizeWildcard);
+      const defaultWhat = (context.what || ['any']).map(normalizeWildcard);
+      
+      // Add context back to each entry
+      for (const entry of fileData.lines || []) {
+        this.data.subtitles.push({
+          // Backwards compatible: keep weights field
+          weights: entry.weights || {},
+          themes: entry.themes || [],
+          lines: entry.lines || [],
+          // Use entry's when/what if present, otherwise use file context
+          when: (entry.when || defaultWhen).map(normalizeWildcard),
+          what: (entry.what || defaultWhat).map(normalizeWildcard),
+          
+          // NEW FIELDS (v3 schema)
+          select_bias: entry.select_bias || {},
+          reflect_pull: entry.reflect_pull || {},
+          tone: entry.tone
+        });
+      }
+    }
+    
+    console.log(`[TextSelector] Loaded ${this.data.subtitles.length} entries from ${files.length} files`);
     return this;
   }
   
   /**
    * Select a text unit based on current context
    * @param {Object} context - { mode, themes, emotion, intensity, excludeWelcome }
-   * @returns {Object|null} - { lines, weights, themes, isMultiLine } or null
+   * @returns {Object|null} - { lines, weights, select_bias, reflect_pull, tone, themes, isMultiLine } or null
    */
   select(context) {
     const { mode, themes = [], emotion, intensity, excludeWelcome = false } = context;
@@ -184,7 +238,10 @@ export class TextSelector {
         const unit = this.data.subtitles[welcomeIndex];
         return {
           lines: unit.lines,
-          weights: unit.weights || {},
+          weights: unit.weights || {},           // Backwards compat
+          select_bias: unit.select_bias || {},   // NEW
+          reflect_pull: unit.reflect_pull || {}, // NEW
+          tone: unit.tone,                       // NEW
           themes: unit.themes || [],
           isMultiLine: unit.lines.length > 1
         };
@@ -201,7 +258,10 @@ export class TextSelector {
     const unit = this.data.subtitles[index];
     return {
       lines: unit.lines,
-      weights: unit.weights || {},
+      weights: unit.weights || {},           // Backwards compat
+      select_bias: unit.select_bias || {},   // NEW
+      reflect_pull: unit.reflect_pull || {}, // NEW
+      tone: unit.tone,                       // NEW
       themes: unit.themes || [],
       isMultiLine: unit.lines.length > 1
     };
@@ -286,16 +346,18 @@ export class TextSelector {
   
   _weightedRandom(candidates, emotion, intensity) {
     const total = candidates.reduce((sum, { u }) => {
-      const emotionalWeights = u.weights || {};
-      const rawWeight = emotionalWeights[emotion] || 1.0;
+      // Use select_bias for selection, fallback to weights for backwards compat
+      const selectBias = u.select_bias || u.weights || {};
+      const rawWeight = selectBias[emotion] || 1.0;
       const effectiveWeight = 1.0 + (rawWeight - 1.0) * intensity;
       return sum + effectiveWeight;
     }, 0);
     
     let r = Math.random() * total;
     for (const { u, i } of candidates) {
-      const emotionalWeights = u.weights || {};
-      const rawWeight = emotionalWeights[emotion] || 1.0;
+      // Use select_bias for selection, fallback to weights for backwards compat
+      const selectBias = u.select_bias || u.weights || {};
+      const rawWeight = selectBias[emotion] || 1.0;
       const effectiveWeight = 1.0 + (rawWeight - 1.0) * intensity;
       
       r -= effectiveWeight;

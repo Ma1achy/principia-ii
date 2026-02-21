@@ -1,0 +1,403 @@
+{
+  "_file": "drag",
+  "_description": "Lines triggered by drag interactions",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "drag"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "chaos",
+        "existential"
+      ],
+      "lines": [
+        "Choose carefully",
+        {
+          "t": "This is an initial condition",
+          "rarity": 0.7
+        },
+        {
+          "t": "This will become an initial condition",
+          "rarity": 0.3,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "curious": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "The universe is watching your cursor"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "boundary",
+        "chaos"
+      ],
+      "lines": [
+        "One millimetre",
+        {
+          "t": "Different ending",
+          "rarity": 0.75
+        },
+        {
+          "t": "Completely different ending",
+          "rarity": 0.25,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "You are the butterfly right now"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.5,
+        "contemplative": 1.8
+      },
+      "tone": "wry",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        {
+          "t": "Here?",
+          "rarity": 0.8
+        },
+        {
+          "t": "Really? Here?",
+          "rarity": 0.2,
+          "tone": "deadpan"
+        },
+        "Are you sure about here?"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "chaos",
+        "dark"
+      ],
+      "lines": [
+        "That position will matter more than you think"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "boundary",
+        "wry"
+      ],
+      "lines": [
+        "Place it anywhere",
+        {
+          "t": "Consequences: included",
+          "rarity": 0.7
+        },
+        {
+          "t": "Consequences: guaranteed",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Everything downstream of this moment",
+        {
+          "t": "Depends on this moment",
+          "rarity": 0.75
+        },
+        {
+          "t": "Depends entirely on this moment",
+          "rarity": 0.25,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Cursor position: logged",
+        {
+          "t": "Outcome: not yet your problem",
+          "rarity": 0.7
+        },
+        {
+          "t": "Outcome: inevitable",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "poetic",
+        "stillness",
+        "time"
+      ],
+      "lines": [
+        "Before you let go",
+        {
+          "t": "Every future still exists",
+          "rarity": 0.8
+        },
+        {
+          "t": "All futures are still open",
+          "rarity": 0.2,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "contemplative": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Somewhere in phase space",
+        {
+          "t": "A boundary flinches",
+          "rarity": 0.75
+        },
+        {
+          "t": "Something is watching",
+          "rarity": 0.25,
+          "tone": "ominous",
+          "duration_mult": 1.3
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Not yet committed",
+        {
+          "t": "Enjoy it",
+          "rarity": 0.8
+        },
+        {
+          "t": "Savor it",
+          "rarity": 0.2,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "discovery",
+        "existential"
+      ],
+      "lines": [
+        "I've seen that position before",
+        {
+          "t": "It didn't end the way they hoped",
+          "rarity": 0.6,
+          "tone": "whisper"
+        },
+        {
+          "t": "They never saw it coming",
+          "rarity": 0.4,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "wry"
+      ],
+      "lines": [
+        "A little to the left",
+        {
+          "t": "Or don't",
+          "rarity": 0.8
+        },
+        {
+          "t": "Or not",
+          "rarity": 0.2,
+          "tone": "deadpan"
+        },
+        "It's your chaos"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.8
+      },
+      "tone": "neutral",
+      "themes": [
+        "boundary",
+        "poetic"
+      ],
+      "lines": [
+        "The decision surface is right here",
+        {
+          "t": "You're dragging along it",
+          "rarity": 0.75
+        },
+        {
+          "t": "You're changing it as you move",
+          "rarity": 0.25,
+          "tone": "whisper",
+          "duration_mult": 1.15
+        }
+      ]
+    }
+  ]
+}

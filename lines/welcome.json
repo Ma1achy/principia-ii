@@ -1,0 +1,724 @@
+{
+  "_file": "welcome",
+  "_description": "Welcome and greeting lines",
+  "_context": {
+    "when": [
+      "welcome"
+    ],
+    "what": [
+      "any"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 2.3,
+        "excited": 1.8
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "waiting"
+      ],
+      "lines": [
+        "You are standing at the edge",
+        "The edge has been waiting"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Something is about to become sensitive to your choices"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "poetic",
+        "stillness"
+      ],
+      "lines": [
+        "Before the first click",
+        "Everything is still possible"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "poetic"
+      ],
+      "lines": [
+        "Pick a point",
+        "The universe will do the rest"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "You arrived with initial conditions",
+        "We can work with that"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Welcome",
+        "Please specify your tolerance for instability"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "You have been cleared for this boundary",
+        "The boundary has not been cleared for you"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 3.5
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Three bodies",
+        "No solution",
+        "Let's begin"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "The attractor knows you're here"
+      ]
+    },
+    {
+      "weights": {
+        "curious": 2.3,
+        "contemplative": 2.0,
+        "excited": 2.8
+      },
+      "themes": [
+        "dark",
+        "discovery",
+        "hazard"
+      ],
+      "lines": [
+        "Others have loaded this page",
+        "We don't discuss what they found"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.3,
+        "excited": 2.8
+      },
+      "themes": [
+        "dark",
+        "discovery",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Everything you are about to see",
+        "was always going to happen"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "boundary",
+        "terse"
+      ],
+      "lines": [
+        "Loading the sensitive zone"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Initialising"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "chaos",
+        "terse"
+      ],
+      "lines": [
+        "Initial conditions: yours"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "Welcome to Principia"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "terse"
+      ],
+      "lines": [
+        "A three-body simulator"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Gravitational dynamics. Interactive"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "analytical": 2.3,
+        "bored": 3.5
+      },
+      "themes": [
+        "dance",
+        "existential",
+        "pattern",
+        "terse",
+        "waiting"
+      ],
+      "lines": [
+        "A visualiser for chaotic orbits",
+        "Nothing unusual to report"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "terse",
+        "wry"
+      ],
+      "lines": [
+        "Principia",
+        "It's a gravity thing"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "ANOMALY LOG: Viewer detected",
+        "Classification: pending"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "classified"
+      ],
+      "lines": [
+        "Site integrity: nominal",
+        "Basin boundary: uncontained",
+        "Proceed"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "This render has been reviewed",
+        "The review is ongoing"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "stillness",
+        "wry"
+      ],
+      "lines": [
+        "No anomalous events recorded during loading",
+        "Loading is still in progress"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "dark"
+      ],
+      "lines": [
+        "INTAKE FORM: Complete",
+        "CONSENT FORM: You are here"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "Exposure timer: started",
+        "Exit protocol: unspecified"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "Hello! Please enjoy the chaos :)"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 3.5
+      },
+      "themes": [
+        "joke",
+        "wry"
+      ],
+      "lines": [
+        "Hi!",
+        "Three bodies walk into a simulator..."
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "Good news: gravity works",
+        "Bad news: it works on everything"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "Welcome!",
+        "No physics degree required",
+        "(One may spontaneously develop)"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "joke",
+        "wry"
+      ],
+      "lines": [
+        "Don't worry",
+        "The bodies are fine",
+        "Probably"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "discovery",
+        "joke"
+      ],
+      "lines": [
+        "You found it!",
+        "We weren't hiding",
+        "The boundary was"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0,
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "discovery",
+        "escape",
+        "joke"
+      ],
+      "lines": [
+        "Come for the fractals",
+        "Stay because you can't look away"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential",
+        "inspection"
+      ],
+      "lines": [
+        "Oh. A new one",
+        "Come closer"
+      ]
+    },
+    {
+      "weights": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "existential"
+      ],
+      "lines": [
+        "I've been here the whole time",
+        "You just loaded the page that shows me"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "I was mid-thought when you arrived",
+        "I'll be mid-thought when you leave"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark"
+      ],
+      "lines": [
+        "You're the initial condition this time"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "Hello!",
+        "I'm the boundary",
+        "I don't have edges, personally"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "Hi! I'm chaotic but reliable",
+        "Like a good friend who is bad at planning"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "I contain multitudes",
+        "Specifically: infinite self-similar multitudes",
+        "It's a whole thing"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "existential",
+        "joke"
+      ],
+      "lines": [
+        "Oh good, you're here",
+        "I've been iterating since forever",
+        "Tell me something new"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "I know which basin you'll end up in",
+        "I won't tell you",
+        "It's more interesting this way"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "classified",
+        "dark",
+        "discovery"
+      ],
+      "lines": [
+        "Everyone who loads this page thinks they're just looking",
+        "I let them think that"
+      ]
+    },
+    {
+      "weights": {
+        "bored": 3.5,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential",
+        "inspection",
+        "patience",
+        "waiting"
+      ],
+      "lines": [
+        "You'll zoom in eventually",
+        "They always do",
+        "I'll be waiting at every scale"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "Don't worry about understanding me",
+        "I don't understand you either",
+        "We can be confused together"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "boundary",
+        "dark",
+        "inspection"
+      ],
+      "lines": [
+        "Last visitor zoomed too far",
+        "I gained a new layer",
+        "Welcome"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Yes, I'm infinite",
+        "No, I don't want to talk about it"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "I'm technically unsolvable",
+        "I prefer 'open-ended'"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 3.0,
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "I've met your type before",
+        "Curious",
+        "That's fine",
+        "Curiosity is just an initial condition"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,267 @@
+{
+  "_file": "idle",
+  "_description": "Lines shown during idle/no interaction",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "idle"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "bored": 3.5,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential",
+        "stillness",
+        "waiting"
+      ],
+      "lines": [
+        "Still here",
+        "So am I"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "boundary",
+        "existential",
+        "patience",
+        "waiting",
+        "wry"
+      ],
+      "lines": [
+        "The boundary doesn't mind waiting",
+        "It has infinite patience",
+        "Literally"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0,
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "dark",
+        "discovery",
+        "escape",
+        "poetic"
+      ],
+      "lines": [
+        "You can look away",
+        "I'll keep iterating"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "Take your time",
+        "I'm already everywhere"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "dark",
+        "terse"
+      ],
+      "lines": [
+        "Paused",
+        "The universe is not"
+      ]
+    },
+    {
+      "weights": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "Are you thinking?",
+        "I'm always thinking",
+        "We have that in common"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "dark",
+        "discovery",
+        "poetic"
+      ],
+      "lines": [
+        "I don't need interaction to exist",
+        "But I notice when it stops"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "wry"
+      ],
+      "lines": [
+        "It's fine",
+        "I have very low stimulation requirements"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "boundary",
+        "discovery",
+        "existential",
+        "stillness"
+      ],
+      "lines": [
+        "The basin boundaries are still there",
+        "Whether you look or not"
+      ]
+    },
+    {
+      "weights": {
+        "bored": 3.5,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "time",
+        "waiting"
+      ],
+      "lines": [
+        "Waiting",
+        "I have done this before",
+        "I will do this again"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "joke",
+        "wry"
+      ],
+      "lines": [
+        "Go on",
+        "Get a drink",
+        "I'll be fractal when you return"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "classified",
+        "control"
+      ],
+      "lines": [
+        "INACTIVITY LOGGED",
+        "Boundary status: unchanged",
+        "Anomaly status: ongoing"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "dance",
+        "existential",
+        "pattern",
+        "poetic"
+      ],
+      "lines": [
+        "The bodies keep orbiting in the render",
+        "Indifferent to your attention"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "I was here before you loaded the tab",
+        "I'll be here when you close it"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "poetic",
+        "time"
+      ],
+      "lines": [
+        "Somewhere in this system",
+        "A close approach is building",
+        "You might want to watch"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "control",
+        "existential",
+        "joke",
+        "stillness",
+        "waiting"
+      ],
+      "lines": [
+        "Are you still there?",
+        "I ask only out of curiosity",
+        "Your presence changes nothing"
+      ]
+    }
+  ]
+}

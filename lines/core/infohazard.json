@@ -1,0 +1,494 @@
+{
+  "_file": "infohazard",
+  "_description": "Classified and hazardous content warnings",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "any"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "A harmless image at low magnification",
+        "Safe at this scale"
+      ],
+      "when": [
+        "diffusion",
+        "event"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Cognitively hazardous in 3 of 7 tested configurations",
+        "BLIT-adjacent. Consult your neurologist"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "No fatalities recorded. Yet",
+        "Berryman classification: pending"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "classified",
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Warning: The Legend Is Incomplete"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Do Not Trust Nearby Points"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Handle With Finite Precision"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "Classified: Outcome Interleaving"
+      ],
+      "when": [
+        "event"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "dark",
+        "precision"
+      ],
+      "lines": [
+        "Signal Detected in the Decimals"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "SCP Advisory: Do not approach the boundary"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Containment Class: Keter (Fractal)"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8,
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "classified",
+        "existential",
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Error margin: infinite"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "classified",
+        "discovery",
+        "wry"
+      ],
+      "lines": [
+        "See attached: uncertainty"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "classified",
+        "poetic"
+      ],
+      "lines": [
+        "Margin notes from the edge"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Do not attempt to integrate"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "classified",
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Prolonged exposure not recommended"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "Resolution classified"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Safe word: epsilon"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "You have been warned at this scale"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Not a BLIT. Probably"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "dark",
+        "hazard",
+        "mathematics"
+      ],
+      "lines": [
+        "Mandelbrot's unfinished suicide note"
+      ],
+      "when": [
+        "diffusion",
+        "phase",
+        "phase+diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "Newton's Basilisk"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "inspection",
+        "wry"
+      ],
+      "lines": [
+        "Do not zoom without supervision"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "A fractal star with consequences"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Information hazard, aesthetic edition"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "inspection",
+        "wry"
+      ],
+      "lines": [
+        "Mostly harmless. Until you zoom"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "A Gödelian spoiler in false colour"
+      ],
+      "when": [
+        "diffusion"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Do not read past this scale"
+      ]
+    },
+    {
+      "weights": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "themes": [
+        "discovery",
+        "hazard"
+      ],
+      "lines": [
+        "It winks when you aren't looking"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Berryman Logical Image Technique"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "DANGER: memotoxins"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 3.0,
+        "analytical": 2.0,
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "existential",
+        "hazard",
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "What's the difference between God and a numerical integrator?",
+        "God doesn't accumulate round-off error before dooming you"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "hazard",
+        "poetic"
+      ],
+      "lines": [
+        "Shatter glasses sit on the desk.",
+        "Unused.",
+        "The render doesn't need them.",
+        "You might have."
+      ]
+    }
+  ]
+}

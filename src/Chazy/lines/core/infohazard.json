@@ -1,0 +1,661 @@
+{
+  "_file": "infohazard",
+  "_description": "Classified and hazardous content warnings",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "*"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.3,
+        "curious": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "A harmless image at low magnification",
+        {
+          "t": "Safe at this scale",
+          "rarity": 0.7
+        },
+        {
+          "t": "For now",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "analytical": 1.8
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Cognitively hazardous in 3 of 7 tested configurations",
+        {
+          "t": "BLIT-adjacent. Consult your neurologist",
+          "rarity": 0.7
+        },
+        {
+          "t": "BLIT-adjacent. Document your symptoms",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "No fatalities recorded. Yet",
+        {
+          "t": "Berryman classification: pending",
+          "rarity": 0.7
+        },
+        {
+          "t": "Berryman classification: escalating",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "analytical": 1.3
+      },
+      "tone": "ominous",
+      "themes": [
+        "classified",
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Warning: The Legend Is Incomplete"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "concerned": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Do Not Trust Nearby Points"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "amused": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Handle With Finite Precision"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "Classified: Outcome Interleaving"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "classified",
+        "dark",
+        "precision"
+      ],
+      "lines": [
+        "Signal Detected in the Decimals"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "concerned": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "SCP Advisory: Do not approach the boundary"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Containment Class: Keter (Fractal)"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8,
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "analytical": 1.8
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "existential",
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Error margin: infinite"
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "curious": 2.5,
+        "analytical": 1.5
+      },
+      "tone": "neutral",
+      "themes": [
+        "classified",
+        "discovery",
+        "wry"
+      ],
+      "lines": [
+        "See attached: uncertainty"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "classified",
+        "poetic"
+      ],
+      "lines": [
+        "Margin notes from the edge"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.0,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Do not attempt to integrate"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Prolonged exposure not recommended"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "Resolution classified"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Safe word: epsilon"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.0,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "You have been warned at this scale"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "concerned": 1.3
+      },
+      "tone": "wry",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Not a BLIT. Probably"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "concerned": 1.8
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "hazard",
+        "mathematics"
+      ],
+      "lines": [
+        "Mandelbrot's unfinished suicide note"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "contemplative": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "Newton's Basilisk"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "inspection",
+        "wry"
+      ],
+      "lines": [
+        "Do not zoom without supervision"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "concerned": 1.8
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "hazard"
+      ],
+      "lines": [
+        "A fractal star with consequences"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Information hazard, aesthetic edition"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "wry",
+      "themes": [
+        "hazard",
+        "inspection",
+        "wry"
+      ],
+      "lines": [
+        "Mostly harmless. Until you zoom"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "concerned": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "A Gödelian spoiler in false colour"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "analytical": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Do not read past this scale"
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "concerned": 1.8
+      },
+      "tone": "ominous",
+      "themes": [
+        "discovery",
+        "hazard"
+      ],
+      "lines": [
+        "It winks when you aren't looking"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "concerned": 2.3,
+        "analytical": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "hazard",
+        "wry"
+      ],
+      "lines": [
+        "Berryman Logical Image Technique"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 3.0,
+        "analytical": 1.3
+      },
+      "tone": "ominous",
+      "themes": [
+        "classified",
+        "hazard"
+      ],
+      "lines": [
+        "DANGER: memotoxins"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 3.0,
+        "analytical": 2.0,
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "contemplative": 2.0
+      },
+      "tone": "wry",
+      "themes": [
+        "existential",
+        "hazard",
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "What's the difference between God and a numerical integrator?",
+        {
+          "t": "God doesn't accumulate round-off error before dooming you",
+          "rarity": 0.7
+        },
+        {
+          "t": "The integrator shows its work",
+          "rarity": 0.3,
+          "tone": "deadpan"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.5,
+        "amused": 2.0,
+        "curious": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 2.0
+      },
+      "tone": "whisper",
+      "themes": [
+        "hazard",
+        "poetic"
+      ],
+      "lines": [
+        "Shatter glasses sit on the desk.",
+        "Unused.",
+        {
+          "t": "The render doesn't need them.",
+          "rarity": 0.7
+        },
+        {
+          "t": "The render already shattered.",
+          "rarity": 0.3,
+          "tone": "ominous"
+        },
+        "You might have."
+      ]
+    }
+  ]
+}

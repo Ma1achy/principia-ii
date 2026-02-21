@@ -1,0 +1,259 @@
+{
+  "_file": "ejection",
+  "_description": "Lines triggered by body ejections",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "ejection"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "concerned": 2.3,
+        "surprised": 1.8
+      },
+      "themes": [
+        "dark",
+        "terse"
+      ],
+      "lines": [
+        "There it goes"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "dark",
+        "escape",
+        "wry"
+      ],
+      "lines": [
+        "Escape velocity: achieved",
+        "Regret velocity: unknown"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "joke"
+      ],
+      "lines": [
+        "One left the group chat"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "The three-body problem just became a two-body problem",
+        "That one's solved, actually"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "dance",
+        "dark",
+        "pattern",
+        "poetic"
+      ],
+      "lines": [
+        "It won't be back",
+        "The hyperbolic orbit confirmed this"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "dark",
+        "escape",
+        "terse"
+      ],
+      "lines": [
+        "Ejected",
+        "The remaining two have no comment"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "patience",
+        "poetic"
+      ],
+      "lines": [
+        "Everyone scatters eventually"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "The outer Jacobi mass has opinions now",
+        "Mostly about velocity"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "dark",
+        "existential",
+        "poetic",
+        "waiting"
+      ],
+      "lines": [
+        "It carries the angular momentum you gave it",
+        "And nothing else"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "joke"
+      ],
+      "lines": [
+        "This is fine",
+        "Two bodies is a solved problem",
+        "We're fine"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "Into the void",
+        "Conserving energy",
+        "As agreed"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "classified",
+        "dark",
+        "escape"
+      ],
+      "lines": [
+        "BODY LOST",
+        "Trajectory: unbounded",
+        "File: closed"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "It was never going to stay",
+        "The initial conditions said so",
+        "You just couldn't read them"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "poetic",
+        "time"
+      ],
+      "lines": [
+        "Somewhere, in the paperwork of the universe",
+        "This counts as a resolution"
+      ]
+    },
+    {
+      "weights": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "dark",
+        "escape",
+        "terse"
+      ],
+      "lines": [
+        "Unbound",
+        "Untethered",
+        "Unhurried"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "dance",
+        "dark",
+        "joke",
+        "pattern"
+      ],
+      "lines": [
+        "Don't worry",
+        "It's in a better orbit now"
+      ]
+    }
+  ]
+}

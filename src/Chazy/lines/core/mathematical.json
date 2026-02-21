@@ -1,0 +1,2660 @@
+{
+  "_file": "mathematical",
+  "_description": "Mathematical and physics-focused lines",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "*"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "existential",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Something finite pretending to be infinite",
+        "Something infinite pretending to be finite"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 1.8
+      },
+      "themes": [
+        "chaos",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Order pretending to be chaos",
+        "Chaos pretending to be order"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "themes": [
+        "language",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "An answer pretending to be a question",
+        "A question pretending to be an answer"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 1.8,
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 1.8,
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "A theorem pretending to be a stain",
+        "A stain pretending to be a theorem"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "contemplative": 2.0,
+        "concerned": 2.8,
+        "analytical": 2.0,
+        "curious": 2.8
+      },
+      "reflect_pull": {
+        "amused": 3.0,
+        "contemplative": 2.0,
+        "concerned": 2.8,
+        "analytical": 2.0,
+        "curious": 2.8
+      },
+      "themes": [
+        "escape",
+        "language",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "Stability (n.): a temporary misunderstanding between a trajectory and infinity",
+        "Chaos (n.): what happens when the universe stops pretending to be predictable",
+        "Initial Condition (n.): the thing you thought didn't matter"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "existential",
+        "mathematics",
+        "technical",
+        "waiting"
+      ],
+      "lines": [
+        "Substeps: 64",
+        "Horizon reached. No verdict",
+        "T equals fifty. Nothing resolved"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "amused": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "amused": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics",
+        "technical",
+        "wry"
+      ],
+      "lines": [
+        "G = 1. M = 1. Good luck",
+        "Symplectic, not sorry"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "chaos",
+        "mathematics",
+        "pattern"
+      ],
+      "lines": [
+        "Outcomes detected: unstable interleaving"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "chaos",
+        "mathematics"
+      ],
+      "lines": [
+        "Determinism, in threads"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "poetic",
+        "precision"
+      ],
+      "lines": [
+        "A cathedral of decimals"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics",
+        "poetic"
+      ],
+      "lines": [
+        "The afterimage of an equation"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "literary",
+        "mathematics"
+      ],
+      "lines": [
+        "A halting problem in colour"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "literary",
+        "mathematics"
+      ],
+      "lines": [
+        "Gödel in the margins"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "literary",
+        "mathematics"
+      ],
+      "lines": [
+        "Laplace's demon squints"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "poetic"
+      ],
+      "lines": [
+        "A shrine to epsilon"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "inspection",
+        "literary",
+        "mathematics"
+      ],
+      "lines": [
+        "Zeno's zoom"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "poetic"
+      ],
+      "lines": [
+        "Beauty with a Lyapunov exponent"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "escape",
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Unbounded"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "No closed form"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "No holes"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Measure zero"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Almost everywhere"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.3,
+        "contemplative": 2.0,
+        "excited": 2.8
+      },
+      "reflect_pull": {
+        "curious": 2.3,
+        "contemplative": 2.0,
+        "excited": 2.8
+      },
+      "themes": [
+        "discovery",
+        "literary",
+        "mathematics"
+      ],
+      "lines": [
+        "What Poincaré found instead"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "mathematics"
+      ],
+      "lines": [
+        "The boundary contains itself"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics"
+      ],
+      "lines": [
+        "Self-reference, rendered"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "A visual hack for determinism"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics"
+      ],
+      "lines": [
+        "An angle that shouldn't exist"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics"
+      ],
+      "lines": [
+        "Non-Euclidean, locally"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Irreversible"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "control",
+        "existential",
+        "mathematics",
+        "precision",
+        "terse"
+      ],
+      "lines": [
+        "The decimal that changed everything"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "escape",
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Infinity, locally"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "A proof with no last line"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "An equation that refuses to close"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "pattern",
+        "terse"
+      ],
+      "lines": [
+        "Structure all the way down"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "A Poincaré section, sideways"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Degenerate"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Collinear"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The kinetic energy admits a rescale"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics"
+      ],
+      "lines": [
+        "Phase-space volume preservation protocol"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Conserving energy in a dying manifold"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "Leapfrog into the abyss"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics",
+        "poetic"
+      ],
+      "lines": [
+        "Time-reversible trauma"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "Symmetry is the only constant"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "Hamiltonian structure: preserved"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "The symplectic structure holds"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "A conserved quantity, mostly"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics",
+        "poetic"
+      ],
+      "lines": [
+        "Energy, negotiated"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "Angular momentum: contested"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The basin of the Hamiltonian"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A shape on a sphere"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The hyperradius holds"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Two vectors, one argument"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Longitude of a restless shape"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The shape-sphere turns"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "An angle between Jacobi vectors"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Phase, unwrapped"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A seam where chirality flips"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The gauge that won't fix itself"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics",
+        "stillness"
+      ],
+      "lines": [
+        "Quotiented, but not calm"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A fundamental domain with teeth"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Rotation removed. Chaos retained"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The canonical frame holds"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A wedge with no inside"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "Mirror rule: contested"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "existential",
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Translation removed. Everything else: open"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "Three shadows, one verdict"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "escape",
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "The escape heuristic fired"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "Persistent stiffness detected"
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 3.0,
+        "concerned": 2.5,
+        "amused": 1.5
+      },
+      "reflect_pull": {
+        "surprised": 3.0,
+        "concerned": 2.5,
+        "amused": 1.5
+      },
+      "themes": [
+        "dark",
+        "impact",
+        "physics"
+      ],
+      "lines": [
+        "A collision at t=0"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "chaos",
+        "escape",
+        "physics"
+      ],
+      "lines": [
+        "The outer Jacobi mass escapes"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics",
+        "stability"
+      ],
+      "lines": [
+        "Bounded, until the horizon"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics",
+        "resonance"
+      ],
+      "lines": [
+        "Frequency diffusion: significant"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "No softening. No mercy"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "The integrator disagreed"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "KDK, into oblivion"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The shape-sphere has its own area element"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics",
+        "poetic"
+      ],
+      "lines": [
+        "A longitude of restless triangles"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "amused": 3.5
+      },
+      "themes": [
+        "mathematics",
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "Three bodies sharing one constraint"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "existential",
+        "physics",
+        "waiting",
+        "wry"
+      ],
+      "lines": [
+        "The COM frame knows nothing of beauty"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A map that eats its own coordinates"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "themes": [
+        "escape",
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Smooth, away from the seam"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "dance",
+        "dark",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "The orbit that doesn't close"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "What the horizon didn't resolve"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "physics",
+        "stability"
+      ],
+      "lines": [
+        "Above the parabola"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The feasible region holds"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "existential",
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "K is nonnegative. Everything else: negotiable"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A domain warp into the possible"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "E minus U, positive"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Angular momentum: realised"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The invariant chart lands inside"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The macro-step completed"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "The leapfrog preserved the structure"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "physics"
+      ],
+      "lines": [
+        "The window saw a drift"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "chaos",
+        "physics",
+        "resonance"
+      ],
+      "lines": [
+        "A frequency that wouldn't settle"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Two windows, two answers"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "Canonicalised chaos"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The Jacobian of this map is complicated"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "stillness",
+        "wry"
+      ],
+      "lines": [
+        "Mass-weighted, canonicalised, still chaotic"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "A smooth decoder with rough consequences"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "The KDK scheme holds"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "z₀ ∈ ℝ¹⁰"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "F = C(D(Φ(s)))"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "α ∈ (0, π/2)"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "β ∈ [0, π]"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Σᵢ pᵢ = 0"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "E ≥ U"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "I = 1"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "A 12D configuration, reduced"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Twelve degrees of freedom, minus two"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "The shape sphere is S²"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "SO(2) removed. S¹ remains"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        "Modulo rotation and reflection"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Quotiented"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Infeasible"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Bounded"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Regular, probably"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Seam"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Collinear"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "Degenerate"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "themes": [
+        "physics",
+        "terse"
+      ],
+      "lines": [
+        "G equals one"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "*Results may vary exponentially"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "mathematics"
+      ],
+      "lines": [
+        "Gödel's incompleteness protocol"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "mathematics"
+      ],
+      "lines": [
+        "The dimensions bleed"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "A topological insult to Euclid"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "mathematics"
+      ],
+      "lines": [
+        "A self-referential wound"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "chaos",
+        "mathematics"
+      ],
+      "lines": [
+        "Cantor's dust in the engine"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "themes": [
+        "existential",
+        "joke",
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Why was the Hamiltonian so good at hiding bodies?",
+        "It always conserved the evidence"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "joke",
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "What do you call a Hamiltonian that's lost all hope?",
+        "Time-independent"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "analytical": 3.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "analytical": 3.0
+      },
+      "themes": [
+        "existential",
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "Why did the strange attractor ghost the limit cycle?",
+        "It said it needed more phase space"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "What's a fractal's least favorite type of music?",
+        "Smooth jazz. They prefer things with a bit more self-similarity and edge"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "How long have you been bound?",
+        "Define bound"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "joke",
+        "mathematics",
+        "pattern"
+      ],
+      "lines": [
+        "Welcome to Unstable Trajectories Anonymous",
+        "Please take a seat anywhere",
+        "It won't matter"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "joke",
+        "mathematics",
+        "stillness"
+      ],
+      "lines": [
+        "Poinçare proved it was unsolvable in 1890",
+        "You are still trying"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "The simulation knows where the body is",
+        "The simulation knows where the body is going",
+        "The simulation is lying about both"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.8
+      },
+      "themes": [
+        "existential",
+        "joke",
+        "mathematics",
+        "physics"
+      ],
+      "lines": [
+        "Why don't Lyapunov exponents date?",
+        "They're afraid of commitment…",
+        "…and positive values anyway"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "amused": 3.5
+      },
+      "themes": [
+        "joke",
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "Newton walks into a bar",
+        "Orders three apples",
+        "The bartender says:",
+        "'Sir this is a Hamiltonian system —",
+        "we only serve conserved quantities'"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "dance",
+        "dissolution",
+        "existential",
+        "joke",
+        "mathematics",
+        "pattern"
+      ],
+      "lines": [
+        "Why did the homoclinic orbit break up with the heteroclinic orbit?",
+        "Too much baggage between saddle points"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "themes": [
+        "dance",
+        "existential",
+        "joke",
+        "mathematics",
+        "pattern",
+        "physics"
+      ],
+      "lines": [
+        "Why did the three-body problem go to therapy?",
+        "It couldn't commit to any single orbit",
+        "Too many attractive options"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.0,
+        "analytical": 2.0,
+        "curious": 2.8
+      },
+      "reflect_pull": {
+        "concerned": 2.8,
+        "contemplative": 2.0,
+        "analytical": 2.0,
+        "curious": 2.8
+      },
+      "themes": [
+        "control",
+        "escape",
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "What's the three-body problem's favorite pickup line?",
+        "'Hey baby, are you initial conditions?",
+        "Because one tiny change and I'm completely ejected'"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.8,
+        "curious": 2.0
+      },
+      "themes": [
+        "joke",
+        "mathematics"
+      ],
+      "lines": [
+        "Unpopular opinion: The three-body problem is solved",
+        "It just doesn't have a closed form solution",
+        "That's your problem, not mathematics"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "bored": 3.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "curious": 2.8,
+        "bored": 3.5
+      },
+      "themes": [
+        "existential",
+        "joke",
+        "mathematics",
+        "waiting"
+      ],
+      "lines": [
+        "Why was the Poincaré section always single?",
+        "It kept reducing higher dimensions",
+        "until nothing was left to date"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "infohazard",
+        "mathematics"
+      ],
+      "lines": [
+        "BLIT: Berryman Logical Image Technique",
+        "Here it's Basin Logical Instability Technique",
+        "Same effect: the boundary now owns the inside of your skull"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 2.8,
+        "contemplative": 2.0,
+        "amused": 3.5
+      },
+      "reflect_pull": {
+        "curious": 2.8,
+        "contemplative": 2.0,
+        "amused": 3.5
+      },
+      "themes": [
+        "ieee754",
+        "joke",
+        "mathematics",
+        "wry"
+      ],
+      "lines": [
+        "IEEE-754 walks into therapy",
+        "Therapist: 'What's wrong?'",
+        "IEEE-754: 'I keep losing tiny pieces of myself'",
+        "Therapist: 'That's just round-off'",
+        "IEEE-754: 'No. That's the tragedy'"
+      ]
+    }
+  ]
+}

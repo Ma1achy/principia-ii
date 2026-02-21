@@ -1,0 +1,452 @@
+{
+  "_file": "stable",
+  "_description": "Lines triggered by stable orbit detection",
+  "_context": {
+    "when": [
+      "*"
+    ],
+    "what": [
+      "stable"
+    ]
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "pattern",
+        "terse"
+      ],
+      "lines": [
+        {
+          "t": "Stable",
+          "rarity": 0.8
+        },
+        {
+          "t": "Stable. Somehow",
+          "rarity": 0.2,
+          "tone": "whisper"
+        },
+        "For now"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "concerned": 1.3
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "This can't last",
+        {
+          "t": "Enjoy it",
+          "rarity": 0.7
+        },
+        {
+          "t": "Savor this",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "analytical": 2.3,
+        "bored": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "mathematics",
+        "pattern",
+        "wry"
+      ],
+      "lines": [
+        "Temporarily periodic",
+        {
+          "t": "Don't get attached",
+          "rarity": 0.7
+        },
+        {
+          "t": "Attachment is inadvisable",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 1.8,
+        "concerned": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "wry"
+      ],
+      "lines": [
+        "Something resembling order detected",
+        {
+          "t": "Status: suspicious",
+          "rarity": 0.7
+        },
+        {
+          "t": "Status: unlikely to persist",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.3,
+        "analytical": 1.3
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "A brief truce between the bodies"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "amused": 1.5
+      },
+      "tone": "wry",
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "The Lyapunov exponent is currently keeping its voice down"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "curious": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "dark",
+        "stillness",
+        "terse"
+      ],
+      "lines": [
+        "Holding",
+        "...",
+        {
+          "t": "Still holding",
+          "rarity": 0.7
+        },
+        {
+          "t": "Somehow still holding",
+          "rarity": 0.3,
+          "tone": "whisper"
+        },
+        "That's unusual"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "patience",
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "Regular, probably",
+        {
+          "t": "Chaotic, eventually",
+          "rarity": 0.7
+        },
+        {
+          "t": "Chaotic, inevitably",
+          "rarity": 0.3,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "ominous",
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "The bodies have reached an agreement",
+        {
+          "t": "Agreements don't last here",
+          "rarity": 0.7
+        },
+        {
+          "t": "Nothing lasts here",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.2
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "poetic",
+        "time"
+      ],
+      "lines": [
+        "A window of order",
+        {
+          "t": "Framed by chaos on both sides",
+          "rarity": 0.75
+        },
+        {
+          "t": "Chaos is watching from both sides",
+          "rarity": 0.25,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.0,
+        "analytical": 1.5
+      },
+      "tone": "deadpan",
+      "themes": [
+        "dark",
+        "discovery",
+        "wry"
+      ],
+      "lines": [
+        {
+          "t": "I've seen this before",
+          "rarity": 0.8
+        },
+        {
+          "t": "I've watched this before",
+          "rarity": 0.2,
+          "tone": "ominous"
+        },
+        "It ended"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.5,
+        "curious": 2.0,
+        "surprised": 1.5
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "concerned": 1.3
+      },
+      "tone": "clinical",
+      "themes": [
+        "mathematics",
+        "terse"
+      ],
+      "lines": [
+        {
+          "t": "Bounded",
+          "rarity": 0.8
+        },
+        {
+          "t": "Trapped",
+          "rarity": 0.2,
+          "tone": "ominous"
+        },
+        "Suspicious"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "analytical": 2.3,
+        "bored": 1.5,
+        "curious": 1.8
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "concerned": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dance",
+        "pattern",
+        "poetic",
+        "stability"
+      ],
+      "lines": [
+        "The orbits are whispering to each other",
+        {
+          "t": "This is how the trouble starts",
+          "rarity": 0.5,
+          "tone": "ominous"
+        },
+        {
+          "t": "They're planning something",
+          "rarity": 0.5,
+          "tone": "whisper",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 2.8,
+        "contemplative": 2.5,
+        "analytical": 2.0
+      },
+      "reflect_pull": {
+        "concerned": 2.5,
+        "contemplative": 1.8
+      },
+      "tone": "wry",
+      "themes": [
+        "dark",
+        "escape",
+        "joke"
+      ],
+      "lines": [
+        "No ejections recorded",
+        {
+          "t": "Yet",
+          "rarity": 0.8
+        },
+        {
+          "t": "Yet. Pay attention to that word",
+          "rarity": 0.2,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        },
+        "I said yet"
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.0,
+        "contemplative": 1.5
+      },
+      "tone": "clinical",
+      "themes": [
+        "classified",
+        "dark"
+      ],
+      "lines": [
+        "STABILITY DETECTED",
+        {
+          "t": "Root cause: under investigation",
+          "rarity": 0.75
+        },
+        {
+          "t": "Root cause: unknown. Concerning",
+          "rarity": 0.25,
+          "tone": "ominous"
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 1.3
+      },
+      "tone": "deadpan",
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "The universe is being cooperative",
+        {
+          "t": "File under: temporary",
+          "rarity": 0.7
+        },
+        {
+          "t": "File under: suspicious",
+          "rarity": 0.3,
+          "tone": "clinical"
+        }
+      ]
+    }
+  ]
+}

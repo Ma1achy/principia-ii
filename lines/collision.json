@@ -1,0 +1,238 @@
+{
+  "_file": "collision",
+  "_description": "Lines triggered by body collisions",
+  "_context": {
+    "when": [
+      "any"
+    ],
+    "what": [
+      "collision"
+    ]
+  },
+  "lines": [
+    {
+      "weights": {
+        "surprised": 2.8,
+        "amused": 2.5
+      },
+      "themes": [
+        "dark",
+        "terse"
+      ],
+      "lines": [
+        "Oh"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "dark",
+        "existential"
+      ],
+      "lines": [
+        "That was always going to happen"
+      ]
+    },
+    {
+      "weights": {
+        "surprised": 3.0,
+        "concerned": 2.5,
+        "amused": 1.5
+      },
+      "themes": [
+        "dark",
+        "impact",
+        "mathematics"
+      ],
+      "lines": [
+        "Singularity adjacent"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "technical",
+        "wry"
+      ],
+      "lines": [
+        "The softening radius had one job"
+      ]
+    },
+    {
+      "weights": {
+        "surprised": 3.0,
+        "concerned": 2.5,
+        "amused": 1.5
+      },
+      "themes": [
+        "classified",
+        "dark",
+        "impact"
+      ],
+      "lines": [
+        "A collision at t = now"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "joke"
+      ],
+      "lines": [
+        "They had so much potential energy together"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "wry"
+      ],
+      "lines": [
+        "Two became one",
+        "The maths got simpler",
+        "The drama did not"
+      ]
+    },
+    {
+      "weights": {
+        "surprised": 2.8,
+        "concerned": 2.0,
+        "curious": 1.5
+      },
+      "themes": [
+        "dark",
+        "terse"
+      ],
+      "lines": [
+        "Merger",
+        "Unscheduled"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "patience",
+        "poetic"
+      ],
+      "lines": [
+        "They were always going to find each other",
+        "Gravity is patient"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "classified"
+      ],
+      "lines": [
+        "CLOSE APPROACH: exceeded",
+        "Outcome: consolidated"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "physics",
+        "wry"
+      ],
+      "lines": [
+        "The N in N-body just decreased",
+        "The chaos did not"
+      ]
+    },
+    {
+      "weights": {
+        "curious": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "This is what the basin was pointing toward",
+        "All along"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 2.0,
+        "curious": 1.8
+      },
+      "themes": [
+        "dissolution",
+        "joke"
+      ],
+      "lines": [
+        "They literally could not stay apart",
+        "Physics is romantic like that"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "technical"
+      ],
+      "lines": [
+        "No softening left to give",
+        "Proceed with the wreckage"
+      ]
+    },
+    {
+      "weights": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "themes": [
+        "dark",
+        "poetic"
+      ],
+      "lines": [
+        "A point mass met another point mass",
+        "There were consequences"
+      ]
+    },
+    {
+      "weights": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "themes": [
+        "existential",
+        "wry"
+      ],
+      "lines": [
+        "The initial conditions led here",
+        "They always lead somewhere"
+      ]
+    }
+  ]
+}
