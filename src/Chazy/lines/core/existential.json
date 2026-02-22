@@ -528,12 +528,14 @@
     },
     {
       "select_bias": {
-        "contemplative": 3.0,
+        "contemplative": 4.0,
+        "curious": 2.0,
         "bored": 2.0
       },
       "reflect_pull": {
         "contemplative": 2.8,
-        "analytical": 2.0
+        "analytical": 2.0,
+        "curious": 1.0
       },
       "tone": "neutral",
       "themes": [
