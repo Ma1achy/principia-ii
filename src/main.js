@@ -1,15 +1,16 @@
 import { createThreeBodyRenderer } from './renderer.js';
 import { state, encodeStateHash, decodeStateHash, applyPackedHash, MODE_INFO } from './state.js';
-import { GlTooltip } from './tooltip.js';
+import { GlTooltip } from './ui/components/tooltip.js';
 import {
   buildResolutions, buildPresets, buildAxisSelects, buildZ0Sliders,
   setZ0Range, applyCustomBasis, updateStateBox,
   syncUIFromState, drawOverlayHUD, showProbeAtEvent, setOverlay, setStatus,
   showGL, showOut, bindUI, setRenderingState,
 } from './ui.js';
-import { attachGestures, attachProbe, attachHintTooltips } from './nav.js';
+import { attachGestures, attachProbe } from './interaction/gestures.js';
+import { attachHintTooltips } from './interaction/hints.js';
 import { Chazy } from './Chazy/index.js';
-import { computeTitleBoundingBox } from './layout.js';
+import { computeTitleBoundingBox } from './ui/core/layout.js';
 
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
@@ -279,8 +280,8 @@ async function boot() {
 
   bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch);
 
-  attachGestures(glCanvas,  glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe);
-  attachGestures(outCanvas, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe);
+  attachGestures(glCanvas,  glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe, interactionState);
+  attachGestures(outCanvas, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe, interactionState);
   attachProbe(glCanvas,  probeTooltip, showProbe, interactionState);
   attachProbe(outCanvas, probeTooltip, showProbe, interactionState);
   attachHintTooltips(hintTooltip);

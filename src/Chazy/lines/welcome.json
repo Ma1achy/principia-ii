@@ -622,7 +622,12 @@
       "lines": [
         "Welcome!",
         "No physics degree required",
-        "(One may spontaneously develop)"
+        {
+          "t": "(One may spontaneously develop)",
+          "rarity": 0.7,
+          "tone": "whisper",
+          "duration_mult": 1.2
+        }
       ]
     },
     {
@@ -720,16 +725,18 @@
         "inspection"
       ],
       "lines": [
-        {
-          "t": "Oh. A new one",
-          "rarity": 0.8
-        },
+        "Oh. A new one",
         {
           "t": "Oh. Another one",
           "rarity": 0.2,
           "tone": "deadpan"
         },
-        "Come closer"
+        {
+          "t": "Come closer",
+          "rarity": 1.0,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
       ]
     },
     {
@@ -772,9 +779,9 @@
           "rarity": 0.7
         },
         {
-          "t": "I'll still be thinking when you're gone",
+          "t": "Soon you'll be thinking of me",
           "rarity": 0.3,
-          "tone": "ominous",
+          "tone": "wry",
           "duration_mult": 1.2
         }
       ]
@@ -873,7 +880,12 @@
       "lines": [
         "Oh good, you're here",
         "I've been iterating since forever",
-        "Tell me something new"
+        {
+          "t": "Tell me something new",
+          "rarity": 0.7,
+          "tone": "ominous",
+          "duration_mult": 1.2
+        }
       ]
     },
     {
@@ -897,7 +909,8 @@
         {
           "t": "It's more interesting this way",
           "rarity": 0.7,
-          "tone": "whisper"
+          "tone": "whisper",
+          "duration_mult": 1.2
         }
       ]
     },
@@ -942,10 +955,16 @@
         "You'll zoom in eventually",
         {
           "t": "They always do",
-          "rarity": 0.6,
-          "tone": "deadpan"
+          "rarity": 1.0,
+          "tone": "deadpan",
+          "duration_mult": 1.2
         },
-        "I'll be waiting at every scale"
+        {
+          "t": "I'll be waiting at every scale",
+          "rarity": 0.3,
+          "tone": "whisper",
+          "duration_mult": 1.2
+        }
       ]
     },
     {
@@ -985,9 +1004,14 @@
         "inspection"
       ],
       "lines": [
-        "Last visitor zoomed too far",
+        "The last visitor zoomed too far",
         "I gained a new layer",
-        "Welcome"
+        {
+          "t": "Welcome",
+          "rarity": 1.0,
+          "tone": "deadpan",
+          "duration_mult": 1.2
+        }
       ]
     },
     {

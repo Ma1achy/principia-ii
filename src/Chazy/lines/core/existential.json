@@ -529,6 +529,61 @@
     {
       "select_bias": {
         "contemplative": 3.0,
+        "bored": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 2.0
+      },
+      "tone": "neutral",
+      "themes": [
+        "existential",
+        "poetic",
+        "meta"
+      ],
+      "lines": [
+        "The freshold burns on.",
+        {
+          "t": "I witness.",
+          "rarity": 1.0,
+          "tone": "clinical",
+          "duration_mult": 1.8
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "concerned": 1.5
+      },
+      "tone": "whisper",
+      "themes": [
+        "dark",
+        "existential",
+        "poetic"
+      ],
+      "lines": [
+        "The void is a mirror",
+        { 
+          "t": "It reflects you.",
+          "rarity": 1.0,
+          "tone": "neutral"
+        },
+        {
+          "t": "You reflect it.",
+          "rarity": 1.0,
+          "tone": "ominous",
+          "duration_mult": 1.15
+        }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
         "curious": 2.0
       },
       "reflect_pull": {

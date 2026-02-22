@@ -1,13 +1,13 @@
-import { state, navPrefs } from './state.js';
-import { interactionState } from './main.js';
+import { state, navPrefs } from '../state.js';
+import { clamp } from '../ui/utils.js';
+
+// ─── Gestures ────────────────────────────────────────────────────────────────
 
 export let dragging = false;
 export let dragMode = "pan";
 
 let lastX = 0, lastY = 0;
-let zoomTimeout = null; // For debouncing zoom state
-
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+let zoomTimeout = null;
 
 function getActiveCanvas(glCanvas, outCanvas) {
   return outCanvas.style.display !== "none" ? outCanvas : glCanvas;
@@ -39,12 +39,12 @@ export function resetView(scheduleRender, writeHash, updateStateBox, drawOverlay
   scheduleRender("view-reset"); writeHash(); updateStateBox(); drawOverlayHUD();
 }
 
-export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawOverlayHUD, showProbeAtEvent) {
+export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawOverlayHUD, showProbeAtEvent, interactionState) {
   const $ = id => document.getElementById(id);
 
   el.addEventListener("pointerdown", (e) => {
     dragging = true; lastX = e.clientX; lastY = e.clientY;
-    interactionState.isDragging = true; // Set dragging state
+    interactionState.isDragging = true;
     probeTooltip.hide();
     dragMode = e.shiftKey ? "gamma" : e.altKey ? "tilt" : "pan";
     el.setPointerCapture?.(e.pointerId);
@@ -52,7 +52,7 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
 
   window.addEventListener("pointerup", () => {
     dragging = false;
-    interactionState.isDragging = false; // Clear dragging state
+    interactionState.isDragging = false;
   });
 
   el.addEventListener("pointermove", (e) => {
@@ -84,7 +84,6 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
     e.preventDefault();
     probeTooltip.hide();
     
-    // Set zooming state
     interactionState.isZooming = true;
     
     const sign = navPrefs.invertScroll ? -1 : 1;
@@ -93,11 +92,10 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
     zoomAt(e.clientX, e.clientY, Math.exp(delta), glCanvas, outCanvas);
     scheduleRender("zoom"); writeHash(); updateStateBox(); drawOverlayHUD();
     
-    // Clear zooming state after a short delay (debounce)
     clearTimeout(zoomTimeout);
     zoomTimeout = setTimeout(() => {
       interactionState.isZooming = false;
-    }, 500); // Consider zooming stopped after 500ms of no wheel events
+    }, 500);
   }, { passive: false });
 
   el.addEventListener("dblclick", () => resetView(scheduleRender, writeHash, updateStateBox, drawOverlayHUD));
@@ -111,71 +109,37 @@ export function attachGestures(el, glCanvas, outCanvas, probeTooltip, scheduleRe
 }
 
 export function attachProbe(el, probeTooltip, showProbeAtEvent, interactionState) {
+  let rafId = null;
+  
   el.addEventListener("pointermove", (e) => {
-    if (e.pointerType === "mouse" && !dragging) showProbeAtEvent(e);
+    if (e.pointerType === "mouse" && !dragging) {
+      // Use requestAnimationFrame to throttle to screen refresh rate
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          showProbeAtEvent(e);
+          rafId = null;
+        });
+      }
+    }
     else if (dragging) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       probeTooltip.hide();
       if (interactionState) interactionState.probeActive = false;
     }
   });
   el.addEventListener("pointerleave", () => {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
     probeTooltip.hide();
     if (interactionState) {
       interactionState.probeActive = false;
       interactionState.hasCollision = false;
       interactionState.hasEscape = false;
     }
-  });
-}
-
-export function attachHintTooltips(hintTooltip) {
-  let hintTimer = null;
-  let hintActive = false;
-
-  function showHint(text, x, y) {
-    const FONT_SIZE = 10, LINE_H = 13, PAD_X = 10, PAD_Y = 7;
-    const approxCharsPerLine = 28;
-    const words = text.split(" ");
-    let lineW = 0, maxW = 0, lines = 1;
-    for (const w of words) {
-      if (lineW + w.length > approxCharsPerLine && lineW > 0) {
-        maxW = Math.max(maxW, lineW);
-        lineW = w.length; lines++;
-      } else {
-        lineW += w.length + 1;
-      }
-    }
-    maxW = Math.max(maxW, lineW);
-    const PW = Math.min(220, Math.max(120, maxW * 6.2 + PAD_X * 2));
-    const PH = lines * LINE_H + PAD_Y * 2;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    let sx = x + 12, sy = y + 12;
-    if (sx + PW > vw - 8) sx = x - PW - 8;
-    if (sy + PH > vh - 8) sy = y - PH - 8;
-    hintTooltip.render([{ type: "hint", text }], sx, sy, Math.round(PW), Math.round(PH), null);
-    hintActive = true;
-  }
-
-  document.addEventListener("pointermove", (e) => {
-    if (e.pointerType !== "mouse") return;
-    const el = e.target.closest("[data-tip]");
-    clearTimeout(hintTimer);
-    if (!el) {
-      if (hintActive) { hintTooltip.hide(); hintActive = false; }
-      return;
-    }
-    if (hintActive) { hintTooltip.hide(); hintActive = false; }
-    const tip = el.dataset.tip;
-    hintTimer = setTimeout(() => showHint(tip, e.clientX, e.clientY), 600);
-  });
-
-  document.addEventListener("pointerleave", () => {
-    clearTimeout(hintTimer);
-    if (hintActive) { hintTooltip.hide(); hintActive = false; }
-  }, true);
-
-  document.addEventListener("pointerdown", () => {
-    clearTimeout(hintTimer);
-    if (hintActive) { hintTooltip.hide(); hintActive = false; }
   });
 }
