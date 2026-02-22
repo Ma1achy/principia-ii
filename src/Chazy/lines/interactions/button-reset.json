@@ -1,0 +1,45 @@
+{
+  "_file": "button-reset",
+  "_description": "Button hesitation - reset button",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "reset"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "concerned": 2.0,
+        "surprised": 1.5
+      },
+      "tone": "concerned",
+      "themes": ["destruction", "warning"],
+      "lines": [
+        "Are you sure?",
+        "Everything will be lost."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.7,
+        "curious": 1.4
+      },
+      "tone": "neutral",
+      "themes": ["renewal", "change"],
+      "lines": [
+        "Ready to start over?",
+        "Back to the beginning."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.6
+      },
+      "tone": "deadpan",
+      "themes": ["action"],
+      "lines": [
+        "Do it.",
+        "Reset if you must."
+      ]
+    }
+  ]
+}

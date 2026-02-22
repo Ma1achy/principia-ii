@@ -1,0 +1,45 @@
+{
+  "_file": "button-render",
+  "_description": "Button hesitation - render button",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "render"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.8,
+        "curious": 1.5
+      },
+      "tone": "warm",
+      "themes": ["creation", "anticipation"],
+      "lines": [
+        "Ready to render?",
+        "Let's see what you've made."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.6,
+        "contemplative": 1.4
+      },
+      "tone": "neutral",
+      "themes": ["computation"],
+      "lines": [
+        "Waiting for your command.",
+        "The renderer is ready."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "deadpan",
+      "themes": ["time"],
+      "lines": [
+        "Still thinking?",
+        "Any day now."
+      ]
+    }
+  ]
+}

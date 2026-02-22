@@ -1652,6 +1652,7 @@
         "concerned": 3.0,
         "analytical": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "boundary",
         "chaos",
@@ -1880,6 +1881,7 @@
         "bored": 1.5,
         "curious": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "boundary",
         "chaos",

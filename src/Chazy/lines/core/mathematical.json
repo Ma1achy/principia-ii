@@ -352,6 +352,7 @@
         "contemplative": 2.5,
         "analytical": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "escape",
         "mathematics",
@@ -591,6 +592,7 @@
         "contemplative": 2.5,
         "analytical": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "escape",
         "mathematics",
@@ -1221,6 +1223,7 @@
         "contemplative": 2.5,
         "analytical": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "escape",
         "physics",
@@ -1258,6 +1261,7 @@
         "concerned": 2.5,
         "amused": 1.5
       },
+      "tone": "surprised",
       "themes": [
         "dark",
         "impact",
@@ -1278,6 +1282,7 @@
         "contemplative": 2.5,
         "analytical": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "chaos",
         "escape",
@@ -1472,6 +1477,7 @@
         "contemplative": 2.5,
         "analytical": 2.0
       },
+      "tone": "concerned",
       "themes": [
         "escape",
         "mathematics",
@@ -2557,6 +2563,7 @@
         "analytical": 2.0,
         "curious": 2.8
       },
+      "tone": "wry",
       "themes": [
         "control",
         "escape",

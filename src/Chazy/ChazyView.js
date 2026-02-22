@@ -106,6 +106,13 @@ export class ChazyView {
   }
   
   /**
+   * Check if can interrupt (non-destructive)
+   */
+  canInterrupt() {
+    return this.textStateMachine ? this.textStateMachine.canInterrupt() : true;
+  }
+  
+  /**
    * Interrupt current animation (if in safe state)
    */
   interrupt() {

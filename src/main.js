@@ -9,6 +9,8 @@ import {
 } from './ui.js';
 import { attachGestures, attachProbe } from './interaction/gestures.js';
 import { attachHintTooltips } from './interaction/hints.js';
+import { ButtonTracker } from './interaction/buttonTracking.js';
+import { PatternDetector } from './interaction/patternDetector.js';
 import { Chazy } from './Chazy/index.js';
 import { computeTitleBoundingBox } from './ui/core/layout.js';
 
@@ -68,7 +70,7 @@ function trackActivity() {
   interactionState.lastActionTime = Date.now();
 }
 
-export { interactionState };
+export { interactionState, patternDetector };
 
 // ─── Chazy (subtitle system) ─────────────────────────────────────────────────
 
@@ -82,20 +84,26 @@ const chazy = new Chazy({
   }
 });
 
+// Initialize interaction trackers (after chazy)
+let buttonTracker = null;
+let patternDetector = null;
+
 // Update layout on resize/changes
 let layoutUpdateTimeout = null;
 function updateChazyLayout() {
-  // Debounce to prevent excessive recalculations
-  if (layoutUpdateTimeout) return;
-  
-  const bbox = computeTitleBoundingBox();
-  console.log('[Main] Layout calculated:', bbox);
-  chazy.updateLayout(bbox);
-  
-  // Throttle: allow one update per frame
-  layoutUpdateTimeout = setTimeout(() => {
+  // Always clear any pending timeout to ensure fresh calculation
+  if (layoutUpdateTimeout) {
+    clearTimeout(layoutUpdateTimeout);
     layoutUpdateTimeout = null;
-  }, 16); // ~60fps
+  }
+  
+  // Use requestAnimationFrame to batch with browser layout
+  layoutUpdateTimeout = requestAnimationFrame(() => {
+    const bbox = computeTitleBoundingBox();
+    console.log('[Main] Layout calculated:', bbox);
+    chazy.updateLayout(bbox);
+    layoutUpdateTimeout = null;
+  });
 }
 
 // Watch for collision/ejection events and try to interrupt
@@ -134,6 +142,58 @@ document.addEventListener('mousedown', trackActivity, { passive: true });
 document.addEventListener('keydown', trackActivity, { passive: true });
 document.addEventListener('wheel', trackActivity, { passive: true });
 document.addEventListener('touchstart', trackActivity, { passive: true });
+
+// ─── Page Lifecycle Events ──────────────────────────────────────────────────
+
+// Track page visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    chazy.route('page_hidden', {});
+  } else {
+    chazy.route('page_visible', {});
+  }
+});
+
+// Track user idle/returned states
+let lastUserActivity = Date.now();
+let wasIdle = false;
+const IDLE_THRESHOLD = 30000; // 30 seconds
+
+// Update last activity timestamp
+function trackUserActivity() {
+  lastUserActivity = Date.now();
+  
+  // Check if was idle and now returned
+  if (wasIdle) {
+    wasIdle = false;
+    chazy.route('user_returned', {});
+  }
+  
+  trackActivity(); // Also update interaction state
+}
+
+// Replace existing activity listeners with enhanced version
+document.removeEventListener('mousemove', trackActivity);
+document.removeEventListener('mousedown', trackActivity);
+document.removeEventListener('keydown', trackActivity);
+document.removeEventListener('wheel', trackActivity);
+document.removeEventListener('touchstart', trackActivity);
+
+document.addEventListener('mousemove', trackUserActivity, { passive: true });
+document.addEventListener('mousedown', trackUserActivity, { passive: true });
+document.addEventListener('keydown', trackUserActivity, { passive: true });
+document.addEventListener('wheel', trackUserActivity, { passive: true });
+document.addEventListener('touchstart', trackUserActivity, { passive: true });
+
+// Check for idle state periodically
+setInterval(() => {
+  const idleTime = Date.now() - lastUserActivity;
+  
+  if (!wasIdle && idleTime > IDLE_THRESHOLD) {
+    wasIdle = true;
+    chazy.route('user_idle', { duration: idleTime });
+  }
+}, 5000); // Check every 5 seconds
 
 const renderer     = await createThreeBodyRenderer(glCanvas, outCanvas);
 const probeTooltip = new GlTooltip();
@@ -262,6 +322,10 @@ async function boot() {
   // SECOND: Initialize Chazy (title + subtitle system)
   await chazy.init(document.body, getCurrentMode);
   
+  // Initialize interaction trackers (but don't track buttons yet)
+  buttonTracker = new ButtonTracker(chazy.router);
+  patternDetector = new PatternDetector(chazy.router);
+  
   buildResolutions(renderer);
   buildPresets(scheduleRender, writeHash, updateStateBox, drawHUD);
   buildAxisSelects();
@@ -279,6 +343,16 @@ async function boot() {
   syncUIFromState(renderer, scheduleRender, writeHash, drawHUD);
 
   bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch);
+  
+  // NOW track buttons (after UI is built)
+  console.log('[Boot] Setting up button tracking...');
+  buttonTracker.trackButton(document.getElementById('renderBtn'), 'render');
+  buttonTracker.trackButton(document.getElementById('copyLinkBtn'), 'share');
+  buttonTracker.trackButton(document.getElementById('savePngBtn'), 'savePng');
+  buttonTracker.trackButton(document.getElementById('copyJsonBtn'), 'copyJson');
+  buttonTracker.trackButton(document.getElementById('resetAllBtn'), 'reset');
+  buttonTracker.trackButton(document.getElementById('z0Zero'), 'zero_z0');
+  buttonTracker.trackButton(document.getElementById('z0SmallRand'), 'randomize_z0');
 
   attachGestures(glCanvas,  glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe, interactionState);
   attachGestures(outCanvas, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe, interactionState);
@@ -305,7 +379,28 @@ async function boot() {
 
   // Update layout and start Chazy
   updateChazyLayout();
-  chazy.start();
+  
+  // Emit page_loaded event, then start
+  chazy.route('page_loaded', {});
+  
+  // Expose global event emitter for Mind autonomy
+  window.chazyEvent = (eventType, data) => chazy.route(eventType, data);
+  
+  // Expose chazy instance for debugging (timing tests, etc.)
+  window.chazy = chazy;
+  
+  // Defer start if page loaded hidden
+  if (document.hidden) {
+    console.log('[Boot] Page loaded hidden, deferring start');
+    const startOnVisible = () => {
+      document.removeEventListener('visibilitychange', startOnVisible);
+      console.log('[Boot] Page visible, starting Chazy');
+      chazy.start();
+    };
+    document.addEventListener('visibilitychange', startOnVisible);
+  } else {
+    chazy.start();
+  }
 
   requestAnimationFrame(() => resizeUiCanvasToMatch());
 }

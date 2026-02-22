@@ -323,6 +323,35 @@ export class ChazyMind {
       }
     }
     
+    // Immediate response (self-observation)
+    if (type === 'immediate_response') {
+      const { tone, wasSuccessful } = event.data;
+      
+      if (wasSuccessful) {
+        // Chazy observes herself responding
+        if (tone === 'wry' || tone === 'playful') {
+          if (current === 'ANALYTICAL' || current === 'CONTEMPLATIVE') {
+            transitions.push({ emotion: 'AMUSED', weight: 0.5 * this.traits.playfulness });
+          }
+        }
+        
+        if (tone === 'concerned' || tone === 'ominous') {
+          if (current === 'CURIOUS' || current === 'AMUSED') {
+            transitions.push({ emotion: 'CONCERNED', weight: 0.4 * this.traits.caution });
+          }
+        }
+        
+        if (tone === 'surprised') {
+          if (current !== 'SURPRISED') {
+            transitions.push({ emotion: 'SURPRISED', weight: 0.3 });
+          }
+        }
+        
+        // Small intensity boost for responding (self-awareness)
+        this.intensity = Math.min(1.0, this.intensity + 0.08);
+      }
+    }
+    
     return transitions;
   }
   
@@ -390,6 +419,11 @@ export class ChazyMind {
     
     // Set unified cooldown for all transition pathways
     this.nextTransitionAllowedAt = Date.now() + this.minTransitionInterval;
+    
+    // Check if transition warrants immediate expression
+    if (this._shouldExpressTransition(oldEmotion, newEmotion)) {
+      this._requestImmediateAmbient(`transition_${newEmotion.toLowerCase()}`);
+    }
     
     // Set intensity based on new emotion
     if (newEmotion === 'NEUTRAL') {
@@ -675,5 +709,138 @@ export class ChazyMind {
     if (recentTypes.length === 0) return 'just started';
     
     return 'mixed activity';
+  }
+  
+  // ─── Mind Autonomy (Timing Control) ────────────────────────────────────────
+  
+  /**
+   * Get ambient delay multiplier based on current emotional state
+   * @returns {number} Multiplier for base delay (0.5 = talk twice as often, 2.0 = half as often)
+   */
+  getAmbientDelayMultiplier() {
+    const { emotion, intensity, transitionPressure } = this;
+    
+    // Excited + high intensity → wants to talk more (shorter delays)
+    if (emotion === 'EXCITED' && intensity > 0.7) {
+      return 0.7;  // Changed from 0.5 (was too chatty)
+    }
+    
+    // Curious + high transition pressure → eager to share observations
+    if (emotion === 'CURIOUS' && transitionPressure > 0.7) {
+      return 0.85;  // Changed from 0.7
+    }
+    
+    // Surprised → wants to express quickly
+    if (emotion === 'SURPRISED' && intensity > 0.5) {
+      return 0.8;  // Changed from 0.6 (give more breathing room)
+    }
+    
+    // Contemplative + low intensity → needs more silence for thought
+    if (emotion === 'CONTEMPLATIVE' && intensity < 0.3) {
+      return 2.0;  // Double the gaps (thoughtful pauses)
+    }
+    
+    // Contemplative + high intensity → deep thinking, still needs space
+    if (emotion === 'CONTEMPLATIVE' && intensity > 0.7) {
+      return 1.5;  // Longer pauses even when engaged
+    }
+    
+    // Bored + very low intensity → really doesn't want to talk
+    if (emotion === 'BORED' && intensity < 0.2) {
+      return 3.0;  // Minimal engagement
+    }
+    
+    // Analytical → measured, consistent pacing
+    if (emotion === 'ANALYTICAL') {
+      return 1.1;  // Slightly slower, deliberate
+    }
+    
+    // Default: trust the selector's emotional timing
+    return 1.0;
+  }
+  
+  /**
+   * Check if Mind wants to suppress ambient speech right now
+   * @returns {boolean} True if Mind wants to stay quiet
+   */
+  shouldSuppressAmbient() {
+    const now = Date.now();
+    
+    // Just transitioned → give emotion time to settle
+    const timeSinceTransition = now - this.emotionStartTime;
+    if (timeSinceTransition < 3000) {
+      console.log('[Mind] Just transitioned, need quiet to settle');
+      return true;  // "I just changed emotions, let me process"
+    }
+    
+    // Deep contemplation → needs extended silence (unpredictable)
+    if (this.emotion === 'CONTEMPLATIVE' && this.intensity > 0.8) {
+      // 40% chance to stay quiet (creates organic pauses)
+      if (Math.random() < 0.4) {
+        console.log('[Mind] Deep contemplation, staying quiet');
+        return true;
+      }
+    }
+    
+    // Overwhelmed by events → needs a break to observe
+    const recentEventCount = this.recentEvents.filter(
+      e => now - e.timestamp < 10000
+    ).length;
+    
+    if (recentEventCount > 5) {
+      console.log('[Mind] Overwhelmed by events, need quiet');
+      return true;  // "Too much happening, need to observe quietly"
+    }
+    
+    // Very low intensity + neutral → sometimes just stays quiet
+    if (this.emotion === 'NEUTRAL' && this.intensity < 0.15) {
+      if (Math.random() < 0.25) {
+        console.log('[Mind] Low engagement, staying quiet');
+        return true;
+      }
+    }
+    
+    return false;  // Default: okay to speak
+  }
+  
+  /**
+   * Check if emotional transition warrants immediate expression
+   * @private
+   */
+  _shouldExpressTransition(from, to) {
+    // Dramatic shifts that warrant immediate reaction
+    const dramaticShifts = [
+      ['BORED', 'EXCITED'],
+      ['BORED', 'SURPRISED'],
+      ['CONTEMPLATIVE', 'SURPRISED'],
+      ['CONTEMPLATIVE', 'EXCITED'],
+      ['CURIOUS', 'CONCERNED'],
+      ['ANALYTICAL', 'AMUSED'],
+      ['ANALYTICAL', 'SURPRISED'],
+      ['NEUTRAL', 'EXCITED'],
+      ['NEUTRAL', 'SURPRISED'],
+      ['NEUTRAL', 'CONCERNED'],
+    ];
+    
+    return dramaticShifts.some(
+      ([a, b]) => (from === a && to === b) || (from === b && to === a)
+    );
+  }
+  
+  /**
+   * Request immediate ambient from router
+   * @private
+   */
+  _requestImmediateAmbient(reason) {
+    console.log(`[Mind] Requesting immediate ambient: ${reason}`);
+    
+    // Emit special internal event via global event emitter
+    if (window.chazyEvent) {
+      window.chazyEvent('mind_wants_to_speak', { 
+        emotion: this.emotion,
+        intensity: this.intensity,
+        reason 
+      });
+    }
   }
 }

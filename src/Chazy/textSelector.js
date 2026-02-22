@@ -22,16 +22,18 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
       break;
       
     case 'EXCITED':
-      multiplier = 0.3;
-      minRange = 0.1;
-      maxRange = 0.5;
-      if (intensity > 0.8) multiplier = 0.15;
+      multiplier = 0.5;        // Changed from 0.3
+      minRange = 0.3;          // Changed from 0.1
+      maxRange = 0.8;          // Changed from 0.5
+      if (intensity > 0.8) {
+        multiplier = 0.35;     // Changed from 0.15
+      }
       break;
       
     case 'SURPRISED':
-      multiplier = 0.5;
-      minRange = 0.3;
-      maxRange = 0.7;
+      multiplier = 0.7;        // Changed from 0.5
+      minRange = 0.5;          // Changed from 0.3
+      maxRange = 0.9;          // Changed from 0.7
       break;
       
     case 'ANALYTICAL':
@@ -47,9 +49,9 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
       break;
       
     case 'CONCERNED':
-      multiplier = 0.9;
-      minRange = 0.6;
-      maxRange = 1.2;
+      multiplier = 1.0;        // Changed from 0.9
+      minRange = 0.7;          // Changed from 0.6
+      maxRange = 1.3;          // Changed from 1.2
       break;
       
     case 'AMUSED':
@@ -93,15 +95,15 @@ function getEmotionalDisplayTime(emotion, intensity, baseMin, baseMax) {
       break;
       
     case 'EXCITED':
-      multiplier = 0.5;
-      minRange = 0.3;
-      maxRange = 0.7;
+      multiplier = 0.6;        // Increased from 0.5 (was too brief)
+      minRange = 0.4;          // Increased from 0.3
+      maxRange = 0.8;          // Increased from 0.7
       break;
       
     case 'SURPRISED':
-      multiplier = 0.6;
-      minRange = 0.4;
-      maxRange = 0.8;
+      multiplier = 0.7;        // Increased from 0.6
+      minRange = 0.5;          // Increased from 0.4
+      maxRange = 0.9;          // Increased from 0.8
       break;
       
     case 'ANALYTICAL':
@@ -146,19 +148,42 @@ function getEmotionalDisplayTime(emotion, intensity, baseMin, baseMax) {
   const baseDisplay = baseMin + Math.random() * (baseMax - baseMin);
   const variation = minRange + Math.random() * (maxRange - minRange);
   
-  return baseDisplay * multiplier * variation * intensityFactor;
+  const calculated = baseDisplay * multiplier * variation * intensityFactor;
+  
+  // Apply hard bounds to prevent too-brief or too-long displays
+  const DISPLAY_MIN = 1500;  // Never less than 1.5s (too brief to read)
+  const DISPLAY_MAX = 15000; // Never more than 15s (feels stuck)
+  
+  return Math.max(DISPLAY_MIN, Math.min(DISPLAY_MAX, calculated));
 }
 
 export class TextSelector {
   constructor(jsonPath, options = {}) {
     this.jsonPath = jsonPath;
     this.data = null;
+    this.interactionContent = null;  // NEW: For immediate responses
     this.bufferSize = options.bufferSize || 32;
     this.displayMinMs = options.displayMinMs || 2000;
     this.displayMaxMs = options.displayMaxMs || 10000;
     this.multiLineMultiplier = options.multiLineMultiplier || 2.5;
     this.recentBuffer = [];
     this.isFirstSelection = true;
+  }
+  
+  /**
+   * Calculate display time multiplier based on text length
+   * Longer text needs more reading time
+   */
+  _getDisplayLengthMultiplier(textLength) {
+    const charCount = textLength || 50;
+    
+    // Base: 50 chars = 1.0×
+    // Scale: +1% per additional 5 chars, up to 2.0× max
+    const baseChars = 50;
+    const extraChars = Math.max(0, charCount - baseChars);
+    const lengthMult = 1.0 + Math.min(1.0, extraChars / 250);  // Max 2.0× at 300 chars
+    
+    return lengthMult;
   }
   
   async load() {
@@ -169,6 +194,19 @@ export class TextSelector {
       'zoom.json', 'drag.json', 'render.json',
       'core/boundary.json', 'core/mathematical.json', 'core/existential.json',
       'core/infohazard.json', 'core/dark-humor.json', 'core/observational.json'
+    ];
+    
+    // Interaction content files (Phase 5 will create these)
+    const interactionFiles = [
+      'interactions/button-render.json',
+      'interactions/button-share.json',
+      'interactions/button-save.json',
+      'interactions/button-copy.json',
+      'interactions/button-reset.json',
+      'interactions/state-reset.json',
+      'interactions/slider-exploration.json',
+      'interactions/preset-browsing.json',
+      'interactions/generic-fallback.json',
     ];
     
     // Load all files in parallel
@@ -182,7 +220,18 @@ export class TextSelector {
         })
     );
     
+    // Load interaction content (gracefully fail if not present)
+    const interactionPromises = interactionFiles.map(f =>
+      fetch(basePath + f)
+        .then(r => r.json())
+        .catch(err => {
+          // Silently ignore - these files don't exist until Phase 5
+          return null;
+        })
+    );
+    
     const allData = await Promise.all(promises);
+    const allInteractionData = await Promise.all(interactionPromises);
     
     // Reconstruct original structure for backwards compatibility
     this.data = {
@@ -217,7 +266,13 @@ export class TextSelector {
       }
     }
     
+    // Load interaction content
+    this.interactionContent = allInteractionData
+      .filter(data => data !== null)
+      .flatMap(fileData => fileData.lines || []);
+    
     console.log(`[TextSelector] Loaded ${this.data.subtitles.length} entries from ${files.length} files`);
+    console.log(`[TextSelector] Loaded ${this.interactionContent.length} interaction entries`);
     return this;
   }
   
@@ -269,9 +324,20 @@ export class TextSelector {
   
   /**
    * Calculate display time based on emotion and intensity
+   * @param {string} emotion - Current emotion
+   * @param {number} intensity - Emotion intensity
+   * @param {number} textLength - Length of text to display (for length-aware scaling)
    */
-  getDisplayTime(emotion, intensity) {
-    return getEmotionalDisplayTime(emotion, intensity, this.displayMinMs, this.displayMaxMs);
+  getDisplayTime(emotion, intensity, textLength) {
+    const baseDisplay = getEmotionalDisplayTime(emotion, intensity, this.displayMinMs, this.displayMaxMs);
+    
+    // If textLength provided, apply length multiplier
+    if (textLength) {
+      const lengthMult = this._getDisplayLengthMultiplier(textLength);
+      return baseDisplay * lengthMult;
+    }
+    
+    return baseDisplay;
   }
   
   /**
@@ -279,6 +345,89 @@ export class TextSelector {
    */
   getIdleTime(emotion, intensity, baseDisplay) {
     return getEmotionalIdleTime(emotion, intensity, baseDisplay);
+  }
+  
+  /**
+   * Select immediate response text based on event
+   * @param {Object} context - { event, emotion, intensity, button?, data? }
+   * @returns {Object|null} - { lines, tone, themes } or null
+   */
+  selectImmediate(context) {
+    const { event, emotion, intensity, button, data = {} } = context;
+    
+    console.log(`[TextSelector] selectImmediate called: event=${event}, button=${button}, emotion=${emotion}`);
+    
+    if (!this.interactionContent) {
+      console.log('[TextSelector] No interaction content loaded');
+      return null;
+    }
+    
+    console.log(`[TextSelector] Interaction content available: ${this.interactionContent.length} files`);
+    
+    // Find matching file by _context
+    let matchingFile = this.interactionContent.find(file => {
+      if (!file._context) return false;
+      
+      // Check event match
+      if (file._context.event && file._context.event !== '*' && file._context.event !== event) {
+        return false;
+      }
+      
+      // Check button match (if applicable)
+      if (button && file._context.button && file._context.button !== button) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Fallback to generic fallback file
+    if (!matchingFile) {
+      matchingFile = this.interactionContent.find(file => file._context?.event === '*');
+    }
+    
+    if (!matchingFile || !matchingFile.lines || matchingFile.lines.length === 0) {
+      console.log(`[TextSelector] No matching content for event=${event}, button=${button}`);
+      return null;
+    }
+    
+    console.log(`[TextSelector] Found matching file: ${matchingFile._file} with ${matchingFile.lines.length} entries`);
+    
+    // Now select from the entries using emotional bias
+    const candidates = matchingFile.lines.map(entry => {
+      const bias = entry.select_bias?.[emotion.toLowerCase()] || 1.0;
+      return { entry, weight: bias };
+    });
+    
+    // Weighted random selection
+    const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const { entry, weight } of candidates) {
+      random -= weight;
+      if (random <= 0) {
+        console.log(`[TextSelector] Selected entry with ${entry.lines.length} lines (tone: ${entry.tone})`);
+        
+        return {
+          lines: entry.lines,  // Return all lines for multi-line sequences
+          tone: entry.tone || 'neutral',
+          themes: entry.themes || [],
+          select_bias: entry.select_bias || {},
+          reflect_pull: entry.reflect_pull || {}
+        };
+      }
+    }
+    
+    // Fallback to first candidate
+    const entry = candidates[0].entry;
+    
+    return {
+      lines: entry.lines,  // Return all lines for multi-line sequences
+      tone: entry.tone || 'neutral',
+      themes: entry.themes || [],
+      select_bias: entry.select_bias || {},
+      reflect_pull: entry.reflect_pull || {}
+    };
   }
   
   // ─── Internal ──────────────────────────────────────────────────────────────

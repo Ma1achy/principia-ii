@@ -1,0 +1,33 @@
+{
+  "_file": "button-save",
+  "_description": "Button hesitation - save image button",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "save"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.7,
+        "amused": 1.5
+      },
+      "tone": "warm",
+      "themes": ["preservation", "memory"],
+      "lines": [
+        "Keep it forever.",
+        "Save what you've found."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.8
+      },
+      "tone": "whisper",
+      "themes": ["time", "memory"],
+      "lines": [
+        "A snapshot.",
+        "Frozen in time."
+      ]
+    }
+  ]
+}

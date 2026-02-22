@@ -20,7 +20,7 @@
         "contemplative": 2.5,
         "analytical": 1.3
       },
-      "tone": "deadpan",
+      "tone": "surprised",
       "themes": [
         "dark",
         "terse"
@@ -39,7 +39,7 @@
         "contemplative": 2.3,
         "analytical": 1.8
       },
-      "tone": "clinical",
+      "tone": "concerned",
       "themes": [
         "dark",
         "escape",
@@ -143,7 +143,7 @@
         "contemplative": 2.3,
         "analytical": 1.5
       },
-      "tone": "deadpan",
+      "tone": "concerned",
       "themes": [
         "dark",
         "escape",
@@ -305,7 +305,7 @@
         "analytical": 2.3,
         "concerned": 1.5
       },
-      "tone": "clinical",
+      "tone": "concerned",
       "themes": [
         "classified",
         "dark",
@@ -393,7 +393,7 @@
         "contemplative": 2.5,
         "analytical": 1.5
       },
-      "tone": "whisper",
+      "tone": "concerned",
       "themes": [
         "dark",
         "escape",
@@ -423,7 +423,7 @@
         "amused": 2.0,
         "contemplative": 1.5
       },
-      "tone": "wry",
+      "tone": "concerned",
       "themes": [
         "dance",
         "dark",

@@ -11,6 +11,7 @@
 import { ChazyView } from './ChazyView.js';
 import { ChazyMind } from './chazyMind.js';
 import { TextSelector } from './textSelector.js';
+import { ChazyEventRouter } from './eventRouter.js';
 
 export class Chazy {
   constructor(options = {}) {
@@ -21,10 +22,17 @@ export class Chazy {
       options.selector
     );
     
+    // Event router (integrates mind + selector)
+    this.router = new ChazyEventRouter(this, this.mind, this.selector);
+    
     this.running = false;
     this.cycleTimer = null;
     this.getCurrentMode = null;
     this.lastInterruptTime = 0;
+    this.currentTextToken = 0;  // For stale callback protection
+    this.lastScheduledAmbient = 0;
+    this.lastTextLength = 50;  // Track last displayed text length
+    this.lastThemes = [];       // Track last displayed themes
     
     this.displayMinMs = options.displayMinMs || 2000;
     this.displayMaxMs = options.displayMaxMs || 10000;
@@ -46,7 +54,10 @@ export class Chazy {
   start() {
     if (this.running) return;
     this.running = true;
-    this._cycle();
+    
+    // Emit initial ambient cycle event
+    this.scheduleAmbient(0, 'startup');
+    
     console.log('[Chazy] Started');
   }
   
@@ -55,10 +66,7 @@ export class Chazy {
    */
   stop() {
     this.running = false;
-    if (this.cycleTimer) {
-      clearTimeout(this.cycleTimer);
-      this.cycleTimer = null;
-    }
+    this.cancelAmbient('stop');
     console.log('[Chazy] Stopped');
   }
   
@@ -73,8 +81,14 @@ export class Chazy {
    * React to external event (collision, drag, etc.)
    */
   observe(eventType, data) {
-    this.mind.observe(eventType, data);
-    this._tryInterrupt();
+    this.route(eventType, data);
+  }
+  
+  /**
+   * Route event through event router
+   */
+  route(eventType, data) {
+    return this.router.route(eventType, data);
   }
   
   /**
@@ -90,7 +104,7 @@ export class Chazy {
     
     if (this.view.interrupt()) {
       this.lastInterruptTime = now;
-      this._cycle();
+      this.selectAndShowAmbient();
       return true;
     }
     
@@ -100,7 +114,51 @@ export class Chazy {
   
   // ─── Internal ─────────────────────────────────────────────────────────────
   
-  _cycle() {
+  /**
+   * Centralized ambient scheduling (CRITICAL: prevents duplicate timers)
+   */
+  scheduleAmbient(ms, reason = 'unknown') {
+    // ALWAYS clear first (prevents duplicates)
+    if (this.cycleTimer) {
+      clearTimeout(this.cycleTimer);
+      this.cycleTimer = null;
+    }
+    
+    // Guards
+    if (!this.running) {
+      console.log(`[Chazy] Skip schedule - not running (${reason})`);
+      return;
+    }
+    if (this.router?.sessionFlags.pageHidden) {
+      console.log(`[Chazy] Skip schedule - page hidden (${reason})`);
+      return;
+    }
+    
+    // Schedule
+    this.lastScheduledAmbient = Date.now();
+    console.log(`[Chazy] Scheduled ambient in ${ms}ms (${reason})`);
+    
+    this.cycleTimer = setTimeout(() => {
+      this.cycleTimer = null;
+      this.route('ambient_cycle_ready', { reason });
+    }, ms);
+  }
+  
+  /**
+   * Cancel ambient scheduling
+   */
+  cancelAmbient(reason = 'unknown') {
+    if (this.cycleTimer) {
+      clearTimeout(this.cycleTimer);
+      this.cycleTimer = null;
+      console.log(`[Chazy] Cancelled ambient (${reason})`);
+    }
+  }
+  
+  /**
+   * Select and show ambient text (extracted from _cycle)
+   */
+  selectAndShowAmbient() {
     if (!this.running) return;
     
     // On first cycle, use 'welcome' mode to trigger welcome messages
@@ -118,13 +176,19 @@ export class Chazy {
     
     if (!selected) {
       console.warn('[Chazy] No text selected');
-      this._scheduleNext(5000);
+      this.scheduleAmbient(5000, 'no_selection');
       return;
     }
     
     this.mind.reflectOnText(selected, selected.themes);
     
-    const displayTime = this.selector.getDisplayTime(emotion, intensity);
+    // Calculate total text length for display time scaling
+    const totalTextLength = selected.lines.reduce((sum, lineItem) => {
+      const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
+      return sum + (typeof line === 'string' ? line.length : 0);
+    }, 0);
+    
+    const displayTime = this.selector.getDisplayTime(emotion, intensity, totalTextLength);
     const idleTime = this.selector.getIdleTime(emotion, intensity, displayTime);
     
     this._showLines(selected.lines, {
@@ -132,13 +196,32 @@ export class Chazy {
       idleTime,
       emotion,
       intensity,
-      tone: selected.tone || 'neutral',  // NEW: Pass tone from selection
+      tone: selected.tone || 'neutral',
       themes: selected.themes,
-      isMultiLine: selected.isMultiLine
+      isMultiLine: selected.isMultiLine,
+      _source: 'ambient'
     });
   }
   
+  _cycle() {
+    // Legacy method - now just calls selectAndShowAmbient
+    this.selectAndShowAmbient();
+  }
+  
   _showLines(lines, config) {
+    // Generate token for stale callback protection
+    const token = ++this.currentTextToken;
+    
+    // Track total text length for idle calculation
+    const totalTextLength = lines.reduce((sum, lineItem) => {
+      const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
+      return sum + (typeof line === 'string' ? line.length : 0);
+    }, 0);
+    
+    // Store for next ambient calculation
+    this.lastTextLength = totalTextLength;
+    this.lastThemes = config.themes || [];
+    
     let index = 0;
     
     const showLine = (lineIndex) => {
@@ -155,8 +238,13 @@ export class Chazy {
           if (lineIndex < lines.length - 1) {
             showLine(lineIndex + 1);
           } else {
-            // No more lines, go to next cycle
-            this._cycle();
+            // No more lines, emit text_complete
+            this.route('text_complete', {
+              type: config._source || 'ambient',
+              token,
+              textLength: this.lastTextLength,
+              themes: this.lastThemes
+            });
           }
           return;
         }
@@ -170,17 +258,51 @@ export class Chazy {
       let nextIdleTime;
       let nextCallback;
       
-      if (config.isMultiLine) {
+      // Check if this is multiline by looking at total lines
+      const isMultiLine = lines.length > 1;
+      
+      if (isMultiLine) {
         if (lineIndex < lines.length - 1) {
           nextIdleTime = 500 + Math.random() * 500;
-          nextCallback = () => showLine(lineIndex + 1);
+          nextCallback = () => {
+            // Validate token before continuing
+            if (token !== this.currentTextToken) {
+              console.log(`[Chazy] Stale multi-line callback ignored (token ${token})`);
+              return;
+            }
+            showLine(lineIndex + 1);
+          };
         } else {
           nextIdleTime = config.idleTime;
-          nextCallback = () => this._cycle();
+          nextCallback = () => {
+            // Validate token before emitting
+            if (token !== this.currentTextToken) {
+              console.log(`[Chazy] Stale completion ignored (token ${token})`);
+              return;
+            }
+            this.route('text_complete', {
+              type: config._source || 'ambient',
+              token,
+              textLength: this.lastTextLength,
+              themes: this.lastThemes
+            });
+          };
         }
       } else {
         nextIdleTime = config.idleTime;
-        nextCallback = () => this._cycle();
+        nextCallback = () => {
+          // Validate token before emitting
+          if (token !== this.currentTextToken) {
+            console.log(`[Chazy] Stale completion ignored (token ${token})`);
+            return;
+          }
+          this.route('text_complete', {
+            type: config._source || 'ambient',
+            token,
+            textLength: this.lastTextLength,
+            themes: this.lastThemes
+          });
+        };
       }
       
       this.view.showText(line, {
@@ -189,7 +311,7 @@ export class Chazy {
         onComplete: nextCallback,
         emotion: config.emotion,
         intensity: config.intensity,
-        tone: lineTone,  // NEW: Pass tone (per-line or entry-level)
+        tone: lineTone,  // Pass tone (per-line or entry-level)
         themes: config.themes
       });
     };
@@ -200,11 +322,7 @@ export class Chazy {
   _tryInterrupt() {
     if (this.view.interrupt()) {
       console.log('[Chazy] Interrupted - selecting new text');
-      this._cycle();
+      this.selectAndShowAmbient();
     }
-  }
-  
-  _scheduleNext(ms) {
-    this.cycleTimer = setTimeout(() => this._cycle(), ms);
   }
 }

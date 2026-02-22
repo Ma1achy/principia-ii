@@ -17,6 +17,27 @@ const MATH_EXTENDED_POOL = MATH_GREEK_POOL + SUPERSCRIPTS + SUBSCRIPTS + '012345
 const DEBUG_TYPING = false;
 const DEBUG_DELETION = false;
 
+// Timing bounds to prevent unreadable extremes
+const SPEED_BOUNDS = {
+  min: 30,    // Never faster than 30ms/char (readability floor)
+  max: 200    // Never slower than 200ms/char (feels broken/frozen)
+};
+
+const IDLE_BOUNDS = {
+  min: 3000,   // Never faster than 3s between complete messages (gives breathing room)
+  max: 30000   // Never longer than 30s (prevents feeling abandoned)
+};
+
+const PAUSE_BOUNDS = {
+  min: 80,     // Never shorter than 80ms (feels glitchy)
+  max: 800     // Never longer than 800ms (feels frozen)
+};
+
+const DISPLAY_BOUNDS = {
+  min: 1500,   // Never less than 1.5s visible (too brief to read)
+  max: 15000   // Never more than 15s visible (feels stuck)
+};
+
 // QWERTY keyboard adjacency map for realistic typos
 const QWERTY_NEIGHBORS = {
   // Letters
@@ -363,6 +384,49 @@ function getTypoForIndex(index, chars) {
   return getQwertyTypo(char) || char;
 }
 
+/**
+ * Smooths speed changes over time to prevent jarring transitions
+ */
+class AnimationMomentum {
+  constructor() {
+    this.currentSpeedMultiplier = 1.0;
+    this.targetSpeedMultiplier = 1.0;
+    this.lastUpdate = Date.now();
+  }
+  
+  /**
+   * Update momentum toward target
+   * @param {number} targetMult - Target speed multiplier from emotion
+   * @returns {number} - Smoothed current multiplier
+   */
+  update(targetMult) {
+    const now = Date.now();
+    const dt = Math.min(1000, now - this.lastUpdate); // Cap at 1s
+    this.lastUpdate = now;
+    
+    this.targetSpeedMultiplier = targetMult;
+    
+    // Exponential smoothing (15% move toward target per 100ms)
+    const smoothingFactor = 0.15 * (dt / 100);
+    this.currentSpeedMultiplier += 
+      (this.targetSpeedMultiplier - this.currentSpeedMultiplier) * 
+      Math.min(1.0, smoothingFactor);
+    
+    return this.currentSpeedMultiplier;
+  }
+  
+  /**
+   * Reset to specific value (for hard state changes)
+   */
+  reset(value = 1.0) {
+    this.currentSpeedMultiplier = value;
+    this.targetSpeedMultiplier = value;
+  }
+}
+
+// Global momentum instance
+const animationMomentum = new AnimationMomentum();
+
 function getTypingParams(emotion, intensity) {
   const params = {
     baseSpeed: 50,
@@ -375,22 +439,26 @@ function getTypingParams(emotion, intensity) {
   switch (emotion) {
     case 'BORED':
       params.baseSpeed = 120 + (1.0 - intensity) * 80;
-      params.speedVariation = 0.6;
-      params.typoChance = 0.008;
+      params.speedVariation = 0.25;
+      params.typoChance = 0.015 + intensity * 0.01;
       params.pauseChance = 0.3;
       params.pauseDuration = 400 + (1.0 - intensity) * 300;
       break;
 
     case 'EXCITED':
-      params.baseSpeed = 30 - intensity * 10;
-      params.speedVariation = 0.4;
-      params.typoChance = 0.025 + intensity * 0.025;
-      params.pauseChance = 0.05;
-      params.pauseDuration = 100;
+      // Use damped intensity to prevent extreme speeds
+      {
+        const damped = dampedIntensity(intensity, 2.0);
+        params.baseSpeed = 50 - damped * 15;  // Range: 35-50ms (was 20-30ms)
+        params.speedVariation = 0.4;
+        params.typoChance = 0.025 + intensity * 0.025;
+        params.pauseChance = 0.05;
+        params.pauseDuration = 100;
+      }
       break;
 
     case 'CONCERNED':
-      params.baseSpeed = 80 + (1.0 - intensity) * 40;
+      params.baseSpeed = 95 + (1.0 - intensity) * 35;  // Range: 95-130ms (was 80-120ms)
       params.speedVariation = 0.3;
       params.typoChance = 0.02 + intensity * 0.015;
       params.pauseChance = 0.2;
@@ -398,17 +466,21 @@ function getTypingParams(emotion, intensity) {
       break;
 
     case 'SURPRISED':
-      params.baseSpeed = 35 - intensity * 10;
-      params.speedVariation = 0.5;
-      params.typoChance = 0.035 + intensity * 0.03;
-      params.pauseChance = 0.15;
-      params.pauseDuration = 200;
+      // Use damped intensity for smoother scaling
+      {
+        const damped = dampedIntensity(intensity, 2.0);
+        params.baseSpeed = 55 - damped * 15;  // Range: 40-55ms (was 25-35ms)
+        params.speedVariation = 0.5;
+        params.typoChance = 0.035 + intensity * 0.03;
+        params.pauseChance = 0.15;
+        params.pauseDuration = 200;
+      }
       break;
 
     case 'AMUSED':
       params.baseSpeed = 55;
       params.speedVariation = 0.35;
-      params.typoChance = 0.018;
+      params.typoChance = 0.025;
       params.pauseChance = 0.12;
       params.pauseDuration = 250;
       break;
@@ -416,7 +488,7 @@ function getTypingParams(emotion, intensity) {
     case 'ANALYTICAL':
       params.baseSpeed = 60;
       params.speedVariation = 0.2;
-      params.typoChance = 0.012;
+      params.typoChance = 0.015;
       params.pauseChance = 0.15;
       params.pauseDuration = 300;
       break;
@@ -424,7 +496,7 @@ function getTypingParams(emotion, intensity) {
     case 'CONTEMPLATIVE':
       params.baseSpeed = 90 + (1.0 - intensity) * 60;
       params.speedVariation = 0.4;
-      params.typoChance = 0.01;
+      params.typoChance = 0.02;
       params.pauseChance = 0.25;
       params.pauseDuration = 350 + (1.0 - intensity) * 250;
       break;
@@ -441,6 +513,12 @@ function getTypingParams(emotion, intensity) {
       break;
   }
 
+  // Apply pause duration bounds
+  params.pauseDuration = Math.max(
+    PAUSE_BOUNDS.min,
+    Math.min(PAUSE_BOUNDS.max, params.pauseDuration)
+  );
+
   return params;
 }
 
@@ -456,63 +534,92 @@ function getTypingParams(emotion, intensity) {
 function applyToneModifiers(params, tone, emotion) {
   if (!tone || tone === 'neutral') return params;
   
-  const modifiers = {
+  // Tone speed adjustments (additive, not multiplicative)
+  const TONE_SPEED_ADJUSTMENTS = {
+    neutral: { min: 0, max: 0 },
+    whisper: { min: 15, max: 30 },         // +15 to +30ms (slower, deliberate)
+    ominous: { min: 10, max: 25 },         // +10 to +25ms (measured, foreboding)
+    wry: { min: -8, max: 0 },              // -8 to 0ms (slightly quicker, dry)
+    deadpan: { min: -12, max: -5 },        // -12 to -5ms (crisp, flat)
+    clinical: { min: -8, max: 0 },         // -8 to 0ms (efficient, precise)
+    warm: { min: 3, max: 12 },             // +3 to +12ms (gentle, unhurried)
+    concerned: { min: -5, max: 8 },        // -5 to +8ms (variable anxiety/caution)
+    surprised: { min: -10, max: -3 }       // -10 to -3ms (reactive, quick)
+  };
+  
+  // Other tone properties with variance ranges
+  const TONE_OTHER_MODIFIERS = {
+    neutral: {
+      typoMult: { min: 1.0, max: 1.0 },
+      pauseMult: { min: 1.0, max: 1.0 },
+      variationMult: { min: 1.0, max: 1.0 }
+    },
     whisper: {
-      speedMult: 1.2,        // Slower, more careful
-      typoMult: 0.5,         // Fewer mistakes
-      pauseMult: 1.3,        // Longer pauses
-      variationMult: 0.8     // Less variation
+      typoMult: { min: 0.4, max: 0.6 },
+      pauseMult: { min: 1.3, max: 1.5 },
+      variationMult: { min: 0.8, max: 1.0 }
     },
-    
-    clinical: {
-      speedMult: 0.95,       // Precise timing
-      typoMult: 0.3,         // Very few typos
-      pauseMult: 1.0,        // Regular pauses
-      variationMult: 0.5     // Low variation (mechanical)
-    },
-    
-    wry: {
-      speedMult: 0.9,        // Slightly quicker
-      typoMult: 1.1,         // Normal typos
-      pauseMult: 0.9,        // Shorter pauses
-      variationMult: 1.0,    // Normal variation
-      chuckleBoost: 0.15     // Increase chuckle pause chance
-    },
-    
     ominous: {
-      speedMult: 1.5,        // Much slower
-      typoMult: 0.2,         // Very deliberate
-      pauseMult: 2.0,        // Long, dramatic pauses
-      variationMult: 0.6     // Controlled variation
+      typoMult: { min: 0.6, max: 0.8 },
+      pauseMult: { min: 1.4, max: 1.7 },
+      variationMult: { min: 0.7, max: 0.9 }
     },
-    
-    warm: {
-      speedMult: 1.05,       // Comfortable pace
-      typoMult: 0.9,         // Relaxed accuracy
-      pauseMult: 1.1,        // Natural pauses
-      variationMult: 1.1     // Slightly more natural variation
+    wry: {
+      typoMult: { min: 0.7, max: 0.9 },
+      pauseMult: { min: 0.8, max: 1.0 },
+      variationMult: { min: 1.1, max: 1.3 },
+      chuckleBoost: { min: 0.05, max: 0.08 }
     },
-    
     deadpan: {
-      speedMult: 1.0,        // Completely consistent
-      typoMult: 0.1,         // Almost no typos
-      pauseMult: 1.0,        // Metronomic
-      variationMult: 0.05    // Kill almost all variation
+      typoMult: { min: 0.3, max: 0.5 },
+      pauseMult: { min: 0.6, max: 0.8 },
+      variationMult: { min: 0.4, max: 0.6 }
+    },
+    clinical: {
+      typoMult: { min: 0.4, max: 0.6 },
+      pauseMult: { min: 0.8, max: 1.0 },
+      variationMult: { min: 0.5, max: 0.7 }
+    },
+    warm: {
+      typoMult: { min: 0.8, max: 1.0 },
+      pauseMult: { min: 1.1, max: 1.3 },
+      variationMult: { min: 1.0, max: 1.2 }
+    },
+    concerned: {
+      typoMult: { min: 1.3, max: 1.5 },
+      pauseMult: { min: 0.6, max: 0.8 },
+      variationMult: { min: 1.2, max: 1.4 }
+    },
+    surprised: {
+      typoMult: { min: 1.1, max: 1.3 },
+      pauseMult: { min: 1.3, max: 1.5 },
+      variationMult: { min: 1.3, max: 1.5 }
     }
   };
   
-  const mod = modifiers[tone];
-  if (!mod) {
+  const speedAdj = TONE_SPEED_ADJUSTMENTS[tone] || TONE_SPEED_ADJUSTMENTS.neutral;
+  const otherMods = TONE_OTHER_MODIFIERS[tone] || TONE_OTHER_MODIFIERS.neutral;
+  
+  if (!speedAdj) {
     console.warn(`[Chazy] Unknown tone: "${tone}", using neutral`);
     return params;
   }
   
+  // Speed: additive adjustment with variance
+  const speedDelta = sampleRange(speedAdj);
+  
+  // Other properties: multiplicative with variance
+  const typoMult = sampleRange(otherMods.typoMult);
+  const pauseMult = sampleRange(otherMods.pauseMult);
+  const variationMult = sampleRange(otherMods.variationMult);
+  const chuckleBoost = otherMods.chuckleBoost ? sampleRange(otherMods.chuckleBoost) : 0;
+  
   return {
-    baseSpeed: params.baseSpeed * (mod.speedMult || 1.0),
-    speedVariation: params.speedVariation * (mod.variationMult || 1.0),
-    typoChance: params.typoChance * (mod.typoMult || 1.0),
-    pauseChance: params.pauseChance + (mod.chuckleBoost || 0),
-    pauseDuration: params.pauseDuration * (mod.pauseMult || 1.0)
+    baseSpeed: params.baseSpeed + speedDelta,
+    speedVariation: params.speedVariation * variationMult,
+    typoChance: params.typoChance * typoMult,
+    pauseChance: params.pauseChance + chuckleBoost,
+    pauseDuration: params.pauseDuration * pauseMult
   };
 }
 
@@ -570,6 +677,49 @@ function clamp01(x) {
   return Math.max(0, Math.min(1, x));
 }
 
+/**
+ * Apply non-linear damping to intensity
+ * Uses ease-out curve: rapid effect at low intensity, plateaus at high
+ */
+function dampedIntensity(intensity, curve = 2.0) {
+  return 1.0 - Math.pow(1.0 - intensity, curve);
+}
+
+/**
+ * Get perceptual complexity weight for a character
+ * More complex characters should display longer for readability
+ */
+function getCharacterComplexity(char) {
+  // Greek letters (harder to parse for most readers)
+  if (/[\u0370-\u03FF]/.test(char)) return 1.3;
+  
+  // Superscripts
+  if (/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ]/.test(char)) return 1.2;
+  
+  // Subscripts
+  if (/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ]/.test(char)) return 1.2;
+  
+  // Complex math operators and symbols
+  if (/[∑∫∂∇∞≈≠≤≥±×÷√∛∜∝∈∉⊂⊃∪∩∧∨¬∀∃∄←→↔⇐⇒⇔∏∐]/.test(char)) return 1.4;
+  
+  // Capital letters (slightly more visual weight)
+  if (/[A-Z]/.test(char)) return 1.1;
+  
+  // Punctuation (needs slight pause for cognitive processing)
+  if (/[.,;:!?]/.test(char)) return 1.15;
+  
+  // Regular ASCII
+  return 1.0;
+}
+
+/**
+ * Sample a random value from a min-max range
+ */
+function sampleRange(range) {
+  if (!range || range.min === range.max) return range?.min || 0;
+  return range.min + Math.random() * (range.max - range.min);
+}
+
 // Ultimate grapheme-safe splitting (handles emoji, combining marks, ZWJ sequences)
 function splitGraphemes(text) {
   if (typeof Intl !== 'undefined' && Intl.Segmenter) {
@@ -588,8 +738,14 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
 
   let typingParams = getTypingParams(emotion, intensity);
   
-  // NEW: Apply tone modifiers
+  // Apply tone modifiers
   typingParams = applyToneModifiers(typingParams, tone, emotion);
+  
+  // Apply hard speed bounds (safety clamps)
+  typingParams.baseSpeed = Math.max(
+    SPEED_BOUNDS.min,
+    Math.min(SPEED_BOUNDS.max, typingParams.baseSpeed)
+  );
   
   const cascadeDelay = typingParams.baseSpeed;
   const cycleSpeed = 30;
@@ -972,6 +1128,9 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
     // Base cadence randomness
     const delayVariation = 1.0 + ((Math.random() - 0.5) * 2 * typingParams.speedVariation);
     let delay = Math.max(0, cascadeDelay * delayVariation);
+    
+    // Apply character complexity weight (perceptual reading time)
+    delay *= getCharacterComplexity(char);
 
     // Micro-pause at word boundaries (space after a word)
     if (isWordBoundaryChar(char)) {
@@ -1461,3 +1620,74 @@ export function animateTextOut(element, onComplete, options = {}) {
     finishOnce();
   };
 }
+
+// ============================================================================
+// DEBUG & TUNING UTILITIES
+// ============================================================================
+
+/**
+ * Trace speed calculation through all layers
+ */
+function traceSpeedCalculation(emotion, intensity, tone) {
+  const trace = [];
+  
+  // Layer 1: Emotion base
+  let params = getTypingParams(emotion, intensity);
+  trace.push({ layer: 'emotion_base', speed: params.baseSpeed });
+  
+  // Layer 2: Tone adjustment
+  const toneParams = applyToneModifiers(params, tone, emotion);
+  trace.push({ 
+    layer: 'tone_applied', 
+    speed: toneParams.baseSpeed,
+    delta: toneParams.baseSpeed - params.baseSpeed
+  });
+  
+  // Layer 3: Bounds
+  const clamped = Math.max(SPEED_BOUNDS.min, Math.min(SPEED_BOUNDS.max, toneParams.baseSpeed));
+  trace.push({ 
+    layer: 'clamped', 
+    speed: clamped,
+    wasLimited: clamped !== toneParams.baseSpeed
+  });
+  
+  return { finalSpeed: clamped, trace, params: toneParams };
+}
+
+/**
+ * Add debug tools to window
+ */
+if (typeof window !== 'undefined') {
+  window.chazyDebug = window.chazyDebug || {};
+  
+  window.chazyDebug.testSpeed = function(config) {
+    const { emotion, intensity, tone, text } = config;
+    const result = traceSpeedCalculation(emotion, intensity, tone);
+    
+    console.group('🔬 Speed Calculation Trace');
+    console.log('Input:', { emotion, intensity, tone });
+    console.log('Trace:', result.trace);
+    console.log('Final Speed:', result.finalSpeed, 'ms/char');
+    console.log('Full Params:', result.params);
+    
+    if (text) {
+      const estimatedDuration = text.length * result.finalSpeed;
+      console.log('Estimated Duration:', estimatedDuration, 'ms for', text.length, 'chars');
+    }
+    
+    console.groupEnd();
+    
+    return result;
+  };
+  
+  window.chazyDebug.speedBounds = SPEED_BOUNDS;
+  window.chazyDebug.idleBounds = IDLE_BOUNDS;
+  window.chazyDebug.pauseBounds = PAUSE_BOUNDS;
+  window.chazyDebug.displayBounds = DISPLAY_BOUNDS;
+  
+  window.chazyDebug.resetMomentum = function() {
+    animationMomentum.reset();
+    console.log('✅ Animation momentum reset to 1.0');
+  };
+}
+

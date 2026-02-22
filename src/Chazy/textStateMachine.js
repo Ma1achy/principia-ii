@@ -140,13 +140,21 @@ export class TextStateMachine {
   }
   
   /**
+   * Check if interrupt would succeed (non-destructive)
+   * @returns {boolean} True if currently in interruptible state
+   */
+  canInterrupt() {
+    return this.currentState === 'IDLE' || this.currentState === 'DISPLAY';
+  }
+  
+  /**
    * Attempt to interrupt current animation
    * Only succeeds during IDLE or DISPLAY states
    * @returns {boolean} True if interrupt succeeded
    */
   interrupt() {
     // Only interrupt during IDLE or DISPLAY states - not during animations
-    if (this.currentState === 'IDLE' || this.currentState === 'DISPLAY') {
+    if (this.canInterrupt()) {
       console.log('[FSM Interrupt] Success from state:', this.currentState);
       if (this.currentAnimationCancel) {
         this.currentAnimationCancel();

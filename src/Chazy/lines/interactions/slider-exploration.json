@@ -1,0 +1,44 @@
+{
+  "_file": "slider-exploration",
+  "_description": "Slider exploration pattern detected",
+  "_context": {
+    "event": "slider_exploration"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "curious": 2.0,
+        "excited": 1.6
+      },
+      "tone": "warm",
+      "themes": ["discovery", "play"],
+      "lines": [
+        "Exploring the space?",
+        "See what changes."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "curious": 1.4
+      },
+      "tone": "neutral",
+      "themes": ["parameters"],
+      "lines": [
+        "Each value tells a different story.",
+        "The space shifts with you."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.5
+      },
+      "tone": "whisper",
+      "themes": ["boundary", "discovery"],
+      "lines": [
+        "You're mapping the edges.",
+        "Every configuration is a possibility."
+      ]
+    }
+  ]
+}

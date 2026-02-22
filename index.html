@@ -11,7 +11,7 @@
 </head>
 <body>
 <div id="canvas-controls">
-  <button id="infoBtn" data-tip="Controls and information." class="btn canvas-ctrl-btn" title="Controls &amp; info">
+  <button id="infoBtn" data-tip="Controls and information." class="btn canvas-ctrl-btn">
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="8" cy="8" r="6.5"/>
       <line x1="8" y1="7" x2="8" y2="11.5"/>
@@ -19,7 +19,7 @@
     </svg>
     <span>Info</span>
   </button>
-  <button id="settingsBtn" data-tip="Navigation and rendering settings." class="btn canvas-ctrl-btn" title="Settings">
+  <button id="settingsBtn" data-tip="Navigation and rendering settings." class="btn canvas-ctrl-btn">
     <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" stroke="none">
       <path fill-rule="evenodd" d="M6.5 1a.5.5 0 0 0-.493.42l-.24 1.47a5.1 5.1 0 0 0-.99.578l-1.394-.557a.5.5 0 0 0-.612.213l-1.5 2.598a.5.5 0 0 0 .12.645l1.187.918a5.17 5.17 0 0 0 0 1.43L1.39 9.213a.5.5 0 0 0-.12.645l1.5 2.598a.5.5 0 0 0 .612.213l1.394-.557c.31.22.641.41.99.578l.24 1.47A.5.5 0 0 0 6.5 14.58h3a.5.5 0 0 0 .493-.42l.24-1.47c.349-.168.68-.358.99-.578l1.394.557a.5.5 0 0 0 .612-.213l1.5-2.598a.5.5 0 0 0-.12-.645l-1.187-.918a5.17 5.17 0 0 0 0-1.43l1.187-.918a.5.5 0 0 0 .12-.645l-1.5-2.598a.5.5 0 0 0-.612-.213l-1.394.557a5.1 5.1 0 0 0-.99-.578l-.24-1.47A.5.5 0 0 0 9.5 1h-3zm1.5 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/>
     </svg>
@@ -57,19 +57,19 @@
       <button id="renderBtn" data-tip="Render at the selected resolution. High resolutions use tiled rendering." class="btn primary" style="width:100%;">Render</button>
     </div>
     <div class="row" style="margin-top:6px;">
-      <button id="copyLinkBtn" data-tip="Copy a shareable URL encoding the current state." class="btn icon-btn" title="Copy URL">
+      <button id="copyLinkBtn" data-tip="Copy a shareable URL encoding the current state." class="btn icon-btn">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M9.5 6.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
         <span>URL</span>
       </button>
-      <button id="copyJsonBtn" data-tip="Copy the full state as JSON to clipboard." class="btn icon-btn" title="Copy JSON">
+      <button id="copyJsonBtn" data-tip="Copy the full state as JSON to clipboard." class="btn icon-btn">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="1" width="9" height="11" rx="1"/><rect x="2" y="4" width="9" height="11" rx="1"/></svg>
         <span>JSON</span>
       </button>
-      <button id="savePngBtn" data-tip="Save the current canvas as a PNG image." class="btn icon-btn" title="Save PNG">
+      <button id="savePngBtn" data-tip="Save the current canvas as a PNG image." class="btn icon-btn">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M5 7l3 3 3-3"/><path d="M2 12v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1"/></svg>
         <span>PNG</span>
       </button>
-      <button id="resetAllBtn" data-tip="Reset all parameters to defaults." class="btn icon-btn" title="Reset">
+      <button id="resetAllBtn" data-tip="Reset all parameters to defaults." class="btn icon-btn">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="5" y1="5" x2="11" y2="11"/><line x1="11" y1="5" x2="5" y2="11"/></svg>
         <span>Reset</span>
       </button>
@@ -83,7 +83,7 @@
         <div class="dim-pair-row">
           <div class="dim-pair-cell">
             <label>Render mode</label>
-            <span class="sl-dim-label" id="modeLabel" title="Click to change render mode"><span class="sl-dim-text" id="modeName">Event classification</span><span class="sl-dim-arrow">&#9662;</span></span>
+            <span class="sl-dim-label" id="modeLabel"><span class="sl-dim-text" id="modeName">Event classification</span><span class="sl-dim-arrow">&#9662;</span></span>
             <select id="mode" style="display:none;" data-tip="Render mode: event classification, phase + diffusion, shape sphere phase, diffusion, or shape sphere RGB.">
               <option value="0">Event classification</option>
               <option value="1">Phase + Diffusion</option>
@@ -94,7 +94,7 @@
           </div>
           <div class="dim-pair-cell">
             <label>Resolution</label>
-            <span class="sl-dim-label" id="resLabel" title="Click to change resolution"><span class="sl-dim-text" id="resName">1024 × 1024</span><span class="sl-dim-arrow">&#9662;</span></span>
+            <span class="sl-dim-label" id="resLabel"><span class="sl-dim-text" id="resName">1024 × 1024</span><span class="sl-dim-arrow">&#9662;</span></span>
             <select id="resolution" style="display:none;"></select>
           </div>
         </div>
@@ -108,12 +108,12 @@
           <div class="dim-pair-row">
             <div class="dim-pair-cell">
               <label>H-axis (&rarr;)</label>
-              <span class="sl-dim-label" id="customDimHLabel" title="Click to change H-axis dimension"><span class="sl-dim-text" id="customDimHName">z&#x2080;</span><span class="sl-dim-arrow">&#9662;</span></span>
+              <span class="sl-dim-label" id="customDimHLabel"><span class="sl-dim-text" id="customDimHName">z&#x2080;</span><span class="sl-dim-arrow">&#9662;</span></span>
               <select id="customDimH" style="display:none;"></select>
             </div>
             <div class="dim-pair-cell">
               <label>V-axis (&uarr;)</label>
-              <span class="sl-dim-label" id="customDimVLabel" title="Click to change V-axis dimension"><span class="sl-dim-text" id="customDimVName">z&#x2081;</span><span class="sl-dim-arrow">&#9662;</span></span>
+              <span class="sl-dim-label" id="customDimVLabel"><span class="sl-dim-text" id="customDimVName">z&#x2081;</span><span class="sl-dim-arrow">&#9662;</span></span>
               <select id="customDimV" style="display:none;"></select>
             </div>
           </div>
@@ -161,7 +161,7 @@
           </div>
         </div>
         <div class="sl-row" style="margin-top:10px;">
-          <span class="sl-dim-label" id="tiltDim1Label" title="Click to change tilt axis"><span class="sl-dim-text">q&#8321; tilt into <span id="tiltDim1Name">z&#8328;</span></span><span class="sl-dim-arrow">&#9662;</span></span>
+          <span class="sl-dim-label" id="tiltDim1Label"><span class="sl-dim-text">q&#8321; tilt into <span id="tiltDim1Name">z&#8328;</span></span><span class="sl-dim-arrow">&#9662;</span></span>
           <div class="sl-track-row">
             <input id="tiltAmt1" data-tip="Tilt q1 into the selected extra dimension." type="range" min="-2.0" max="2.0" step="0.01" value="0" />
             <div class="sl-val-wrap">
@@ -170,7 +170,7 @@
           </div>
         </div>
         <div class="sl-row" style="margin-top:8px;">
-          <span class="sl-dim-label" id="tiltDim2Label" title="Click to change tilt axis"><span class="sl-dim-text">q&#8322; tilt into <span id="tiltDim2Name">z&#8329;</span></span><span class="sl-dim-arrow">&#9662;</span></span>
+          <span class="sl-dim-label" id="tiltDim2Label"><span class="sl-dim-text">q&#8322; tilt into <span id="tiltDim2Name">z&#8329;</span></span><span class="sl-dim-arrow">&#9662;</span></span>
           <div class="sl-track-row">
             <input id="tiltAmt2" data-tip="Tilt q2 into the selected extra dimension." type="range" min="-2.0" max="2.0" step="0.01" value="0" />
             <div class="sl-val-wrap">
@@ -284,7 +284,7 @@
   <div id="settingsPanel">
     <div id="settingsPanelHeader">
       <span id="settingsPanelTitle">Settings</span>
-      <button id="settingsPanelClose" title="Close">&#x2715;</button>
+      <button id="settingsPanelClose">&#x2715;</button>
     </div>
     <div id="settingsPanelContent">
       <div class="stg-group">
@@ -329,7 +329,7 @@
   <div id="infoPanel">
     <div id="infoPanelHeader">
       <span id="infoPanelTitle">Controls &amp; Info</span>
-      <button id="infoPanelClose" title="Close">&#x2715;</button>
+      <button id="infoPanelClose">&#x2715;</button>
     </div>
     <div id="infoPanelContent">
       <div class="info-group">
