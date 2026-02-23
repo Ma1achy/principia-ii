@@ -33,6 +33,11 @@ export class PatternDetector {
    * Record a slider change (from UI)
    */
   recordSliderChange(sliderName) {
+    if (!sliderName || typeof sliderName !== 'string') {
+      console.warn('[PatternDetector] Invalid sliderName:', sliderName);
+      return;
+    }
+    
     const now = Date.now();
     
     // Clean old entries
@@ -54,6 +59,11 @@ export class PatternDetector {
    * Record a preset change (from UI)
    */
   recordPresetChange(presetId) {
+    if (!presetId) {
+      console.warn('[PatternDetector] Invalid presetId:', presetId);
+      return;
+    }
+    
     const now = Date.now();
     
     // Clean old entries

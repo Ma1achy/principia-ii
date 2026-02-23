@@ -1,0 +1,53 @@
+{
+  "_file": "select-render-mode-hover",
+  "_description": "Render mode dropdown hover (OBSERVATIONAL)",
+  "_context": {
+    "event": "select_hover",
+    "select": "render_mode"
+  },
+  "_notes": "Shows current render mode using \\ref{render_mode}",
+  "lines": [
+    {
+      "select_bias": {
+        "curious": 1.7,
+        "analytical": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["rendering", "perspective"],
+      "lines": [
+        "Mode: \\ref{render_mode}."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "contemplative": 1.4
+      },
+      "tone": "neutral",
+      "themes": ["computation"],
+      "lines": [
+        "Currently \\ref{render_mode}."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.4
+      },
+      "tone": "wry",
+      "themes": ["choice"],
+      "lines": [
+        "\\ref{render_mode}... pick different?"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["rendering"],
+      "lines": [
+        "\\ref{render_mode} mode."
+      ]
+    }
+  ]
+}

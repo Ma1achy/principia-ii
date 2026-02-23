@@ -1,0 +1,52 @@
+{
+  "_file": "slider-max-steps-changed",
+  "_description": "Max steps slider changed (POLITE)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "max_steps"
+  },
+  "_notes": "Shows actual max steps value using \\ref{max_steps} and \\ref{max_steps_k}",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.9,
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["iteration", "computation"],
+      "lines": [
+        "Max iterations: \\ref{max_steps}."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["computation"],
+      "lines": [
+        "Step limit: \\ref{max_steps_k}."
+      ]
+    },
+    {
+      "select_bias": {
+        "tired": 1.6
+      },
+      "tone": "wry",
+      "themes": ["computation", "patience"],
+      "lines": [
+        "\\ref{max_steps} steps... patience."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["computation"],
+      "lines": [
+        "Depth: \\ref{new_value} steps."
+      ]
+    }
+  ]
+}

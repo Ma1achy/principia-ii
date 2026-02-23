@@ -20,22 +20,31 @@ export class ButtonTracker {
    * Attach tracking to a button element
    */
   trackButton(button, buttonName) {
-    if (!button) {
-      console.warn(`[ButtonTracker] Button element not found: ${buttonName}`);
+    if (!button || !(button instanceof HTMLElement)) {
+      console.warn(`[ButtonTracker] Invalid button element: ${buttonName}`);
       return;
     }
     
-    button.addEventListener('mouseenter', (e) => {
-      this._onMouseEnter(buttonName, e);
-    });
+    if (!buttonName || typeof buttonName !== 'string') {
+      console.warn('[ButtonTracker] Invalid buttonName');
+      return;
+    }
     
-    button.addEventListener('mouseleave', (e) => {
-      this._onMouseLeave(buttonName, e);
-    });
-    
-    button.addEventListener('click', (e) => {
-      this._onClick(buttonName, e);
-    });
+    try {
+      button.addEventListener('mouseenter', (e) => {
+        this._onMouseEnter(buttonName, e);
+      });
+      
+      button.addEventListener('mouseleave', (e) => {
+        this._onMouseLeave(buttonName, e);
+      });
+      
+      button.addEventListener('click', (e) => {
+        this._onClick(buttonName, e);
+      });
+    } catch (error) {
+      console.error(`[ButtonTracker] Error adding listeners to ${buttonName}:`, error);
+    }
   }
   
   /**
@@ -91,13 +100,54 @@ export class ButtonTracker {
   }
   
   _onClick(buttonName, event) {
-    // Cancel hesitation timer
+    // Cancel hesitation timer if running
+    const hadHoverTimer = !!this.hoverTimer;
+    const hoverDuration = this.activeHover ? Date.now() - this.activeHover.startTime : 0;
+    
     if (this.hoverTimer) {
       clearTimeout(this.hoverTimer);
       this.hoverTimer = null;
     }
     
+    // NEW: Emit click event with urgency
+    const clickEventType = `button_click_${this._getButtonAction(buttonName)}`;
+    
+    console.log(`[ButtonTracker] Click detected: ${buttonName} → ${clickEventType}`);
+    
+    this.router.route(clickEventType, {
+      buttonId: buttonName,
+      hadHovered: hadHoverTimer,
+      hoverDuration
+    });
+    
+    // NEW: Record prediction accuracy if predictor exists
+    if (typeof window !== 'undefined' && window.chazy?.view?.textStateMachine?.interruptPredictor) {
+      const predictor = window.chazy.view.textStateMachine.interruptPredictor;
+      const wasPredicted = predictor.currentPrediction?.buttonId === buttonName;
+      predictor.recordPredictionAccuracy(buttonName, wasPredicted, true);
+    }
+    
     this.activeHover = null;
+  }
+  
+  /**
+   * NEW: Map button names to action names for event types
+   * Button names from main.js: 'render', 'share', 'savePng', 'copyJson', 'reset', etc.
+   */
+  _getButtonAction(buttonName) {
+    const actionMap = {
+      'render': 'render',
+      'share': 'share',
+      'reset': 'reset',
+      'copyJson': 'copy',
+      'savePng': 'save',
+      'zero_z0': 'zero_z0',
+      'randomize_z0': 'randomize_z0',
+      'reset_tilts': 'reset_tilts',
+      'apply_json': 'apply_json',
+      'download_json': 'download_json'
+    };
+    return actionMap[buttonName] || buttonName; // Default to the button name itself
   }
   
   _emitHesitation(buttonName, startTime) {
@@ -105,9 +155,13 @@ export class ButtonTracker {
     
     console.log(`[ButtonTracker] Hesitation detected: ${buttonName} (${duration}ms)`);
     
+    // Map button ID to action name (same as click events)
+    const action = this._getButtonAction(buttonName);
+    
     // Emit event
     this.router.route('button_hesitation', {
-      button: buttonName,
+      button: action,  // Send action name, not raw button ID
+      buttonId: buttonName,  // Keep original ID for reference
       duration
     });
     

@@ -1,0 +1,63 @@
+{
+  "_file": "button-render-hesitation",
+  "_description": "Button hesitation - render button (POLITE interrupt)",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "render"
+  },
+  "_notes": "Plays when user hovers over render button for 800ms+. Single line responses.",
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.8,
+        "curious": 1.5
+      },
+      "tone": "warm",
+      "themes": ["anticipation"],
+      "lines": [
+        "Ready when you are."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.6,
+        "contemplative": 1.4
+      },
+      "tone": "neutral",
+      "themes": ["computation"],
+      "lines": [
+        "I can render that for you."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "wry",
+      "themes": ["time"],
+      "lines": [
+        "Take your time deciding."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["anticipation"],
+      "lines": [
+        "Shall we see how it looks?"
+      ]
+    },
+    {
+      "select_bias": {
+        "tired": 1.4
+      },
+      "tone": "wry",
+      "themes": ["patience"],
+      "lines": [
+        "Hovering won't render it."
+      ]
+    }
+  ]
+}

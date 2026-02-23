@@ -8,17 +8,18 @@
  * - External layout system (via updateLayout callback)
  */
 
-import { ChazyView } from './ChazyView.js';
-import { ChazyMind } from './chazyMind.js';
-import { TextSelector } from './textSelector.js';
-import { ChazyEventRouter } from './eventRouter.js';
+import { ChazyView } from './animation/ChazyView.js';
+import { ChazyMind } from './mind/chazyMind.js';
+import { TextSelector } from './content/textSelector.js';
+import { ChazyEventRouter } from './events/eventRouter.js';
+import { getStateReferences } from './content/stateReferences.js';
 
 export class Chazy {
   constructor(options = {}) {
     this.view = new ChazyView(options.view);
     this.mind = new ChazyMind();
     this.selector = new TextSelector(
-      options.textPath || '/src/Chazy/flavour.json',
+      options.textPath || '/src/Chazy/lines/',
       options.selector
     );
     
@@ -129,7 +130,9 @@ export class Chazy {
       console.log(`[Chazy] Skip schedule - not running (${reason})`);
       return;
     }
-    if (this.router?.sessionFlags.pageHidden) {
+    
+    // Defensive null check for router
+    if (this.router && this.router.sessionFlags && this.router.sessionFlags.pageHidden) {
       console.log(`[Chazy] Skip schedule - page hidden (${reason})`);
       return;
     }
@@ -161,46 +164,79 @@ export class Chazy {
   selectAndShowAmbient() {
     if (!this.running) return;
     
-    // On first cycle, use 'welcome' mode to trigger welcome messages
-    const mode = this.selector.isFirstSelection ? 'welcome' : this.getCurrentMode();
-    const emotion = this.mind.emotion;
-    const intensity = this.mind.intensity;
-    
-    const selected = this.selector.select({
-      mode,
-      themes: this.mind.getPreferredThemes(),
-      emotion: emotion.toLowerCase(),
-      intensity,
-      excludeWelcome: false  // Always allow welcome messages on first selection
-    });
-    
-    if (!selected) {
-      console.warn('[Chazy] No text selected');
-      this.scheduleAmbient(5000, 'no_selection');
+    // Defensive null checks
+    if (!this.selector) {
+      console.error('[Chazy] Selector not initialized');
       return;
     }
     
-    this.mind.reflectOnText(selected, selected.themes);
+    if (!this.mind) {
+      console.error('[Chazy] Mind not initialized');
+      return;
+    }
     
-    // Calculate total text length for display time scaling
-    const totalTextLength = selected.lines.reduce((sum, lineItem) => {
-      const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
-      return sum + (typeof line === 'string' ? line.length : 0);
-    }, 0);
+    if (!this.getCurrentMode || typeof this.getCurrentMode !== 'function') {
+      console.error('[Chazy] getCurrentMode not set or not a function');
+      return;
+    }
     
-    const displayTime = this.selector.getDisplayTime(emotion, intensity, totalTextLength);
-    const idleTime = this.selector.getIdleTime(emotion, intensity, displayTime);
-    
-    this._showLines(selected.lines, {
-      displayTime,
-      idleTime,
-      emotion,
-      intensity,
-      tone: selected.tone || 'neutral',
-      themes: selected.themes,
-      isMultiLine: selected.isMultiLine,
-      _source: 'ambient'
-    });
+    try {
+      // On first cycle, use 'welcome' mode to trigger welcome messages
+      const mode = this.selector.isFirstSelection ? 'welcome' : this.getCurrentMode();
+      const emotion = this.mind.emotion || 'NEUTRAL';
+      const intensity = this.mind.intensity || 0.5;
+      
+      // Get state references for templates
+      const stateRefs = getStateReferences();
+      
+      const selected = this.selector.select({
+        mode,
+        themes: this.mind.getPreferredThemes() || [],
+        emotion: emotion.toLowerCase(),
+        intensity,
+        excludeWelcome: false,  // Always allow welcome messages on first selection
+        stateRefs  // Pass state references for template processing
+      });
+      
+      if (!selected) {
+        console.warn('[Chazy] No text selected');
+        this.scheduleAmbient(5000, 'no_selection');
+        return;
+      }
+      
+      // Defensive check on selected object
+      if (!selected.lines || !Array.isArray(selected.lines) || selected.lines.length === 0) {
+        console.error('[Chazy] Selected object has invalid lines');
+        this.scheduleAmbient(5000, 'invalid_selection');
+        return;
+      }
+      
+      this.mind.reflectOnText(selected, selected.themes || []);
+      
+      // Calculate total text length for display time scaling
+      const totalTextLength = selected.lines.reduce((sum, lineItem) => {
+        const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
+        return sum + (typeof line === 'string' ? line.length : 0);
+      }, 0);
+      
+      const displayTime = this.selector.getDisplayTime(emotion, intensity, totalTextLength);
+      const idleTime = this.selector.getIdleTime(emotion, intensity, displayTime);
+      
+      this._showLines(selected.lines, {
+        displayTime,
+        idleTime,
+        emotion,
+        intensity,
+        tone: selected.tone || 'neutral',
+        themes: selected.themes || [],
+        isMultiLine: selected.isMultiLine,
+        _source: 'ambient'
+      });
+    } catch (error) {
+      console.error('[Chazy] Error in selectAndShowAmbient:', error);
+      // Try to recover by rescheduling
+      this.scheduleAmbient(10000, 'error_recovery');
+    }
   }
   
   _cycle() {
@@ -209,6 +245,17 @@ export class Chazy {
   }
   
   _showLines(lines, config) {
+    // Defensive null checks
+    if (!lines || !Array.isArray(lines) || lines.length === 0) {
+      console.error('[Chazy] Invalid lines array in _showLines');
+      return;
+    }
+    
+    if (!config) {
+      console.error('[Chazy] Missing config in _showLines');
+      return;
+    }
+    
     // Generate token for stale callback protection
     const token = ++this.currentTextToken;
     
@@ -225,8 +272,45 @@ export class Chazy {
     let index = 0;
     
     const showLine = (lineIndex) => {
+      // Validate token (stale callback protection)
+      if (token !== this.currentTextToken) {
+        console.log(`[Chazy] Stale showLine callback ignored (token ${token})`);
+        return;
+      }
+      
+      // Bounds check
+      if (lineIndex < 0 || lineIndex >= lines.length) {
+        console.error(`[Chazy] Line index ${lineIndex} out of bounds (0-${lines.length - 1})`);
+        // Emit text_complete to prevent hanging
+        this.route('text_complete', {
+          type: config._source || 'ambient',
+          token,
+          textLength: this.lastTextLength,
+          themes: this.lastThemes
+        });
+        return;
+      }
+      
       // Handle string vs object line format
       const lineItem = lines[lineIndex];
+      
+      // Defensive null check
+      if (lineItem === null || lineItem === undefined) {
+        console.error(`[Chazy] Line item at index ${lineIndex} is null/undefined`);
+        // Skip to next line or complete
+        if (lineIndex < lines.length - 1) {
+          showLine(lineIndex + 1);
+        } else {
+          this.route('text_complete', {
+            type: config._source || 'ambient',
+            token,
+            textLength: this.lastTextLength,
+            themes: this.lastThemes
+          });
+        }
+        return;
+      }
+      
       const isObject = typeof lineItem === 'object' && lineItem !== null && lineItem.t;
       
       // Check rarity for object lines
@@ -252,6 +336,24 @@ export class Chazy {
       
       // Extract line properties
       const line = isObject ? lineItem.t : lineItem;
+      
+      // Validate line is a string
+      if (typeof line !== 'string') {
+        console.error(`[Chazy] Line is not a string at index ${lineIndex}:`, line);
+        // Skip this line
+        if (lineIndex < lines.length - 1) {
+          showLine(lineIndex + 1);
+        } else {
+          this.route('text_complete', {
+            type: config._source || 'ambient',
+            token,
+            textLength: this.lastTextLength,
+            themes: this.lastThemes
+          });
+        }
+        return;
+      }
+      
       const lineTone = isObject ? (lineItem.tone || config.tone) : config.tone;
       const durationMult = isObject ? (lineItem.duration_mult || 1.0) : 1.0;
       
@@ -263,7 +365,13 @@ export class Chazy {
       
       if (isMultiLine) {
         if (lineIndex < lines.length - 1) {
-          nextIdleTime = 500 + Math.random() * 500;
+          // Check if this is a staged interrupt with custom pause
+          if (config.interrupt_style === 'staged' && config.stage_pause) {
+            nextIdleTime = config.stage_pause;  // Use custom pause for staged interrupts
+          } else {
+            nextIdleTime = 500 + Math.random() * 500;  // Default multi-line pause
+          }
+          
           nextCallback = () => {
             // Validate token before continuing
             if (token !== this.currentTextToken) {
@@ -273,7 +381,7 @@ export class Chazy {
             showLine(lineIndex + 1);
           };
         } else {
-          nextIdleTime = config.idleTime;
+          nextIdleTime = config.idleTime || 2000;
           nextCallback = () => {
             // Validate token before emitting
             if (token !== this.currentTextToken) {
@@ -289,7 +397,7 @@ export class Chazy {
           };
         }
       } else {
-        nextIdleTime = config.idleTime;
+        nextIdleTime = config.idleTime || 2000;
         nextCallback = () => {
           // Validate token before emitting
           if (token !== this.currentTextToken) {
@@ -305,15 +413,29 @@ export class Chazy {
         };
       }
       
-      this.view.showText(line, {
-        displayTime: config.displayTime * durationMult,  // Apply duration multiplier
-        idleTime: nextIdleTime,
-        onComplete: nextCallback,
-        emotion: config.emotion,
-        intensity: config.intensity,
-        tone: lineTone,  // Pass tone (per-line or entry-level)
-        themes: config.themes
-      });
+      // Defensive check for view
+      if (!this.view || !this.view.showText) {
+        console.error('[Chazy] View or showText method not available');
+        return;
+      }
+      
+      try {
+        this.view.showText(line, {
+          displayTime: (config.displayTime || 3000) * durationMult,  // Apply duration multiplier with fallback
+          idleTime: nextIdleTime,
+          onComplete: nextCallback,
+          emotion: config.emotion || 'NEUTRAL',
+          intensity: config.intensity || 0.5,
+          tone: lineTone || 'neutral',  // Pass tone (per-line or entry-level)
+          themes: config.themes || []
+        });
+      } catch (error) {
+        console.error('[Chazy] Error in view.showText:', error);
+        // Attempt to recover by completing
+        if (nextCallback) {
+          setTimeout(nextCallback, 1000);
+        }
+      }
     };
     
     showLine(0);

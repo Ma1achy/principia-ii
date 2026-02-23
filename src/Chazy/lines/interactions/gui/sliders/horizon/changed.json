@@ -1,0 +1,62 @@
+{
+  "_file": "slider-horizon-changed",
+  "_description": "Horizon slider changed (POLITE)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "horizon"
+  },
+  "_notes": "Shows actual horizon value using \\ref{horizon_int} and delta",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.9,
+        "contemplative": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["time", "infinity"],
+      "lines": [
+        "Time horizon: \\ref{horizon_int} units."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["exploration", "infinity"],
+      "lines": [
+        "Horizon set to \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.9
+      },
+      "tone": "neutral",
+      "themes": ["infinity", "boundary"],
+      "lines": [
+        "Infinity's edge: \\ref{horizon_int}."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "wry",
+      "themes": ["time"],
+      "lines": [
+        "\\ref{horizon_int} units of waiting."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["time", "change"],
+      "lines": [
+        "Changed by \\ref{delta|fixed1}."
+      ]
+    }
+  ]
+}

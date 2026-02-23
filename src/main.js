@@ -10,6 +10,8 @@ import {
 import { attachGestures, attachProbe } from './interaction/gestures.js';
 import { attachHintTooltips } from './interaction/hints.js';
 import { ButtonTracker } from './interaction/buttonTracking.js';
+import { SliderTracker } from './interaction/sliderTracking.js';
+import { SelectTracker } from './interaction/selectTracking.js';
 import { PatternDetector } from './interaction/patternDetector.js';
 import { Chazy } from './Chazy/index.js';
 import { computeTitleBoundingBox } from './ui/core/layout.js';
@@ -75,7 +77,7 @@ export { interactionState, patternDetector };
 // ─── Chazy (subtitle system) ─────────────────────────────────────────────────
 
 const chazy = new Chazy({
-  textPath: 'src/Chazy/flavour.json',
+  textPath: 'src/Chazy/lines/',
   displayMinMs: 2000,
   displayMaxMs: 10000,
   selector: {
@@ -86,6 +88,8 @@ const chazy = new Chazy({
 
 // Initialize interaction trackers (after chazy)
 let buttonTracker = null;
+let sliderTracker = null;
+let selectTracker = null;
 let patternDetector = null;
 
 // Update layout on resize/changes
@@ -312,6 +316,66 @@ function showProbe(e) {
   showProbeAtEvent(e, probeTooltip, glCanvas, outCanvas, renderer, interactionState);
 }
 
+// ─── Interrupt Prediction Setup ─────────────────────────────────────────────
+
+/**
+ * Setup interrupt prediction system
+ * - Tracks mouse position and velocity
+ * - Predicts button clicks based on trajectory
+ * - Pre-warms interrupt system by slowing typing
+ */
+function setupInterruptPrediction() {
+  if (!chazy?.view?.textStateMachine?.interruptPredictor) {
+    console.warn('[InterruptPrediction] Predictor not available');
+    return;
+  }
+  
+  const predictor = chazy.view.textStateMachine.interruptPredictor;
+  
+  console.log('[InterruptPrediction] Setting up mouse tracking');
+  
+  // Update button bounds for all tracked buttons
+  function updateButtonBounds() {
+    const buttons = {
+      'renderBtn': document.getElementById('renderBtn'),
+      'shareBtn': document.getElementById('copyLinkBtn'),
+      'resetBtn': document.getElementById('resetAllBtn'),
+      'copyJson': document.getElementById('copyJsonBtn'),
+      'saveJson': document.getElementById('savePngBtn')
+    };
+    
+    let count = 0;
+    for (const [id, element] of Object.entries(buttons)) {
+      if (element) {
+        predictor.updateButtonBounds(id, element);
+        count++;
+      }
+    }
+    
+    console.log(`[InterruptPrediction] Updated ${count} button bounds`);
+  }
+  
+  // Initial bounds update
+  updateButtonBounds();
+  
+  // Update on resize
+  window.addEventListener('resize', updateButtonBounds);
+  
+  // Track mouse (throttled to 50ms)
+  let lastProcessTime = 0;
+  const PROCESS_INTERVAL = 50;  // 20 samples per second
+  
+  document.addEventListener('mousemove', (e) => {
+    const now = performance.now();
+    if (now - lastProcessTime >= PROCESS_INTERVAL) {
+      predictor.trackMousePosition(e.clientX, e.clientY);
+      lastProcessTime = now;
+    }
+  });
+  
+  console.log('[InterruptPrediction] Setup complete');
+}
+
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
 async function boot() {
@@ -324,6 +388,8 @@ async function boot() {
   
   // Initialize interaction trackers (but don't track buttons yet)
   buttonTracker = new ButtonTracker(chazy.router);
+  sliderTracker = new SliderTracker(chazy.router);
+  selectTracker = new SelectTracker(chazy.router);
   patternDetector = new PatternDetector(chazy.router);
   
   buildResolutions(renderer);
@@ -353,6 +419,41 @@ async function boot() {
   buttonTracker.trackButton(document.getElementById('resetAllBtn'), 'reset');
   buttonTracker.trackButton(document.getElementById('z0Zero'), 'zero_z0');
   buttonTracker.trackButton(document.getElementById('z0SmallRand'), 'randomize_z0');
+
+  // Track render controls (Phase 2)
+  console.log('[Boot] Setting up select tracking...');
+  selectTracker.trackSelect(document.getElementById('mode'), 'render_mode');
+  selectTracker.trackSelect(document.getElementById('resolution'), 'resolution');
+  selectTracker.trackSelect(document.getElementById('tiltDim1'), 'tilt_dim1');
+  selectTracker.trackSelect(document.getElementById('tiltDim2'), 'tilt_dim2');
+  
+  // Track Z0 sliders (Phase 4)
+  console.log('[Boot] Setting up slider tracking...');
+  const z0Container = document.getElementById('z0Sliders');
+  const z0Sliders = z0Container.querySelectorAll('input[type="range"]');
+  z0Sliders.forEach((slider, idx) => {
+    sliderTracker.trackSlider(slider, `z${idx}`);
+  });
+  console.log(`[Boot] Tracked ${z0Sliders.length} z-coordinate sliders`);
+  
+  // Track orientation sliders (Phase 5)
+  sliderTracker.trackSlider(document.getElementById('tiltAmt1'), 'tilt_q1');
+  sliderTracker.trackSlider(document.getElementById('tiltAmt2'), 'tilt_q2');
+  
+  // Track simulation sliders (Phase 5)
+  sliderTracker.trackSlider(document.getElementById('horizon'), 'horizon');
+  sliderTracker.trackSlider(document.getElementById('maxSteps'), 'max_steps');
+  sliderTracker.trackSlider(document.getElementById('dtMacro'), 'dt_macro');
+  sliderTracker.trackSlider(document.getElementById('rColl'), 'r_coll');
+  sliderTracker.trackSlider(document.getElementById('rEsc'), 'r_esc');
+  
+  // Track orientation/import buttons (Phase 5 & 6)
+  buttonTracker.trackButton(document.getElementById('rotReset'), 'reset_tilts');
+  buttonTracker.trackButton(document.getElementById('pasteJsonBtn'), 'apply_json');
+  buttonTracker.trackButton(document.getElementById('downloadJsonBtn'), 'download_json');
+
+  // NEW: Setup interrupt prediction system
+  setupInterruptPrediction();
 
   attachGestures(glCanvas,  glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe, interactionState);
   attachGestures(outCanvas, glCanvas, outCanvas, probeTooltip, scheduleRender, writeHash, updateStateBox, drawHUD, showProbe, interactionState);

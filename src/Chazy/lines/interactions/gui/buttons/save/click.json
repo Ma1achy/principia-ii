@@ -1,0 +1,44 @@
+{
+  "_file": "button-save-click",
+  "_description": "Button click - save JSON button (ASSERTIVE interrupt)",
+  "_context": {
+    "event": "button_click_save",
+    "button": "save"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.7,
+        "careful": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["persistence", "data"],
+      "lines": [
+        "Downloading.",
+        "Saved."
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 1.5
+      },
+      "tone": "warm",
+      "themes": ["preservation"],
+      "lines": [
+        "Preserving this.",
+        "Saved for you."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.6
+      },
+      "tone": "wry",
+      "themes": ["time", "memory"],
+      "lines": [
+        "Recorded.",
+        "For posterity."
+      ]
+    }
+  ]
+}

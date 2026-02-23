@@ -1,0 +1,118 @@
+{
+  "_file": "button-reset-click",
+  "_description": "Button click - reset button (FORCE interrupt, STAGED with dramatic pauses)",
+  "_context": {
+    "event": "button_click_reset",
+    "button": "reset"
+  },
+  "_notes": "STAGED INTERRUPT: Lines show with 'stage_pause' between them (default 500ms). Use for dramatic/important moments.",
+  "lines": [
+    {
+      "select_bias": {
+        "concerned": 2.2,
+        "careful": 2.0
+      },
+      "tone": "concerned",
+      "themes": ["warning", "destruction", "boundary"],
+      "interrupt_style": "staged",
+      "stage_pause": 600,
+      "lines": [
+        "Wait.",
+        "Are you sure?",
+        "This will erase everything."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.7,
+        "contemplative": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["state", "reset", "precision"],
+      "interrupt_style": "staged",
+      "stage_pause": 400,
+      "lines": [
+        "Resetting.",
+        "Clearing all state.",
+        "Done."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.5,
+        "curious": 1.3
+      },
+      "tone": "neutral",
+      "themes": ["renewal"],
+      "interrupt_style": "staged",
+      "stage_pause": 450,
+      "lines": [
+        "Fresh start.",
+        "Back to zero.",
+        "Begin again."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.6,
+        "tired": 1.5
+      },
+      "tone": "deadpan",
+      "themes": ["repetition", "cycle"],
+      "interrupt_style": "staged",
+      "stage_pause": 500,
+      "lines": [
+        "Again?",
+        "Starting over.",
+        "Clean slate."
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 1.8,
+        "concerned": 1.4
+      },
+      "reflect_pull": {
+        "surprised": 1.5
+      },
+      "tone": "surprised",
+      "themes": ["destruction", "change"],
+      "interrupt_style": "staged",
+      "stage_pause": 550,
+      "lines": [
+        "Oh.",
+        "You actually did it.",
+        "Gone."
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 1.8,
+        "curious": 1.3
+      },
+      "tone": "surprised",
+      "themes": ["unexpected"],
+      "interrupt_style": "staged",
+      "stage_pause": 500,
+      "lines": [
+        "Oh.",
+        "Discarding this?",
+        "Alright then."
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 1.6,
+        "bored": 1.4
+      },
+      "tone": "wry",
+      "themes": ["observation"],
+      "interrupt_style": "staged",
+      "stage_pause": 480,
+      "lines": [
+        "Bold choice.",
+        "That was decisive."
+      ]
+    }
+  ]
+}

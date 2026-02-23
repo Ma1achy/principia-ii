@@ -1,0 +1,9 @@
+> setting to make it so zoom is either aways centred on canvas middle or mouse
+> keyboard controls? arrows == pab, +/- == zoom, other keys for tilts/roation?
+> optimise somehow to make zoom/panning experience nice 
+> somehow make it so rendering is non blocking.
+> option to disable glass effect on probe for readability just makes it solid bg colour and text colour
+> darkmode support for the nerds (default light bc it has more aura)
+> gui animation? rather than like instant changes
+> ability to show / hide sidebar
+> on page load, choose from random selection of hand chosen state jsons.

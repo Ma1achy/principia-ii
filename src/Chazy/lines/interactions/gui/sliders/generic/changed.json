@@ -1,0 +1,82 @@
+{
+  "_file": "slider-z-changed",
+  "_description": "Z-coordinate slider changed (POLITE)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "*"
+  },
+  "_notes": "Generic change for any slider - shows slider name and values using \\ref{slider_name}, \\ref{new_value}, etc.",
+  "lines": [
+    {
+      "select_bias": {
+        "curious": 1.7,
+        "analytical": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["adjustment", "exploration"],
+      "lines": [
+        "\\ref{slider_name} set to \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["precision", "control"],
+      "lines": [
+        "\\ref{slider_name}: \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 1.7
+      },
+      "tone": "warm",
+      "themes": ["change"],
+      "lines": [
+        "\\ref{slider_name} changed!"
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 1.8
+      },
+      "tone": "surprised",
+      "themes": ["change"],
+      "lines": [
+        "\\ref{slider_name}: \\ref{delta|fixed2} shift!"
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["adjustment"],
+      "lines": [
+        "From \\ref{old_value} to \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.4
+      },
+      "tone": "wry",
+      "themes": ["repetition"],
+      "lines": [
+        "\\ref{slider_name} again."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["precision"],
+      "lines": [
+        "Δ\\ref{slider_name} = \\ref{delta|fixed2}."
+      ]
+    }
+  ]
+}

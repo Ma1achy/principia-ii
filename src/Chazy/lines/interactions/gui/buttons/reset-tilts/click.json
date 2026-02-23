@@ -1,0 +1,41 @@
+{
+  "_file": "button-reset-tilts-click",
+  "_description": "Reset tilts button click (ASSERTIVE)",
+  "_context": {
+    "event": "button_click_reset_tilts",
+    "button": "reset_tilts"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["reset", "orientation"],
+      "lines": [
+        "Orientation reset."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["perspective"],
+      "lines": [
+        "Back to straight view."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "wry",
+      "themes": ["simplicity"],
+      "lines": [
+        "No more tilting."
+      ]
+    }
+  ]
+}

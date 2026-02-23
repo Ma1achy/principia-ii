@@ -1,0 +1,52 @@
+{
+  "_file": "button-share-hesitation",
+  "_description": "Button hesitation - share button (POLITE interrupt)",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "share"
+  },
+  "_notes": "Plays when user hovers over share button for 800ms+. Single line responses.",
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.8,
+        "curious": 1.5
+      },
+      "tone": "warm",
+      "themes": ["sharing", "connection"],
+      "lines": [
+        "Ready to share?"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["sharing"],
+      "lines": [
+        "That's the share button."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["connection"],
+      "lines": [
+        "Thinking about sharing it?"
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.4
+      },
+      "tone": "wry",
+      "themes": ["patience"],
+      "lines": [
+        "Or just browsing the buttons?"
+      ]
+    }
+  ]
+}

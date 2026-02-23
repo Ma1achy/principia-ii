@@ -1,0 +1,31 @@
+{
+  "_file": "button-apply-json-hesitation",
+  "_description": "Apply JSON button hover (POLITE)",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "apply_json"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.7,
+        "curious": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["data", "restore"],
+      "lines": [
+        "Load a saved state?"
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 1.8
+      },
+      "tone": "concerned",
+      "themes": ["change"],
+      "lines": [
+        "That'll change everything."
+      ]
+    }
+  ]
+}

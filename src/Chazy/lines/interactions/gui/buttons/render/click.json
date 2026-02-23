@@ -1,0 +1,61 @@
+{
+  "_file": "button-render-click",
+  "_description": "Button click - render button (ASSERTIVE interrupt)",
+  "_context": {
+    "event": "button_click_render",
+    "button": "render"
+  },
+  "_notes": "Shows 2-3 lines sequentially. Lines play one after another with default 500-1000ms pause.",
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 2.0,
+        "curious": 1.6
+      },
+      "tone": "warm",
+      "themes": ["creation", "anticipation"],
+      "lines": [
+        "Oh!",
+        "Let's see what you've made.",
+        "Rendering now..."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "contemplative": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["computation", "process"],
+      "lines": [
+        "Initializing renderer.",
+        "Processing state.",
+        "One moment."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.6,
+        "tired": 1.3
+      },
+      "tone": "wry",
+      "themes": ["time", "repetition"],
+      "lines": [
+        "Finally.",
+        "Rendering."
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 1.7
+      },
+      "tone": "surprised",
+      "themes": ["unexpected"],
+      "lines": [
+        "Oh?",
+        "Interesting configuration.",
+        "Let's see..."
+      ]
+    }
+  ]
+}

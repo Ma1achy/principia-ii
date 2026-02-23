@@ -1,0 +1,53 @@
+{
+  "_file": "button-save-hesitation",
+  "_description": "Button hesitation - save PNG button (POLITE interrupt)",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "save"
+  },
+  "_notes": "Plays when user hovers over save PNG button for 800ms+. Single line responses.",
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.7,
+        "curious": 1.4
+      },
+      "tone": "warm",
+      "themes": ["creation", "saving"],
+      "lines": [
+        "Ready to save your work?"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["data"],
+      "lines": [
+        "I can save that as PNG."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["preservation"],
+      "lines": [
+        "Preserving your creation."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.4,
+        "tired": 1.2
+      },
+      "tone": "wry",
+      "themes": ["time"],
+      "lines": [
+        "Click it when ready."
+      ]
+    }
+  ]
+}

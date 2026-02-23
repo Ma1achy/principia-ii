@@ -1,0 +1,55 @@
+{
+  "_file": "button-copy-click",
+  "_description": "Button click - copy JSON button (ASSERTIVE interrupt)",
+  "_context": {
+    "event": "button_click_copy",
+    "button": "copy"
+  },
+  "_notes": "Short, snappy responses. Can be single line or brief multi-line.",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "contemplative": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["data", "precision"],
+      "lines": [
+        "Copied."
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 1.6,
+        "curious": 1.4
+      },
+      "tone": "warm",
+      "themes": ["creation", "sharing"],
+      "lines": [
+        "There you go.",
+        "JSON copied to clipboard."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "deadpan",
+      "themes": ["routine"],
+      "lines": [
+        "Done."
+      ]
+    },
+    {
+      "select_bias": {
+        "playful": 1.7
+      },
+      "tone": "wry",
+      "themes": ["observational"],
+      "lines": [
+        "Yoink.",
+        "Clipboard updated."
+      ]
+    }
+  ]
+}

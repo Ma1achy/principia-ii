@@ -1,0 +1,72 @@
+{
+  "_file": "select-resolution-changed",
+  "_description": "Resolution dropdown changed (POLITE)",
+  "_context": {
+    "event": "select_changed",
+    "select": "resolution"
+  },
+  "_notes": "Reacts to resolution changes - now shows actual resolution value using \\ref{resolution}",
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.8,
+        "curious": 1.6
+      },
+      "tone": "warm",
+      "themes": ["detail", "precision"],
+      "lines": [
+        "Resolution set to \\ref{resolution}!"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["computation", "performance"],
+      "lines": [
+        "Now rendering at \\ref{resolution}."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["precision"],
+      "lines": [
+        "Different level of detail — \\ref{resolution}."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "wry",
+      "themes": ["speed"],
+      "lines": [
+        "Faster now at \\ref{resolution}, at least."
+      ]
+    },
+    {
+      "select_bias": {
+        "tired": 1.4
+      },
+      "tone": "wry",
+      "themes": ["performance"],
+      "lines": [
+        "\\ref{resolution}... that'll take longer."
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 1.5
+      },
+      "tone": "warm",
+      "themes": ["quality"],
+      "lines": [
+        "\\ref{res_quality|upper} quality now!"
+      ]
+    }
+  ]
+}

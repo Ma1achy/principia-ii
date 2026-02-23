@@ -1,0 +1,52 @@
+{
+  "_file": "slider-r-esc-changed",
+  "_description": "Escape radius slider changed (POLITE)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "r_esc"
+  },
+  "_notes": "Shows escape radius using \\ref{r_esc}",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["escape", "boundary"],
+      "lines": [
+        "Escape radius: \\ref{r_esc|fixed2}."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["escape", "freedom"],
+      "lines": [
+        "Freedom at r = \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["boundary"],
+      "lines": [
+        "Escape threshold: \\ref{r_esc|fixed1}."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["escape", "change"],
+      "lines": [
+        "Boundary shifted by \\ref{delta|fixed2}."
+      ]
+    }
+  ]
+}

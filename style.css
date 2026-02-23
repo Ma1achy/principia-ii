@@ -1585,3 +1585,50 @@ input.slider-num:hover, input.slider-num:focus {
   margin-top: 8px;
 }
 .range-row label { margin-top: 0; margin-bottom: 2px; }
+
+/* ───────────────────────────────────────────────────────────────────
+   Enhanced Interrupt System Styles
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Selection effect for fast interrupts */
+.chazy-subtitle.has-selection {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  transition: background 80ms ease-out;
+}
+
+/* Interrupting state visual feedback */
+.chazy-subtitle.interrupting {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Interrupt pulse effect for cursor */
+.text-cursor.interrupt-pulse {
+  animation: interrupt-pulse 0.3s ease-in-out;
+}
+
+@keyframes interrupt-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+}
+
+/* Pre-warmed cursor (mouse approaching button) */
+.text-cursor.prewarmed {
+  color: rgba(255, 255, 255, 0.6);
+  animation: prewarm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes prewarm-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

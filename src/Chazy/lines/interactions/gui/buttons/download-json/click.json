@@ -1,0 +1,41 @@
+{
+  "_file": "button-download-json-click",
+  "_description": "Download JSON button click (ASSERTIVE)",
+  "_context": {
+    "event": "button_click_download_json",
+    "button": "download_json"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["data", "preservation"],
+      "lines": [
+        "State saved."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["data"],
+      "lines": [
+        "Configuration exported."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.5
+      },
+      "tone": "wry",
+      "themes": ["preservation"],
+      "lines": [
+        "Snapshot taken."
+      ]
+    }
+  ]
+}

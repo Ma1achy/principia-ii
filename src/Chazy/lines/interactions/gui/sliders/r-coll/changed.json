@@ -1,0 +1,52 @@
+{
+  "_file": "slider-r-coll-changed",
+  "_description": "Collision radius slider changed (POLITE)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "r_coll"
+  },
+  "_notes": "Shows collision radius using \\ref{r_coll}",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "curious": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["collision", "boundary"],
+      "lines": [
+        "Collision radius: \\ref{r_coll|fixed3}."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["boundary"],
+      "lines": [
+        "r_coll = \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "concerned": 1.6
+      },
+      "tone": "concerned",
+      "themes": ["collision"],
+      "lines": [
+        "Threshold at \\ref{r_coll|fixed3}."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["boundary", "change"],
+      "lines": [
+        "Changed by \\ref{delta|fixed3}."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "_file": "button-share-click",
+  "_description": "Button click - share button (ASSERTIVE interrupt)",
+  "_context": {
+    "event": "button_click_share",
+    "button": "share"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "excited": 1.6
+      },
+      "tone": "warm",
+      "themes": ["sharing"],
+      "lines": [
+        "Copying link.",
+        "Ready to share."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["data"],
+      "lines": [
+        "Encoding state.",
+        "Link generated."
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 1.6,
+        "curious": 1.4
+      },
+      "tone": "surprised",
+      "themes": ["observational"],
+      "lines": [
+        "Sharing this?",
+        "Interesting choice."
+      ]
+    }
+  ]
+}

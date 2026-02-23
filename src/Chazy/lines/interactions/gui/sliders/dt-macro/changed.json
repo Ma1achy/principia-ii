@@ -1,0 +1,52 @@
+{
+  "_file": "slider-dt-macro-changed",
+  "_description": "dt macro slider changed (POLITE)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "dt_macro"
+  },
+  "_notes": "Shows timestep value using \\ref{dt_macro} with scientific notation",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 2.0,
+        "contemplative": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["time", "precision"],
+      "lines": [
+        "Timestep: \\ref{dt_macro|sci}."
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["time"],
+      "lines": [
+        "dt = \\ref{dt_macro|fixed4}."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["time", "precision"],
+      "lines": [
+        "Temporal resolution: \\ref{new_value}."
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.7
+      },
+      "tone": "neutral",
+      "themes": ["precision"],
+      "lines": [
+        "Time flows at \\ref{dt_macro|sci}."
+      ]
+    }
+  ]
+}

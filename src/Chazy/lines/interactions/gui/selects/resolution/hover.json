@@ -1,0 +1,52 @@
+{
+  "_file": "select-resolution-hover",
+  "_description": "Resolution dropdown hover (OBSERVATIONAL)",
+  "_context": {
+    "event": "select_hover",
+    "select": "resolution"
+  },
+  "_notes": "Shows current resolution using \\ref{resolution}",
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.7,
+        "curious": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["detail", "precision"],
+      "lines": [
+        "Currently \\ref{resolution}."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["detail"],
+      "lines": [
+        "\\ref{resolution} now."
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 1.4
+      },
+      "tone": "wry",
+      "themes": ["choice"],
+      "lines": [
+        "\\ref{resolution}... pick different?"
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["detail", "quality"],
+      "lines": [
+        "\\ref{res_quality|upper} quality."
+      ]
+    }
+  ]
+}

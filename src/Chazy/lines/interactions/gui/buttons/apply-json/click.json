@@ -1,0 +1,41 @@
+{
+  "_file": "button-apply-json-click",
+  "_description": "Apply JSON button click (ASSERTIVE)",
+  "_context": {
+    "event": "button_click_apply_json",
+    "button": "apply_json"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.8,
+        "curious": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["data", "restore"],
+      "lines": [
+        "State restored."
+      ]
+    },
+    {
+      "select_bias": {
+        "excited": 1.7
+      },
+      "tone": "warm",
+      "themes": ["change"],
+      "lines": [
+        "Loading configuration."
+      ]
+    },
+    {
+      "select_bias": {
+        "surprised": 1.8
+      },
+      "tone": "surprised",
+      "themes": ["change"],
+      "lines": [
+        "Oh! Everything changed."
+      ]
+    }
+  ]
+}

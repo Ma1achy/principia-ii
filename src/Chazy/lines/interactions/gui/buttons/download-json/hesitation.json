@@ -1,0 +1,31 @@
+{
+  "_file": "button-download-json-hesitation",
+  "_description": "Download JSON button hover (POLITE)",
+  "_context": {
+    "event": "button_hesitation",
+    "button": "download_json"
+  },
+  "lines": [
+    {
+      "select_bias": {
+        "analytical": 1.7,
+        "contemplative": 1.5
+      },
+      "tone": "neutral",
+      "themes": ["data", "preservation"],
+      "lines": [
+        "Save the state?"
+      ]
+    },
+    {
+      "select_bias": {
+        "curious": 1.6
+      },
+      "tone": "neutral",
+      "themes": ["data"],
+      "lines": [
+        "Export configuration."
+      ]
+    }
+  ]
+}
