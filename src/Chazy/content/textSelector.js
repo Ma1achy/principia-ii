@@ -294,10 +294,15 @@ export class TextSelector {
     const allData = await Promise.all(promises);
     const allInteractionData = await Promise.all(interactionPromises);
     
+    // Clear/initialize pools
+    this.welcomeEntries = [];
+    this.ambientEntries = [];
+    this.interactionContent = [];
+    
     // Reconstruct original structure for backwards compatibility
     this.data = {
       _schema: "principia-flavour_v2_emotional",
-      subtitles: []
+      subtitles: []  // Will be set to ambientEntries at the end
     };
     
     // Helper to normalize wildcard ("*" -> "any")
@@ -322,7 +327,8 @@ export class TextSelector {
           continue;
         }
         
-        this.data.subtitles.push({
+        // Add to ambient pool (core files)
+        this.ambientEntries.push({
           // Backwards compatible: keep weights field
           weights: entry.weights || {},
           themes: entry.themes || [],
@@ -339,42 +345,59 @@ export class TextSelector {
       }
     }
     
-    // Also process interaction files and add to subtitles (for welcome, idle, etc.)
-    for (const fileData of allInteractionData) {
-      if (!fileData || typeof fileData !== 'object') continue; // Skip null/invalid entries
-      
-      const context = fileData._context || {};
-      const defaultWhen = (context.when || ['any']).map(normalizeWildcard);
+    // Separate content into three pools for clean logic
+    
+    // 1. WELCOME POOL: Only welcome.json entries
+    const welcomeFile = allInteractionData.find(f => f?._file === 'welcome');
+    if (welcomeFile && welcomeFile.lines) {
+      const context = welcomeFile._context || {};
+      const defaultWhen = (context.when || ['welcome']).map(normalizeWildcard);
       const defaultWhat = (context.what || ['any']).map(normalizeWildcard);
-      const defaultEvent = context.event || null;
       
-      // Add context back to each entry
-      for (const entry of fileData.lines || []) {
-        this.data.subtitles.push({
-          // Backwards compatible: keep weights field
+      for (const entry of welcomeFile.lines) {
+        this.welcomeEntries.push({
           weights: entry.weights || {},
           themes: entry.themes || [],
           lines: entry.lines || [],
-          // Use entry's when/what if present, otherwise use file context
           when: (entry.when || defaultWhen).map(normalizeWildcard),
           what: (entry.what || defaultWhat).map(normalizeWildcard),
-          
-          // NEW FIELDS (v3 schema)
           select_bias: entry.select_bias || {},
           reflect_pull: entry.reflect_pull || {},
-          tone: entry.tone,
-          
-          // Store event for interaction matching
-          event: entry.event || defaultEvent
+          tone: entry.tone || 'neutral'
         });
       }
     }
     
-    // Load interaction content - keep full file objects with _context
+    // 2. AMBIENT POOL: Core files + idle.json only
+    const idleFile = allInteractionData.find(f => f?._file === 'idle');
+    if (idleFile && idleFile.lines) {
+      const context = idleFile._context || {};
+      const defaultWhen = (context.when || ['any']).map(normalizeWildcard);
+      const defaultWhat = (context.what || ['any']).map(normalizeWildcard);
+      
+      for (const entry of idleFile.lines) {
+        this.ambientEntries.push({
+          weights: entry.weights || {},
+          themes: entry.themes || [],
+          lines: entry.lines || [],
+          when: (entry.when || defaultWhen).map(normalizeWildcard),
+          what: (entry.what || defaultWhat).map(normalizeWildcard),
+          select_bias: entry.select_bias || {},
+          reflect_pull: entry.reflect_pull || {},
+          tone: entry.tone || 'neutral'
+        });
+      }
+    }
+    
+    // 3. INTERACTION POOL: All interaction files for event matching
     this.interactionContent = allInteractionData.filter(data => data !== null);
     
-    console.log(`[TextSelector] Loaded ${this.data.subtitles.length} entries from ${files.length} files`);
-    console.log(`[TextSelector] Loaded ${this.interactionContent.length} interaction files`);
+    // Legacy: Point data.subtitles to ambientEntries for backwards compatibility
+    this.data.subtitles = this.ambientEntries;
+    
+    console.log(`[TextSelector] Loaded ${this.welcomeEntries.length} welcome entries`);
+    console.log(`[TextSelector] Loaded ${this.ambientEntries.length} ambient entries (${files.length} core + idle)`);
+    console.log(`[TextSelector] Loaded ${this.interactionContent.length} interaction files for event matching`);
     return this;
   }
   
@@ -415,8 +438,7 @@ export class TextSelector {
         const welcomeIndex = this._pickIndexForWelcome(themes, emotion, intensity);
         if (welcomeIndex !== -1) {
           this.isFirstSelection = false;
-          this._addToBuffer(welcomeIndex);
-          const unit = this.data.subtitles[welcomeIndex];
+          const unit = this.welcomeEntries[welcomeIndex];
           
           // Defensive check on unit
           if (!unit || !unit.lines || !Array.isArray(unit.lines)) {
@@ -441,8 +463,8 @@ export class TextSelector {
         this.isFirstSelection = false;
       }
       
-      // Normal selection
-      const index = this._pickIndex(mode, themes, emotion, intensity, excludeWelcome);
+      // Normal ambient selection (uses ambientEntries via data.subtitles)
+      const index = this._pickIndex(mode, themes, emotion, intensity);
       if (index === -1) {
         console.warn('[TextSelector] No suitable text found for mode:', mode);
         return null;
@@ -748,22 +770,27 @@ export class TextSelector {
   // ─── Internal ──────────────────────────────────────────────────────────────
   
   _pickIndexForWelcome(themes, emotion, intensity) {
-    const all = this.data.subtitles;
+    // Select from welcome pool only
+    const preferredThemes = this._getPreferredThemesForEmotion(emotion);
+    const allThemes = [...themes, ...preferredThemes];
     
-    let candidates = all
+    let candidates = this.welcomeEntries
       .map((u, i) => ({ u, i }))
-      .filter(({ u, i }) =>
-        u.when && u.when.includes('welcome') &&
-        !this.recentBuffer.includes(i)
-      );
+      .filter(({ u }) => this._themeMatches(u, allThemes));
+    
+    if (candidates.length === 0) {
+      // Fallback: any welcome entry
+      candidates = this.welcomeEntries.map((u, i) => ({ u, i }));
+    }
     
     if (candidates.length === 0) return -1;
     
     return this._weightedRandom(candidates, emotion, intensity);
   }
   
-  _pickIndex(visualMode, themes, emotion, intensity, excludeWelcome) {
-    const all = this.data.subtitles;
+  _pickIndex(visualMode, themes, emotion, intensity) {
+    // Select from ambient pool only (no welcome, no excludeWelcome needed)
+    const all = this.data.subtitles;  // Points to ambientEntries
     const preferredThemes = this._getPreferredThemesForEmotion(emotion);
     const allThemes = [...themes, ...preferredThemes];
     
@@ -773,8 +800,7 @@ export class TextSelector {
         this._whenMatches(u, visualMode) &&
         this._whatMatches(u, visualMode) &&
         this._themeMatches(u, allThemes) &&
-        !this.recentBuffer.includes(i) &&
-        (!excludeWelcome || !this._isWelcomeText(u))
+        !this.recentBuffer.includes(i)
       );
     
     if (candidates.length === 0) {
@@ -783,8 +809,7 @@ export class TextSelector {
         .filter(({ u, i }) =>
           this._whenMatches(u, visualMode) &&
           this._whatMatches(u, visualMode) &&
-          !this.recentBuffer.includes(i) &&
-          (!excludeWelcome || !this._isWelcomeText(u))
+          !this.recentBuffer.includes(i)
         );
     }
     
@@ -794,15 +819,12 @@ export class TextSelector {
         .map((u, i) => ({ u, i }))
         .filter(({ u, i }) => 
           this._whenMatches(u, visualMode) &&
-          this._whatMatches(u, visualMode) &&
-          (!excludeWelcome || !this._isWelcomeText(u))
+          this._whatMatches(u, visualMode)
         );
     }
     
     if (candidates.length === 0) {
-      candidates = all
-        .map((u, i) => ({ u, i }))
-        .filter(({ u, i }) => !excludeWelcome || !this._isWelcomeText(u));
+      candidates = all.map((u, i) => ({ u, i }));
     }
     
     return this._weightedRandom(candidates, emotion, intensity);

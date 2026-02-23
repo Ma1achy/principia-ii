@@ -35,6 +35,10 @@ export class Chazy {
     this.lastTextLength = 50;  // Track last displayed text length
     this.lastThemes = [];       // Track last displayed themes
     
+    // Track multi-line sequences to prevent premature ambient scheduling
+    this.inMultiLineSequence = false;
+    this.multiLineSequenceToken = null;
+    
     this.displayMinMs = options.displayMinMs || 2000;
     this.displayMaxMs = options.displayMaxMs || 10000;
   }
@@ -194,7 +198,6 @@ export class Chazy {
         themes: this.mind.getPreferredThemes() || [],
         emotion: emotion.toLowerCase(),
         intensity,
-        excludeWelcome: false,  // Always allow welcome messages on first selection
         stateRefs  // Pass state references for template processing
       });
       
@@ -263,6 +266,16 @@ export class Chazy {
     
     // Generate token for stale callback protection
     const token = ++this.currentTextToken;
+    
+    // Check if this is a multi-line sequence
+    const isMultiLineSequence = lines.length > 1;
+    
+    // Mark start of multi-line sequence
+    if (isMultiLineSequence) {
+      this.inMultiLineSequence = true;
+      this.multiLineSequenceToken = token;
+      console.log(`[Chazy] Starting multi-line sequence (${lines.length} lines, token ${token})`);
+    }
     
     // Track total text length for idle calculation
     // NOTE: Text has \ref{} already replaced, but \pause{} markers still present
@@ -398,6 +411,14 @@ export class Chazy {
               console.log(`[Chazy] Stale completion ignored (token ${token})`);
               return;
             }
+            
+            // Mark end of multi-line sequence
+            if (isMultiLineSequence && this.multiLineSequenceToken === token) {
+              this.inMultiLineSequence = false;
+              this.multiLineSequenceToken = null;
+              console.log(`[Chazy] Completed multi-line sequence (token ${token})`);
+            }
+            
             this.route('text_complete', {
               type: config._source || 'ambient',
               token,
@@ -441,9 +462,23 @@ export class Chazy {
         });
       } catch (error) {
         console.error('[Chazy] Error in view.showText:', error);
-        // Attempt to recover by completing
+        // Clear multi-line state on error to prevent lock
+        if (isMultiLineSequence && this.multiLineSequenceToken === token) {
+          this.inMultiLineSequence = false;
+          this.multiLineSequenceToken = null;
+          console.log(`[Chazy] Cleared multi-line state due to error (token ${token})`);
+        }
+        
+        // Attempt to recover by completing (with token check)
         if (nextCallback) {
-          setTimeout(nextCallback, 1000);
+          setTimeout(() => {
+            // Only invoke if token is still valid
+            if (token === this.currentTextToken) {
+              nextCallback();
+            } else {
+              console.log(`[Chazy] Recovery callback stale (token ${token} vs ${this.currentTextToken})`);
+            }
+          }, 1000);
         }
       }
     };
