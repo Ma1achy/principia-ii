@@ -7,3 +7,13 @@
 > gui animation? rather than like instant changes
 > ability to show / hide sidebar
 > on page load, choose from random selection of hand chosen state jsons.
+
+> sliders should show 0 position with smaller marker 
+> sliders should show min and max positions with a small marker
+> slider should show 0, min and max values below the markers
+> slider bar should "fill in" behind knob from 0 or min value (line the knob is on goes darker)
+> slider knob needs to be centred on the line (it's not right now)
+> slider knob and the line should be centred with the value input box
+> slider knbo should be same height as the value input box
+> ensure shadow of the slider knob is correctly aligned 
+> shadow of slider knob should be on all 4 sides 

@@ -38,6 +38,10 @@ export function syncUIFromState(renderer, scheduleRender, writeHash, drawOverlay
     const idx = +inp.dataset.idx;
     inp.value = String(state.z0[idx]);
     $(`z0v_${idx}`).value = state.z0[idx].toFixed(2);
+    // Update track fill if the function exists
+    if (inp._updateTrackFill) {
+      inp._updateTrackFill();
+    }
   });
   const grid = $("presetGrid");
   const name = PRESETS.find(p => p.id === state.presetId)?.name;
@@ -50,7 +54,20 @@ export function syncUIFromState(renderer, scheduleRender, writeHash, drawOverlay
   if (cV) { cV.value = String(state.customDimV); const vn = $("customDimVName"); if (vn) vn.textContent = AXIS_NAMES[state.customDimV]; }
   if (cM) { cM.value = String(state.customMag); $("customMagVal").value = state.customMag.toFixed(2); }
   syncTiltDimLabels();
+  
+  // Update all slider track fills
+  updateAllSliderTrackFills();
+  
   updateStateBox();
   setStatus("Ready.");
   drawOverlayHUD();
+}
+
+// Helper to update track fills for all range sliders
+function updateAllSliderTrackFills() {
+  document.querySelectorAll('input[type="range"]').forEach(inp => {
+    if (inp._updateTrackFill) {
+      inp._updateTrackFill();
+    }
+  });
 }

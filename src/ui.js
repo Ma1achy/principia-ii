@@ -26,7 +26,7 @@ export { bindCustomDimPicker } from './ui/pickers/custom-dim.js';
 // Builders
 export { buildResolutions } from './ui/builders/resolutions.js';
 export { buildPresets, applyCustomBasis, updateCustomPanelVisibility } from './ui/builders/presets.js';
-export { buildZ0Sliders, setZ0Range, zeroZ0, smallRandomZ0, applyQualityPreset } from './ui/builders/sliders.js';
+export { buildZ0Sliders, setZ0Range, zeroZ0, smallRandomZ0, applyQualityPreset, enhanceAllSliders } from './ui/builders/sliders.js';
 export { buildAxisSelects, buildCustomDimSelects } from './ui/builders/selects.js';
 
 // Sync
@@ -46,13 +46,16 @@ import { bindCustomDimPicker } from './ui/pickers/custom-dim.js';
 import { bindResPicker } from './ui/pickers/resolution.js';
 import { applyCustomBasis } from './ui/builders/presets.js';
 import { buildPresets } from './ui/builders/presets.js';
-import { setZ0Range, zeroZ0, smallRandomZ0 } from './ui/builders/sliders.js';
+import { setZ0Range, zeroZ0, smallRandomZ0, enhanceAllSliders } from './ui/builders/sliders.js';
 import { buildCustomDimSelects } from './ui/builders/selects.js';
 
 export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch) {
   function updateStateBox_() { updateStateBox(); }
   function drawHUD() { drawOverlayHUD(renderer, glCanvas, outCanvas, uiCanvas, ui2d, resizeUiCanvasToMatch); }
   function buildPresets_() { buildPresets(scheduleRender, writeHash, updateStateBox_, drawHUD); }
+
+  // Enhance all sliders with markers and fill tracks
+  enhanceAllSliders();
 
   bindValEditDialog();
 
@@ -74,10 +77,26 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
   );
 
   bindResPicker((r) => {
+    console.log(`[UI] bindResPicker callback called with r=${r}`);
+    console.log(`[UI] Setting state.res from ${state.res} to ${r}`);
     state.res = r;
     $("resolution").value = String(r);
     $("resName").textContent = `${r} × ${r}`;
-    scheduleRender("res"); writeHash(); updateStateBox_(); drawHUD();
+    console.log(`[UI] Updated resolution UI elements`);
+    writeHash(); 
+    updateStateBox_(); 
+    drawHUD();
+    
+    // Always render when resolution changes, even if auto-render is off
+    // Call doRender directly instead of scheduleRender to bypass auto-render check
+    console.log(`[UI] Triggering render at resolution ${r}`);
+    doRender(r).catch(err => {
+      setOverlay(false);
+      setRenderingState(false);
+      setStatus(String(err?.message || err));
+      console.error(err);
+      drawHUD();
+    });
   });
 
   async function copyJson() {

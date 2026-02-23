@@ -20,10 +20,17 @@ export function bindResPicker(onPick) {
       btn.className = "tilt-pick-btn" + (r === activeRes ? " active" : "");
       btn.textContent = opt.textContent + (r >= 8192 ? " ⚠" : "");
       btn.addEventListener("click", () => {
+        console.log(`[ResPicker] Resolution ${r} clicked`);
         closeResPicker();
         if (r >= 4096) {
-          showLargeResWarning(r, onPick);
+          console.log(`[ResPicker] Large resolution (${r}), showing warning dialog`);
+          showLargeResWarning(r, (confirmedRes) => {
+            console.log(`[ResPicker] Warning dialog confirmed with resolution ${confirmedRes}`);
+            onPick(confirmedRes);
+            console.log(`[ResPicker] onPick called with ${confirmedRes}`);
+          });
         } else {
+          console.log(`[ResPicker] Normal resolution (${r}), calling onPick directly`);
           onPick(r);
         }
       });
