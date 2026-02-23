@@ -211,16 +211,21 @@ export class Chazy {
         return;
       }
       
-      this.mind.reflectOnText(selected, selected.themes || []);
+    this.mind.reflectOnText(selected, selected.themes || []);
+    
+    // Calculate total text length for display time scaling
+    // NOTE: Text has \ref{} already replaced, but \pause{} markers still present
+    const totalTextLength = selected.lines.reduce((sum, lineItem) => {
+      const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
+      if (typeof line !== 'string') return sum;
       
-      // Calculate total text length for display time scaling
-      const totalTextLength = selected.lines.reduce((sum, lineItem) => {
-        const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
-        return sum + (typeof line === 'string' ? line.length : 0);
-      }, 0);
-      
-      const displayTime = this.selector.getDisplayTime(emotion, intensity, totalTextLength);
-      const idleTime = this.selector.getIdleTime(emotion, intensity, displayTime);
+      // Remove \pause{} markers for accurate length calculation
+      const cleanLine = line.replace(/(?<!\\)\\pause\{\d+\}/g, '');
+      return sum + cleanLine.length;
+    }, 0);
+    
+    const displayTime = this.selector.getDisplayTime(emotion, intensity, totalTextLength);
+    const idleTime = this.selector.getIdleTime(emotion, intensity, displayTime);
       
       this._showLines(selected.lines, {
         displayTime,
@@ -260,9 +265,14 @@ export class Chazy {
     const token = ++this.currentTextToken;
     
     // Track total text length for idle calculation
+    // NOTE: Text has \ref{} already replaced, but \pause{} markers still present
     const totalTextLength = lines.reduce((sum, lineItem) => {
       const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
-      return sum + (typeof line === 'string' ? line.length : 0);
+      if (typeof line !== 'string') return sum;
+      
+      // Remove \pause{} markers for accurate length calculation
+      const cleanLine = line.replace(/(?<!\\)\\pause\{\d+\}/g, '');
+      return sum + cleanLine.length;
     }, 0);
     
     // Store for next ambient calculation

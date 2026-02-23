@@ -12,6 +12,24 @@
 import { getEventUrgency, getEventPriority } from './interruptUrgency.js';
 import { getStateReferences } from '../content/stateReferences.js';
 
+/**
+ * Calculate actual text length from lines array, removing \pause{} markers
+ * @param {Array} lines - Array of line strings or objects with .t property
+ * @returns {number} Total character length without pause markers
+ */
+function getCleanTextLength(lines) {
+  if (!Array.isArray(lines)) return 0;
+  
+  return lines.reduce((sum, lineItem) => {
+    const line = typeof lineItem === 'object' && lineItem !== null && lineItem.t ? lineItem.t : lineItem;
+    if (typeof line !== 'string') return sum;
+    
+    // Remove \pause{} markers for accurate length calculation
+    const cleanLine = line.replace(/(?<!\\)\\pause\{\d+\}/g, '');
+    return sum + cleanLine.length;
+  }, 0);
+}
+
 export class ChazyEventRouter {
   constructor(orchestrator, mind, selector) {
     this.orchestrator = orchestrator;
@@ -477,7 +495,7 @@ export class ChazyEventRouter {
         stage_pause: selected.stage_pause,
         onComplete: () => {
           const delay = this._getEmotionalAmbientDelay(
-            JSON.stringify(selected.lines).length,
+            getCleanTextLength(selected.lines),
             selected.themes || []
           );
           this.orchestrator.scheduleAmbient(delay, 'immediate_complete');
@@ -593,7 +611,7 @@ export class ChazyEventRouter {
         _source: 'immediate',
         onComplete: () => {
           const delay = this._getEmotionalAmbientDelay(
-            JSON.stringify(selected.lines).length,
+            getCleanTextLength(selected.lines),
             selected.themes || []
           );
           this.orchestrator.scheduleAmbient(delay, 'immediate_complete');
@@ -697,7 +715,7 @@ export class ChazyEventRouter {
         _source: 'immediate',
         onComplete: () => {
           const delay = this._getEmotionalAmbientDelay(
-            JSON.stringify(selected.lines).length,
+            getCleanTextLength(selected.lines),
             selected.themes || []
           );
           this.orchestrator.scheduleAmbient(delay, 'immediate_complete');
@@ -796,7 +814,7 @@ export class ChazyEventRouter {
         stage_pause: selected.stage_pause,
         onComplete: () => {
           const delay = this._getEmotionalAmbientDelay(
-            JSON.stringify(selected.lines).length,
+            getCleanTextLength(selected.lines),
             selected.themes || []
           );
           this.orchestrator.scheduleAmbient(delay, 'immediate_complete');
