@@ -1,6 +1,17 @@
-// Character pool for scramble animations
-const CHAR_POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-
+// Character pools for scramble animation - hybrid approach
+const LETTER_POOL_BASIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const LETTER_POOL_ROMANCE = 'áàâäãåæçéèêëíìîïñóòôöõøœúùûüýÿßÁÀÂÄÃÅÆÇÉÈÊËÍÌÎÏÑÓÒÔÖÕØŒÚÙÛÜÝÿ';
+const LETTER_POOL_GERMANIC = 'ÄÖÜäöüẞß';
+const LETTER_POOL_NORDIC = 'ÅØÆåøæ';
+const LETTER_POOL_EASTERN = 'šžčřěńśćźłđŠŽČŘĚŃŚĆŹŁĐ';
+const LETTER_POOL_OTHER = 'þðÞÐ';
+const NUMBER_POOL = '0123456789';
+const PUNCTUATION_POOL = '!@#$%^&*()[]{},.;:\'"-_+=<>?/\\|`~';
+// Chaotic pool for basic ASCII letters - maximum variety!
+const CHAOTIC_POOL = LETTER_POOL_BASIC + NUMBER_POOL + PUNCTUATION_POOL;
+const CHAR_POOL = LETTER_POOL_BASIC + LETTER_POOL_ROMANCE + LETTER_POOL_GERMANIC + 
+                  LETTER_POOL_NORDIC + LETTER_POOL_EASTERN + LETTER_POOL_OTHER + 
+                  NUMBER_POOL + PUNCTUATION_POOL;  // Legacy combined pool
 // Superscript characters (Unicode)
 const SUPERSCRIPTS = '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ';
 
@@ -1137,13 +1148,60 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
     });
   }
 
+  // Helper: Determine appropriate scramble pool for a character
+  function getScramblePoolForChar(char) {
+    // Math symbols (Greek, operators, special math chars) - keep mathematical coherence
+    if (isMathOrGreekSymbol(char)) {
+      return MATH_EXTENDED_POOL;
+    }
+    
+    // Regional accented letters - keep cultural coherence
+    if (LETTER_POOL_ROMANCE.includes(char)) {
+      return LETTER_POOL_ROMANCE;
+    }
+    if (LETTER_POOL_GERMANIC.includes(char)) {
+      return LETTER_POOL_GERMANIC;
+    }
+    if (LETTER_POOL_NORDIC.includes(char)) {
+      return LETTER_POOL_NORDIC;
+    }
+    if (LETTER_POOL_EASTERN.includes(char)) {
+      return LETTER_POOL_EASTERN;
+    }
+    if (LETTER_POOL_OTHER.includes(char)) {
+      return LETTER_POOL_OTHER;
+    }
+    
+    // Basic ASCII letters - CHAOTIC! Mix with numbers and punctuation
+    if (/[a-zA-Z]/.test(char)) {
+      return CHAOTIC_POOL;
+    }
+    
+    // Numbers - keep some order
+    if (/[0-9]/.test(char)) {
+      return NUMBER_POOL;
+    }
+    
+    // Punctuation - keep some order
+    if (PUNCTUATION_POOL.includes(char)) {
+      return PUNCTUATION_POOL;
+    }
+    
+    // Fallback: check if it's a math operator/bracket
+    if (/[=+\-*/^()[\]{}<>|]/.test(char)) {
+      return MATH_EXTENDED_POOL;
+    }
+    
+    // Default to full char pool for anything else
+    return CHAR_POOL;
+  }
+
   // Scramble a character span for durationMs, then caller decides what to lock in
   async function scrambleSpan(span, durationMs, targetChar = '') {
     const start = performance.now();
     
     // Choose scramble pool based on target character type
-    const useMathPool = isMathOrGreekSymbol(targetChar) || /[=+\-*/^()[\]{}<>|0-9]/.test(targetChar);
-    const pool = useMathPool ? MATH_EXTENDED_POOL : CHAR_POOL;
+    const pool = getScramblePoolForChar(targetChar);
 
     while (!cancelled && performance.now() - start < durationMs) {
       span.style.opacity = '1';
