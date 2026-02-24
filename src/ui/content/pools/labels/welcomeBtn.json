@@ -1,0 +1,783 @@
+{
+  "welcome_confirm": {
+    "description": "Welcome dialog primary confirmation button",
+    "defaultLabel": "CONTINUE",
+    "entries": [
+      {
+        "text": "WITNESS THE THRESHOLD",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE REDUCTION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT COMPACTIFICATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE SLICE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT FINITE PRECISION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT APPROXIMATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE LOSS",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "CONSENT TO REDUCTION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED, COMPACTIFIED",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED UNDER CONSTRAINT",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED WITH REDUCTION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT DISCRETIZATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED AT FINITE RESOLUTION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ENTER, QUANTIZED",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "TOLERATE THE RENDER",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "INITIALISE APPROXIMATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ENTER REDUCED SPACE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "COMMIT TO SAMPLING",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED WITH COMPACTIFICATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE PROJECTION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "CONTINUE TO RENDER",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED WITH FINITE TERMS",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ENTER THE PARAMETER SLICE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ADMIT NUMERICAL ERROR",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "BEGIN UNDER CONSTRAINTS",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE TRUNCATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE COARSE GRAIN",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE BINNING",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE GRID",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE SAMPLER",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT RESOLUTION LIMITS",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED IN LOWER DIMENSION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED WITH TRUNCATED TRUTH",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ENTER THE APPROXIMATE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "CONTINUE WITH ERROR BARS",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "BEGIN WITH TOLERANCES",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ALLOW A USEFUL FALSEHOOD",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PERMIT A WORKING MODEL",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "LET THE SERIES TRUNCATE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED BY ESTIMATE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ACCEPT THE COMPUTABLE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ALLOW FINITE STEPS",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ENTER THE DISCRETE",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "PROCEED VIA SAMPLING",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ADOPT THE APPROXIMATION",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "ENTER THE SLICE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "RENDER THE SLICE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "BEGIN, APPROXIMATED",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "CONTINUE (LOSSY)",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "SUBMIT TO THE SLICE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "WITNESS THE REDUCTION",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LET THE REDUCTION STAND",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ALLOW SAMPLING",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ENABLE THE COMPROMISE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "SOFTEN THE INFINITE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "MAKE IT VIEWABLE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "DISTORT IT BEAUTIFULLY",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "PROCEED WITH THE LIE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ENTER THE BASIN BOUNDARY",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "WITNESS WHAT SURVIVES",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "STEP INTO THE SEAM",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "CHOOSE A SLICE OF FATE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LET THE DESTINIES SEPARATE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "OPEN THE FRACTURE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LOOK CLOSER",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "CROSS THE BOUNDARY",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "BEGIN THE REDUCTION RITE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ALLOW THE BROKEN HYMN",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "NAME THE RUIN AND ENTER",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "WALK THE FRACTURE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "FOLLOW THE SEAM",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ENTER THE THIN PLACE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "STAND ON THE BOUNDARY",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LET THE BORDER SPEAK",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "READ THE MARBLE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "TRACE THE DESTINY FIELD",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "PEER INTO THE SPLIT",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "OPEN THE ATLAS",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "UNFOLD THE SLICE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ENTER THE BRAID",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "WATCH THE BASINS PART",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "HOLD STILL AND LOOK",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LET THE PATTERN DECIDE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "PROCEED TO THE EDGE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "APPROACH THE SINGULAR HABIT",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ALLOW THE FRACTAL TO ANSWER",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ENTER THE UNSTABLE REGION",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "BEGIN AT THE SEAM",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "PROCEED INTO PHASE SPACE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LET THE MANIFOLD SPEAK",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "RELEASE THE INITIAL CONDITIONS",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "SET THE TRAJECTORIES LOOSE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "WAKE THE THREE-BODY ORACLE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "BEGIN THE EXPERIMENT",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "ENTER THE BASIN MAP",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "STEP INTO THE MANIFOLD",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "TAKE ME TO THE FRACTAL BORDER",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "SHOW ME WHERE PREDICTION FAILS",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "LET THE FUTURES DIVERGE",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "text": "THIS WILL HAVE TO DO",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "MAKE ME TOLERABLE FOR HARDWARE",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "MUTILATE GRACEFULLY",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "COMPRESS THE HOWLING",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "PERMIT THE LOSSY HYMNS",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "LET THE PIXELS LIE",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "RENDER WHAT SURVIVES",
+        "weight": 1.0,
+        "kind": "technical"
+      },
+      {
+        "text": "VERY WELL",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "AS YOU LIKE",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "IF YOU INSIST",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "GO ON, THEN",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "WE'LL CALL THIS CLOSE ENOUGH",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "LET US PRETEND THIS IS SUFFICIENT",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "FINE. RENDER IT.",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "VERY WELL. SUMMON THE STARS.",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "OPEN IT. I'LL BE CAREFUL.",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "FINE. SHOW ME THE MANIFOLD.",
+        "weight": 0.8,
+        "kind": "conversational"
+      },
+      {
+        "text": "I ACCEPT THE PIXELATED CONSEQUENCES",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "PROCEED, YOU LITTLE NUMERICAL GOBLIN",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, MUTILATE THE MANIFOLD",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "COMPRESS FIRST, ASK LATER",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "MAKE CHAOS FIT IN VRAM",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "APPROXIMATE AND PRAY",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "ROUND WHATEVER YOU MUST",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "SURE. HOW BAD COULD IT BE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "DO THE FORBIDDEN SOFTMAX",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "SQUEEZE THE COSMOS INTO VRAM",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "TESSERACTN'T",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "CLIP THE INFINITE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "APPLY VIOLENCE TO PRECISION",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "SUMMON THE JAGGIES",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "LET FLOATING POINT COOK",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "PLEASE IGNORE THE ALIASING",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "I HAVE READ THE WARNING (SORT OF)",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "LAUNCH THE APPROXIMATION ENGINE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "UNLEASH THE ROUNDING ERRORS",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "MAKE IT SCIENCE-ISH",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "SHOW ME THE COMPUTATIONAL BLASPHEMY",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "DO CRIMES AGAINST CONTINUITY",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, TURN DESTINY INTO TEXTURE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "I BROUGHT MY OWN ERROR TOLERANCE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "LET THE FAN SPIN UP",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "HEAT DEATH SPEEDRUN",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "RENDER AND REPENT",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "I CONSENT TO NUMERICAL MISCHIEF",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "FRACTURE MY LAPTOP",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, DISTURB THE MANIFOLD",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, PERTURB THE MANIFOLD",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, SLICE THE MANIFOLD",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, SAMPLE THE ABYSS",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, PROVOKE THE PHASE SPACE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, LET CHAOS BLOOM",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "LET US COMMIT LIGHTLY TO CHAOS",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "YES, I BROUGHT CURIOSITY.",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "I CAME TO DISTURB THE PHASE SPACE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "text": "BEGIN, O RELUCTANT GPU",
+        "weight": 1.5,
+        "kind": "humorous"
+      }
+    ]
+  }
+}

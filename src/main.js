@@ -15,6 +15,8 @@ import { SelectTracker } from './interaction/selectTracking.js';
 import { PatternDetector } from './interaction/patternDetector.js';
 import { Chazy } from './Chazy/index.js';
 import { computeTitleBoundingBox } from './ui/core/layout.js';
+import { showWelcomeDialog } from './ui/dialogs/welcome.js';
+import { applySavedSettings, saveCurrentSettings } from './ui/settings-storage.js';
 
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
@@ -379,13 +381,38 @@ function setupInterruptPrediction() {
 // ─── Boot ────────────────────────────────────────────────────────────────────
 
 async function boot() {
-  // FIRST: Wait for fonts to load before doing anything
+  console.log('[Boot] Starting boot sequence...');
+  
+  // FIRST: Wait for fonts to load
+  console.log('[Boot] Waiting for fonts...');
   await document.fonts.ready;
-  console.log('[Boot] Fonts loaded');
+  console.log('[Boot] ✓ Fonts loaded');
   
-  // SECOND: Initialize Chazy (title + subtitle system)
+  // SECOND: Initialize Chazy (title + subtitle system) but DON'T start it yet
+  console.log('[Boot] Initializing Chazy...');
   await chazy.init(document.body, getCurrentMode);
+  console.log('[Boot] ✓ Chazy initialized (idle, not started)');
   
+  // THIRD: Apply saved settings from localStorage
+  console.log('[Boot] Loading saved settings...');
+  applySavedSettings();
+  console.log('[Boot] ✓ Settings loaded');
+  
+  // Setup settings change listeners to auto-save
+  const settingsInputs = [
+    'autoRender', 'previewWhileDrag', 'showHud', 
+    'stgInvertScroll', 'stgZoomSpeed', 
+    'stgInvertPanX', 'stgInvertPanY', 'stgPanSpeed'
+  ];
+  
+  settingsInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', saveCurrentSettings);
+    }
+  });
+  
+  console.log('[Boot] Building UI...');
   // Initialize interaction trackers (but don't track buttons yet)
   buttonTracker = new ButtonTracker(chazy.router);
   sliderTracker = new SliderTracker(chazy.router);
@@ -437,6 +464,7 @@ async function boot() {
   console.log(`[Boot] Tracked ${z0Sliders.length} z-coordinate sliders`);
   
   // Track orientation sliders (Phase 5)
+  sliderTracker.trackSlider(document.getElementById('gamma'), 'tilt');
   sliderTracker.trackSlider(document.getElementById('tiltAmt1'), 'tilt_q1');
   sliderTracker.trackSlider(document.getElementById('tiltAmt2'), 'tilt_q2');
   
@@ -467,22 +495,7 @@ async function boot() {
 
   writeHash();
   updateStateBox();
-
-  doRender(state.res).catch(err => {
-    setOverlay(false);
-    setRenderingState(false);
-    setStatus(String(err?.message || err));
-    console.error(err);
-    drawHUD();
-  }).finally(() => {
-    document.body.classList.add('loaded');
-  });
-
-  // Update layout and start Chazy
   updateChazyLayout();
-  
-  // Emit page_loaded event, then start
-  chazy.route('page_loaded', {});
   
   // Expose global event emitter for Mind autonomy
   window.chazyEvent = (eventType, data) => chazy.route(eventType, data);
@@ -490,20 +503,62 @@ async function boot() {
   // Expose chazy instance for debugging (timing tests, etc.)
   window.chazy = chazy;
   
-  // Defer start if page loaded hidden
-  if (document.hidden) {
-    console.log('[Boot] Page loaded hidden, deferring start');
-    const startOnVisible = () => {
-      document.removeEventListener('visibilitychange', startOnVisible);
-      console.log('[Boot] Page visible, starting Chazy');
-      chazy.start();
-    };
-    document.addEventListener('visibilitychange', startOnVisible);
-  } else {
-    chazy.start();
-  }
-
   requestAnimationFrame(() => resizeUiCanvasToMatch());
+  
+  console.log('[Boot] ✓ UI built, everything ready');
+  
+  // Make page visible immediately (HTML/CSS rendering)
+  document.body.classList.add('loaded');
+  console.log('[Boot] ✓ Page visible (canvas showing background color, no sim render yet)');
+  
+  // Show welcome dialog first (async, non-blocking)
+  console.log('[Boot] Showing welcome dialog (if not suppressed)...');
+  showWelcomeDialog()
+    .then(() => {
+      console.log('[Boot] Welcome dialog dismissed, starting Chazy and simulation render...');
+      
+      // Update layout and start Chazy
+      updateChazyLayout();
+      
+      // Emit page_loaded event
+      chazy.route('page_loaded', {});
+      
+      // Defer start if page loaded hidden
+      if (document.hidden) {
+        console.log('[Boot] Page loaded hidden, deferring start');
+        const startOnVisible = () => {
+          document.removeEventListener('visibilitychange', startOnVisible);
+          console.log('[Boot] Page visible, starting Chazy');
+          chazy.start();
+        };
+        document.addEventListener('visibilitychange', startOnVisible);
+      } else {
+        console.log('[Boot] Starting Chazy now...');
+        chazy.start();
+      }
+      
+      // NOW do the WebGL simulation render (after dialog dismissed)
+      console.log('[Boot] Starting WebGL simulation render...');
+      doRender(state.res).catch(err => {
+        setOverlay(false);
+        setRenderingState(false);
+        setStatus(String(err?.message || err));
+        console.error('[Boot] Simulation render error:', err);
+        drawHUD();
+      }).then(() => {
+        console.log('[Boot] ✓ Simulation render complete');
+      });
+      
+      console.log('[Boot] ✓ Boot complete');
+    })
+    .catch(err => {
+      console.error('[Boot] Welcome dialog error:', err);
+      console.log('[Boot] Starting Chazy and render anyway due to error...');
+      chazy.start();
+      doRender(state.res);
+    });
+  
+  console.log('[Boot] Boot function finished, page visible, waiting for welcome dialog...');
 }
 
 boot();

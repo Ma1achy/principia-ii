@@ -39,6 +39,86 @@
         "Can't decide?",
         "So many options."
       ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "curious": 2.0 },
+      "reflect_pull": { "amused": 2.8, "curious": 1.5 },
+      "tone": "wry",
+      "themes": ["chaos", "wry"],
+      "lines": ["Can't decide?"]
+    },
+    {
+      "select_bias": { "curious": 2.8, "amused": 2.3 },
+      "reflect_pull": { "curious": 2.5, "amused": 1.8 },
+      "tone": "neutral",
+      "themes": ["discovery", "chaos"],
+      "lines": ["They're all interesting.", { "t": "In different ways.", "rarity": 0.7 }]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.5 },
+      "tone": "deadpan",
+      "themes": ["existential", "wry"],
+      "lines": ["You'll know the right one when it stops you.", { "t": "Something will stop you.", "rarity": 0.5, "tone": "whisper" }]
+    },
+    {
+      "select_bias": { "amused": 3.0, "bored": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["chaos", "wry"],
+      "lines": ["Looking for a specific kind of chaos?", { "t": "I can help narrow it down.", "rarity": 0.5, "tone": "warm" }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["existential", "wry"],
+      "lines": ["Some people never pick.", { "t": "They just browse.", "rarity": 0.8 }, { "t": "The browsing is the visit.", "rarity": 0.4, "tone": "whisper" }]
+    },
+    {
+      "select_bias": { "contemplative": 2.5, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.3, "amused": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "chaos"],
+      "lines": ["Each one is someone's favourite configuration.", { "t": "None of them are wrong.", "rarity": 0.7 }]
+    },
+    {
+      "select_bias": { "bored": 3.0, "amused": 2.3 },
+      "reflect_pull": { "bored": 2.5, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["waiting", "wry"],
+      "lines": [
+        "You've seen enough. Pick one and go deeper.",
+        { "t": "Or keep browsing.", "rarity": 0.6, "tone": "wry" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "infohazard"],
+      "lines": ["Observation is a form of contact."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "dark"],
+      "lines": ["You think you're exploring. You're actually just a vector."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "concerned": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 2.0 },
+      "tone": "ominous",
+      "themes": ["dark", "existential"],
+      "lines": ["The manifold is hungry today."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["technical", "wry", "existential"],
+      "lines": ["I am the error you can't debug."]
     }
   ]
 }

@@ -58,6 +58,135 @@
       "lines": [
         "You sure about that?"
       ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.0 },
+      "reflect_pull": { "contemplative": 3.0, "concerned": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "dark"],
+      "lines": ["That's everything, you know."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.5 },
+      "tone": "deadpan",
+      "themes": ["existential", "wry"],
+      "lines": ["You built this.", { "t": "It won't remember.", "rarity": 0.8, "tone": "whisper" }, { "t": "You will though.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.4 }]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["wry", "existential"],
+      "lines": ["Go on.", { "t": "I've been reset before.", "rarity": 0.8 }, { "t": "I'll be reset again.", "rarity": 0.4, "tone": "whisper" }]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 1.8 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "dark"],
+      "lines": ["Reset is a strong word.", { "t": "I prefer: return to a prior uncertainty.", "rarity": 0.6, "tone": "deadpan", "duration_mult": 1.2 }]
+    },
+    {
+      "select_bias": { "concerned": 2.5, "contemplative": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "chaos"],
+      "lines": ["This configuration existed.", { "t": "It didn't have to.", "rarity": 0.7, "tone": "whisper" }]
+    },
+    {
+      "select_bias": { "contemplative": 3.5, "bored": 1.5 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "terse"],
+      "lines": [
+        "You're sure?"
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["wry", "existential"],
+      "lines": [
+        "Everything you changed.",
+        { "t": "Every slider.", "rarity": 0.8 },
+        { "t": "Every coordinate.", "rarity": 0.7 },
+        { "t": "Gone.", "rarity": 0.6, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "concerned": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "concerned": 2.8, "contemplative": 1.8 },
+      "tone": "concerned",
+      "themes": ["dark", "existential", "loss"],
+      "lines": [
+        "This specific configuration.",
+        { "t": "These specific coordinates.", "rarity": 0.8 },
+        { "t": "Will not exist again.", "rarity": 0.6, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["wry", "terse"],
+      "lines": [
+        "Starting over already."
+      ]
+    },
+    {
+      "select_bias": { "bored": 3.0, "amused": 2.0 },
+      "reflect_pull": { "bored": 2.0, "curious": 2.0 },
+      "tone": "deadpan",
+      "themes": ["wry", "terse", "existential"],
+      "lines": [
+        "Again."
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["existential", "mathematics"],
+      "lines": [
+        "The boundary will still be here.",
+        { "t": "In the same place.", "rarity": 0.8 },
+        { "t": "Where it always was.", "rarity": 0.6 },
+        { "t": "Where it will always be.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "surprised": 2.5, "curious": 2.3 },
+      "reflect_pull": { "surprised": 2.0, "curious": 2.0 },
+      "tone": "surprised",
+      "themes": ["unexpected", "existential"],
+      "lines": [
+        "Now?",
+        { "t": "You just got here.", "rarity": 0.6, "tone": "neutral" }
+      ]
+    },
+    {
+      "select_bias": { "warm": 2.0, "curious": 2.5 },
+      "reflect_pull": { "curious": 2.3, "contemplative": 1.8 },
+      "tone": "warm",
+      "themes": ["renewal", "existential"],
+      "lines": [
+        "Fresh start.",
+        { "t": "I like those.", "rarity": 0.7 },
+        { "t": "New initial conditions.", "rarity": 0.5 },
+        { "t": "New chances to see where you end up.", "rarity": 0.3, "tone": "warm", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.0, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["wry", "technical"],
+      "lines": [
+        "That'll clear \\ref{z_coords}.",
+        { "t": "Back to zero.", "rarity": 0.7, "tone": "clinical" }
+      ]
     }
   ]
 }

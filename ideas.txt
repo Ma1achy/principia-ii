@@ -1,3 +1,5 @@
+> fix sahder bug: t=0 collision outputs orange always even if render mode isn't event classification
+
 > setting to make it so zoom is either aways centred on canvas middle or mouse
 > keyboard controls? arrows == pab, +/- == zoom, other keys for tilts/roation?
 > optimise somehow to make zoom/panning experience nice 
@@ -7,3 +9,13 @@
 > gui animation? rather than like instant changes
 > ability to show / hide sidebar
 > on page load, choose from random selection of hand chosen state jsons.
+
+
+If the user checks “Don’t warn me again”, I’d still allow the app to show the warning again automatically on clearly risky contexts (mobile / known weak GPU / WebGL/WebGPU fallback), or at least show a smaller non-blocking banner.
+That avoids “I told it not to warn me and now it froze my laptop” moments.
+
+> figure out max tile size can render (maybe underestimate to be conservative (so half tile size?)), then using current Resolution split into N tiles, then render from middle title outwards in a spiral
+
+> BUG: with Chazy typing: sometimes doesn't fully finish typing then starts deleting (like doesn't let the text display just half writes then deletes when theres no interruption, this is most jarring when its a multiline sequence) or entire message just appears after half typing
+> also i think the speeds etc still need more damping / guardrails as it can still goo too crazy, like chazy is supposed to be a more sort of calm etheral character
+> also noticed that sometimes chazy doesn't say the next line in a multiline sequence and just goes to another random ambient line

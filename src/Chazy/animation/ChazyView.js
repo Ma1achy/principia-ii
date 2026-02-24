@@ -185,9 +185,17 @@ export class ChazyView {
   }
   
   _initTextStateMachine() {
+    // Store reference to orchestrator (will be set by Orchestrator after View creation)
+    this.orchestrator = null;
+    
     this.textStateMachine = new TextStateMachine(
       this.elements.subtitle,
-      () => this._onSubtitleUpdate()
+      () => this._onSubtitleUpdate(),
+      () => {  // NEW: context provider callback
+        return {
+          sequenceLocked: this.orchestrator?.coordinator?.isLocked() || false
+        };
+      }
     );
   }
   

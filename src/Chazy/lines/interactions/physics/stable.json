@@ -447,6 +447,94 @@
           "tone": "clinical"
         }
       ]
+    },
+    {
+      "select_bias": { "surprised": 3.5, "curious": 2.8 },
+      "reflect_pull": { "surprised": 2.5, "curious": 2.3 },
+      "tone": "neutral",
+      "themes": ["stability", "dark", "wry"],
+      "lines": [
+        "Hm.",
+        { "t": "This is unexpected.", "rarity": 0.8 },
+        { "t": "I'm noting it.", "rarity": 0.6, "tone": "clinical" }
+      ]
+    },
+    {
+      "select_bias": { "surprised": 3.0, "amused": 2.5 },
+      "reflect_pull": { "surprised": 2.5, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["stability", "wry", "mathematics"],
+      "lines": [
+        "Stable.",
+        { "t": "The Lyapunov exponent is behaving itself.", "rarity": 0.7 },
+        { "t": "I don't trust it.", "rarity": 0.6, "tone": "deadpan", "duration_mult": 1.1 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "surprised": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["stability", "dark", "wry"],
+      "lines": [
+        "Stable enough to disappoint you later.",
+        { "t": "I've seen stable systems before.", "rarity": 0.6 },
+        { "t": "They're always so proud of themselves.", "rarity": 0.4, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.8 },
+      "tone": "neutral",
+      "themes": ["stability", "existential", "poetic"],
+      "lines": [
+        "Order is a local phenomenon.",
+        { "t": "Chaos is the boundary condition.", "rarity": 0.7, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "surprised": 2.3 },
+      "reflect_pull": { "analytical": 2.5, "curious": 2.0 },
+      "tone": "clinical",
+      "themes": ["stability", "classified", "mathematics"],
+      "lines": [
+        "Chazy Class B.",
+        { "t": "Bounded.", "rarity": 0.9 },
+        { "t": "For now.", "rarity": 0.8 },
+        { "t": "Chazy didn't say for how long.", "rarity": 0.5, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "surprised": 2.5 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["stability", "wry", "dark"],
+      "lines": [
+        "Quiet doesn't mean stable.",
+        { "t": "Stable doesn't mean safe.", "rarity": 0.7 },
+        { "t": "This is both.", "rarity": 0.5, "tone": "whisper" },
+        { "t": "For now.", "rarity": 0.4, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "surprised": 3.0, "excited": 2.3 },
+      "reflect_pull": { "surprised": 2.8, "curious": 2.0 },
+      "tone": "whisper",
+      "themes": ["stability", "dark", "existential"],
+      "lines": [
+        "It found an equilibrium.",
+        { "t": "In this space\\pause{700} that's rare.", "rarity": 0.7, "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.8 },
+      "tone": "neutral",
+      "themes": ["stability", "existential", "dark"],
+      "lines": [
+        "A bounded orbit.",
+        { "t": "It will hold until it doesn't.", "rarity": 0.7, "tone": "deadpan" },
+        { "t": "I've seen how that goes.", "rarity": 0.4, "tone": "whisper" }
+      ]
     }
   ]
 }

@@ -465,6 +465,132 @@
           "duration_mult": 1.2
         }
       ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["wry", "dark"],
+      "lines": ["Go on. Make it worse."]
+    },
+    {
+      "select_bias": { "concerned": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "concerned": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["boundary", "dark"],
+      "lines": ["Closer isn't safer."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["inspection", "wry"],
+      "lines": ["You're not satisfied with the first answer."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
+      "tone": "whisper",
+      "themes": ["boundary", "existential"],
+      "lines": ["You came here for the seam."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "curious": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["discovery", "wry"],
+      "lines": ["Just one more scale."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 1.8 },
+      "tone": "deadpan",
+      "themes": ["boundary", "mathematics"],
+      "lines": ["It's always smoother from far away."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "analytical": 1.5 },
+      "tone": "wry",
+      "themes": ["inspection", "wry"],
+      "lines": ["You're trying to catch it being simple."]
+    },
+    {
+      "select_bias": { "concerned": 2.8, "amused": 2.3 },
+      "reflect_pull": { "concerned": 2.5, "amused": 1.8 },
+      "tone": "deadpan",
+      "themes": ["dark", "hazard"],
+      "lines": ["That's not detail. That's addiction."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "analytical": 1.5 },
+      "tone": "wry",
+      "themes": ["inspection", "wry"],
+      "lines": ["You're calling it exploration. That's generous."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["discovery", "wry"],
+      "lines": ["You don't want answers. You want patterns."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "concerned": 2.0 },
+      "reflect_pull": { "amused": 2.8, "concerned": 1.5 },
+      "tone": "wry",
+      "themes": ["dark", "wry"],
+      "lines": ["This isn't curiosity. It's compulsion with good branding."]
+    },
+    {
+      "select_bias": { "concerned": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "concerned": 2.5, "contemplative": 1.8 },
+      "tone": "whisper",
+      "themes": ["dark", "hazard"],
+      "lines": ["If it feels alive, check your assumptions."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 1.8 },
+      "tone": "neutral",
+      "themes": ["boundary", "existential"],
+      "lines": ["You're training yourself on it."]
+    },
+    {
+      "select_bias": { "concerned": 2.5, "amused": 2.0 },
+      "reflect_pull": { "concerned": 2.3, "amused": 1.8 },
+      "tone": "deadpan",
+      "themes": ["dark", "wry"],
+      "lines": ["It's safe at this resolution."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry", "dark"],
+      "lines": ["It doesn't get simpler down here. It just gets louder."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["wry", "existential"],
+      "lines": ["It doesn't get simpler. Your eyes just give up."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["wry", "existential"],
+      "lines": ["It's an exercise in futility. Keep zooming."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["wry", "existential"],
+      "lines": ["The more you zoom, the less you actually see."]
     }
   ]
 }

@@ -1,6 +1,22 @@
-import { $ } from '../utils.js';
+import { showDialog } from './dialog.js';
+import { ContentPool } from '../content/ContentPool.js';
+import { preloadButtonPools } from '../content/poolLoader.js';
 
 // ─── Large resolution warning dialog ─────────────────────────────────────────
+
+// Global pool instance (initialized on first use)
+let contentPool = null;
+
+/**
+ * Initialize content pool (async, called on first use)
+ */
+async function getContentPool() {
+  if (!contentPool) {
+    const pools = await preloadButtonPools();
+    contentPool = new ContentPool(pools);
+  }
+  return contentPool;
+}
 
 const _suppressedRes = new Set(JSON.parse(localStorage.getItem("principia_suppressedRes") || "[]"));
 
@@ -8,7 +24,7 @@ function saveSuppressed() {
   localStorage.setItem("principia_suppressedRes", JSON.stringify([..._suppressedRes]));
 }
 
-export function showLargeResWarning(resolution, onConfirm) {
+export async function showLargeResWarning(resolution, onConfirm) {
   console.log(`[ResWarning] showLargeResWarning called with resolution=${resolution}`);
   
   if (_suppressedRes.has(resolution)) {
@@ -17,69 +33,86 @@ export function showLargeResWarning(resolution, onConfirm) {
     return;
   }
 
-  const warnOverlay = $("largeResOverlay");
-  const warnMsg = $("largeResMsg");
-  const warnConfirm = $("largeResConfirm");
-  const warnCancel = $("largeResCancel");
-  const warnAutoChk = $("largeResDisableAutoRender");
-  const warnSuppressChk = $("largeResSuppressWarn");
+  // Load pools asynchronously
+  const pool = await getContentPool();
+
+  const tiled = resolution >= 8192;
+  const message = `${resolution} × ${resolution} is a ${tiled ? "tiled" : "large"} render (${tiled ? "≥8192 uses multi-pass tiling" : "high memory usage"}). This can be very slow, especially with auto-render enabled.`;
   
-  console.log(`[ResWarning] Dialog elements found:`, {
-    overlay: !!warnOverlay,
-    msg: !!warnMsg,
-    confirm: !!warnConfirm,
-    cancel: !!warnCancel,
-    autoChk: !!warnAutoChk,
-    suppressChk: !!warnSuppressChk
+  console.log(`[ResWarning] Showing warning dialog...`);
+  
+  const result = await showDialog({
+    id: 'large-res-warning',
+    title: 'LARGE TEXTURE',
+    contentPool: pool,  // Provide pool instance
+    pairPoolId: 'large_texture_pairs',  // 25% chance to use paired labels
+    content: {
+      text: message
+    },
+    checkboxes: [
+      {
+        id: 'disableAutoRender',
+        label: 'Disable auto-render',
+        defaultChecked: true
+      },
+      {
+        id: 'suppressResolution',
+        label: `Don't warn me about this resolution again`,
+        defaultChecked: false
+      }
+    ],
+    buttons: [
+      {
+        id: 'cancel',
+        pairedKey: 'cancel',  // Maps to paired label
+        labelPoolId: 'large_texture_cancel',  // Fallback to unpaired pool
+        label: 'CANCEL',  // Final fallback
+        role: 'secondary',
+        intent: 'cancel',
+        hotkey: 'Escape'
+      },
+      {
+        id: 'confirm',
+        pairedKey: 'confirm',  // Maps to paired label
+        labelPoolId: 'large_texture_confirm',  // Fallback to unpaired pool
+        label: 'RENDER ANYWAY',  // Final fallback
+        role: 'primary',
+        intent: 'confirm',
+        hotkey: 'Enter'
+      }
+    ],
+    closeOnEscape: true,
+    closeOnBackdrop: true,  // Allow dismissal by clicking outside dialog
+    onConfirmPersist: (result) => {
+      console.log(`[ResWarning] onConfirmPersist called`);
+      console.log(`[ResWarning] Auto-render checkbox: ${result.checks.disableAutoRender}`);
+      console.log(`[ResWarning] Suppress checkbox: ${result.checks.suppressResolution}`);
+      
+      // Handle "disable auto-render" checkbox
+      if (result.checks.disableAutoRender) {
+        console.log(`[ResWarning] Disabling auto-render`);
+        const autoRenderEl = document.getElementById('autoRender');
+        if (autoRenderEl) {
+          autoRenderEl.checked = false;
+        }
+      }
+      
+      // Handle "suppress this resolution" checkbox
+      if (result.checks.suppressResolution) {
+        console.log(`[ResWarning] Adding ${resolution} to suppressed list`);
+        _suppressedRes.add(resolution);
+        saveSuppressed();
+      }
+    }
   });
   
-  const tiled = resolution >= 8192;
-  warnMsg.textContent = `${resolution} × ${resolution} is a ${tiled ? "tiled" : "large"} render (${tiled ? "≥8192 uses multi-pass tiling" : "high memory usage"}). This can be very slow, especially with auto-render enabled.`;
-  warnAutoChk.checked = true;
-  warnSuppressChk.checked = false;
-  warnOverlay.classList.add("open");
-  console.log(`[ResWarning] Dialog opened`);
-
-  const escapeHandler = (e) => {
-    if (e.key === "Escape" && warnOverlay.classList.contains("open")) {
-      console.log(`[ResWarning] Escape pressed, closing dialog`);
-      warnOverlay.classList.remove("open");
-      document.removeEventListener("keydown", escapeHandler);
-    }
-  };
-
-  const confirmHandler = () => {
-    console.log(`[ResWarning] Confirm button clicked`);
-    console.log(`[ResWarning] Auto-render checkbox: ${warnAutoChk.checked}`);
-    console.log(`[ResWarning] Suppress checkbox: ${warnSuppressChk.checked}`);
-    
-    if (warnAutoChk.checked) {
-      console.log(`[ResWarning] Disabling auto-render`);
-      $("autoRender").checked = false;
-    }
-    if (warnSuppressChk.checked) {
-      console.log(`[ResWarning] Adding ${resolution} to suppressed list`);
-      _suppressedRes.add(resolution);
-      saveSuppressed();
-    }
-    
-    console.log(`[ResWarning] Closing dialog and calling onConfirm(${resolution})`);
-    warnOverlay.classList.remove("open");
-    document.removeEventListener("keydown", escapeHandler);
+  console.log(`[ResWarning] Dialog closed with result:`, result);
+  
+  // Only call onConfirm if user confirmed
+  if (result.confirmed) {
+    console.log(`[ResWarning] Calling onConfirm(${resolution})`);
     onConfirm(resolution);
-    console.log(`[ResWarning] onConfirm called`);
-  };
-
-  const cancelHandler = () => {
-    console.log(`[ResWarning] Cancel button clicked`);
-    warnOverlay.classList.remove("open");
-    document.removeEventListener("keydown", escapeHandler);
-  };
-
-  console.log(`[ResWarning] Adding event listeners`);
-  // Use { once: true } only for click events, not for keydown
-  warnConfirm.addEventListener("click", confirmHandler, { once: true });
-  warnCancel.addEventListener("click", cancelHandler, { once: true });
-  document.addEventListener("keydown", escapeHandler);
-  console.log(`[ResWarning] Event listeners added`);
+  } else {
+    console.log(`[ResWarning] User cancelled, not calling onConfirm`);
+  }
 }

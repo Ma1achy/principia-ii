@@ -398,6 +398,104 @@
           "duration_mult": 1.15
         }
       ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["existential", "wry"],
+      "lines": ["Back again."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["boundary", "existential"],
+      "lines": ["You remember this seam."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["wry", "existential"],
+      "lines": ["Same place. New excuses."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "dark"],
+      "lines": ["Familiar, isn't it?"]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
+      "tone": "deadpan",
+      "themes": ["existential", "boundary"],
+      "lines": ["You think it changed. It thinks you did."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["existential", "wry"],
+      "lines": ["You're not lost. You're looping."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "dark"],
+      "lines": ["This is where you always come back."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.8 },
+      "tone": "clinical",
+      "themes": ["boundary", "technical"],
+      "lines": ["The boundary is working as intended."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "concerned": 2.0 },
+      "reflect_pull": { "amused": 2.5, "concerned": 1.8 },
+      "tone": "wry",
+      "themes": ["chaos", "wry"],
+      "lines": ["Stable enough to disappoint you later."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["boundary", "existential"],
+      "lines": ["That bright line? That's you asking again."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
+      "tone": "whisper",
+      "themes": ["boundary", "existential"],
+      "lines": ["Edges are where certainty goes to evaporate."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["boundary", "existential"],
+      "lines": ["You're looking at a decision that never resolves."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["boundary", "wry"],
+      "lines": ["The seam is infinite. Your patience isn't."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["boundary", "mathematics"],
+      "lines": ["There's no 'inside' here. Only more edge."]
     }
   ]
 }

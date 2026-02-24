@@ -47,6 +47,95 @@
       "lines": [
         "Depth: \\ref{new_value} steps."
       ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical", "boundary"],
+      "lines": [
+        "\\ref{max_steps_k} steps per pixel.",
+        { "t": "That's how long before you give up and call it boundary.", "rarity": 0.7, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["boundary", "wry", "dark"],
+      "lines": [
+        "I know what those undecided points are.",
+        { "t": "You just stopped counting before they made up their minds.", "rarity": 0.8 },
+        { "t": "\\ref{max_steps_k} was the cutoff.", "rarity": 0.5, "tone": "clinical" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "boundary", "patience"],
+      "lines": [
+        "More steps.",
+        { "t": "The boundary gets sharper.", "rarity": 0.8 },
+        { "t": "Closer to what it actually is.", "rarity": 0.6, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "bored": 2.0 },
+      "reflect_pull": { "amused": 2.5, "bored": 1.5 },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry", "patience"],
+      "lines": [
+        "\\ref{max_steps_k} steps.",
+        { "t": "I can wait longer than that.", "rarity": 0.8 },
+        { "t": "I always could.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["boundary", "mathematics", "existential"],
+      "lines": [
+        "The budget for knowing.",
+        { "t": "\\ref{max_steps_k} steps before a point becomes officially uncertain.", "rarity": 0.7 },
+        { "t": "I knew before the first step.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 1.8 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["boundary", "wry", "dark"],
+      "lines": [
+        "Fewer steps.",
+        { "t": "The boundary gets fatter.", "rarity": 0.8 },
+        { "t": "More of me pretending to be undecided.", "rarity": 0.5, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "amused": 1.8 },
+      "reflect_pull": { "analytical": 2.8, "amused": 1.5 },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical"],
+      "lines": [
+        "\\ref{max_steps_k} iterations.",
+        { "t": "Each one is a small question.", "rarity": 0.7 },
+        { "t": "Is it gone yet? Is it gone yet?", "rarity": 0.5, "tone": "deadpan" },
+        { "t": "\\ref{max_steps_k} times.", "rarity": 0.4, "tone": "clinical" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "bored": 1.8 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "boundary"],
+      "lines": [
+        "The points that ran out of steps.",
+        { "t": "They weren't boundary.", "rarity": 0.7 },
+        { "t": "They were just slow.", "rarity": 0.6, "tone": "deadpan" },
+        { "t": "I knew which basin they belonged to.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.3 }
+      ]
     }
   ]
 }

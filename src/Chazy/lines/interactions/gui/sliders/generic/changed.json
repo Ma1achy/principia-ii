@@ -77,6 +77,27 @@
       "lines": [
         "Δ\\ref{slider_name} = \\ref{delta|fixed2}."
       ]
+    },
+    {
+      "select_bias": { "analytical": 2.5, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.0, "curious": 1.8 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics"],
+      "lines": ["\\ref{slider_name}: \\ref{new_value|fixed2}."]
+    },
+    {
+      "select_bias": { "amused": 2.5, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.0, "analytical": 1.8 },
+      "tone": "deadpan",
+      "themes": ["chaos", "wry"],
+      "lines": ["Everything changes everything.", { "t": "Some things more than others.", "rarity": 0.6 }]
+    },
+    {
+      "select_bias": { "contemplative": 2.5, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.0, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["chaos", "existential"],
+      "lines": ["Adjusted.", { "t": "The system has noted this.", "rarity": 0.5, "tone": "clinical" }]
     }
   ]
 }

@@ -50,6 +50,16 @@ export class ChazyEventRouter {
     
     this.immediateHandlers = new Map([
       ['button_hesitation', this._handleButtonHesitation.bind(this)],
+      ['button_click_render', this._handleButtonClick.bind(this)],
+      ['button_click_share', this._handleButtonClick.bind(this)],
+      ['button_click_reset', this._handleButtonClick.bind(this)],
+      ['button_click_copy', this._handleButtonClick.bind(this)],
+      ['button_click_save', this._handleButtonClick.bind(this)],
+      ['button_click_zero_z0', this._handleButtonClick.bind(this)],
+      ['button_click_randomize_z0', this._handleButtonClick.bind(this)],
+      ['button_click_reset_tilts', this._handleButtonClick.bind(this)],
+      ['button_click_apply_json', this._handleButtonClick.bind(this)],
+      ['button_click_download_json', this._handleButtonClick.bind(this)],
       ['slider_hover', this._handleSliderHover.bind(this)],
       ['slider_changed', this._handleSliderChanged.bind(this)],
       ['select_hover', this._handleSelectHover.bind(this)],
@@ -148,31 +158,43 @@ export class ChazyEventRouter {
    * Route immediate events (with rate limiting and urgency system)
    */
   _routeImmediate(eventType, data) {
+    // Check pending interrupt queue first
+    if (this.pendingImmediate && this._shouldDrainPending()) {
+      const pending = this.pendingImmediate;
+      this.pendingImmediate = null;
+      console.log(
+        `[EventRouter] Draining pending ${pending.eventType} instead of handling new ${eventType}`
+      );
+      const result = this._routeImmediate(pending.eventType, pending.data);
+      return result;
+    }
+
+    // Refill budgets
+    const now = Date.now();
+    
     // NEW: Determine urgency and priority
     const urgency = getEventUrgency(eventType);
     const priority = getEventPriority(eventType, urgency);
     
     console.log(`[EventRouter] ${eventType} - urgency: ${urgency}, priority: ${priority}`);
     
-    // Check pending interrupt queue first
-    if (this.pendingImmediate && this._shouldDrainPending()) {
-      const pending = this.pendingImmediate;
-      this.pendingImmediate = null;
-      
-      // Try to process pending
-      const result = this._routeImmediate(pending.eventType, pending.data);
-      if (result.responded) {
-        // Pending processed, defer current event
-        return {
-          responded: false,
-          kind: null,
-          reason: 'pending_processed_instead'
-        };
-      }
-    }
+    // NEW: Check coordinator FIRST (before rate limiting)
+    // Rationale: Sequence lock is a hard block, not a rate limit.
+    // If sequence is locked, no point checking other conditions.
+    // Also, blocked requests during sequence shouldn't count against rate limit.
+    const coordinatorCheck = this.orchestrator.coordinator.requestTextSlot('interaction');
     
-    // Refill budget if needed
-    this._refillBudget();
+    if (!coordinatorCheck.allowed) {
+      console.log(`[EventRouter] ${eventType} blocked by coordinator: ${coordinatorCheck.reason}`);
+      
+      // Don't defer user interactions - just block them
+      // User will try again if they want
+      return {
+        responded: false,
+        kind: null,
+        reason: coordinatorCheck.reason
+      };
+    }
     
     // Apply 5-layer rate limiting
     const rateCheck = this._checkRateLimits(eventType, data, urgency, priority);
@@ -528,6 +550,117 @@ export class ChazyEventRouter {
   }
   
   /**
+   * Handle button_click_* - user clicked a button (ASSERTIVE interrupt)
+   */
+  async _handleButtonClick(data, urgency, priority) {
+    try {
+      const { buttonId } = data;
+      
+      console.log(`[EventRouter] Handling button_click: button=${buttonId}`);
+      
+      // Defensive null checks
+      if (!buttonId) {
+        console.error('[EventRouter] Missing buttonId in button_click');
+        return { responded: false, kind: null, reason: 'invalid_data' };
+      }
+      
+      // Map buttonId to action name (matches buttonTracking.js mapping)
+      const actionMap = {
+        'render': 'render',
+        'share': 'share',
+        'reset': 'reset',
+        'copyJson': 'copy',
+        'savePng': 'save',
+        'zero_z0': 'zero_z0',
+        'randomize_z0': 'randomize_z0',
+        'reset_tilts': 'reset_tilts',
+        'apply_json': 'apply_json',
+        'download_json': 'download_json'
+      };
+      
+      const action = actionMap[buttonId] || buttonId;
+      const eventName = `button_click_${action}`;
+      
+      // Get state references for templates
+      const stateRefs = getStateReferences(data);
+      
+      // Extract button action from buttonId (maps to file names)
+      // Button clicks use assertive urgency, so they should interrupt immediately
+      const selected = this.selector.selectImmediate({
+        event: eventName,
+        emotion: this.mind.emotion,
+        intensity: this.mind.intensity,
+        button: action,
+        stateRefs,
+        data
+      });
+      
+      if (!selected) {
+        console.log(`[EventRouter] No content for ${eventName}`);
+        return {
+          responded: false,
+          kind: null,
+          reason: 'no_content'
+        };
+      }
+      
+      console.log('[EventRouter] Button click content selected, attempting ASSERTIVE interrupt...');
+      
+      // ASSERTIVE interrupt - should clear immediately
+      const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority);
+      
+      if (interruptCheck.allowed && interruptCheck.strategy !== 'direct') {
+        await this.orchestrator.view.textStateMachine._executeClearStrategy(interruptCheck.strategy);
+      }
+      
+      // Show the lines
+      this.orchestrator._showLines(selected.lines, {
+        displayTime: 2500,
+        idleTime: 1500,
+        emotion: this.mind.emotion,
+        intensity: this.mind.intensity,
+        tone: selected.tone || 'neutral',
+        themes: selected.themes || [],
+        isMultiLine: selected.lines.length > 1,
+        _source: 'immediate',
+        interrupt_style: selected.interrupt_style,
+        stage_pause: selected.stage_pause,
+        onComplete: () => {
+          const delay = this._getEmotionalAmbientDelay(
+            getCleanTextLength(selected.lines),
+            selected.themes || []
+          );
+          this.orchestrator.scheduleAmbient(delay, 'immediate_complete');
+        }
+      });
+      
+      // Reflect on button clicks (they're significant user actions)
+      if (selected.reflect_pull) {
+        this.mind.reflectOnText(selected, selected.themes);
+      }
+      
+      return {
+        responded: true,
+        kind: 'immediate',
+        reason: 'success',
+        budgetCost: 1,
+        metadata: {
+          tone: selected.tone,
+          button: action
+        }
+      };
+    } catch (error) {
+      console.error('[EventRouter] Error in _handleButtonClick:', error);
+      return {
+        responded: false,
+        kind: null,
+        reason: 'error',
+        error: error.message
+      };
+    }
+  }
+  
+  /**
    * Handle slider_hover - user hovering over slider
    */
   async _handleSliderHover(data, urgency, priority) {
@@ -869,8 +1002,11 @@ export class ChazyEventRouter {
     const reason = data.reason || 'unknown';
     console.log(`[EventRouter] Ambient cycle triggered (${reason})`);
     
-    // Check if Mind wants to stay quiet
-    if (this.mind.shouldSuppressAmbient()) {
+    // NEVER suppress the welcome text (startup cycle)
+    const isWelcome = reason === 'startup';
+    
+    // Check if Mind wants to stay quiet (but not for welcome text)
+    if (!isWelcome && this.mind.shouldSuppressAmbient()) {
       console.log('[EventRouter] Mind vetoed ambient, rescheduling');
       
       // Reschedule for later (short delay, check again)
@@ -915,6 +1051,17 @@ export class ChazyEventRouter {
     
     // NEW: Check for queued polite interrupts
     this._checkQueuedImmediate();
+    
+    // CRITICAL: Don't schedule next ambient if we're in a multi-line sequence
+    // (prevents ambient from interrupting between lines)
+    if (this.orchestrator.inMultiLineSequence) {
+      console.log('[EventRouter] Skipping ambient schedule - multi-line sequence in progress');
+      return {
+        responded: false,
+        kind: null,
+        reason: 'multi_line_in_progress'
+      };
+    }
     
     // Schedule next ambient cycle (for both ambient and immediate)
     const delay = this._getEmotionalAmbientDelay(textLength, themes);
@@ -1010,13 +1157,32 @@ export class ChazyEventRouter {
   
   /**
    * Handle mind_wants_to_speak - Mind requests immediate ambient
+   * NEW: Defers requests during multi-line sequences
    */
   _handleMindSpeakRequest(data) {
     const { emotion, reason } = data;
     
     console.log(`[EventRouter] Mind wants to speak (${reason}, emotion: ${emotion})`);
     
-    // Cancel current ambient timer
+    // NEW: Check coordinator FIRST
+    const coordinatorCheck = this.orchestrator.coordinator.requestTextSlot('mind');
+    
+    if (!coordinatorCheck.allowed) {
+      console.log(`[EventRouter] Mind request blocked: ${coordinatorCheck.reason}`);
+      
+      // Defer if coordinator says so
+      if (coordinatorCheck.shouldDefer) {
+        this.orchestrator.coordinator.deferMindRequest(data);
+      }
+      
+      return {
+        responded: false,
+        kind: null,
+        reason: coordinatorCheck.reason + '_deferred'
+      };
+    }
+    
+    // Approved - cancel current ambient timer
     this.orchestrator.cancelAmbient('mind_request');
     
     // Schedule immediate ambient (short delay for urgency)

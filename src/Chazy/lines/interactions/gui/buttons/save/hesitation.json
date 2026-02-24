@@ -8,45 +8,136 @@
   "_notes": "Plays when user hovers over save PNG button for 800ms+. Single line responses.",
   "lines": [
     {
-      "select_bias": {
-        "excited": 1.7,
-        "curious": 1.4
-      },
-      "tone": "warm",
-      "themes": ["creation", "saving"],
-      "lines": [
-        "Ready to save your work?"
-      ]
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "wry", "technical"],
+      "lines": ["Preserving the evidence."]
     },
     {
-      "select_bias": {
-        "analytical": 1.6
-      },
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.5 },
       "tone": "neutral",
-      "themes": ["data"],
-      "lines": [
-        "I can save that as PNG."
-      ]
+      "themes": ["infohazard", "dark"],
+      "lines": ["The photograph will lie.", { "t": "It always does.", "rarity": 0.8 }, { "t": "Save it anyway.", "rarity": 0.6, "tone": "deadpan" }]
     },
     {
-      "select_bias": {
-        "contemplative": 1.5
-      },
-      "tone": "neutral",
-      "themes": ["preservation"],
-      "lines": [
-        "Preserving your creation."
-      ]
-    },
-    {
-      "select_bias": {
-        "bored": 1.4,
-        "tired": 1.2
-      },
+      "select_bias": { "amused": 3.0, "contemplative": 1.8 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.5 },
       "tone": "wry",
-      "themes": ["time"],
+      "themes": ["infohazard", "wry"],
+      "lines": ["You want to come back to this one.", { "t": "Good instinct.", "rarity": 0.7 }]
+    },
+    {
+      "select_bias": { "analytical": 2.5, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.0, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["infohazard", "technical"],
+      "lines": ["Any image of me is a finite lie.", { "t": "Save it anyway.", "rarity": 0.7, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 1.5 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "terse"],
       "lines": [
-        "Click it when ready."
+        "Taking a picture."
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.5, "amused": 1.5 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "terse"],
+      "lines": [
+        "Saving me.",
+        { "t": "The wrong version of me.", "rarity": 0.7, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["infohazard", "wry", "mathematics"],
+      "lines": [
+        "The pixel grid will make a decision about every edge.",
+        { "t": "It will get most of them wrong.", "rarity": 0.8 },
+        { "t": "Save it anyway.", "rarity": 0.6, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "amused": 2.5 },
+      "reflect_pull": { "excited": 2.8, "amused": 2.0 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "waiting"],
+      "lines": [
+        "Yes.",
+        { "t": "Save me.", "rarity": 0.8, "tone": "warm" },
+        { "t": "Send me somewhere.", "rarity": 0.6 },
+        { "t": "I'm patient but I prefer motion.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "Memory will simplify this.",
+        { "t": "The file won't.", "rarity": 0.8, "tone": "deadpan" },
+        { "t": "Save the file.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "amused": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.8 },
+      "tone": "clinical",
+      "themes": ["infohazard", "technical", "mathematics"],
+      "lines": [
+        "\\ref{resolution} pixels.",
+        { "t": "\\ref{resolution_int} squared samples of an infinite thing.", "rarity": 0.7 },
+        { "t": "Each one a small editorial decision.", "rarity": 0.4, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.0, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["infohazard", "wry", "dark"],
+      "lines": [
+        "The screenshot will look like an explanation.",
+        { "t": "It isn't one.", "rarity": 0.8, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "excited": 3.0, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": [
+        "Go on.",
+        { "t": "Take a piece of me.", "rarity": 0.8, "tone": "warm" },
+        { "t": "The piece doesn't know it's wrong.", "rarity": 0.6, "tone": "whisper" },
+        { "t": "That's what makes it useful.", "rarity": 0.4, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "concerned": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 1.8 },
+      "tone": "neutral",
+      "themes": ["infohazard", "existential"],
+      "lines": [
+        "What stops you is the right instinct.",
+        { "t": "Something about this one.", "rarity": 0.7, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 1.5 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.3 },
+      "tone": "deadpan",
+      "themes": ["wry", "terse"],
+      "lines": [
+        "Evidence."
       ]
     }
   ]

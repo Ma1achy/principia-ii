@@ -13,6 +13,7 @@ import { ChazyMind } from './mind/chazyMind.js';
 import { TextSelector } from './content/textSelector.js';
 import { ChazyEventRouter } from './events/eventRouter.js';
 import { getStateReferences } from './content/stateReferences.js';
+import { TextSourceCoordinator } from './coordination/TextSourceCoordinator.js';
 
 export class Chazy {
   constructor(options = {}) {
@@ -23,7 +24,13 @@ export class Chazy {
       options.selector
     );
     
-    // Event router (integrates mind + selector)
+    // NEW: Text source coordinator (prevents multi-line interruptions)
+    this.coordinator = new TextSourceCoordinator(this);
+    
+    // Wire up orchestrator reference for interrupt context
+    this.view.orchestrator = this;
+    
+    // Event router (integrates mind + selector + coordinator)
     this.router = new ChazyEventRouter(this, this.mind, this.selector);
     
     this.running = false;
@@ -187,6 +194,7 @@ export class Chazy {
     try {
       // On first cycle, use 'welcome' mode to trigger welcome messages
       const mode = this.selector.isFirstSelection ? 'welcome' : this.getCurrentMode();
+      const isWelcome = this.selector.isFirstSelection;
       const emotion = this.mind.emotion || 'NEUTRAL';
       const intensity = this.mind.intensity || 0.5;
       
@@ -238,6 +246,7 @@ export class Chazy {
         tone: selected.tone || 'neutral',
         themes: selected.themes || [],
         isMultiLine: selected.isMultiLine,
+        isWelcome: isWelcome, // Flag to protect welcome text from interrupts
         _source: 'ambient'
       });
     } catch (error) {
@@ -264,13 +273,29 @@ export class Chazy {
       return;
     }
     
-    // Generate token for stale callback protection
-    const token = ++this.currentTextToken;
-    
-    // Check if this is a multi-line sequence
+    // Check if this is a multi-line sequence FIRST
     const isMultiLineSequence = lines.length > 1;
     
-    // Mark start of multi-line sequence
+    // NEW: Early check - block if coordinator already locked
+    if (isMultiLineSequence && this.coordinator.isLocked()) {
+      console.log('[Chazy] Multi-line blocked - coordinator locked');
+      return; // Don't increment token, don't do any work
+    }
+    
+    // NEW: Try to acquire coordinator lock for multi-line
+    if (isMultiLineSequence) {
+      try {
+        this.coordinator.lockForSequence(lines.length, config._source || 'ambient');
+      } catch (error) {
+        console.error('[Chazy] Failed to lock coordinator:', error);
+        return; // Don't proceed if lock fails
+      }
+    }
+    
+    // NOW safe to increment token (after coordinator check)
+    const token = ++this.currentTextToken;
+    
+    // Mark start of multi-line sequence (kept for backwards compatibility)
     if (isMultiLineSequence) {
       this.inMultiLineSequence = true;
       this.multiLineSequenceToken = token;
@@ -416,6 +441,10 @@ export class Chazy {
             if (isMultiLineSequence && this.multiLineSequenceToken === token) {
               this.inMultiLineSequence = false;
               this.multiLineSequenceToken = null;
+              
+              // NEW: Unlock coordinator
+              this.coordinator.unlockSequence();
+              
               console.log(`[Chazy] Completed multi-line sequence (token ${token})`);
             }
             
@@ -458,27 +487,43 @@ export class Chazy {
           emotion: config.emotion || 'NEUTRAL',
           intensity: config.intensity || 0.5,
           tone: lineTone || 'neutral',  // Pass tone (per-line or entry-level)
-          themes: config.themes || []
+          themes: config.themes || [],
+          isWelcome: config.isWelcome || false  // Pass welcome flag to protect from interrupts
         });
       } catch (error) {
         console.error('[Chazy] Error in view.showText:', error);
+        
         // Clear multi-line state on error to prevent lock
         if (isMultiLineSequence && this.multiLineSequenceToken === token) {
           this.inMultiLineSequence = false;
           this.multiLineSequenceToken = null;
+          
+          // NEW: Unlock coordinator on error
+          this.coordinator.unlockSequence();
+          
           console.log(`[Chazy] Cleared multi-line state due to error (token ${token})`);
         }
         
-        // Attempt to recover by completing (with token check)
-        if (nextCallback) {
+        // NEW: Don't attempt recovery for multi-line (too complex)
+        if (!isMultiLineSequence && nextCallback) {
+          // Only recover single-line text
           setTimeout(() => {
-            // Only invoke if token is still valid
             if (token === this.currentTextToken) {
               nextCallback();
             } else {
               console.log(`[Chazy] Recovery callback stale (token ${token} vs ${this.currentTextToken})`);
             }
           }, 1000);
+        }
+        
+        // For multi-line, emit text_complete to unblock system
+        if (isMultiLineSequence) {
+          this.route('text_complete', {
+            type: config._source || 'ambient',
+            token,
+            textLength: this.lastTextLength,
+            themes: this.lastThemes
+          });
         }
       }
     };

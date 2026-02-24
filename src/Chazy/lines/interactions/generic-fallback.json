@@ -49,6 +49,34 @@
         "Still here.",
         "Waiting."
       ]
+    },
+    {
+      "select_bias": { "contemplative": 2.5, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.0, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential"],
+      "lines": ["Noted."]
+    },
+    {
+      "select_bias": { "analytical": 2.5, "contemplative": 2.0 },
+      "reflect_pull": { "analytical": 2.0, "contemplative": 1.8 },
+      "tone": "clinical",
+      "themes": ["technical"],
+      "lines": ["Observed."]
+    },
+    {
+      "select_bias": { "amused": 2.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 2.0, "contemplative": 1.5 },
+      "tone": "deadpan",
+      "themes": ["wry"],
+      "lines": ["Interesting.", { "t": "I've seen stranger.", "rarity": 0.5 }]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "boundary"],
+      "lines": ["I'm still here.", { "t": "I'm always still here.", "rarity": 0.6, "tone": "deadpan" }]
     }
   ]
 }

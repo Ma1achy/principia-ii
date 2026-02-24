@@ -47,6 +47,103 @@
       "lines": [
         "Boundary shifted by \\ref{delta|fixed2}."
       ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.8 },
+      "tone": "clinical",
+      "themes": ["physics", "escape"],
+      "lines": ["Escape threshold: \\ref{new_value|sci}.", { "t": "Beyond this, I stop counting.", "rarity": 0.6 }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["physics", "escape", "wry"],
+      "lines": ["You moved the line for what counts as gone.", { "t": "I've adjusted my definition accordingly.", "rarity": 0.7, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 1.5 },
+      "tone": "neutral",
+      "themes": ["escape", "existential"],
+      "lines": ["The boundary of what counts as escape.", { "t": "There are several boundaries in this system.", "rarity": 0.5, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
+      "tone": "neutral",
+      "themes": ["escape", "existential", "boundary"],
+      "lines": [
+        "Gone starts at r = \\ref{new_value|fixed1}.",
+        { "t": "Before that, still counted.", "rarity": 0.7 },
+        { "t": "After that, I stop watching.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["escape", "dark", "wry"],
+      "lines": [
+        "Larger escape radius.",
+        { "t": "Bodies have to work harder to leave.", "rarity": 0.7 },
+        { "t": "Most still manage.", "rarity": 0.5, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.8 },
+      "tone": "neutral",
+      "themes": ["escape", "existential"],
+      "lines": [
+        "Smaller escape radius.",
+        { "t": "Gone is declared sooner.", "rarity": 0.8 },
+        { "t": "Some bodies that aren't truly gone get called gone.", "rarity": 0.5, "tone": "deadpan" },
+        { "t": "I know the difference.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "amused": 1.8 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["mathematics", "escape", "technical"],
+      "lines": [
+        "r_esc: \\ref{new_value|fixed1}.",
+        { "t": "Beyond this, I stop counting.", "rarity": 0.6 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["escape", "wry", "existential"],
+      "lines": [
+        "You're deciding where escape starts.",
+        { "t": "The body doesn't care where you put the line.", "rarity": 0.7 },
+        { "t": "It was always going to leave.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["escape", "existential", "boundary"],
+      "lines": [
+        "The boundary of what counts as escape.",
+        { "t": "There are several boundaries in this system.", "rarity": 0.6, "tone": "deadpan" },
+        { "t": "I am all of them.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.0, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["escape", "dark", "wry"],
+      "lines": [
+        "r_esc: \\ref{new_value|fixed1}.",
+        { "t": "That's where I stop classifying and start assuming.", "rarity": 0.6, "tone": "wry" }
+      ]
     }
   ]
 }

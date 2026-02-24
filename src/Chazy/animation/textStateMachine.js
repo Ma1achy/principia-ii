@@ -22,10 +22,12 @@ export class TextStateMachine {
   /**
    * @param {HTMLElement} element - DOM element to animate
    * @param {Function} onUpdateCallback - Called when text content changes (optional)
+   * @param {Function} getInterruptContext - Returns interrupt context (optional)
    */
-  constructor(element, onUpdateCallback = null) {
+  constructor(element, onUpdateCallback = null, getInterruptContext = null) {
     this.element = element;
     this.onUpdateCallback = onUpdateCallback;
+    this.getInterruptContext = getInterruptContext;  // NEW: context provider
     
     // FSM state
     this.currentState = 'IDLE';
@@ -33,6 +35,7 @@ export class TextStateMachine {
     this.currentTimer = null;
     this.pendingLine = null;
     this.isFirstText = true;
+    this.isWelcomeText = false;  // Flag to protect welcome text from interrupts
     
     // NEW: Enhanced interrupt system
     this.pendingInterrupts = [];  // Priority queue (array of queued interrupts)
@@ -164,6 +167,31 @@ export class TextStateMachine {
   canInterrupt(urgency = INTERRUPT_URGENCY.ASSERTIVE, priority = 2) {
     const state = this.currentState;
     const currentPriority = this.currentLinePriority || 1;
+    
+    // NEW: Get interrupt context if available
+    const context = this.getInterruptContext ? this.getInterruptContext() : {};
+    
+    // NEW: Check sequence lock from context (highest priority check)
+    if (context.sequenceLocked) {
+      console.log('[FSM] Interrupt blocked - sequence locked');
+      return {
+        allowed: false,
+        strategy: 'none',
+        shouldWait: true,
+        reason: 'sequence_locked'
+      };
+    }
+    
+    // NEVER interrupt welcome text
+    if (this.isWelcomeText) {
+      console.log('[FSM] Welcome text protected from interrupt');
+      return {
+        allowed: false,
+        strategy: 'none',
+        shouldWait: false,  // Don't queue, just discard
+        reason: 'welcome_protected'
+      };
+    }
     
     // Level 0: Observational - never interrupt
     if (urgency === INTERRUPT_URGENCY.OBSERVATIONAL) {
@@ -524,9 +552,43 @@ export class TextStateMachine {
     }
     
     try {
+      // Store welcome flag to protect from interrupts
+      this.isWelcomeText = config.isWelcome || false;
+      
       // Cancel any ongoing operations
       if (this.currentAnimationCancel) {
-        this.currentAnimationCancel();
+        // NEW: Determine cancel mode based on strategy
+        let cancelMode = 'clear';
+        
+        switch (strategy) {
+          case 'abort_and_clear':
+          case 'fast_select_delete':
+          case 'abort_delete_and_clear':
+          case 'instant_clear':
+            cancelMode = 'clear';
+            break;
+            
+          case 'instant_complete':  // If we add this strategy
+            cancelMode = 'complete';
+            break;
+            
+          case 'freeze':  // If we add this strategy
+            cancelMode = 'freeze';
+            break;
+        }
+        
+        // NEW: Use new API if available, fallback to old
+        if (typeof this.currentAnimationCancel === 'function') {
+          // Check if it has the new cancel method
+          if (this.currentAnimationCancel.cancel) {
+            // New API
+            this.currentAnimationCancel.cancel(cancelMode);
+          } else {
+            // Old API
+            this.currentAnimationCancel();
+          }
+        }
+        
         this.currentAnimationCancel = null;
       }
       if (this.currentTimer) {
@@ -655,6 +717,9 @@ export class TextStateMachine {
       this.currentAnimationCancel = animateTextOut(this.element, () => {
         this.currentAnimationCancel = null;
         this.currentState = 'IDLE';
+        
+        // Clear welcome flag once text completes (allows future interrupts)
+        this.isWelcomeText = false;
         
         // Check for pending interrupts before idle
         this._processPendingInterrupts();

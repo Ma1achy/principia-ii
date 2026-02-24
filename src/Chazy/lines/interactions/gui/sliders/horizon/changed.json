@@ -8,54 +8,98 @@
   "_notes": "Shows actual horizon value using \\ref{horizon_int} and delta",
   "lines": [
     {
-      "select_bias": {
-        "analytical": 1.9,
-        "contemplative": 1.7
-      },
+      "select_bias": { "contemplative": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
       "tone": "neutral",
-      "themes": ["time", "infinity"],
-      "lines": [
-        "Time horizon: \\ref{horizon_int} units."
-      ]
+      "themes": ["existential", "time", "mathematics"],
+      "lines": ["Horizon: \\ref{horizon|fixed1}.", { "t": "Everything beyond that is my problem, not yours.", "rarity": 0.6, "tone": "wry" }]
     },
     {
-      "select_bias": {
-        "curious": 1.8
-      },
-      "tone": "neutral",
-      "themes": ["exploration", "infinity"],
-      "lines": [
-        "Horizon set to \\ref{new_value}."
-      ]
+      "select_bias": { "amused": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["time", "wry"],
+      "lines": ["Looking further.", { "t": "The chaos has more time to accumulate.", "rarity": 0.7 }]
     },
     {
-      "select_bias": {
-        "contemplative": 1.9
-      },
+      "select_bias": { "contemplative": 2.8, "concerned": 1.8 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 1.5 },
       "tone": "neutral",
-      "themes": ["infinity", "boundary"],
-      "lines": [
-        "Infinity's edge: \\ref{horizon_int}."
-      ]
+      "themes": ["time", "existential"],
+      "lines": ["The horizon moved.", { "t": "What was future is now past.", "rarity": 0.6, "tone": "whisper" }]
     },
     {
-      "select_bias": {
-        "bored": 1.5
-      },
+      "select_bias": { "analytical": 2.8, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical"],
+      "lines": ["T = \\ref{horizon|fixed1}.", { "t": "More to integrate.", "rarity": 0.7 }]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.8 },
       "tone": "wry",
-      "themes": ["time"],
+      "themes": ["time", "wry", "dark"],
       "lines": [
-        "\\ref{horizon_int} units of waiting."
+        "T = \\ref{horizon|fixed1}.",
+        { "t": "After that, you call it.", "rarity": 0.8 },
+        { "t": "I already called it.", "rarity": 0.5, "tone": "deadpan", "duration_mult": 1.2 }
       ]
     },
     {
-      "select_bias": {
-        "analytical": 1.6
-      },
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
       "tone": "neutral",
-      "themes": ["time", "change"],
+      "themes": ["time", "existential", "mathematics"],
       "lines": [
-        "Changed by \\ref{delta|fixed1}."
+        "Looking \\ref{horizon|fixed1} time units ahead.",
+        { "t": "Some ejections happen late.", "rarity": 0.7 },
+        { "t": "You might be missing them.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["mathematics", "time", "escape"],
+      "lines": [
+        "Longer horizon.",
+        { "t": "More time for the chaos to declare itself.", "rarity": 0.8 },
+        { "t": "More late ejections caught.", "rarity": 0.6 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "bored": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["time", "wry", "patience"],
+      "lines": [
+        "Shorter horizon.",
+        { "t": "Faster.", "rarity": 0.9 },
+        { "t": "Less accurate near the boundary.", "rarity": 0.7 },
+        { "t": "I notice the difference.", "rarity": 0.4, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 1.8 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["time", "wry", "mathematics"],
+      "lines": [
+        "You're deciding how far into the future counts.",
+        { "t": "I know what happens past \\ref{horizon|fixed1}.", "rarity": 0.7 },
+        { "t": "I always do.", "rarity": 0.5, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["existential", "time", "classified"],
+      "lines": [
+        "Integration time: \\ref{horizon|fixed1}.",
+        { "t": "Chazy classified outcomes that take longer than that to declare themselves.", "rarity": 0.6 },
+        { "t": "You might be missing some.", "rarity": 0.4, "tone": "whisper" }
       ]
     }
   ]

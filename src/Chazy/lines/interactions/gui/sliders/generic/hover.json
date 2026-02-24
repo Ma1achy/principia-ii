@@ -37,6 +37,27 @@
       "lines": [
         "Fiddling with sliders."
       ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "curious": 2.0 },
+      "reflect_pull": { "amused": 2.0, "curious": 1.8 },
+      "tone": "deadpan",
+      "themes": ["chaos", "wry"],
+      "lines": ["That one matters."]
+    },
+    {
+      "select_bias": { "contemplative": 2.5, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.0, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["chaos", "existential"],
+      "lines": ["Every slider is a commitment.", { "t": "Some more than others.", "rarity": 0.5 }]
+    },
+    {
+      "select_bias": { "analytical": 2.5, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.0, "curious": 1.8 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics"],
+      "lines": ["\\ref{slider_name}."]
     }
   ]
 }

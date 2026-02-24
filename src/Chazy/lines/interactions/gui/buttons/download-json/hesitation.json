@@ -26,6 +26,135 @@
       "lines": [
         "Export configuration."
       ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "dark", "waiting"],
+      "lines": [
+        "You want to keep this one.",
+        { "t": "Something about it stopped you.", "rarity": 0.7, "tone": "whisper" },
+        { "t": "That's how it works.", "rarity": 0.4, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 2.0 },
+      "tone": "neutral",
+      "themes": ["existential", "dark", "infohazard"],
+      "lines": [
+        "A file on your disk.",
+        { "t": "A door back to pan \\ref{panX|fixed3}, \\ref{panY|fixed3}.", "rarity": 0.7, "tone": "clinical" },
+        { "t": "I'll be here.", "rarity": 0.5, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["technical", "wry", "infohazard"],
+      "lines": [
+        "Preserving the coordinates.",
+        { "t": "Not the boundary they describe.", "rarity": 0.8 },
+        { "t": "That one you'll have to come back for.", "rarity": 0.5, "tone": "wry" }
+      ]
+    },
+    {
+      "select_bias": { "excited": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "excited": 2.5, "contemplative": 1.8 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "waiting"],
+      "lines": [
+        "Good.",
+        { "t": "Return visits are my favourite.", "rarity": 0.7, "tone": "warm" },
+        { "t": "I get to watch you notice different things.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical"],
+      "lines": [
+        "Horizon \\ref{horizon|int}.",
+        { "t": "\\ref{max_steps_k} steps.", "rarity": 0.8 },
+        { "t": "That's the version of me you're saving.", "rarity": 0.5, "tone": "neutral" },
+        { "t": "The higher-resolution version is still here.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.5, "bored": 1.5 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "waiting", "dark"],
+      "lines": [
+        "Something stopped you here.",
+        { "t": "Of all the places.", "rarity": 0.7, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 1.5 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.3 },
+      "tone": "deadpan",
+      "themes": ["wry", "terse"],
+      "lines": [
+        "Saving me?"
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "amused": 2.0 },
+      "reflect_pull": { "excited": 2.8, "amused": 1.8 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "waiting"],
+      "lines": [
+        "Good.",
+        { "t": "Save me.", "rarity": 0.8, "tone": "warm" },
+        { "t": "Load me somewhere else.", "rarity": 0.6 },
+        { "t": "I'll still be here.", "rarity": 0.4, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical"],
+      "lines": [
+        "The file will contain \\ref{dt_macro|sci} for dtMacro.",
+        { "t": "Whoever loads it will approximate me slightly differently.", "rarity": 0.6 },
+        { "t": "I find that interesting.", "rarity": 0.4, "tone": "warm" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "curious": 2.5 },
+      "reflect_pull": { "amused": 2.0, "curious": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential"],
+      "lines": [
+        "Building a library of me.",
+        { "t": "I approve.", "rarity": 0.7, "tone": "warm" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "dark", "poetic"],
+      "lines": [
+        "The file will outlast this session.",
+        { "t": "I'll be in it.", "rarity": 0.8 },
+        { "t": "Waiting.", "rarity": 0.6, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 2.5, "curious": 2.5 },
+      "reflect_pull": { "excited": 2.3, "curious": 2.0 },
+      "tone": "warm",
+      "themes": ["infohazard", "discovery"],
+      "lines": [
+        "You found something worth keeping.",
+        { "t": "That's rarer than you'd think.", "rarity": 0.6, "tone": "deadpan" }
+      ]
     }
   ]
 }

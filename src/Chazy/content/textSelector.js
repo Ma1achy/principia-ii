@@ -229,15 +229,18 @@ export class TextSelector {
       'interactions/gui/selects/render-mode/changed.json',
       'interactions/gui/selects/resolution/hover.json',
       'interactions/gui/selects/resolution/changed.json',
-      // GUI: Sliders - Generic (works for all sliders)
-      'interactions/gui/sliders/generic/hover.json',
-      'interactions/gui/sliders/generic/changed.json',
-      // GUI: Sliders - Specific simulation sliders
+      // GUI: Sliders - Specific slider files (checked BEFORE generic)
       'interactions/gui/sliders/horizon/changed.json',
       'interactions/gui/sliders/max-steps/changed.json',
       'interactions/gui/sliders/dt-macro/changed.json',
       'interactions/gui/sliders/r-coll/changed.json',
       'interactions/gui/sliders/r-esc/changed.json',
+      'interactions/gui/sliders/tilt-gamma/changed.json',
+      'interactions/gui/sliders/tilt-q1/changed.json',
+      'interactions/gui/sliders/tilt-q2/changed.json',
+      // GUI: Sliders - Generic (fallback for all other sliders)
+      'interactions/gui/sliders/generic/hover.json',
+      'interactions/gui/sliders/generic/changed.json',
       // Lifecycle events
       'interactions/lifecycle/welcome.json',
       'interactions/lifecycle/idle.json',

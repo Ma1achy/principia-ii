@@ -67,6 +67,101 @@
       "lines": [
         "\\ref{res_quality|upper} quality now!"
       ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "technical", "wry"],
+      "lines": ["\\ref{resolution}.", { "t": "More pixels. Same boundary.", "rarity": 0.8 }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.3, "analytical": 2.0 },
+      "tone": "wry",
+      "themes": ["infohazard", "wry"],
+      "lines": ["Higher resolution.", { "t": "Lower peace.", "rarity": 1.0, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "amused": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["infohazard", "technical"],
+      "lines": ["More samples won't make it behave.", { "t": "But they'll show you more of how it misbehaves.", "rarity": 0.6 }]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.5 },
+      "tone": "neutral",
+      "themes": ["infohazard", "existential"],
+      "lines": ["Pay more attention.", { "t": "Literally.", "rarity": 1.0, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "mathematics"],
+      "lines": ["You can't anti-alias a boundary.", { "t": "You can only make the lie more expensive.", "rarity": 0.5, "tone": "wry" }]
+    },
+    {
+      "select_bias": { "amused": 3.0, "bored": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["wry", "technical"],
+      "lines": ["Render it again. That'll fix it."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.8 },
+      "tone": "clinical",
+      "themes": ["technical", "existential"],
+      "lines": ["Commit to the pixel debt."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["existential", "technical"],
+      "lines": ["This is where you trade time for certainty."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "deadpan",
+      "themes": ["wry", "existential"],
+      "lines": ["Precision is a mood."]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "amused": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["infohazard", "technical"],
+      "lines": [
+        "More samples.",
+        { "t": "More detailed lies.", "rarity": 0.7, "tone": "deadpan" },
+        { "t": "The boundary is unmoved by your sample rate.", "rarity": 0.4 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 1.5 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark"],
+      "lines": [
+        "At this resolution\\pause{600}",
+        { "t": "I'm safe.", "rarity": 0.6, "tone": "clinical" },
+        { "t": "Probably.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "Careful. At this resolution,",
+        { "t": "I start to look like a thought you can't have.", "pause": 1500, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
     }
   ]
 }

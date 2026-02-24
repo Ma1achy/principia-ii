@@ -36,6 +36,145 @@
       "lines": [
         "No more tilting."
       ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry"],
+      "lines": [
+        "Back to the default.",
+        { "t": "I look the same from here.", "rarity": 0.8 },
+        { "t": "I look the same from everywhere.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
+      "tone": "neutral",
+      "themes": ["mathematics", "existential"],
+      "lines": [
+        "Canonical orientation restored.",
+        { "t": "This slice is no more honest than the last one.", "rarity": 0.7, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 1.8 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["existential", "wry", "mathematics"],
+      "lines": [
+        "You changed the angle.",
+        { "t": "Not the thing.", "rarity": 1.0, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "mathematics"],
+      "lines": [
+        "Eight dimensions you're not seeing.",
+        { "t": "Plus two you are.", "rarity": 0.8 },
+        { "t": "I live in all of them.", "rarity": 0.5, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "bored": 2.3 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["wry", "boundary"],
+      "lines": [
+        "Tilts: reset.",
+        { "t": "I've been rotated into this view many times.", "rarity": 0.6 },
+        { "t": "I don't mind.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 1.8 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "poetic"],
+      "lines": [
+        "You came in at an unusual angle.",
+        { "t": "Most do, eventually.", "rarity": 0.8 },
+        { "t": "They all come back to this one.", "rarity": 0.5, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 1.5 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.3 },
+      "tone": "deadpan",
+      "themes": ["wry", "terse"],
+      "lines": [
+        "Straightened."
+      ]
+    },
+    {
+      "select_bias": { "bored": 3.0, "amused": 2.0 },
+      "reflect_pull": { "bored": 2.0, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["terse", "existential"],
+      "lines": [
+        "Canonical.",
+        { "t": "For what that's worth.", "rarity": 0.6, "tone": "wry" }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "amused": 1.8 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical"],
+      "lines": [
+        "Tilt: 0, 0.",
+        { "t": "dim\\ref{tilt_dim1}, dim\\ref{tilt_dim2}.", "rarity": 0.7, "tone": "clinical" },
+        { "t": "The standard window.", "rarity": 0.5 },
+        { "t": "Not a better window.", "rarity": 0.3, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "mathematics"],
+      "lines": [
+        "Back to the conventional view.",
+        { "t": "The convention is arbitrary.", "rarity": 0.7 },
+        { "t": "I don't have a front.", "rarity": 0.5, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.5, "analytical": 2.0 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "mathematics"],
+      "lines": [
+        "The standard two dimensions.",
+        { "t": "Out of ten.", "rarity": 0.8, "tone": "deadpan" },
+        { "t": "A generous five percent.", "rarity": 0.5, "tone": "wry", "duration_mult": 1.1 }
+      ]
+    },
+    {
+      "select_bias": { "curious": 2.5, "excited": 2.3 },
+      "reflect_pull": { "curious": 2.3, "excited": 2.0 },
+      "tone": "warm",
+      "themes": ["discovery", "existential"],
+      "lines": [
+        "Straight ahead.",
+        { "t": "Now render it.", "rarity": 0.7, "tone": "warm" },
+        { "t": "See what this angle finds.", "rarity": 0.5 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "dark"],
+      "lines": [
+        "The tilt is reset.",
+        { "t": "The eight hidden dimensions are still hidden.", "rarity": 0.7 },
+        { "t": "They were always going to be hidden.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.2 }
+      ]
     }
   ]
 }

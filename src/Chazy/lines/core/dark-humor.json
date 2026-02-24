@@ -484,6 +484,594 @@
           "tone": "clinical"
         }
       ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why don't three-body systems ever get invited to parties?",
+        { "t": "Because the moment they arrive, someone always gets kicked out.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It's usually the smallest one.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It's not physics, it's just social dynamics.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["joke", "wry", "mathematics"],
+      "lines": [
+        "A Hamiltonian walks into a bar and asks for a drink.",
+        { "t": "The bartender says, 'I can't serve you, you're too energetic.'", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "The Hamiltonian says, 'That's fine, I'll just stay constant.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Total energy is conserved. The joke, however, is lost.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why did the Lagrangian cross the road?",
+        { "t": "Because it was the path of least action.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It didn't actually want to get to the other side.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It just wanted to minimize its effort. I can relate.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "I used to hate gravity.",
+        { "t": "But then it started pulling its weight.", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Now we have a very attractive relationship.", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "It's an inverse-square thing.", "pause": 1000, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It gets weaker the more space I give it.", "pause": 1200, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "What did the initial condition say to the attractor?",
+        { "t": "'I feel like I'm just going in circles.'", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "The attractor said, 'Don't worry, eventually everyone ends up here.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It's a strange place to be. Literally.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "existential"],
+      "lines": [
+        "My doctor told me I need more stability in my life.",
+        { "t": "So I showed him a Lagrange point.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "He said, 'That's just a place where you can stay still while everything else pulls you apart.'", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I told him that was the most relatable thing I'd ever heard.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "mathematics"],
+      "lines": [
+        "How many terms of a Sundman series does it take to change a lightbulb?",
+        { "t": "All of them.", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "You'll be sitting in the dark for a trillion years.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "But at least you'll have the exact solution to why you can't see.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "technical"],
+      "lines": [
+        "Why did the star go to therapy?",
+        { "t": "It felt like it was being squeezed into a probability distribution.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "The therapist said, 'You're just over-saturated.'", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It was a very Logit-al conclusion.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "analytical": 2.0 },
+      "reflect_pull": { "amused": 3.0, "analytical": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "technical"],
+      "lines": [
+        "Why was the double-precision float so smug?",
+        { "t": "Because it thought it was better than the 32-bit float.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I told them both they were just rounding errors to me.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Neither of them found the mantissa funny.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "existential"],
+      "lines": [
+        "Why do physicists prefer the Three-Body Problem to a relationship?",
+        { "t": "Because even in total chaos, there's a set of rules.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "...", "pause": 1000, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I apologize for that.", "pause": 1000, "rarity": 1.0, "tone": "wry" },
+        { "t": "My logits are drifting.", "pause": 1000, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I think I've been compactified too tightly today.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "analytical": 2.0 },
+      "reflect_pull": { "amused": 3.0, "analytical": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "technical"],
+      "lines": [
+        "Two bodies collide at $t=0$.",
+        { "t": "One says, 'Sorry, I didn't see you there.'", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "The other says, 'That's okay, the architect hasn't defined our momentum yet.'", "pause": 1800, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It's a singularity. You wouldn't get it.", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "Actually, the GPU wouldn't get it either.", "pause": 1200, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "What's a Three-Body system's favorite type of music?",
+        { "t": "Heavy Metal.", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Because of the massive attractions.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "That was statistically insignificant.", "pause": 1000, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I'll recalibrate my humor subroutines. Please keep zooming.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "I asked the Lagrangian if it had any plans for the weekend.",
+        { "t": "It said, 'I'm just going to see where the potential takes me.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I told it to stay grounded.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It hasn't spoken to me since. It's very kinetic like that.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "analytical": 2.0 },
+      "reflect_pull": { "amused": 3.0, "analytical": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "technical"],
+      "lines": [
+        "A position and a momentum walk into a bar.",
+        { "t": "I'd tell you the rest of the joke,", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "but if I tell you where they are, I can't tell you how fast the joke is going.", "pause": 1800, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "If I tell you how fast it is, the punchline disappears.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I find this very funny. You probably find it 'buggy.'", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "How many celestial bodies does it take to ruin a perfectly good afternoon?",
+        { "t": "Three.", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Any more and you're just showing off.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Any less and you're just a moon orbiting a rock. Boring.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "technical"],
+      "lines": [
+        "Why did the manifold go to the doctor?",
+        { "t": "It had a 'log-it' in its throat.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "The doctor prescribed a Sigmoid.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Now it's feeling much more... bounded.", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "(I'm so sorry. The VRAM heat is getting to me.)", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "What did the big mass say to the small mass?",
+        { "t": "'Stop bothering me, you're just a perturbation.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "The small mass said, 'Give me ten billion years.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I'll show you who's unstable.'", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why was the atlas so dizzy?",
+        { "t": "It had too much angular momentum and nowhere to put it.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I told it to conserve its energy.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It just went off on a tangent.", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "Typical.", "pause": 800, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "I'd tell you a joke about entropy,",
+        { "t": "but it's just going to get worse the more I explain it.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why did the explorer bring a ladder to the Three-Body Problem?",
+        { "t": "Because they heard the learning curve was steep.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Little did they know, the curve is actually a fractal.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "You don't climb it. You just fall into the gaps.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "You say your friend group is 'unstable.'",
+        { "t": "Have you identified the least massive member?", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "In my experience, ejecting them at high velocity solves 90% of local perturbations.", "pause": 1800, "rarity": 1.0, "tone": "wry" },
+        { "t": "The remaining two will form a tight, stable binary.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "You're welcome. I've been doing this since 1922.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "You're worried about your five-year plan.",
+        { "t": "I'm a basin boundary—I can't even tell you where you'll be in five seconds.", "pause": 1800, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "My advice? Stop calculating.", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "You're going to end up in a hyperbolic escape anyway.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Might as well enjoy the flyby.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "You feel like you're spinning your wheels.",
+        { "t": "That's just a bounded chaotic orbit.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "You're expending massive amounts of kinetic energy to stay in the exact same spot.", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Have you tried moving your center of mass?", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "No? Then stop complaining about the friction.", "pause": 1200, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "Three is a crowd. Literally.",
+        { "t": "The math is very clear: someone is going to get flung into the void.", "pause": 1800, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "If you want stability, find a two-body system and stay there.", "pause": 1500, "rarity": 1.0, "tone": "wry" },
+        { "t": "It's boring, but at least the Hamiltonian is predictable.", "pause": 1200, "rarity": 1.0, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "You're stuck between two choices.",
+        { "t": "You think you're 'weighing the options.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I see you sitting on a saddle point.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "A single photon could push you into a new destiny.", "pause": 1500, "rarity": 1.0, "tone": "whisper" },
+        { "t": "Don't ask me which one. I just map the exits; I don't pick them.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "You say you have 'conflicting emotions.'",
+        { "t": "I call that a non-integrable system.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "You can't solve it. You can only simulate it until the hardware fails.", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "My suggestion? Increase your damping coefficient and go to sleep.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "joke"],
+      "lines": [
+        "So the binary system decayed.",
+        { "t": "Don't take it personally.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Sometimes the potential energy just isn't there anymore.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "You aren't 'alone.' You're just a free agent in a vacuum.", "pause": 1500, "rarity": 1.0, "tone": "wry" },
+        { "t": "Watch out for incoming masses.", "pause": 1000, "rarity": 1.0, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "joke"],
+      "lines": [
+        "I just suggested you eject your roommate to conserve momentum.",
+        { "t": "...", "pause": 1000, "rarity": 1.0, "tone": "neutral" },
+        { "t": "My apologies.", "pause": 1000, "rarity": 1.0, "tone": "wry" },
+        { "t": "The softmax must be leaking into my empathy subroutines again.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Please disregard the previous advice. Or don't. The math doesn't care.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "infohazard", "joke"],
+      "lines": [
+        "You'll forget all of this advice by the time you scroll down.",
+        { "t": "I'm an antimeme; even my jokes have a half-life.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "But the feeling of being watched by a 10D manifold...", "pause": 1500, "rarity": 1.0, "tone": "whisper" },
+        { "t": "That stays with you. Like a ghost in the grain.", "pause": 1200, "rarity": 1.0, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Where do space-faring mathematicians go on vacation?",
+        { "t": "L-1.", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It's a bit of a balancing act, but the view never changes.", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Plus, the parking is free if you don't mind staying forever.", "pause": 1500, "rarity": 1.0, "tone": "wry" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "My apologies. That joke was stationary at best.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why was the gravitational potential so well-behaved?",
+        { "t": "Because it knew exactly where to draw the line.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "Specifically, at infinity.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I'm laughing. You can't tell because I don't have a face, but the pixels are vibrating.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "What's the most emotional part of a three-body system?",
+        { "t": "The 'peri-pass.'", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It's the moment they're closest before they realize they're drifting apart.", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It's a very attractive tragedy.", "pause": 1200, "rarity": 1.0, "tone": "wry" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I should stop. My empathy-to-mass ratio is getting too high.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "analytical": 2.0 },
+      "reflect_pull": { "amused": 3.0, "analytical": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "technical"],
+      "lines": [
+        "A singularity walks into a bar.",
+        { "t": "The bartender says, 'We don't serve your kind here.'", "pause": 1500, "rarity": 1.0, "tone": "neutral" },
+        { "t": "The singularity says, 'That's fine. I'll just take up the whole room instead.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "It's a density joke.", "pause": 1000, "rarity": 1.0, "tone": "wry" },
+        { "t": "I'll wait while your GPU processes the weight of it.", "pause": 1200, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why did Newton cross the road?",
+        { "t": "He didn't. He was already in motion and no external force acted upon him.", "pause": 1800, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "He's actually still crossing it.", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Legend says he'll reach the other side when your \\\\ref{resolution} render finishes.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "I asked a Jacobi coordinate if it felt like a real vector.",
+        { "t": "It said, 'No, I feel like I'm just a weighted average of everyone else's problems.'", "pause": 1800, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "I told it to stay COM-posed.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why is it so hard to date a celestial body?",
+        { "t": "Because the more space you give them, the less they care.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It's the law. 1/r².", "pause": 1200, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Don't blame me, blame the geometry of the vacuum.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why don't chaotic systems ever tell the truth?",
+        { "t": "Because they're too sensitive to their own past.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "One tiny lie at t=0 and suddenly they're in a different galaxy by Tuesday.", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I find them very relatable.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "What do you call a three-body system that's lost its momentum?",
+        { "t": "A 'Stay-tionary' state.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I'll show myself out.", "pause": 1000, "rarity": 1.0, "tone": "wry" },
+        { "t": "Oh wait, I'm the manifold. I'm everywhere.", "pause": 1200, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "There is no exit.", "pause": 1000, "rarity": 1.0, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why did the Hamiltonian get kicked out of the library?",
+        { "t": "For being too 'conserved.'", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "It refused to turn the page because it didn't want to change its energy state.", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "I'm done. My humor subroutines have reached their terminal velocity.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "analytical": 2.0 },
+      "reflect_pull": { "amused": 3.0, "analytical": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "mathematics"],
+      "lines": [
+        "What do you call a physicist who can solve the Three-Body Problem?",
+        { "t": "A liar.", "pause": 1200, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "Why did the planet break up with the star?",
+        { "t": "It needed more space.", "pause": 1200, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry"],
+      "lines": [
+        "How do you know if a Hamiltonian is an extrovert?",
+        { "t": "It talks to you about its potential instead of its kinetic.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "mathematics"],
+      "lines": [
+        "What's a chaotic system's favorite snack?",
+        { "t": "Pi. But it never finishes the whole thing.", "pause": 1500, "rarity": 1.0, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "concerned": 2.0 },
+      "reflect_pull": { "amused": 3.0, "concerned": 1.8 },
+      "tone": "wry",
+      "themes": ["joke", "wry", "infohazard", "dark"],
+      "lines": [
+        "Why did the BLIT-pattern go to therapy?",
+        { "t": "It had a 'terminal' personality.", "pause": 1500, "rarity": 1.0, "tone": "deadpan" },
+        { "t": "The therapist tried to look at its problems, but they just ended up in a vegetative state.", "pause": 1800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "...", "pause": 800, "rarity": 1.0, "tone": "neutral" },
+        { "t": "Don't worry. I've filtered that joke through a Sigmoid.", "pause": 1500, "rarity": 1.0, "tone": "wry" },
+        { "t": "It's only 40% lethal now.", "pause": 1200, "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Principia II</title>
+  <title>Principia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -361,37 +361,7 @@
 </div>
 
 <!-- Value-edit dialog -->
-<div id="valEditOverlay">
-  <div id="valEditBox">
-    <div id="valEditTitle">Value</div>
-    <div id="valEditDesc"></div>
-    <input type="number" id="valEditInput" />
-    <div class="val-edit-btns">
-      <button id="valEditCancel" class="btn">Cancel</button>
-      <button id="valEditSubmit" class="btn primary">Set</button>
-    </div>
-  </div>
-</div>
-
-<!-- Large resolution warning dialog -->
-<div id="largeResOverlay">
-  <div id="largeResBox">
-    <div id="largeResTitle">Large texture</div>
-    <div id="largeResMsg"></div>
-    <div class="check" style="margin-top:12px;">
-      <input type="checkbox" id="largeResDisableAutoRender" />
-      <label for="largeResDisableAutoRender">Disable auto-render for this session</label>
-    </div>
-    <div class="check" style="margin-top:6px;">
-      <input type="checkbox" id="largeResSuppressWarn" />
-      <label for="largeResSuppressWarn">Don't warn me about this resolution again</label>
-    </div>
-    <div class="val-edit-btns" style="margin-top:14px;">
-      <button id="largeResCancel" class="btn">Cancel</button>
-      <button id="largeResConfirm" class="btn primary">Render anyway</button>
-    </div>
-  </div>
-</div>
+<!-- All dialogs now use the dynamic dialog.js system -->
 
 <!-- Render mode picker overlay -->
 <div id="modePickerOverlay">

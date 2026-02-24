@@ -77,7 +77,7 @@ canvas#glCanvas, canvas#outCanvas {
   max-width: 100%;
   max-height: 100%;
   border: none;
-  background: #0a0a0a;
+  background: var(--bg);
   touch-action: none;
   display: block;
 }
@@ -1158,6 +1158,187 @@ input.slider-num:hover, input.slider-num:focus {
   line-height: 1.6;
 }
 
+/* ─── Welcome warning dialog ─── */
+#welcomeOverlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#welcomeOverlay.open { display: flex; }
+#welcomeBox {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  padding: 20px 24px 20px;
+  width: 500px;
+  max-width: calc(100vw - 32px);
+  border-radius: 2px;
+}
+#welcomeTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
+#welcomeMsg {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  line-height: 1.65;
+}
+#welcomeMsg p {
+  margin: 0 0 10px 0;
+}
+#welcomeMsg p:last-child {
+  margin-bottom: 0;
+}
+#welcomeMsg strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ─── Generic dialog system ─── */
+.dialog-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.dialog-overlay.open { display: flex; }
+.dialog-overlay[aria-modal="true"] {
+  /* Accessibility: screen reader will treat as modal */
+}
+/* ─── Dialog spacing rhythm: 8 / 12 / 16 / 20 / 24 / 28 ─── */
+.dialog-box {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  padding: 16px 20px;  /* Standard medium padding */
+  width: 800px;
+  max-width: calc(100vw - 32px);
+  border-radius: 2px;
+  margin-top: -5vh;
+}
+
+/* Keyboard mode focus styling - orange outline with no radius */
+:root:not(.keyboard-mode) .dialog-box button:focus,
+:root:not(.keyboard-mode) .dialog-box input:focus,
+:root:not(.keyboard-mode) .dialog-box [tabindex]:focus {
+  outline: none;
+}
+.keyboard-mode .dialog-box button:focus,
+.keyboard-mode .dialog-box input:focus,
+.keyboard-mode .dialog-box [tabindex]:focus {
+  outline: 2px solid #ff8800;
+  outline-offset: 2px;
+  border-radius: 0;
+}
+.keyboard-mode .dialog-input:focus {
+  outline: 2px solid #ff8800;
+  outline-offset: -2px;
+  border-radius: 0;
+}
+.dialog-title {
+  font-family: 'Helvetica';
+  font-size: 40px;
+  font-weight: 1000;
+  color: var(--text);
+  margin-bottom: 20px;  /* Spacing scale: 20px */
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.dialog-content {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 0;  /* No margin - handled by paragraphs */
+}
+.dialog-content p {
+  margin: 0 0 12px 0;  /* Spacing scale: 12px between paragraphs */
+}
+.dialog-content p:last-child {
+  margin-bottom: 20px;  /* Spacing scale: 20px after content block */
+}
+.dialog-para-warning {
+  /* Boxed system notice treatment */
+  background: var(--panel);  /* Darker tint than dialog body */
+  border: 1px solid var(--border);
+  padding: 10px 12px;  /* Tighter than dialog padding */
+  margin: 12px 0;  /* Spacing scale: 12px */
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: 1px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.dialog-para-technical {
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 9.5px;  /* Slightly bigger: was 9px */
+}
+.dialog-para-muted {
+  opacity: 0.6;
+}
+.dialog-field {
+  margin-top: 16px;  /* Spacing scale: 16px */
+}
+.dialog-field label {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 8px;  /* Spacing scale: 8px */
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.dialog-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 8px 10px;  /* Spacing scale: 8px vertical */
+  border-radius: 1px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.dialog-input:focus {
+  border-color: var(--text);
+}
+.dialog-checkbox {
+  margin-top: 12px;  /* Spacing scale: 12px between checkboxes */
+}
+.dialog-buttons {
+  margin-top: 24px;  /* Spacing scale: 24px before buttons */
+}
+.dialog-overlay.is-busy .dialog-box {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ─── Responsive adjustments for small screens ─── */
+@media (max-width: 600px) {
+  .dialog-box {
+    padding: 14px 16px;  /* Tighter padding on small screens */
+  }
+  
+  .dialog-title {
+    font-size: 24px;  /* Smaller title: was 35px */
+    margin-bottom: 16px;
+  }
+  
+  .dialog-content {
+    font-size: 11px;  /* Smaller: was 12px */
+  }
+  
+  /* Mobile dialog button overrides removed - text-fit handles all sizing */
+}
+
 /* ─── Value-edit dialog ─── */
 #valEditOverlay {
   position: fixed; inset: 0; z-index: 200;
@@ -1526,6 +1707,23 @@ input.slider-num:hover, input.slider-num:focus {
   color: var(--danger);
   border-color: var(--danger);
 }
+
+/* Dialog button overrides (must come after general .btn styles) */
+.dialog-buttons .btn {
+  padding: 10px 20px;  /* Reasonable horizontal padding */
+  height: 40px;  /* Fixed height - text will scale to fit */
+  min-height: 30px;
+  font-size: 20px;  /* Starting font size - will scale down if needed */
+  font-weight: 500;  /* Bold - matches base .btn weight */
+  white-space: nowrap;  /* Prevent text wrapping - text-fit will handle sizing */
+  overflow: hidden;  /* Hide any overflow */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-rendering: geometricPrecision;  /* Better rendering for scaled text */
+  -webkit-font-smoothing: antialiased;  /* Maintain visual weight */
+  -moz-osx-font-smoothing: grayscale;  /* Maintain visual weight on Mac */
+}
 .btn.danger:hover { background: var(--danger); color: var(--bg); }
 .btn.danger:active {
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
@@ -1627,7 +1825,14 @@ input.slider-num:hover, input.slider-num:focus {
 #settingsPanel input[type="checkbox"]:checked::after {
   display: block;
 }
-.check label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 11px; color: inherit; cursor: pointer; }
+.check label { 
+  margin: 0; 
+  text-transform: none; 
+  letter-spacing: 0; 
+  font-size: 10.5px;  /* Smaller than main text (11px) for hierarchy */
+  color: var(--muted);  /* More subtle */
+  cursor: pointer; 
+}
 /* ─── Presets ─── */
 .presetGrid {
   display: grid;

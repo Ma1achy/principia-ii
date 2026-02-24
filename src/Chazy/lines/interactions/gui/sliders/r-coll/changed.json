@@ -8,44 +8,108 @@
   "_notes": "Shows collision radius using \\ref{r_coll}",
   "lines": [
     {
-      "select_bias": {
-        "analytical": 1.8,
-        "curious": 1.6
-      },
-      "tone": "neutral",
-      "themes": ["collision", "boundary"],
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "analytical": 1.5 },
+      "tone": "deadpan",
+      "themes": ["physics", "wry"],
+      "lines": ["Collision radius: \\ref{new_value|sci}.", { "t": "The bodies now need to be this close to know it's over.", "rarity": 0.6, "tone": "wry" }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 1.8 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["physics", "dark", "wry"],
+      "lines": ["Smaller collision radius.", { "t": "More tolerance for intimacy.", "rarity": 0.6, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.8 },
+      "tone": "deadpan",
+      "themes": ["physics", "boundary", "wry"],
       "lines": [
-        "Collision radius: \\ref{r_coll|fixed3}."
+        "Collision at r = \\ref{new_value|sci}.",
+        { "t": "That's how close counts as the same place.", "rarity": 0.7, "tone": "deadpan" }
       ]
     },
     {
-      "select_bias": {
-        "contemplative": 1.7
-      },
+      "select_bias": { "contemplative": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.8 },
       "tone": "neutral",
-      "themes": ["boundary"],
+      "themes": ["physics", "existential", "mathematics"],
       "lines": [
-        "r_coll = \\ref{new_value}."
+        "Point masses don't actually touch.",
+        { "t": "You've decided \\ref{new_value|sci} is close enough to call it.", "rarity": 0.7 },
+        { "t": "The singularity is still there.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.2 }
       ]
     },
     {
-      "select_bias": {
-        "concerned": 1.6
-      },
-      "tone": "concerned",
-      "themes": ["collision"],
+      "select_bias": { "analytical": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["physics", "mathematics", "technical"],
       "lines": [
-        "Threshold at \\ref{r_coll|fixed3}."
+        "r_coll: \\ref{new_value|sci}.",
+        { "t": "Below this, trajectory ends.", "rarity": 0.8 },
+        { "t": "No softening.", "rarity": 0.6, "tone": "deadpan" },
+        { "t": "Scale invariance preserved.", "rarity": 0.4, "tone": "clinical" }
       ]
     },
     {
-      "select_bias": {
-        "analytical": 1.7
-      },
-      "tone": "neutral",
-      "themes": ["boundary", "change"],
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["physics", "dark", "wry"],
       "lines": [
-        "Changed by \\ref{delta|fixed3}."
+        "Smaller collision radius.",
+        { "t": "The bodies can get much closer before you call it.", "rarity": 0.7 },
+        { "t": "The force diverges between here and there.", "rarity": 0.5, "tone": "deadpan" },
+        { "t": "You're not smoothing it.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 1.8 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
+      "tone": "neutral",
+      "themes": ["physics", "existential", "dark"],
+      "lines": [
+        "The singularity is not removed.",
+        { "t": "Just declared early at \\ref{new_value|sci}.", "rarity": 0.8 },
+        { "t": "You're not preventing the infinite force.", "rarity": 0.5, "tone": "deadpan" },
+        { "t": "You're just stopping before it arrives.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 1.8 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["physics", "wry", "mathematics"],
+      "lines": [
+        "Larger collision radius.",
+        { "t": "You're calling it earlier.", "rarity": 0.8 },
+        { "t": "The trajectory was going there anyway.", "rarity": 0.5, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.3 },
+      "tone": "neutral",
+      "themes": ["physics", "existential", "boundary"],
+      "lines": [
+        "You're deciding what counts as contact.",
+        { "t": "Not smoothing the force.", "rarity": 0.8, "tone": "deadpan" },
+        { "t": "Just drawing a line.", "rarity": 0.6 },
+        { "t": "Everything inside that line is already gone.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.3, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["physics", "wry", "dark"],
+      "lines": [
+        "r_coll: \\ref{new_value|sci}.",
+        { "t": "This close is close enough.", "rarity": 0.8 },
+        { "t": "The math past this point isn't pretty.", "rarity": 0.5, "tone": "wry" }
       ]
     }
   ]

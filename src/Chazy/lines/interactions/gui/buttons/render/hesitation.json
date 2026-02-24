@@ -8,56 +8,52 @@
   "_notes": "Plays when user hovers over render button for 800ms+. Single line responses.",
   "lines": [
     {
-      "select_bias": {
-        "excited": 1.8,
-        "curious": 1.5
-      },
-      "tone": "warm",
-      "themes": ["anticipation"],
-      "lines": [
-        "Ready when you are."
-      ]
+      "select_bias": { "amused": 3.0, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.5 },
+      "tone": "deadpan",
+      "themes": ["chaos", "existential"],
+      "lines": ["Not clicking isn't the same as not deciding."]
     },
     {
-      "select_bias": {
-        "analytical": 1.6,
-        "contemplative": 1.4
-      },
-      "tone": "neutral",
-      "themes": ["computation"],
-      "lines": [
-        "I can render that for you."
-      ]
-    },
-    {
-      "select_bias": {
-        "bored": 1.5
-      },
+      "select_bias": { "amused": 2.8, "curious": 2.0 },
+      "reflect_pull": { "amused": 2.3, "curious": 1.5 },
       "tone": "wry",
-      "themes": ["time"],
+      "themes": ["chaos", "wry"],
       "lines": [
-        "Take your time deciding."
+        "Go on.",
+        { "t": "The initial conditions are waiting.", "rarity": 0.7 }
       ]
     },
     {
-      "select_bias": {
-        "curious": 1.7
-      },
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
       "tone": "neutral",
-      "themes": ["anticipation"],
+      "themes": ["existential", "chaos"],
+      "lines": ["You can still change it.", { "t": "Once you render, you'll know.", "rarity": 0.7, "tone": "whisper" }]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 2.0 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 1.5 },
+      "tone": "deadpan",
+      "themes": ["wry", "waiting"],
+      "lines": ["I've been ready for a while."]
+    },
+    {
+      "select_bias": { "concerned": 2.5, "contemplative": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "chaos"],
       "lines": [
-        "Shall we see how it looks?"
+        "The configuration you're looking at",
+        { "t": "won't exist after you click.", "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
       ]
     },
     {
-      "select_bias": {
-        "tired": 1.4
-      },
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.5, "analytical": 1.5 },
       "tone": "wry",
-      "themes": ["patience"],
-      "lines": [
-        "Hovering won't render it."
-      ]
+      "themes": ["wry", "mathematics"],
+      "lines": ["It won't bite.", { "t": "Probably.", "rarity": 0.7, "tone": "deadpan" }]
     }
   ]
 }

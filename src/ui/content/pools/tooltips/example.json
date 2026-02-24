@@ -1,0 +1,19 @@
+{
+  "_README": "This directory is reserved for future tooltip content pools",
+  "_EXAMPLE": {
+    "description": "Example tooltip pool (not yet implemented)",
+    "defaultText": "Default tooltip text",
+    "entries": [
+      {
+        "text": "Example tooltip variant 1",
+        "weight": 1.0,
+        "kind": "formal"
+      },
+      {
+        "text": "Example tooltip variant 2",
+        "weight": 1.2,
+        "kind": "poetic"
+      }
+    ]
+  }
+}

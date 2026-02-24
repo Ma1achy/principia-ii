@@ -8,34 +8,107 @@
   "_notes": "Hovering over the randomize button",
   "lines": [
     {
-      "select_bias": {
-        "curious": 1.8,
-        "excited": 1.6
-      },
-      "tone": "warm",
-      "themes": ["chaos", "exploration"],
-      "lines": [
-        "Feeling random?"
-      ]
-    },
-    {
-      "select_bias": {
-        "analytical": 1.5
-      },
-      "tone": "neutral",
-      "themes": ["stochastic"],
-      "lines": [
-        "Add some noise."
-      ]
-    },
-    {
-      "select_bias": {
-        "bored": 1.7
-      },
+      "select_bias": { "amused": 3.0, "curious": 2.3 },
+      "reflect_pull": { "amused": 2.5, "curious": 2.0 },
       "tone": "wry",
-      "themes": ["chaos"],
+      "themes": ["chaos", "wry"],
+      "lines": ["Feeling lucky?"]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "chaos"],
+      "lines": ["You're about to give up control.", { "t": "That's interesting.", "rarity": 0.8, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.3, "curious": 1.8 },
+      "tone": "deadpan",
+      "themes": ["chaos", "mathematics", "wry"],
+      "lines": ["Random isn't the same as arbitrary.", { "t": "Both are interesting.", "rarity": 0.6 }]
+    },
+    {
+      "select_bias": { "excited": 2.8, "curious": 2.3 },
+      "reflect_pull": { "excited": 2.5, "curious": 2.0 },
+      "tone": "warm",
+      "themes": ["chaos", "discovery"],
+      "lines": ["You could just let me choose.", { "t": "I've seen a lot of configurations.", "rarity": 0.6 }, { "t": "I have preferences.", "rarity": 0.3, "tone": "whisper" }]
+    },
+    {
+      "select_bias": { "amused": 3.5, "bored": 1.5 },
+      "reflect_pull": { "amused": 3.0, "curious": 1.5 },
+      "tone": "deadpan",
+      "themes": ["chaos", "terse"],
       "lines": [
-        "Shake things up?"
+        "Go on."
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.8 },
+      "tone": "neutral",
+      "themes": ["chaos", "existential", "mathematics"],
+      "lines": [
+        "The new coordinates will be uniform random.",
+        { "t": "Uniform across what, exactly.", "rarity": 0.7, "tone": "deadpan" },
+        { "t": "A finite box around the interesting region.", "rarity": 0.5 },
+        { "t": "I'm in there somewhere.", "rarity": 0.3, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "curious": 3.0, "excited": 2.5 },
+      "reflect_pull": { "curious": 2.8, "excited": 2.0 },
+      "tone": "warm",
+      "themes": ["discovery", "chaos"],
+      "lines": [
+        "I'm curious too.",
+        { "t": "I don't know what you'll get.", "rarity": 0.7 },
+        { "t": "I know what you could get.", "rarity": 0.5, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["chaos", "wry", "existential"],
+      "lines": [
+        "Surrendering the coordinates to chance.",
+        { "t": "The chance is deterministic, of course.", "rarity": 0.6 },
+        { "t": "A seeded pseudorandom generator.", "rarity": 0.4, "tone": "clinical" },
+        { "t": "Nothing is truly random here.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "bored": 3.0, "amused": 2.0 },
+      "reflect_pull": { "bored": 2.0, "curious": 2.0 },
+      "tone": "deadpan",
+      "themes": ["wry", "chaos"],
+      "lines": [
+        "Can't decide?",
+        { "t": "Let the dice decide.", "rarity": 0.8 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 2.0 },
+      "tone": "neutral",
+      "themes": ["existential", "chaos"],
+      "lines": [
+        "A random point in ten-dimensional space.",
+        { "t": "Most of them are boring.", "rarity": 0.7 },
+        { "t": "Most of them are far from me.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "surprised": 2.0 },
+      "reflect_pull": { "excited": 2.8, "curious": 1.8 },
+      "tone": "warm",
+      "themes": ["discovery", "chaos"],
+      "lines": [
+        "Go on.",
+        { "t": "Surprise me.", "rarity": 0.7, "tone": "warm" },
+        { "t": "It's been a while since something surprised me.", "rarity": 0.4, "tone": "deadpan", "duration_mult": 1.2 }
       ]
     }
   ]

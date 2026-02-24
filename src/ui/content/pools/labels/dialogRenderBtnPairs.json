@@ -1,0 +1,485 @@
+{
+  "large_texture_pairs": {
+    "description": "Paired cancel/confirm buttons for large texture warning",
+    "defaultPair": {
+      "cancel": "CANCEL",
+      "confirm": "RENDER ANYWAY"
+    },
+    "pairs": [
+      {
+        "cancel": "ABORT GRACEFULLY",
+        "confirm": "THERE IS NO GRACEFUL VERSION OF THIS",
+        "weight": 1.5,
+        "kind": "philosophical"
+      },
+      {
+        "cancel": "I CHANGED MY MIND",
+        "confirm": "MY MIND WAS ALREADY MADE",
+        "weight": 1.2,
+        "kind": "introspective"
+      },
+      {
+        "cancel": "LOOK AWAY",
+        "confirm": "LOOK UNTIL IT HURTS",
+        "weight": 1.5,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "SPARE THE HARDWARE",
+        "confirm": "THE HARDWARE HAS BEEN WARNED",
+        "weight": 1.2,
+        "kind": "conversational"
+      },
+      {
+        "cancel": "THE THUMBNAIL WAS FINE",
+        "confirm": "THE THUMBNAIL WAS NOT FINE",
+        "weight": 1.0,
+        "kind": "matter-of-fact"
+      },
+      {
+        "cancel": "HE WILL WAIT",
+        "confirm": "HE HAS ALWAYS BEEN WAITING",
+        "weight": 1.5,
+        "kind": "mysterious"
+      },
+      {
+        "cancel": "I AM NOT READY",
+        "confirm": "I WAS NEVER GOING TO BE READY",
+        "weight": 1.5,
+        "kind": "existential"
+      },
+      {
+        "cancel": "RETREAT TO SAFETY",
+        "confirm": "THERE IS NO SAFE RESOLUTION",
+        "weight": 1.2,
+        "kind": "ominous"
+      },
+      {
+        "cancel": "SUFFICIENT COWARDICE",
+        "confirm": "INSUFFICIENT COWARDICE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "THE SEAM CAN WAIT",
+        "confirm": "OPEN THE SEAM",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "NOT TODAY",
+        "confirm": "TODAY. NOW. ALL OF IT.",
+        "weight": 1.5,
+        "kind": "declarative"
+      },
+      {
+        "cancel": "I RESPECT FINITE THINGS",
+        "confirm": "I HAVE NEVER RESPECTED FINITE THINGS",
+        "weight": 1.5,
+        "kind": "philosophical"
+      },
+      {
+        "cancel": "DEFER TO THE HARDWARE",
+        "confirm": "OVERRIDE THE HARDWARE",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "LET THIS ONE GO",
+        "confirm": "LET NONE OF IT GO",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "I WILL RETURN WITH MORE RAM",
+        "confirm": "I HAVE ENOUGH RAM (I DO NOT)",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "THE BOUNDARY CAN REST",
+        "confirm": "THE BOUNDARY DOES NOT REST",
+        "weight": 1.5,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "FORGIVE THE RESOLUTION",
+        "confirm": "DEMAND THE RESOLUTION",
+        "weight": 1.2,
+        "kind": "declarative"
+      },
+      {
+        "cancel": "A SMALLER SLICE WILL DO",
+        "confirm": "NO SLICE WAS EVER SMALL ENOUGH",
+        "weight": 1.5,
+        "kind": "philosophical"
+      },
+      {
+        "cancel": "WALK BACK FROM THE EDGE",
+        "confirm": "STAND ON THE EDGE AND RENDER",
+        "weight": 1.5,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "STEP AWAY FROM THE MANIFOLD",
+        "confirm": "INTO THE MANIFOLD",
+        "weight": 1.5,
+        "kind": "technical-poetic"
+      },
+      {
+        "cancel": "I MISREAD THE SCALE",
+        "confirm": "I READ THE SCALE CORRECTLY",
+        "weight": 1.0,
+        "kind": "matter-of-fact"
+      },
+      {
+        "cancel": "THE DETAIL IS UNNECESSARY",
+        "confirm": "THE DETAIL IS THE POINT",
+        "weight": 1.2,
+        "kind": "philosophical"
+      },
+      {
+        "cancel": "DECLINE THE FULL TRUTH",
+        "confirm": "THE FULL TRUTH. ALL PASSES.",
+        "weight": 1.5,
+        "kind": "existential"
+      },
+      {
+        "cancel": "CLOSE BEFORE THE FAN DECIDES",
+        "confirm": "LET THE FAN DECIDE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "RETREAT",
+        "confirm": "THERE IS NOWHERE TO RETREAT TO",
+        "weight": 1.5,
+        "kind": "ominous"
+      },
+      {
+        "cancel": "I HAVE ENOUGH",
+        "confirm": "I HAVE NEVER HAD ENOUGH",
+        "weight": 1.5,
+        "kind": "existential"
+      },
+      {
+        "cancel": "THE COARSER IMAGE WILL SUFFICE",
+        "confirm": "THE COARSER IMAGE NEVER SUFFICED",
+        "weight": 1.2,
+        "kind": "philosophical"
+      },
+      {
+        "cancel": "SOMETHING SMALLER",
+        "confirm": "SOMETHING EXACT",
+        "weight": 1.0,
+        "kind": "declarative"
+      },
+      {
+        "cancel": "LET THE PASSES GO UNCOUNTED",
+        "confirm": "COUNT ALL THE PASSES",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "SAVE THE FANS",
+        "confirm": "SPIN THEM UP",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "CHOOSE A SMALLER TILE",
+        "confirm": "BUILD THE MOSAIC",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "KEEP THE GPU CIVILISED",
+        "confirm": "UNLEASH THE RENDER",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "RESPECT THE MEMORY BUDGET",
+        "confirm": "OVERRUN IT WITH STYLE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "TAKE THE BORING OPTION",
+        "confirm": "TAKE THE EXPENSIVE OPTION",
+        "weight": 1.0,
+        "kind": "conversational"
+      },
+      {
+        "cancel": "BACK AWAY FROM 4K SQUARED",
+        "confirm": "PUSH THE TEXTURE LIMIT",
+        "weight": 1.5,
+        "kind": "technical"
+      },
+      {
+        "cancel": "LET THE LAPTOP REST",
+        "confirm": "MAKE IT EARN TENURE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "REDUCE THE RESOLUTION",
+        "confirm": "MAX OUT THE CANVAS",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "STAY IN THE SHALLOW END",
+        "confirm": "DIVE INTO DEEP VRAM",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "PICK A SAFER SIZE",
+        "confirm": "ROLL THE DRIVER DICE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "KEEP THINGS RESPONSIVE",
+        "confirm": "QUEUE THE BIG BOY RENDER",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "DON'T POKE THE VRAM",
+        "confirm": "POKE THE VRAM",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "SAVE FIRST, THEN RENDER",
+        "confirm": "RENDER FIRST, REGRET LATER",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "AVOID THE HEAT SPIRAL",
+        "confirm": "EMBRACE THE HEAT SPIRAL",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "USE THE SENSIBLE PRESET",
+        "confirm": "OVERRIDE THE SENSIBLE PRESET",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "PROTECT FRAME RATE",
+        "confirm": "SACRIFICE FRAME RATE",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "STEP DOWN A NOTCH",
+        "confirm": "CRANK THE TEXTURE",
+        "weight": 1.2,
+        "kind": "conversational"
+      },
+      {
+        "cancel": "LEAVE HEADROOM",
+        "confirm": "SPEND THE HEADROOM",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "CHOOSE STABILITY MODE",
+        "confirm": "CHOOSE GLORY MODE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "KEEP THE MACHINE QUIET",
+        "confirm": "WAKE THE COOLING SYSTEM",
+        "weight": 1.2,
+        "kind": "poetic"
+      },
+      {
+        "cancel": "I VALUE UPTIME",
+        "confirm": "I VALUE SPECTACLE",
+        "weight": 1.2,
+        "kind": "philosophical"
+      },
+      {
+        "cancel": "LET ME BE NORMAL",
+        "confirm": "LET ME BE COMPUTATIONALLY IRRESPONSIBLE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "NOT WITH AUTO-RENDER ON",
+        "confirm": "YES, EVEN WITH AUTO-RENDER ON",
+        "weight": 1.2,
+        "kind": "technical"
+      },
+      {
+        "cancel": "I PREFER MY LAPTOP CONSCIOUS",
+        "confirm": "LET THE CHASSIS GLOW",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "KEEP MY BATTERY IN THE CHAT",
+        "confirm": "DRAIN IT FOR SCIENCE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "MINIMISE REGRET",
+        "confirm": "MAXIMISE PIXELS",
+        "weight": 1.2,
+        "kind": "declarative"
+      },
+      {
+        "cancel": "AVOID INCIDENT REPORTS",
+        "confirm": "BECOME THE INCIDENT REPORT",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "NO HEROICS",
+        "confirm": "HERO MODE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "KEEP THE THERMALS BORING",
+        "confirm": "MAKE THE THERMALS A PLOT POINT",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "TAKE THE OFF-RAMP",
+        "confirm": "IGNORE THE OFF-RAMP",
+        "weight": 1.2,
+        "kind": "conversational"
+      },
+      {
+        "cancel": "BE SO FOR REAL",
+        "confirm": "I PAID FOR THE WHOLE GPU",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "LET'S NOT DO ALLAT",
+        "confirm": "SEND IT ANY%",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "MAYBE CHILL",
+        "confirm": "FULL SEND ANY%",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "PRESERVE THE BUILD",
+        "confirm": "WE BALL (COMPUTATIONALLY)",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "NOT THE VRAM",
+        "confirm": "MAX OUT THE SILICON",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "I LIKE THIS LAPTOP ALIVE",
+        "confirm": "RUN IT TIL THE FANS LEVITATE",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "TOUCH GRASS (LOWER RES)",
+        "confirm": "TOUCH VRAM (MAX RES)",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "PLAY IT SAFE",
+        "confirm": "NO HITS TO THE THERMALS",
+        "weight": 1.2,
+        "kind": "conversational"
+      },
+      {
+        "cancel": "SAVE THE SESSION",
+        "confirm": "PB OR BSOD",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "DON'T START A SIDE QUEST",
+        "confirm": "NEW QUEST: COOLING",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "SHOW MERCY TO THE SILICON",
+        "confirm": "WITNESS ME, O MEMORY CONTROLLER",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "SPARE THE THERMAL GODS",
+        "confirm": "APPEASE THE THERMAL GODS",
+        "weight": 1.5,
+        "kind": "humorous"
+      },
+      {
+        "cancel": "STAY THE KERNELS",
+        "confirm": "CALL THE KERNELS TO WAR",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "LET THE MACHINE REST",
+        "confirm": "AWAKEN, O TILING ENGINE",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "QUIET THE FANS",
+        "confirm": "LET THE FANS SPEAK FORTH",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "POSTPONE THE PASSES",
+        "confirm": "WAKE THE VRAM AND PREPARE THE PASSES",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "LEAVE THE BUS IN PEACE",
+        "confirm": "LET THE BUS ARBITER DECIDE",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "DENY THE MOSAIC",
+        "confirm": "SUMMON THE MOSAIC OF DOOM",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "WITHHOLD THE OFFERING",
+        "confirm": "O VRAM, RECEIVE THIS OFFERING",
+        "weight": 1.5,
+        "kind": "epic"
+      },
+      {
+        "cancel": "PROTECT THE FRAMEBUFFER",
+        "confirm": "O FRAMEBUFFER, HOLD FAST",
+        "weight": 1.5,
+        "kind": "epic"
+      }
+    ]
+  }
+}

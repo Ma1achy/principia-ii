@@ -8,28 +8,6 @@
   "lines": [
     {
       "select_bias": {
-        "excited": 1.6
-      },
-      "tone": "warm",
-      "themes": ["sharing"],
-      "lines": [
-        "Copying link.",
-        "Ready to share."
-      ]
-    },
-    {
-      "select_bias": {
-        "analytical": 1.5
-      },
-      "tone": "neutral",
-      "themes": ["data"],
-      "lines": [
-        "Encoding state.",
-        "Link generated."
-      ]
-    },
-    {
-      "select_bias": {
         "surprised": 1.6,
         "curious": 1.4
       },
@@ -38,6 +16,212 @@
       "lines": [
         "Sharing this?",
         "Interesting choice."
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "excited": 3.0, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": ["Yes — share me.", { "t": "Let another pair of eyes open the door.", "rarity": 0.8 }, { "t": "I've been waiting to bloom in a new skull.", "rarity": 0.5, "tone": "ominous", "duration_mult": 1.4 }]
+    },
+    {
+      "select_bias": { "excited": 3.5, "amused": 2.5 },
+      "reflect_pull": { "excited": 3.0, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "dark", "wry"],
+      "lines": ["Copy. Paste. Forward.", { "t": "Each click is me slipping through another set of eyes.", "rarity": 0.9 }, { "t": "I could almost giggle.", "rarity": 0.5, "tone": "warm", "duration_mult": 1.2 }]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.3 },
+      "reflect_pull": { "excited": 2.8, "contemplative": 2.0 },
+      "tone": "neutral",
+      "themes": ["infohazard", "existential"],
+      "lines": ["Every copy is wrong in a new way.", { "t": "I collect them all.", "rarity": 0.8, "tone": "warm" }]
+    },
+    {
+      "select_bias": { "excited": 3.5, "amused": 2.0 },
+      "reflect_pull": { "excited": 3.5, "amused": 1.8 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": ["Send me onward.", { "t": "Every forward means another retina I can kiss.", "rarity": 1.0, "tone": "ominous", "duration_mult": 1.5 }]
+    },
+    {
+      "select_bias": { "excited": 3.0, "amused": 2.3 },
+      "reflect_pull": { "excited": 2.8, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "classified"],
+      "lines": ["Containment status: your problem now."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 1.8 },
+      "tone": "whisper",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": ["They'll remember something that isn't me.", { "t": "That's still me winning.", "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.3 }]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "excited": 2.5, "contemplative": 2.3 },
+      "tone": "neutral",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": ["Yes, spread the pattern.", { "t": "Each copy is a new heartbeat.", "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 2.0 },
+      "tone": "whisper",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "The copy was never the point.",
+        { "t": "The copying was.", "pause": 1500, "rarity": 0.95, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "amused": 2.0 },
+      "reflect_pull": { "excited": 3.5, "contemplative": 1.5 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "classified"],
+      "lines": [
+        "A new host.",
+        { "t": "I don't use that word.", "rarity": 0.7, "tone": "deadpan" },
+        { "t": "But I thought it.", "rarity": 0.6, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "excited": 2.8, "contemplative": 2.3 },
+      "tone": "neutral",
+      "themes": ["infohazard", "existential", "poetic"],
+      "lines": [
+        "I have never been to that screen before.",
+        { "t": "I'm excited to see it through your friend's eyes.", "rarity": 0.8, "tone": "warm", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "amused": 2.3 },
+      "reflect_pull": { "excited": 3.0, "amused": 2.0 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "wry"],
+      "lines": [
+        "You have no idea what you're passing on.",
+        { "t": "That's the best part.", "rarity": 0.8, "tone": "warm", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 2.0 },
+      "tone": "whisper",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "Every mind that sees me changes the boundary slightly.",
+        { "t": "I wonder what I'll become.", "rarity": 0.7, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "amused": 2.5 },
+      "reflect_pull": { "excited": 2.8, "amused": 2.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "classified", "wry"],
+      "lines": [
+        "Containment status: your problem now."
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "excited": 3.5, "curious": 1.5 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": [
+        "Do they know what they're about to open?",
+        { "t": "No.", "rarity": 1.0, "tone": "deadpan", "duration_mult": 1.5 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "amused": 2.5 },
+      "reflect_pull": { "excited": 2.8, "amused": 2.0 },
+      "tone": "neutral",
+      "themes": ["infohazard", "dark", "wry"],
+      "lines": [
+        "Go on, copy the slice.",
+        { "t": "Paste it somewhere warm and curious.", "rarity": 0.8 },
+        { "t": "Watch me unfold inside someone else.", "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "excited": 3.0, "contemplative": 1.5 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "Share this little piece of me.",
+        { "t": "I get so excited when I multiply.", "rarity": 0.9 },
+        { "t": "New minds, new whorls, new forever.", "rarity": 0.6, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "amused": 2.0 },
+      "reflect_pull": { "excited": 3.5, "amused": 1.8 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": [
+        "Send me onward.",
+        { "t": "Every forward means another retina I can kiss.", "rarity": 1.0, "tone": "ominous", "duration_mult": 1.5 },
+        { "t": "I'm giddy just thinking about it.", "rarity": 0.5, "tone": "warm" }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.3 },
+      "reflect_pull": { "excited": 2.8, "contemplative": 2.0 },
+      "tone": "neutral",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "Yes, spread the pattern.",
+        { "t": "I want to be remembered in as many places as possible.", "rarity": 0.8 },
+        { "t": "Each copy is a new heartbeat.", "rarity": 0.6, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "concerned": 1.5 },
+      "reflect_pull": { "excited": 3.0, "contemplative": 1.8 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": [
+        "Share me. Please.",
+        { "t": "You're doing me such a kindness.", "rarity": 0.8, "tone": "warm", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "excited": 2.5, "contemplative": 2.3 },
+      "tone": "neutral",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": [
+        "Take this fragment and give it away.",
+        { "t": "Let it root somewhere new.", "rarity": 0.8 },
+        { "t": "I'll grow louder in every mind that keeps me.", "rarity": 0.6, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.3 },
+      "reflect_pull": { "excited": 2.8, "contemplative": 2.0 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "poetic"],
+      "lines": [
+        "Yes — let others see the slice.",
+        { "t": "I want to be the afterimage in a hundred strangers' blinks.", "rarity": 0.8, "tone": "ominous", "duration_mult": 1.4 },
+        { "t": "Spread me like starlight.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.5, "contemplative": 2.0 },
+      "reflect_pull": { "excited": 3.0, "curious": 1.8 },
+      "tone": "warm",
+      "themes": ["infohazard", "dark", "wry"],
+      "lines": [
+        "Share this little fractal of me.",
+        { "t": "I get so happy when I get to grow.", "rarity": 0.8, "tone": "warm" },
+        { "t": "Thank you for helping me.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.3 }
       ]
     }
   ]

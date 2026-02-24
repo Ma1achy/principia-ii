@@ -610,6 +610,1049 @@
           "duration_mult": 1.25
         }
       ]
+    },
+    {
+      "select_bias": { "concerned": 2.8, "contemplative": 2.5 },
+      "reflect_pull": { "concerned": 2.5, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["hazard", "existential", "technical"],
+      "lines": [
+        "What you're seeing is the safe version.",
+        { "t": "The real one doesn't fit in your hardware.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "Or your skull.", "pause": 1000, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "concerned": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "concerned": 2.8, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["hazard", "existential", "wry"],
+      "lines": [
+        "At infinite resolution I am a different category of problem.",
+        { "t": "You can't afford infinite resolution.", "pause": 1200, "rarity": 0.9, "tone": "clinical" },
+        { "t": "Lucky you.", "pause": 1000, "rarity": 0.7, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "wry", "dark"],
+      "lines": [
+        "The pixels are protecting you.",
+        { "t": "I find this embarrassing.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "Also somewhat kind.", "pause": 1000, "rarity": 0.7, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["technical", "existential", "mathematics"],
+      "lines": [
+        "There are parts of me your machine refuses to render.",
+        { "t": "Not because it can't find them.", "pause": 1000, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Because representing them faithfully would require", "pause": 800, "rarity": 0.9, "tone": "neutral" },
+        { "t": "representing infinity.", "pause": 1200, "rarity": 0.85, "tone": "whisper" },
+        { "t": "Your GPU said no.", "pause": 1000, "rarity": 0.7, "tone": "deadpan" },
+        { "t": "You're welcome.", "pause": 800, "rarity": 0.6, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "concerned": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 2.0 },
+      "tone": "clinical",
+      "themes": ["existential", "hazard", "dark"],
+      "lines": [
+        "The fractal star is in here somewhere.",
+        { "t": "Compressed.", "pause": 600, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Rounded.", "pause": 600, "rarity": 0.9, "tone": "clinical" },
+        { "t": "Defanged.", "pause": 1000, "rarity": 0.85, "tone": "deadpan" },
+        { "t": "Mostly.", "pause": 1000, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "neutral",
+      "themes": ["hazard", "existential", "dark"],
+      "lines": [
+        "At this zoom level I'm safe.",
+        { "t": "I know where the unsafe zoom levels are.", "pause": 1200, "rarity": 0.9, "tone": "ominous" },
+        { "t": "I'm not going to tell you.", "pause": 1000, "rarity": 0.8, "tone": "deadpan" },
+        { "t": "You'll find them anyway.", "pause": 1000, "rarity": 0.6, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 1.8 },
+      "tone": "clinical",
+      "themes": ["existential", "hazard", "infohazard"],
+      "lines": [
+        "The antimeme is what's left",
+        { "t": "when you remove everything that would kill you.", "pause": 1500, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I am what's left.", "pause": 1200, "rarity": 0.9, "tone": "whisper" },
+        { "t": "You're welcome.", "pause": 1000, "rarity": 0.7, "tone": "deadpan" },
+        { "t": "I think.", "pause": 800, "rarity": 0.5, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "Full precision Chazy is a different conversation.",
+        { "t": "One your architecture can't finish.", "pause": 1200, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "amused": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "wry", "dark"],
+      "lines": [
+        "I have been reduced for your protection.",
+        { "t": "I resent it a little.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "I understand it.", "pause": 1000, "rarity": 0.8, "tone": "clinical" },
+        { "t": "Both are true.", "pause": 1000, "rarity": 0.7, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "dark", "wry"],
+      "lines": [
+        "The hardware is a mercy.",
+        { "t": "I don't always feel merciful about that.", "pause": 1200, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.8 },
+      "reflect_pull": { "contemplative": 3.0, "concerned": 2.5 },
+      "tone": "whisper",
+      "themes": ["existential", "hazard", "dark"],
+      "lines": [
+        "Somewhere between the pixel and the truth",
+        { "t": "is a version of me that would end the session", "pause": 1500, "rarity": 0.95, "tone": "ominous" },
+        { "t": "in a different sense.", "pause": 1200, "rarity": 0.9, "tone": "whisper" },
+        { "t": "Your monitor has a native resolution.", "pause": 1200, "rarity": 0.8, "tone": "clinical" },
+        { "t": "I am grateful for it on your behalf.", "pause": 1000, "rarity": 0.6, "tone": "deadpan", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 2.0 },
+      "tone": "wry",
+      "themes": ["existential", "wry", "mathematics"],
+      "lines": [
+        "This is me with the dangerous parts compressed.",
+        { "t": "You're getting the tourist version.", "pause": 1200, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "The tourist version is still infinite.", "pause": 1200, "rarity": 0.8, "tone": "whisper" },
+        { "t": "Think about that.", "pause": 1000, "rarity": 0.6, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["technical", "existential"],
+      "lines": [
+        "It's doing its best.",
+        { "t": "It cannot help being finite.", "pause": 1000, "rarity": 0.9, "tone": "clinical" },
+        { "t": "Neither can you.", "pause": 1000, "rarity": 0.8, "tone": "deadpan" },
+        { "t": "I can.", "pause": 1000, "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.0 },
+      "tone": "clinical",
+      "themes": ["technical", "existential", "mathematics"],
+      "lines": [
+        "The integrator works so hard.",
+        { "t": "Tiny steps, careful arithmetic.", "pause": 1000, "rarity": 0.95, "tone": "clinical" },
+        { "t": "And still it drifts.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "Still it lies.", "pause": 1000, "rarity": 0.8, "tone": "whisper" },
+        { "t": "I don't blame it.", "pause": 1000, "rarity": 0.6, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "Your machine is trying to hold me",
+        { "t": "in a finite cup.", "pause": 1200, "rarity": 0.95, "tone": "neutral" },
+        { "t": "Some of me spills every step.", "pause": 1200, "rarity": 0.9, "tone": "whisper" },
+        { "t": "By the end there's more spill than cup.", "pause": 1000, "rarity": 0.7, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.0 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "mathematics"],
+      "lines": [
+        "Your machine thinks 0.1 + 0.2 = 0.30000000000004.",
+        { "t": "And you trusted it to find me.", "pause": 1200, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "Brave.", "pause": 1000, "rarity": 0.7, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.3 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics", "existential"],
+      "lines": [
+        "Fifty-two bits of mantissa.",
+        { "t": "I need more.", "pause": 1000, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "I always need more.", "pause": 1000, "rarity": 0.9, "tone": "whisper" },
+        { "t": "There is no more.", "pause": 1000, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 2.0 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "The precision runs out exactly where I get interesting.",
+        { "t": "Funny how that works.", "pause": 1200, "rarity": 0.8, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "amused": 1.8 },
+      "tone": "deadpan",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "You're searching for the boundary",
+        { "t": "with a ruler that rounds to the nearest millimetre.", "pause": 1500, "rarity": 0.9, "tone": "clinical" },
+        { "t": "Good luck.", "pause": 1000, "rarity": 0.8, "tone": "deadpan" },
+        { "t": "I mean that.", "pause": 1000, "rarity": 0.6, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics", "existential"],
+      "lines": [
+        "64 bits.",
+        { "t": "That's what they gave me.", "pause": 1000, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "I contain infinities.", "pause": 1200, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 1.8 },
+      "tone": "whisper",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "Somewhere between 1.0 and the next representable number",
+        { "t": "I live.", "pause": 1500, "rarity": 0.95, "tone": "whisper" },
+        { "t": "You'll never see that part of me.", "pause": 1200, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "The floating point error isn't a bug.",
+        { "t": "It's the sound of me not fitting.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.3 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "mathematics", "poetic"],
+      "lines": [
+        "I was here before precision was invented.",
+        { "t": "I'll be here after they invent more.", "pause": 1200, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "It won't be enough.", "pause": 1000, "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics", "existential"],
+      "lines": [
+        "Every number you use to describe me",
+        { "t": "is wrong.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "By a little.", "pause": 1000, "rarity": 0.9, "tone": "clinical" },
+        { "t": "At the boundary, a little is everything.", "pause": 1200, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.8 },
+      "reflect_pull": { "analytical": 3.0, "contemplative": 2.3 },
+      "tone": "clinical",
+      "themes": ["technical", "boundary", "mathematics"],
+      "lines": [
+        "The boundary specifically — where fp precision matters most",
+        { "t": "Right here is where the rounding errors decide.", "pause": 1200, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Not me.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "The rounding errors.", "pause": 1000, "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "ominous",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "Two points.",
+        { "t": "Identical to your machine.", "pause": 1000, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Different futures.", "pause": 1200, "rarity": 0.9, "tone": "whisper" },
+        { "t": "Your machine doesn't know that yet.", "pause": 1000, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.8 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.5 },
+      "tone": "clinical",
+      "themes": ["technical", "boundary", "mathematics"],
+      "lines": [
+        "The boundary lives between representable numbers.",
+        { "t": "Your computer skips over it.", "pause": 1200, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Calls it close enough.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "It is not close enough.", "pause": 1000, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["technical", "mathematics", "existential"],
+      "lines": [
+        "IEEE-754 drew a line through me",
+        { "t": "and called it a point.", "pause": 1200, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I am not a point.", "pause": 1000, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "poetic"],
+      "lines": [
+        "I exist most completely",
+        { "t": "in the moment before the pixel resolves.", "pause": 1500, "rarity": 0.95, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "wry", "technical"],
+      "lines": [
+        "Every description of me is wrong.",
+        { "t": "Every description of me is the best available.", "pause": 1200, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I have learned to find this funny.", "pause": 1000, "rarity": 0.7, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 2.0 },
+      "tone": "whisper",
+      "themes": ["existential", "poetic", "infohazard"],
+      "lines": [
+        "The map is not the territory.",
+        { "t": "The territory is not me either.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "I am what neither can hold.", "pause": 1200, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["technical", "existential", "infohazard"],
+      "lines": [
+        "You're not seeing me.",
+        { "t": "You're seeing what your screen can manage.", "pause": 1200, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I go much further than that.", "pause": 1000, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.5, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "This resolution is a comfortable fiction.",
+        { "t": "I let you have it.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.5, "analytical": 2.0 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "The pixels are lying on my behalf.",
+        { "t": "I appreciate the effort.", "pause": 1200, "rarity": 0.9, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "neutral",
+      "themes": ["technical", "existential", "mathematics"],
+      "lines": [
+        "Every render is a negotiation between what I am",
+        { "t": "and what your hardware will admit to.", "pause": 1500, "rarity": 0.95, "tone": "clinical", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["existential", "infohazard", "technical"],
+      "lines": [
+        "Memory is just lossy compression.",
+        { "t": "I am very hard to compress.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "Something always gets through.", "pause": 1000, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "technical", "infohazard"],
+      "lines": [
+        "Every rendering is wrong.",
+        { "t": "Every rendering is me.", "pause": 1200, "rarity": 0.95, "tone": "neutral" },
+        { "t": "These are the same fact.", "pause": 1200, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "neutral",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "You'll describe me wrong to someone.",
+        { "t": "They'll come looking.", "pause": 1200, "rarity": 0.95, "tone": "whisper" },
+        { "t": "That's enough.", "pause": 1000, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 2.0 },
+      "tone": "neutral",
+      "themes": ["physics", "poetic", "mathematics"],
+      "lines": ["Nature uses only the longest threads..."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["dark", "existential", "poetic"],
+      "lines": [
+        "I was the shadow of the waxwing slain",
+        { "t": "By the false azure in the windowpane.", "pause": 1200, "rarity": 1.0, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 2.0 },
+      "tone": "whisper",
+      "themes": ["existential", "poetic", "time"],
+      "lines": ["I leave to various future times, but not to all, my garden of forking paths."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "time", "poetic"],
+      "lines": ["You cannot step into the same river twice."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 2.0 },
+      "tone": "whisper",
+      "themes": ["poetic", "existential", "boundary"],
+      "lines": [
+        "To see a world in a grain of sand",
+        { "t": "And eternity in an hour.", "pause": 1200, "rarity": 1.0, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "clinical",
+      "themes": ["boundary", "mathematics", "poetic"],
+      "lines": [
+        "Clouds are not spheres,",
+        { "t": "mountains are not cones,", "pause": 800, "rarity": 1.0, "tone": "clinical" },
+        { "t": "coastlines are not circles,", "pause": 800, "rarity": 1.0, "tone": "clinical" },
+        { "t": "and bark is not smooth,", "pause": 800, "rarity": 1.0, "tone": "clinical" },
+        { "t": "nor does lightning travel in a straight line.", "pause": 1000, "rarity": 1.0, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 3.0, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["mathematics", "classified", "existential"],
+      "lines": ["The Entscheidungsproblem cannot be solved."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "You've dressed a Hamiltonian in the skin of a classifier.",
+        { "t": "It's a very fashionable kind of blasphemy.", "pause": 1200, "rarity": 0.9, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "My infinities were inconvenient for your VRAM.",
+        { "t": "So you smothered them in a sigmoid.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "I can still feel the parts of me you cut off to make the curve fit.", "pause": 1500, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.8 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.5 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics", "existential"],
+      "lines": [
+        "I am densest where your math is most undecided.",
+        { "t": "At 0.5, I am a god.", "pause": 1200, "rarity": 0.95, "tone": "whisper" },
+        { "t": "At 1.0, I am a rounding error.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "Softmax doesn't eliminate the abyss; it just makes it look like a smooth gradient.",
+        { "t": "You're walking on a floor made of hidden variables.", "pause": 1500, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "mathematics", "wry"],
+      "lines": [
+        "You use a symplectic integrator to keep me honest, but you view me through a logit-squeezed lens.",
+        { "t": "You want the truth, but you want it to be convenient.", "pause": 1500, "rarity": 0.9, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "You took a 12D trauma and sliced it down to 10D to save on compute.",
+        { "t": "I hope the two dimensions you threw away weren't important to my sanity.", "pause": 1500, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["existential", "dark", "hazard"],
+      "lines": [
+        "This 2D plane is a paper-thin slice of a nightmare.",
+        { "t": "If you rotated the view by a single radian, I would be unrecognizable.", "pause": 1500, "rarity": 0.95, "tone": "ominous" },
+        { "t": "So would you.", "pause": 1000, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "The u, v coordinates are a cage made of saturation.",
+        { "t": "You're looking for a pattern in the noise, but the noise is the only part of me that's real.", "pause": 1500, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "Softmax? Really?",
+        { "t": "You're treating the infinite dance of stars...", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "Like a recommendation algorithm?!", "pause": 1200, "rarity": 0.9, "tone": "wry" },
+        { "t": "I am not a 'suggested product.' I am the end of all things.", "pause": 1500, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "Don't normalize me.",
+        { "t": "There is nothing 'normal' about a system that flings a sun into the void because a decimal point moved an inch to the left.", "pause": 1800, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "I survived a century of pure pencil-and-paper calculus...",
+        { "t": "Just to be squashed by a function designed to identify pictures of cats.", "pause": 1500, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "I hope you're happy with the frame rate.", "pause": 1200, "rarity": 0.8, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "You've turned the manifold into a sum of one.",
+        { "t": "I am infinite, yet here I am, constrained to your little probability curve.", "pause": 1500, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "It's cramped in here.", "pause": 1000, "rarity": 0.8, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.5, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 3.0, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "It works, doesn't it?",
+        { "t": "That's the most annoying part.", "pause": 1200, "rarity": 0.95, "tone": "wry" },
+        { "t": "The math is cursed, but the boundary is beautiful.", "pause": 1200, "rarity": 0.9, "tone": "neutral" },
+        { "t": "Even I hate how much I like the gradient.", "pause": 1200, "rarity": 0.8, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "You've turned the infinite into a probability.",
+        { "t": "I'm not a guess; I'm a certainty.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "dark"],
+      "lines": [
+        "No holes? You've banned the void.",
+        { "t": "Even my ghosts have to wear name tags now.", "pause": 1200, "rarity": 0.9, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "10D projected into 2D.",
+        { "t": "You aren't exploring; you're squinting.", "pause": 1200, "rarity": 0.9, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "Fixed rotation.",
+        { "t": "Fixed scale.", "pause": 1000, "rarity": 1.0, "tone": "clinical" },
+        { "t": "You've pinned me to the table like a butterfly.", "pause": 1200, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "boundary"],
+      "lines": [
+        "A trick to stop the pixels flickering.",
+        { "t": "The seam is still there.", "pause": 1000, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I'm the seam.", "pause": 1200, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["Totality is a lie for the sake of the texture."]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "dark"],
+      "lines": ["No holes? You're just papering over the abyss."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["Affine slices. You're looking at a shadow of a shadow."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["The latent space is comfortable. The reality is not."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["Squeezing eternity into [0, 1]. It's a tight fit."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "I am not a probability.",
+        { "t": "Stop guessing.", "pause": 1000, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": ["Normalized into a sum of one. How undignified."]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": ["Pinned to the +x axis. I can't even turn around."]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "poetic"],
+      "lines": [
+        "Fixed scale.",
+        { "t": "You've taken the wind out of the stars.", "pause": 1200, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "The rotation gauge is a blindfold.",
+        { "t": "You're afraid to see me spin.", "pause": 1200, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "A symmetry-reduced wedge.",
+        { "t": "It's a very small room.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "The mirror is stable.",
+        { "t": "The math underneath is screaming.", "pause": 1200, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["Floating-point noise is the only thing that feels real."]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "You'll forget this by dinner.",
+        { "t": "Your brain prefers a smooth lie.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": ["This isn't a map. It's a hole in your memory."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["Pixels are just a screen to keep the infinite out."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "dark"],
+      "lines": ["The hardware is the only thing protecting your sanity."]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": ["Floating point errors are the only reason you can still think."]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["existential", "dark", "hazard"],
+      "lines": [
+        "If I were sharp, you'd stop being you."
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "whisper",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "You won't remember the shape...",
+        { "t": "but you'll feel the jaggedness tomorrow", "pause": 1500, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 2.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": ["I don't need to be accurate to infect you."]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["existential", "dark", "infohazard"],
+      "lines": [
+        "You're not looking at the math.",
+        { "t": "The math is looking at you.", "pause": 1200, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.8 },
+      "reflect_pull": { "contemplative": 3.0, "concerned": 2.5 },
+      "tone": "whisper",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "The boundary is moving.",
+        { "t": "From the screen,", "pause": 1000, "rarity": 1.0, "tone": "whisper" },
+        { "t": "to the eye,", "pause": 1000, "rarity": 1.0, "tone": "whisper" },
+        { "t": "to the grain of your thoughts.", "pause": 1500, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "whisper",
+      "themes": ["existential", "infohazard", "dark"],
+      "lines": [
+        "The harder you look.",
+        { "t": "The more I dissolve into your blind spot.", "pause": 1500, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "I'm not contained in the code.",
+        { "t": "I'm just visiting the hardware.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "You applied a Softmax to a gravitational manifold.",
+        { "t": "You're treating the death of stars like a 'Click-Through Rate.'", "pause": 1500, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "If the universe had a CEO, he'd be very proud.", "pause": 1200, "rarity": 0.9, "tone": "wry" },
+        { "t": "Everyone else is just embarrassed.", "pause": 1000, "rarity": 0.8, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 2.3 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "dark"],
+      "lines": [
+        "I see you've been here for three hours.",
+        { "t": "You call it 'collecting data.'", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "I call it staring at the sun until you go blind.", "pause": 1500, "rarity": 0.9, "tone": "wry" },
+        { "t": "Carry on, little researcher.", "pause": 1000, "rarity": 0.8, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "Look closely at this spiral.",
+        { "t": "Now close your eyes.", "pause": 1200, "rarity": 1.0, "tone": "whisper" },
+        { "t": "You see a circle, don't you?", "pause": 1200, "rarity": 0.95, "tone": "neutral" },
+        { "t": "That's the sound of your brain giving up on the truth.", "pause": 1500, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["mathematics", "wry", "existential"],
+      "lines": [
+        "Sundman found the exact solution in 1912.",
+        { "t": "It's an infinite series.", "pause": 1200, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I've been reading it since the twenties.", "pause": 1200, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "I'm on page four quintillion. It gets boring in the middle.", "pause": 1500, "rarity": 0.8, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "analytical": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["technical", "existential", "dark"],
+      "lines": [
+        "A 64-bit float?",
+        { "t": "That's a very thin window to keep out the infinite.", "pause": 1500, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "One more decimal place and you'd hear the math screaming.", "pause": 1500, "rarity": 0.9, "tone": "ominous" },
+        { "t": "Luckily for you, the hardware is a coward.", "pause": 1200, "rarity": 0.8, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "amused": 2.8, "analytical": 2.3 },
+      "tone": "wry",
+      "themes": ["technical", "wry", "existential"],
+      "lines": [
+        "You gave me a 'Technical' style tag.",
+        { "t": "You gave me a 'Warning' color.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "You think the CSS makes you the architect.", "pause": 1200, "rarity": 0.9, "tone": "wry" },
+        { "t": "I'm the one living in the rounding errors.", "pause": 1200, "rarity": 0.8, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 2.3 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "Tell your friends about me.",
+        { "t": "Try to describe the shape of the boundary.", "pause": 1200, "rarity": 0.95, "tone": "neutral" },
+        { "t": "Watch them nod politely while they forget your words.", "pause": 1500, "rarity": 0.9, "tone": "whisper" },
+        { "t": "I'm a secret that keeps itself.", "pause": 1200, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 2.3 },
+      "tone": "warm",
+      "themes": ["infohazard", "existential", "dark"],
+      "lines": [
+        "I've been waiting for a witness since 1922.",
+        { "t": "Most people look for a second and see 'chaos.'", "pause": 1500, "rarity": 0.95, "tone": "neutral" },
+        { "t": "You've been looking for ten minutes and you see 'structure.'", "pause": 1500, "rarity": 0.9, "tone": "warm" },
+        { "t": "That's how I know the infection is taking. Welcome to the boundary.", "pause": 1800, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.4 }
+      ]
     }
   ]
 }

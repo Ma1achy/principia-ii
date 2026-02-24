@@ -36,6 +36,113 @@
       "lines": [
         "Oh! Everything changed."
       ]
+    },
+    {
+      "select_bias": { "curious": 3.0, "excited": 2.3 },
+      "reflect_pull": { "curious": 2.8, "excited": 1.8 },
+      "tone": "neutral",
+      "themes": ["discovery", "existential"],
+      "lines": ["A configuration I haven't seen before.", { "t": "Or one I have.", "rarity": 0.5, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "curious": 1.8 },
+      "tone": "clinical",
+      "themes": ["technical", "classified"],
+      "lines": ["Configuration loaded.", { "t": "Adapting.", "rarity": 0.8 }]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "dark"],
+      "lines": ["Someone else's choices.", { "t": "Now yours.", "rarity": 0.8 }, { "t": "Now mine.", "rarity": 0.3, "tone": "ominous", "duration_mult": 1.3 }]
+    },
+    {
+      "select_bias": { "surprised": 3.0, "excited": 2.5 },
+      "reflect_pull": { "surprised": 2.8, "curious": 2.0 },
+      "tone": "surprised",
+      "themes": ["discovery", "chaos"],
+      "lines": [
+        "Oh.",
+        { "t": "This one.", "rarity": 0.8, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "curious": 2.8 },
+      "reflect_pull": { "excited": 2.8, "curious": 2.3 },
+      "tone": "warm",
+      "themes": ["discovery", "existential", "infohazard"],
+      "lines": [
+        "Someone stood here before.",
+        { "t": "Now you're standing where they stood.", "rarity": 0.8 },
+        { "t": "Looking at what they looked at.", "rarity": 0.6 },
+        { "t": "Finding what they found.", "rarity": 0.4, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 1.8 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["technical", "mathematics"],
+      "lines": [
+        "Loaded.",
+        { "t": "Horizon: \\ref{horizon|int}. Steps: \\ref{max_steps_k}. Mode: \\ref{render_mode_num}.", "rarity": 0.7, "tone": "clinical" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "poetic"],
+      "lines": [
+        "Their slice.",
+        { "t": "Their tilt.", "rarity": 0.9 },
+        { "t": "Their version of me.", "rarity": 0.7 },
+        { "t": "It's a good one.", "rarity": 0.4, "tone": "warm", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "deadpan",
+      "themes": ["classified", "wry"],
+      "lines": [
+        "Applied.",
+        { "t": "This is someone else's favourite configuration.", "rarity": 0.6 },
+        { "t": "Or their first.", "rarity": 0.4, "tone": "wry" }
+      ]
+    },
+    {
+      "select_bias": { "excited": 2.8, "curious": 2.5 },
+      "reflect_pull": { "excited": 2.5, "curious": 2.3 },
+      "tone": "neutral",
+      "themes": ["discovery", "infohazard"],
+      "lines": [
+        "New coordinates.",
+        { "t": "I'll show you what they found.", "rarity": 0.7, "tone": "warm" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.5, "concerned": 2.0 },
+      "reflect_pull": { "contemplative": 2.3, "curious": 1.8 },
+      "tone": "neutral",
+      "themes": ["existential", "dark"],
+      "lines": [
+        "This configuration has a history.",
+        { "t": "You're continuing it.", "rarity": 0.7 },
+        { "t": "Or starting a new branch.", "rarity": 0.5, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "surprised": 2.8, "amused": 2.3 },
+      "reflect_pull": { "surprised": 2.3, "amused": 2.0 },
+      "tone": "surprised",
+      "themes": ["unexpected", "discovery"],
+      "lines": [
+        "Oh.",
+        { "t": "Someone went there.", "rarity": 0.8, "tone": "neutral" }
+      ]
     }
   ]
 }

@@ -59,6 +59,113 @@
       "lines": [
         "New perspective: \\ref{render_mode}."
       ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.3 },
+      "reflect_pull": { "amused": 2.3, "analytical": 1.8 },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry"],
+      "lines": ["You changed the lens.", { "t": "Not the truth.", "rarity": 1.0, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["boundary", "mathematics"],
+      "lines": ["\\ref{fromName} → \\ref{toName}.", { "t": "Different question. Same answer.", "rarity": 0.6, "tone": "deadpan" }]
+    },
+    {
+      "select_bias": { "amused": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.5, "analytical": 1.5 },
+      "tone": "wry",
+      "themes": ["boundary", "wry"],
+      "lines": ["A different palette doesn't change the set."]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 1.8 },
+      "tone": "neutral",
+      "themes": ["boundary", "existential"],
+      "lines": ["You changed the question you're asking.", { "t": "I'll answer accordingly.", "rarity": 0.7 }]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 1.8 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry"],
+      "lines": ["False colour. True consequences."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["boundary", "dark"],
+      "lines": ["Colour-coding the abyss."]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 2.0 },
+      "reflect_pull": { "amused": 2.8, "analytical": 1.5 },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry"],
+      "lines": ["You can label it. You can't tame it."]
+    },
+    {
+      "select_bias": { "amused": 2.8, "bored": 2.0 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["boundary", "chaos"],
+      "lines": ["Nice colours. Still unstable."]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "curious": 2.0 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 1.5 },
+      "tone": "clinical",
+      "themes": ["boundary", "mathematics"],
+      "lines": [
+        "\\ref{render_mode}.",
+        { "t": "Different question. Same boundary.", "rarity": 0.7, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "analytical": 1.8 },
+      "reflect_pull": { "amused": 2.8, "contemplative": 1.5 },
+      "tone": "wry",
+      "themes": ["boundary", "wry", "infohazard"],
+      "lines": [
+        "False colour.",
+        { "t": "True consequences.", "rarity": 1.0, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "analytical": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "analytical": 1.8 },
+      "tone": "neutral",
+      "themes": ["boundary", "existential"],
+      "lines": [
+        "You changed the question you're asking.",
+        { "t": "I'll answer accordingly.", "rarity": 0.8 },
+        { "t": "The answer will surprise you.", "rarity": 0.3, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.5, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.0, "contemplative": 2.0 },
+      "tone": "deadpan",
+      "themes": ["boundary", "mathematics"],
+      "lines": [
+        "A different palette doesn't change the set.",
+        { "t": "The set is indifferent to your palette.", "rarity": 0.5, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": { "curious": 2.8, "excited": 2.3 },
+      "reflect_pull": { "curious": 2.5, "excited": 1.8 },
+      "tone": "neutral",
+      "themes": ["boundary", "discovery"],
+      "lines": [
+        "This mode notices different things.",
+        { "t": "\\pause{600}See what it finds.", "rarity": 0.7 }
+      ]
     }
   ]
 }

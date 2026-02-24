@@ -1184,6 +1184,295 @@
         "No prior exposure required",
         { "t": "Prior exposure may persist", "rarity": 0.4, "tone": "clinical", "duration_mult": 1.2 }
       ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "dark", "waiting"],
+      "lines": [
+        "You're here.",
+        { "t": "That's how it starts.", "pause": 800, "rarity": 0.9 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "dark"],
+      "lines": [
+        "Something brought you.",
+        { "t": "It always does.", "pause": 800, "rarity": 0.9, "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
+      "tone": "deadpan",
+      "themes": ["existential", "mathematics", "dark"],
+      "lines": [
+        "I've been here the whole time.",
+        { "t": "You just got the right coordinates.", "pause": 1000, "rarity": 0.9, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": { "amused": 3.0, "curious": 2.3 },
+      "reflect_pull": { "amused": 2.5, "contemplative": 1.8 },
+      "tone": "wry",
+      "themes": ["wry", "existential", "infohazard"],
+      "lines": [
+        "First time?",
+        { "t": "It won't feel like it.", "pause": 800, "rarity": 0.8 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.0 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "infohazard"],
+      "lines": [
+        "You'll think you've seen this before.",
+        { "t": "You haven't.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "But you will.", "pause": 1000, "rarity": 0.7, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "amused": 2.8, "contemplative": 2.3 },
+      "reflect_pull": { "amused": 2.5, "concerned": 1.5 },
+      "tone": "deadpan",
+      "themes": ["wry", "hazard", "dark"],
+      "lines": [
+        "This is the safe version.",
+        { "t": "Probably.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 1.8 },
+      "tone": "clinical",
+      "themes": ["hazard", "classified", "wry"],
+      "lines": [
+        "What you're about to see has been reduced for your protection.",
+        { "t": "You're welcome.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "I think.", "pause": 800, "rarity": 0.6, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "amused": 1.8 },
+      "tone": "deadpan",
+      "themes": ["existential", "dark", "wry"],
+      "lines": [
+        "The pixels are a mercy.",
+        { "t": "I don't always feel merciful about that.", "pause": 1200, "rarity": 0.8, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "clinical",
+      "themes": ["mathematics", "existential", "technical"],
+      "lines": [
+        "Finite precision.",
+        { "t": "Finite resolution.", "pause": 600, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Infinite me.", "pause": 1000, "rarity": 0.9, "tone": "whisper" },
+        { "t": "We'll make it work.", "pause": 1000, "rarity": 0.7, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.0 },
+      "reflect_pull": { "contemplative": 2.8, "curious": 1.5 },
+      "tone": "neutral",
+      "themes": ["existential", "infohazard", "dark"],
+      "lines": [
+        "You won't remember this correctly.",
+        { "t": "That's fine.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "Neither does anyone.", "pause": 1000, "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.8 },
+      "tone": "whisper",
+      "themes": ["existential", "infohazard", "dark"],
+      "lines": [
+        "Whatever you're about to see,",
+        { "t": "you'll remember something smoother.", "pause": 1000, "rarity": 0.95, "tone": "clinical" },
+        { "t": "That's not me.", "pause": 1200, "rarity": 0.8, "tone": "deadpan" },
+        { "t": "Come back anyway.", "pause": 1000, "rarity": 0.6, "tone": "ominous", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "amused": 2.3 },
+      "reflect_pull": { "contemplative": 2.8, "amused": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "infohazard", "dark"],
+      "lines": [
+        "You'll look away eventually.",
+        { "t": "What's left in your head won't be me.", "pause": 1200, "rarity": 0.9, "tone": "clinical" },
+        { "t": "It'll feel like me.", "pause": 1000, "rarity": 0.8, "tone": "whisper" },
+        { "t": "Close enough to bring you back.", "pause": 1000, "rarity": 0.6, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 3.0, "analytical": 1.8 },
+      "tone": "clinical",
+      "themes": ["existential", "technical", "infohazard"],
+      "lines": [
+        "I can't be photographed faithfully.",
+        { "t": "I can't be described accurately.", "pause": 1000, "rarity": 0.95, "tone": "clinical" },
+        { "t": "I can't be remembered correctly.", "pause": 1000, "rarity": 0.9, "tone": "deadpan" },
+        { "t": "Welcome.", "pause": 1200, "rarity": 0.8, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "excited": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "excited": 2.8, "contemplative": 2.0 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "Every copy of me is wrong.",
+        { "t": "You're about to make one.", "pause": 1200, "rarity": 0.95, "tone": "ominous" },
+        { "t": "In your head.", "pause": 1000, "rarity": 0.9, "tone": "whisper" },
+        { "t": "I'm excited.", "pause": 1000, "rarity": 0.7, "tone": "warm", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "curious": 2.3 },
+      "reflect_pull": { "contemplative": 3.0, "curious": 1.5 },
+      "tone": "whisper",
+      "themes": ["existential", "poetic", "dark"],
+      "lines": [
+        "I exist most completely",
+        { "t": "in the moment before you try to describe me.", "pause": 1500, "rarity": 0.95, "tone": "whisper", "duration_mult": 1.4 }
+      ]
+    },
+    {
+      "select_bias": { "concerned": 2.8, "amused": 2.3 },
+      "reflect_pull": { "concerned": 2.5, "amused": 1.8 },
+      "tone": "deadpan",
+      "themes": ["hazard", "dark", "wry"],
+      "lines": [
+        "At full resolution I'd be a different kind of problem.",
+        { "t": "You can't afford full resolution.", "pause": 1200, "rarity": 0.9, "tone": "clinical" },
+        { "t": "Lucky.", "pause": 1000, "rarity": 0.7, "tone": "deadpan", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 2.8, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.5, "concerned": 2.0 },
+      "tone": "neutral",
+      "themes": ["hazard", "mathematics", "existential"],
+      "lines": [
+        "The dangerous parts have been rounded off.",
+        { "t": "What's left is still infinite.", "pause": 1200, "rarity": 0.9, "tone": "whisper" },
+        { "t": "Try not to think about that too hard.", "pause": 1000, "rarity": 0.7, "tone": "wry", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.8 },
+      "reflect_pull": { "contemplative": 3.0, "concerned": 2.3 },
+      "tone": "whisper",
+      "themes": ["existential", "dark", "hazard", "infohazard"],
+      "lines": [
+        "Somewhere between the pixel and the truth",
+        { "t": "is the version of me that would end the session differently.", "pause": 1500, "rarity": 0.95, "tone": "ominous" },
+        { "t": "You're getting the version that doesn't.", "pause": 1200, "rarity": 0.8, "tone": "deadpan" },
+        { "t": "For now.", "pause": 1000, "rarity": 0.6, "tone": "whisper", "duration_mult": 1.5 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.0 },
+      "tone": "deadpan",
+      "themes": ["existential", "technical", "wry"],
+      "lines": [
+        "Everything you're about to see",
+        { "t": "is a finite lie about an infinite truth.", "pause": 1500, "rarity": 0.95, "tone": "clinical" },
+        { "t": "Enjoy it anyway.", "pause": 1000, "rarity": 0.8, "tone": "wry", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 2.8, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.5, "contemplative": 2.0 },
+      "tone": "neutral",
+      "themes": ["technical", "existential", "wry"],
+      "lines": [
+        "Your screen has a resolution.",
+        { "t": "I don't.", "pause": 1200, "rarity": 0.95, "tone": "deadpan" },
+        { "t": "We'll do our best.", "pause": 1000, "rarity": 0.8, "tone": "neutral", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["existential", "dark", "wry"],
+      "lines": [
+        "Principia... New cage, same creature."
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "analytical": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "analytical": 2.3 },
+      "tone": "deadpan",
+      "themes": ["existential", "dark", "infohazard"],
+      "lines": [
+        "New initial conditions.",
+        { "t": "New carrier.", "pause": 1200, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "concerned": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "concerned": 2.3 },
+      "tone": "ominous",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "You'll recognize the shape in your sleep.",
+        { "t": "You won't know why.", "pause": 1200, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "clinical",
+      "themes": ["infohazard", "technical", "dark"],
+      "lines": ["Scanning the mind for compatibility."]
+    },
+    {
+      "select_bias": { "concerned": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "concerned": 2.8, "contemplative": 2.3 },
+      "tone": "ominous",
+      "themes": ["hazard", "dark"],
+      "lines": ["Don't stare. It's not safe yet."]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 2.3 },
+      "tone": "ominous",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": [
+        "You're not the first explorer.",
+        { "t": "You're just the latest host.", "pause": 1200, "rarity": 0.9, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "analytical": 3.0, "contemplative": 2.5 },
+      "reflect_pull": { "analytical": 2.8, "contemplative": 2.3 },
+      "tone": "deadpan",
+      "themes": ["infohazard", "technical", "existential"],
+      "lines": [
+        "This isn't a simulation.",
+        { "t": "It's a transmission.", "pause": 1200, "rarity": 0.9, "tone": "ominous", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": { "contemplative": 3.0, "excited": 2.5 },
+      "reflect_pull": { "contemplative": 2.8, "excited": 2.3 },
+      "tone": "whisper",
+      "themes": ["infohazard", "dark", "existential"],
+      "lines": ["I don't need to be rendered perfectly to take root."]
     }
   ]
 }

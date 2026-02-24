@@ -1,0 +1,202 @@
+{
+  "_file": "slider-tilt-gamma-changed",
+  "_description": "Slider change - gamma rotation slider (rotate within plane)",
+  "_context": {
+    "event": "slider_changed",
+    "slider": "tilt"
+  },
+  "_notes": "Triggered when user adjusts gamma (γ) rotation slider. User attempting to find a 'better' viewing angle by rotating within the 2D plane.",
+  "lines": [
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "contemplative": 1.8
+      },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry", "existential"],
+      "lines": [
+        "Tilting doesn't help."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "analytical": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 2.0
+      },
+      "tone": "neutral",
+      "themes": ["boundary", "existential", "mathematics"],
+      "lines": [
+        "It looks different from every angle.",
+        { "t": "Different, not clearer.", "rarity": 0.7, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.0
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "curious": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["boundary", "existential"],
+      "lines": [
+        "You're trying to find the angle where it resolves.",
+        { "t": "There isn't one.", "pause": 1200, "rarity": 0.9, "tone": "deadpan", "duration_mult": 1.3 }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "contemplative": 2.3
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "contemplative": 2.0
+      },
+      "tone": "deadpan",
+      "themes": ["boundary", "wry", "existential"],
+      "lines": [
+        "The boundary doesn't have a good side.",
+        { "t": "It's all edge.", "rarity": 0.6, "tone": "wry" }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 3.0,
+        "bored": 2.0
+      },
+      "reflect_pull": {
+        "amused": 2.5,
+        "bored": 1.8
+      },
+      "tone": "wry",
+      "themes": ["wry", "existential"],
+      "lines": [
+        "Rotating the confusion."
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "bored": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "bored": 2.0
+      },
+      "tone": "neutral",
+      "themes": ["existential", "dark", "waiting"],
+      "lines": [
+        "Some people do this for a long time.",
+        { "t": "They're still looking.", "rarity": 0.7, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": {
+        "analytical": 2.8,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "analytical": 2.5,
+        "contemplative": 1.8
+      },
+      "tone": "clinical",
+      "themes": ["mathematics", "technical"],
+      "lines": [
+        "Rotating the projection.",
+        { "t": "The boundary rotates with it.", "rarity": 0.6, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 2.8,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 2.5,
+        "curious": 2.0
+      },
+      "tone": "neutral",
+      "themes": ["boundary", "existential"],
+      "lines": [
+        "Ten dimensions.",
+        { "t": "You can only see two at a time.", "rarity": 0.8 },
+        { "t": "Choose carefully.", "rarity": 0.5, "tone": "whisper" }
+      ]
+    },
+    {
+      "select_bias": {
+        "amused": 2.8,
+        "analytical": 2.3
+      },
+      "reflect_pull": {
+        "amused": 2.3,
+        "analytical": 2.0
+      },
+      "tone": "deadpan",
+      "themes": ["mathematics", "wry"],
+      "lines": [
+        "Tilting into dimension \\ref{tilt_dim1}.",
+        { "t": "It's still a slice.", "rarity": 0.6, "tone": "deadpan" }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "analytical": 2.5
+      },
+      "reflect_pull": {
+        "contemplative": 2.8,
+        "analytical": 2.0
+      },
+      "tone": "whisper",
+      "themes": ["boundary", "existential", "dark"],
+      "lines": [
+        "Every angle reveals something.",
+        { "t": "Every angle conceals everything else.", "rarity": 0.8, "tone": "whisper", "duration_mult": 1.2 }
+      ]
+    },
+    {
+      "select_bias": {
+        "bored": 3.0,
+        "contemplative": 2.0
+      },
+      "reflect_pull": {
+        "bored": 2.5,
+        "contemplative": 1.8
+      },
+      "tone": "deadpan",
+      "themes": ["waiting", "wry"],
+      "lines": [
+        "You're doing the thing.",
+        { "t": "The thing where you rotate it a lot.", "rarity": 0.8, "tone": "wry" }
+      ]
+    },
+    {
+      "select_bias": {
+        "contemplative": 3.0,
+        "curious": 2.3
+      },
+      "reflect_pull": {
+        "contemplative": 3.0,
+        "curious": 1.8
+      },
+      "tone": "neutral",
+      "themes": ["boundary", "mathematics", "existential"],
+      "lines": [
+        "The boundary exists in all ten dimensions simultaneously.",
+        { "t": "You're looking at a shadow of a shadow.", "rarity": 0.7, "tone": "whisper", "duration_mult": 1.3 }
+      ]
+    }
+  ]
+}
