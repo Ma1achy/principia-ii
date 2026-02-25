@@ -97,7 +97,7 @@
 
 /* Bottom axis ticks */
 #axis-bottom .axis-tick-line {
-  top: -3px;  /* Shift up by 1px to touch canvas edge */
+  top: -3px;
   width: 1px;
   height: 7px;
 }
