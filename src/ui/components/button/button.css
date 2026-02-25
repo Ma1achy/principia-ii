@@ -13,7 +13,7 @@
   padding: 7px 12px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;  /* Match dialog buttons */
   cursor: pointer;
   background: var(--bg);
   color: var(--text);
@@ -21,7 +21,15 @@
   letter-spacing: 0.06em;
   transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease, border-color 0.1s ease;
   white-space: nowrap;
+  /* Enhanced rim lighting to match dialog buttons */
   box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
+  /* Match dialog button text rendering */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .btn:hover {
