@@ -1,0 +1,70 @@
+/**
+ * @fileoverview Layout Helper Utilities
+ * Reusable layout and typography utilities
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Flex Row Layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Key-Value Display
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.kv code {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Section Body First Child
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section-body > .sl-row:first-child,
+.section-body > *:first-child .sl-row:first-child {
+  margin-top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Keyboard Key Display
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Hint Text
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hint {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--faint);
+  line-height: 1.5;
+}

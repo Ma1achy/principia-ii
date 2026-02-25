@@ -1,0 +1,110 @@
+/**
+ * @fileoverview Axes Panel Styles
+ * Axis rulers and tick marks around the canvas
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Axis Rulers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.axis-ruler {
+  position: absolute;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size:10px;
+  color: var(--muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Bottom Axis (u)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#axis-bottom {
+  bottom: 0;
+  left: 48px;
+  right: 0;
+  height: 42px;
+  display: flex;
+  align-items: flex-start;
+}
+
+#axis-bottom .axis-label-u {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+#axis-bottom .tick-label {
+  position: absolute;
+  top: 5px;
+  transform: translateX(-50%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Left Axis (v)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#axis-left {
+  top: 0;
+  left: 0;
+  width: 48px;
+  bottom: 42px;
+  display: flex;
+  align-items: flex-end;
+}
+
+#axis-left .axis-label-v {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#axis-left .tick-label {
+  position: absolute;
+  right: 10px;
+  transform: translateY(-50%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tick Marks
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.axis-tick-line {
+  position: absolute;
+  background: var(--muted);
+}
+
+/* Bottom axis ticks */
+#axis-bottom .axis-tick-line {
+  top: 0;
+  width: 1px;
+  height: 7px;
+}
+
+/* Left axis ticks */
+#axis-left .axis-tick-line {
+  right: 0;
+  height: 1px;
+  width: 7px;
+}

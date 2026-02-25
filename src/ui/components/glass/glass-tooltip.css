@@ -1,0 +1,24 @@
+/**
+ * @fileoverview Glass Tooltip Styles
+ * Styles for the floating WebGL-powered glass effect tooltip
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Glass Tooltip Canvas
+   Fixed-position tooltip with glass blur effect
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.glass-tooltip-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  box-shadow: 0 0 18px 4px rgba(0, 0, 0, 0.55);
+}
+
+/* Show state (controlled by JavaScript) */
+.glass-tooltip-canvas.visible {
+  display: block;
+}

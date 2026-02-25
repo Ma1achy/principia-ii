@@ -1,0 +1,17 @@
+/**
+ * @fileoverview Controls Section Component
+ * Top section of sidebar with always-visible primary controls
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Controls Section
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#ctrl-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12);
+  position: relative;
+  z-index: 1;
+}

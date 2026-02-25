@@ -17,6 +17,7 @@ import { Chazy } from './Chazy/index.js';
 import { computeTitleBoundingBox } from './ui/core/layout.js';
 import { showWelcomeDialog } from './ui/dialogs/welcome.js';
 import { applySavedSettings, saveCurrentSettings } from './ui/settings-storage.js';
+import { initAllScrollbars } from './ui/components/scrollbar/init.js';
 
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
@@ -488,6 +489,9 @@ async function boot() {
   attachProbe(glCanvas,  probeTooltip, showProbe, interactionState);
   attachProbe(outCanvas, probeTooltip, showProbe, interactionState);
   attachHintTooltips(hintTooltip);
+  
+  // Initialize custom scrollbars
+  initAllScrollbars();
 
   // Set up layout observers
   new ResizeObserver(updateChazyLayout).observe(document.getElementById('main'));

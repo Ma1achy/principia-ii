@@ -7,28 +7,51 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="src/ui/components/canvas-controls/canvas-controls.css">
+  <!-- Base Components -->
+  <link rel="stylesheet" href="src/ui/components/button/button.css">
   <link rel="stylesheet" href="src/ui/components/button/dynamic-button.css">
+  <link rel="stylesheet" href="src/ui/components/form/form.css">
+  <link rel="stylesheet" href="src/ui/components/checkbox/checkbox.css">
+  <link rel="stylesheet" href="src/ui/components/presets/presets.css">
+  <link rel="stylesheet" href="src/ui/components/status/status.css">
+  <!-- Layout Components -->
+  <link rel="stylesheet" href="src/ui/components/layout/dim-pair.css">
+  <link rel="stylesheet" href="src/ui/components/layout/helpers.css">
+  <link rel="stylesheet" href="src/ui/components/sidebar/sidebar.css">
+  <link rel="stylesheet" href="src/ui/components/sidebar/controls-section.css">
+  <link rel="stylesheet" href="src/ui/components/scrollbar/scrollbar.css">
+  <link rel="stylesheet" href="src/ui/components/statebox/statebox.css">
+  <link rel="stylesheet" href="src/ui/components/canvas-controls/canvas-controls.css">
+  <!-- Sliders and Sections -->
   <link rel="stylesheet" href="src/ui/components/slider/slider.css">
   <link rel="stylesheet" href="src/ui/components/section/section.css">
-  <link rel="stylesheet" href="src/ui/components/scrollbar/scrollbar.css">
-  <link rel="stylesheet" href="src/ui/components/sidebar/sidebar.css">
-  <link rel="stylesheet" href="src/ui/components/checkbox/checkbox.css">
+  <!-- Pickers -->
   <link rel="stylesheet" href="src/ui/components/picker/picker-base.css">
   <link rel="stylesheet" href="src/ui/components/picker/picker-label.css">
   <link rel="stylesheet" href="src/ui/pickers/mode.css">
   <link rel="stylesheet" href="src/ui/pickers/resolution.css">
   <link rel="stylesheet" href="src/ui/pickers/tilt.css">
   <link rel="stylesheet" href="src/ui/pickers/custom-dim.css">
+  <!-- Panels -->
   <link rel="stylesheet" href="src/ui/panels/settings.css">
   <link rel="stylesheet" href="src/ui/panels/info.css">
   <link rel="stylesheet" href="src/ui/panels/hud.css">
   <link rel="stylesheet" href="src/ui/panels/legend.css">
   <link rel="stylesheet" href="src/ui/panels/axes.css">
+  <!-- Dialogs -->
+  <link rel="stylesheet" href="src/ui/dialogs/dialogs.css">
   <link rel="stylesheet" href="src/ui/dialogs/dialog.css">
+  <!-- Glass Components -->
+  <link rel="stylesheet" href="src/ui/components/glass/glass-tooltip.css">
+  <!-- Chazy -->
   <link rel="stylesheet" href="src/Chazy/chazy.css">
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CANVAS CONTROLS
+     Info & Settings buttons (bottom-left corner)
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="canvas-controls">
   <button id="infoBtn" data-tip="Controls and information." class="btn canvas-ctrl-btn">
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -45,6 +68,11 @@
     <span>Settings</span>
   </button>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MAIN CONTENT AREA
+     Canvas viewer with axes, legend, and HUD
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="main">
   <div id="canvas-col" style="display:flex; flex-direction:column; align-items:flex-start; flex-shrink:0;">
   <div id="canvas-outer">
@@ -54,13 +82,6 @@
         <canvas id="glCanvas"></canvas>
         <canvas id="outCanvas" style="display:none;"></canvas>
         <canvas id="uiCanvas"></canvas>
-        <div id="overlay">
-          <div id="overlayBox">
-            <div id="overlayTitle">Rendering</div>
-            <div id="overlayMsg">Preparing&hellip;</div>
-            <div id="overlayBarWrap"><div id="overlayBar"></div></div>
-          </div>
-        </div>
       </div>
     </div>
     <div class="axis-ruler" id="axis-bottom"></div>
@@ -70,7 +91,16 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SIDEBAR
+     Control panel with all parameter controls
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <aside id="sidebar">
+
+  <!-- ─────────────────────────────────────────────────────────────────────────
+       CONTROLS SECTION (Always visible)
+       Primary action buttons
+       ───────────────────────────────────────────────────────────────────────── -->
   <div id="ctrl-section">
     <div class="row">
       <button id="renderBtn" data-tip="Render at the selected resolution. High resolutions use tiled rendering." class="btn primary" style="width:100%;">Render</button>
@@ -94,8 +124,18 @@
       </button>
     </div>
   </div>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────
+       SCROLLABLE CONTENT AREA
+       Parameter sections (Display, Slice Basis, etc.)
+       ───────────────────────────────────────────────────────────────────────── -->
   <div id="scroll-wrap">
   <div id="sidebar-scroll">
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         DISPLAY SECTION
+         Render mode and resolution
+         ═══════════════════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-head open" data-target="sec-mode"><span>Display</span><span class="arrow">&#8250;</span></div>
       <div class="section-body open" id="sec-mode">
@@ -119,6 +159,11 @@
         </div>
       </div>
     </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         SLICE BASIS SECTION
+         Preset basis + custom dimension selectors
+         ═══════════════════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-head open" data-target="sec-presets"><span>Slice Basis</span><span class="arrow">&#8250;</span></div>
       <div class="section-body open" id="sec-presets">
@@ -148,6 +193,11 @@
         </div>
       </div>
     </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         SLICE OFFSET SECTION
+         10D z₀ offset sliders
+         ═══════════════════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-head open" data-target="sec-z0"><span>Slice Offset z&#8320; (10D)</span><span class="arrow">&#8250;</span></div>
       <div class="section-body open" id="sec-z0">
@@ -167,6 +217,11 @@
         <div id="z0Sliders"></div>
       </div>
     </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         ORIENTATION SECTION
+         Gamma rotation and tilt controls
+         ═══════════════════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-head open" data-target="sec-orient"><span>Orientation (&gamma; + tilts)</span><span class="arrow">&#8250;</span></div>
       <div class="section-body open" id="sec-orient">
@@ -207,6 +262,11 @@
         <button id="rotReset" data-tip="Reset gamma rotation and all tilt amounts to zero." class="btn" style="margin-top:10px; font-size:10px; padding:5px 8px;">Reset tilts + &gamma;</button>
       </div>
     </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         SIMULATION SECTION
+         Integration parameters
+         ═══════════════════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-head" data-target="sec-sim"><span>Simulation</span><span class="arrow">&#8250;</span></div>
       <div class="section-body" id="sec-sim">
@@ -257,6 +317,11 @@
         </div>
       </div>
     </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         EXPORT/IMPORT SECTION
+         State JSON management
+         ═══════════════════════════════════════════════════════════════════ -->
     <div class="section">
       <div class="section-head" data-target="sec-state"><span>Export / Import</span><span class="arrow">&#8250;</span></div>
       <div class="section-body" id="sec-state">
@@ -279,7 +344,12 @@
         </div>
       </div>
     </div>
-  </div>
+
+  </div> <!-- end #sidebar-scroll -->
+
+  <!-- ─────────────────────────────────────────────────────────────────────────
+       CUSTOM SCROLLBAR (for sidebar)
+       ───────────────────────────────────────────────────────────────────────── -->
   <div id="custom-sb">
     <button id="custom-sb-up" aria-label="Scroll up">
       <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg>
@@ -291,14 +361,22 @@
       <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg>
     </button>
   </div>
-  </div>
+  </div> <!-- end #scroll-wrap -->
+
+  <!-- ─────────────────────────────────────────────────────────────────────────
+       STATUS BAR
+       Render status and progress indicator
+       ───────────────────────────────────────────────────────────────────────── -->
   <div id="status">
     <span id="statusText">Idle.</span>
     <div id="statusProgressWrap"><div id="statusProgress"></div></div>
   </div>
 </aside>
 
-<!-- Settings side panel -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SETTINGS PANEL
+     Side panel with navigation and rendering settings
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="settingsPanelOverlay">
   <div id="settingsPanel">
     <div id="settingsPanelHeader">
@@ -343,7 +421,10 @@
   </div>
 </div>
 
-<!-- Info side panel -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     INFO PANEL
+     Side panel with controls and information
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="infoPanelOverlay">
   <div id="infoPanel">
     <div id="infoPanelHeader">
@@ -379,10 +460,14 @@
   </div>
 </div>
 
-<!-- Value-edit dialog -->
-<!-- All dialogs now use the dynamic dialog.js system -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PICKER OVERLAYS
+     Dropdown selection menus
+     ═══════════════════════════════════════════════════════════════════════════ -->
 
-<!-- Render mode picker overlay -->
+<!-- ─────────────────────────────────────────────────────────────────────────
+     Mode Picker
+     ───────────────────────────────────────────────────────────────────────── -->
 <div id="modePickerOverlay">
   <div id="modePickerPanel">
     <div id="modePickerHeader">
@@ -400,7 +485,9 @@
   </div>
 </div>
 
-<!-- Custom dim picker overlay -->
+<!-- ─────────────────────────────────────────────────────────────────────────
+     Custom Dimension Picker
+     ───────────────────────────────────────────────────────────────────────── -->
 <div id="customDimPickerOverlay">
   <div id="customDimPickerPanel">
     <div id="customDimPickerHeader">
@@ -418,7 +505,9 @@
   </div>
 </div>
 
-<!-- Resolution picker overlay -->
+<!-- ─────────────────────────────────────────────────────────────────────────
+     Resolution Picker
+     ───────────────────────────────────────────────────────────────────────── -->
 <div id="resPickerOverlay">
   <div id="resPickerPanel">
     <div id="resPickerHeader">
@@ -436,7 +525,9 @@
   </div>
 </div>
 
-<!-- Tilt dimension picker overlay -->
+<!-- ─────────────────────────────────────────────────────────────────────────
+     Tilt Dimension Picker
+     ───────────────────────────────────────────────────────────────────────── -->
 <div id="tiltPickerOverlay">
   <div id="tiltPickerPanel">
     <div id="tiltPickerHeader">
@@ -454,189 +545,11 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     Main application logic
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <script type="module" src="src/main.js"></script>
-<script>
-(function() {
-  const scroller  = document.getElementById('sidebar-scroll');
-  const sb        = document.getElementById('custom-sb');
-  const track     = document.getElementById('custom-sb-track');
-  const thumb     = document.getElementById('custom-sb-thumb');
-  const btnUp     = document.getElementById('custom-sb-up');
-  const btnDown   = document.getElementById('custom-sb-down');
-  const STEP      = 80; // px per arrow click
 
-  const INSET = 3; // px gap on all sides between thumb and track edge
-
-  function update() {
-    const visible    = scroller.clientHeight;
-    const total      = scroller.scrollHeight;
-    const scrolled   = scroller.scrollTop;
-    const trackH     = track.clientHeight;
-    const available  = trackH - INSET * 2;
-    const thumbH     = Math.max(24, (visible / total) * available);
-    const thumbTop   = total > visible
-      ? INSET + (scrolled / (total - visible)) * (available - thumbH)
-      : INSET;
-    thumb.style.height    = thumbH + 'px';
-    thumb.style.top       = thumbTop + 'px';
-    sb.style.display      = total > visible ? 'flex' : 'none';
-  }
-
-  scroller.addEventListener('scroll', update, { passive: true }); // scroll needs immediate update for smooth thumb
-
-  // rAF-debounced update so layout is settled before measuring
-  let rafId = null;
-  function scheduleUpdate() {
-    if (rafId) return;
-    rafId = requestAnimationFrame(() => { rafId = null; update(); });
-  }
-
-  // ResizeObserver on the scroller viewport itself (window resize, sidebar resize)
-  new ResizeObserver(scheduleUpdate).observe(scroller);
-
-  // MutationObserver on the full subtree — catches section open/close, any DOM changes
-  new MutationObserver(scheduleUpdate).observe(scroller, {
-    childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class']
-  });
-
-  window.addEventListener('load', scheduleUpdate);
-  scheduleUpdate(); // initial call
-
-  // Arrow buttons — hold to repeat
-  function makeArrowScroll(dir) {
-    let interval = null;
-    function step() { scroller.scrollTop += dir * STEP; }
-    function start(e) {
-      e.preventDefault();
-      step();
-      interval = setInterval(step, 120);
-      document.addEventListener('mouseup', stop, { once: true });
-    }
-    function stop() { clearInterval(interval); interval = null; }
-    return start;
-  }
-  btnUp.addEventListener('mousedown',   makeArrowScroll(-1));
-  btnDown.addEventListener('mousedown', makeArrowScroll(1));
-
-  // Drag thumb
-  thumb.addEventListener('mousedown', e => {
-    e.preventDefault();
-    const startY      = e.clientY;
-    const startScroll = scroller.scrollTop;
-    const trackH      = track.clientHeight;
-    const total       = scroller.scrollHeight;
-    const visible     = scroller.clientHeight;
-    const available   = trackH - INSET * 2;
-    const thumbH      = Math.max(24, (visible / total) * available);
-    const ratio       = (total - visible) / (available - thumbH);
-    function onMove(e) {
-      scroller.scrollTop = startScroll + (e.clientY - startY) * ratio;
-    }
-    function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-
-  // Click track to jump
-  track.addEventListener('mousedown', e => {
-    if (e.target === thumb) return;
-    const rect      = track.getBoundingClientRect();
-    const trackH    = track.clientHeight;
-    const total     = scroller.scrollHeight;
-    const visible   = scroller.clientHeight;
-    const available = trackH - INSET * 2;
-    const thumbH    = Math.max(24, (visible / total) * available);
-    const frac      = Math.max(0, Math.min(1,
-      (e.clientY - rect.top - INSET - thumbH / 2) / (available - thumbH)));
-    scroller.scrollTop = frac * (total - visible);
-  });
-
-  update();
-})();
-
-// ── Reusable DOM scrollbar ─────────────────────────────────────────────────
-function initScrollbar(scroller, sb, track, thumb, btnUp, btnDown, STEP) {
-  const INSET = 3;
-
-  function update() {
-    const visible   = scroller.clientHeight;
-    const total     = scroller.scrollHeight;
-    const scrolled  = scroller.scrollTop;
-    const trackH    = track.clientHeight;
-    const available = trackH - INSET * 2;
-    const thumbH    = Math.max(24, (visible / total) * available);
-    const thumbTop  = total > visible
-      ? INSET + (scrolled / (total - visible)) * (available - thumbH)
-      : INSET;
-    thumb.style.height = thumbH + 'px';
-    thumb.style.top    = thumbTop + 'px';
-    sb.style.display   = total > visible ? 'flex' : 'none';
-  }
-
-  scroller.addEventListener('scroll', update, { passive: true });
-  new ResizeObserver(update).observe(scroller);
-  new MutationObserver(() => requestAnimationFrame(update))
-    .observe(scroller, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
-
-  function makeArrow(dir) {
-    let iv = null;
-    function step() { scroller.scrollTop += dir * STEP; }
-    function start(e) { e.preventDefault(); step(); iv = setInterval(step, 120); document.addEventListener('mouseup', () => clearInterval(iv), { once: true }); }
-    return start;
-  }
-  btnUp.addEventListener('mousedown',   makeArrow(-1));
-  btnDown.addEventListener('mousedown', makeArrow(1));
-
-  thumb.addEventListener('mousedown', e => {
-    e.preventDefault();
-    const startY = e.clientY, startScroll = scroller.scrollTop;
-    const available = track.clientHeight - INSET * 2;
-    const thumbH = Math.max(24, (scroller.clientHeight / scroller.scrollHeight) * available);
-    const ratio  = (scroller.scrollHeight - scroller.clientHeight) / (available - thumbH);
-    function onMove(e) { scroller.scrollTop = startScroll + (e.clientY - startY) * ratio; }
-    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-
-  track.addEventListener('mousedown', e => {
-    if (e.target === thumb) return;
-    const rect = track.getBoundingClientRect();
-    const available = track.clientHeight - INSET * 2;
-    const thumbH = Math.max(24, (scroller.clientHeight / scroller.scrollHeight) * available);
-    const frac   = Math.max(0, Math.min(1, (e.clientY - rect.top - INSET - thumbH / 2) / (available - thumbH)));
-    scroller.scrollTop = frac * (scroller.scrollHeight - scroller.clientHeight);
-  });
-
-  window.addEventListener('load', update);
-  update();
-}
-
-// ── stateBox scrollbar ─────────────────────────────────────────────────────
-initScrollbar(
-  document.getElementById('stateBox'),
-  document.getElementById('stateBox-sb'),
-  document.getElementById('stateBox-sb-track'),
-  document.getElementById('stateBox-sb-thumb'),
-  document.getElementById('stateBox-sb-up'),
-  document.getElementById('stateBox-sb-down'),
-  60
-);
-
-// ── Picker scrollbars ──────────────────────────────────────────────────────
-['modePicker','customDimPicker','resPicker','tiltPicker'].forEach(id => {
-  const list  = document.getElementById(id + 'List');
-  const wrap  = list.closest('.picker-list-wrap');
-  const sb    = wrap.querySelector('.picker-sb');
-  const track = wrap.querySelector('.picker-sb-track');
-  const thumb = wrap.querySelector('.picker-sb-thumb');
-  const up    = wrap.querySelector('.picker-sb-up');
-  const down  = wrap.querySelector('.picker-sb-down');
-  initScrollbar(list, sb, track, thumb, up, down, 60);
-});
-</script>
 </body>
 </html>

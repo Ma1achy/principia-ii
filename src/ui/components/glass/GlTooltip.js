@@ -2,11 +2,12 @@ import { GlassPanel } from './GlassPanel.js';
 
 // ─── GlTooltip ───────────────────────────────────────────────────────────────
 // Floating fixed-position tooltip using the glass effect.
+// Styles: src/ui/components/glass/glass-tooltip.css
 
 export class GlTooltip {
   constructor() {
     this.canvas = document.createElement('canvas');
-    this.canvas.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:9999;display:none;box-shadow:0 0 18px 4px rgba(0,0,0,0.55);';
+    this.canvas.className = 'glass-tooltip-canvas';
     document.body.appendChild(this.canvas);
     this._panel = null;
     this._initPromise = GlassPanel.create(this.canvas).then(p => { this._panel = p; });
@@ -72,7 +73,7 @@ export class GlTooltip {
     this.canvas.style.height = H + 'px';
     this.canvas.width  = W;
     this.canvas.height = H;
-    this.canvas.style.display = 'block';
+    this.canvas.classList.add('visible');
 
     const cs   = getComputedStyle(this.canvas);
     const glass = parseFloat(cs.getPropertyValue('--glass').trim() || '1');
@@ -100,6 +101,6 @@ export class GlTooltip {
   }
 
   hide() {
-    this.canvas.style.display = 'none';
+    this.canvas.classList.remove('visible');
   }
 }

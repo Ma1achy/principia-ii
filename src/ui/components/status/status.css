@@ -1,0 +1,40 @@
+/**
+ * @fileoverview Status Bar Component
+ * Bottom status bar showing render progress and messages
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Status Bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 0;
+  border-top: 1px solid var(--rule);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+#statusText {
+  padding: 8px 16px;
+  display: block;
+}
+
+#statusProgressWrap {
+  height: 2px;
+  background: var(--rule);
+  display: none;
+}
+
+#statusProgress {
+  height: 100%;
+  width: 0%;
+  background: var(--text);
+  transition: width 0.1s linear;
+}
+
+#status.progress-active #statusProgressWrap {
+  display: block;
+}

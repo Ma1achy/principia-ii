@@ -1,0 +1,32 @@
+/**
+ * @fileoverview Dimension Pair Layout Component
+ * Layout for displaying dimension pairs (e.g., UV, XY sliders side-by-side)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dimension Pair Layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dim-pair-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.dim-pair-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dim-pair-cell label {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+}

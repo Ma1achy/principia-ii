@@ -1,0 +1,109 @@
+/**
+ * @fileoverview Dialog Overlays Component
+ * Shared dialog overlay styles for modal dialogs
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Large Resolution Warning Dialog
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#largeResOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#largeResOverlay.open {
+  display: flex;
+}
+
+#largeResBox {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.18);
+  padding: 18px 20px 16px;
+  width: 460px;
+  max-width: calc(100vw - 32px);
+}
+
+#largeResTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+#largeResMsg {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Welcome Dialog
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#welcomeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+#welcomeOverlay.open {
+  display: flex;
+}
+
+#welcomeBox {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  padding: 20px 24px 20px;
+  width: 500px;
+  max-width: calc(100vw - 32px);
+  border-radius: 2px;
+}
+
+#welcomeTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
+
+#welcomeMsg {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+#welcomeMsg p {
+  margin: 0 0 10px 0;
+}
+
+#welcomeMsg p:last-child {
+  margin-bottom: 0;
+}
+
+#welcomeMsg strong {
+  color: var(--text);
+  font-weight: 500;
+}
