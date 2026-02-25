@@ -18,6 +18,12 @@ import { computeTitleBoundingBox } from './ui/core/layout.js';
 import { showWelcomeDialog } from './ui/dialogs/welcome.js';
 import { applySavedSettings, saveCurrentSettings } from './ui/settings-storage.js';
 import { initAllScrollbars } from './ui/components/scrollbar/init.js';
+import { initAllPickers } from './ui/pickers/init.js';
+import { initAllPanels } from './ui/panels/init.js';
+import { createCanvasControls } from './ui/components/canvas-controls/init.js';
+import { createControlSection } from './ui/sidebar/initControlSection.js';
+import { initSidebarSections } from './ui/sidebar/initSections.js';
+import { initSidebarScrollbar } from './ui/sidebar/initScrollbar.js';
 
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
@@ -394,7 +400,43 @@ async function boot() {
   await chazy.init(document.body, getCurrentMode);
   console.log('[Boot] ✓ Chazy initialized (idle, not started)');
   
-  // THIRD: Apply saved settings from localStorage
+  // CRITICAL: Create UI elements BEFORE loading settings (settings need the DOM elements to exist)
+  console.log('[Boot] Building UI structure...');
+  
+  // Create canvas controls (Info & Settings buttons)
+  console.log('[Boot] Creating canvas controls...');
+  createCanvasControls();
+  console.log('[Boot] ✓ Canvas controls created');
+  
+  // Create sidebar control section (Render, URL, JSON, PNG, Reset buttons)
+  console.log('[Boot] Creating control section...');
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    const controlSection = createControlSection();
+    sidebar.insertBefore(controlSection, sidebar.firstChild);
+  }
+  console.log('[Boot] ✓ Control section created');
+  
+  // Create sidebar sections (Display, Slice Basis, etc.)
+  console.log('[Boot] Creating sidebar sections...');
+  initSidebarSections();
+  console.log('[Boot] ✓ Sidebar sections created');
+  
+  // Create sidebar scrollbar
+  console.log('[Boot] Creating sidebar scrollbar...');
+  initSidebarScrollbar();
+  console.log('[Boot] ✓ Sidebar scrollbar created');
+  
+  // Create pickers and panels (must be before applySavedSettings)
+  console.log('[Boot] Creating picker overlays...');
+  initAllPickers();
+  console.log('[Boot] ✓ Pickers created');
+  
+  console.log('[Boot] Creating panel overlays...');
+  initAllPanels();
+  console.log('[Boot] ✓ Panels created');
+  
+  // NOW apply saved settings (after DOM elements exist)
   console.log('[Boot] Loading saved settings...');
   applySavedSettings();
   console.log('[Boot] ✓ Settings loaded');

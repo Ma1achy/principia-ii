@@ -39,6 +39,11 @@ function attachDynamicBehavior(label) {
   const labelWidth = label.offsetWidth;
   const availableWidth = labelWidth - paddingLeft - paddingRight - borderLeft - borderRight - arrowWidth - gap;
   
+  // Skip if layout hasn't completed yet (invalid width)
+  if (availableWidth <= 0 || !isFinite(availableWidth)) {
+    return;
+  }
+  
   // Apply text fitting with max font-size 11px and initial letter-spacing 0.04em
   fitTextToWidth(textEl, availableWidth, 11, 0.04);
 }
@@ -59,6 +64,11 @@ export function initializePickerLabels() {
   requestAnimationFrame(() => {
     const labels = document.querySelectorAll('.sl-dim-label');
     attachDynamicBehaviorBatch(labels);
+    
+    // Retry after a short delay for dynamically created pickers that may not be laid out yet
+    setTimeout(() => {
+      attachDynamicBehaviorBatch(labels);
+    }, 50);
     
     // Re-fit on window resize
     let resizeTimeout;
