@@ -1,0 +1,86 @@
+/**
+ * @fileoverview Picker Label Component Styles
+ * Dropdown-style button labels that trigger picker overlays
+ * Used for mode selection, resolution, tilt dimensions, custom dimensions
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Picker Label (Dropdown Trigger Button)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Context-specific sizing for labels in dimension picker cells */
+.dim-pair-cell .sl-dim-label {
+  align-self: stretch;
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* Base picker label — styled as primary button (dark fill, white text) */
+.sl-dim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--text);
+  border: 1px solid var(--text);
+  cursor: pointer;
+  user-select: none;
+  align-self: flex-start;
+  white-space: nowrap;
+  padding: 4px 8px;
+  height: 28px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.10);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.08s ease;
+}
+
+/* Dynamic text-fitting variant — CSS defines maximums */
+.sl-dim-label.dynamic-picker-label {
+  /* Maximum font-size and initial letter-spacing — JS will scale down if needed */
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.sl-dim-label:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+
+.sl-dim-label:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+  transform: translateY(1px);
+}
+
+/* Text content — this is what gets dynamically resized */
+.sl-dim-text {
+  border-bottom: 1px dashed rgba(255,255,255,0.55);
+  padding-bottom: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.sl-dim-label:hover .sl-dim-text {
+  border-bottom-color: rgba(0,0,0,0.35);
+}
+
+/* Dropdown arrow indicator — fixed width so it doesn't shift */
+.sl-dim-label .sl-dim-arrow {
+  font-size: 16px;
+  opacity: 1;
+  flex-shrink: 0;
+  width: 12px;
+  margin-left: 4px;
+  line-height: 1;
+  position: relative;
+  top: -1px;
+  text-align: center;
+}

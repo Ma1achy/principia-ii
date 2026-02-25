@@ -158,43 +158,31 @@ export class ChazyEventRouter {
    * Route immediate events (with rate limiting and urgency system)
    */
   _routeImmediate(eventType, data) {
-    // Check pending interrupt queue first
-    if (this.pendingImmediate && this._shouldDrainPending()) {
-      const pending = this.pendingImmediate;
-      this.pendingImmediate = null;
-      console.log(
-        `[EventRouter] Draining pending ${pending.eventType} instead of handling new ${eventType}`
-      );
-      const result = this._routeImmediate(pending.eventType, pending.data);
-      return result;
-    }
-
-    // Refill budgets
-    const now = Date.now();
-    
     // NEW: Determine urgency and priority
     const urgency = getEventUrgency(eventType);
     const priority = getEventPriority(eventType, urgency);
     
     console.log(`[EventRouter] ${eventType} - urgency: ${urgency}, priority: ${priority}`);
     
-    // NEW: Check coordinator FIRST (before rate limiting)
-    // Rationale: Sequence lock is a hard block, not a rate limit.
-    // If sequence is locked, no point checking other conditions.
-    // Also, blocked requests during sequence shouldn't count against rate limit.
-    const coordinatorCheck = this.orchestrator.coordinator.requestTextSlot('interaction');
-    
-    if (!coordinatorCheck.allowed) {
-      console.log(`[EventRouter] ${eventType} blocked by coordinator: ${coordinatorCheck.reason}`);
+    // Check pending interrupt queue first
+    if (this.pendingImmediate && this._shouldDrainPending()) {
+      const pending = this.pendingImmediate;
+      this.pendingImmediate = null;
       
-      // Don't defer user interactions - just block them
-      // User will try again if they want
-      return {
-        responded: false,
-        kind: null,
-        reason: coordinatorCheck.reason
-      };
+      // Try to process pending
+      const result = this._routeImmediate(pending.eventType, pending.data);
+      if (result.responded) {
+        // Pending processed, defer current event
+        return {
+          responded: false,
+          kind: null,
+          reason: 'pending_processed_instead'
+        };
+      }
     }
+    
+    // Refill budget if needed
+    this._refillBudget();
     
     // Apply 5-layer rate limiting
     const rateCheck = this._checkRateLimits(eventType, data, urgency, priority);
@@ -1049,19 +1037,19 @@ export class ChazyEventRouter {
       };
     }
     
-    // NEW: Check for queued polite interrupts
-    this._checkQueuedImmediate();
-    
-    // CRITICAL: Don't schedule next ambient if we're in a multi-line sequence
-    // (prevents ambient from interrupting between lines)
+    // CRITICAL: Check multi-line sequence FIRST, before processing any interrupts
+    // (prevents Chazy from self-interrupting mid-joke/narrative)
     if (this.orchestrator.inMultiLineSequence) {
-      console.log('[EventRouter] Skipping ambient schedule - multi-line sequence in progress');
+      console.log('[EventRouter] Multi-line sequence in progress - blocking ALL queued interrupts and ambient');
       return {
         responded: false,
         kind: null,
         reason: 'multi_line_in_progress'
       };
     }
+    
+    // Now safe to check for queued polite interrupts (only if NOT in multi-line)
+    this._checkQueuedImmediate();
     
     // Schedule next ambient cycle (for both ambient and immediate)
     const delay = this._getEmotionalAmbientDelay(textLength, themes);
@@ -1157,32 +1145,13 @@ export class ChazyEventRouter {
   
   /**
    * Handle mind_wants_to_speak - Mind requests immediate ambient
-   * NEW: Defers requests during multi-line sequences
    */
   _handleMindSpeakRequest(data) {
     const { emotion, reason } = data;
     
     console.log(`[EventRouter] Mind wants to speak (${reason}, emotion: ${emotion})`);
     
-    // NEW: Check coordinator FIRST
-    const coordinatorCheck = this.orchestrator.coordinator.requestTextSlot('mind');
-    
-    if (!coordinatorCheck.allowed) {
-      console.log(`[EventRouter] Mind request blocked: ${coordinatorCheck.reason}`);
-      
-      // Defer if coordinator says so
-      if (coordinatorCheck.shouldDefer) {
-        this.orchestrator.coordinator.deferMindRequest(data);
-      }
-      
-      return {
-        responded: false,
-        kind: null,
-        reason: coordinatorCheck.reason + '_deferred'
-      };
-    }
-    
-    // Approved - cancel current ambient timer
+    // Cancel current ambient timer
     this.orchestrator.cancelAmbient('mind_request');
     
     // Schedule immediate ambient (short delay for urgency)
@@ -1242,9 +1211,9 @@ export class ChazyEventRouter {
     // Base idle from emotion
     const baseIdle = this.selector.getIdleTime(emotion, intensity, 5000);
     
-    // Mind autonomy multiplier (damped - only 75% effective)
+    // Mind autonomy multiplier (stronger damping - only 50% effective to prevent extreme gaps)
     const rawMindMult = this.mind.getAmbientDelayMultiplier();
-    const dampedMindMult = 1.0 + (rawMindMult - 1.0) * 0.75;
+    const dampedMindMult = 1.0 + (rawMindMult - 1.0) * 0.5;  // Was 0.75 - now 50% damping
     
     // Content length multiplier
     const lengthMult = this._getContentLengthMultiplier(lastTextLength);
@@ -1258,7 +1227,7 @@ export class ChazyEventRouter {
     
     // Apply hard bounds (defined in textAnimation.js, but we use local constants)
     const IDLE_MIN = 3000;   // 3 seconds minimum between complete messages
-    const IDLE_MAX = 30000;
+    const IDLE_MAX = 12000;  // 12 seconds maximum (was 30s - too long, felt abandoned)
     const finalDelay = Math.max(IDLE_MIN, Math.min(IDLE_MAX, flooredDelay));
     
     if (dampedMindMult !== 1.0 || lengthMult !== 1.0) {

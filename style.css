@@ -88,564 +88,122 @@ canvas#uiCanvas {
   z-index: 3;
 }
 /* ─── Axis rulers (DOM-based, outside canvas) ─── */
-.axis-ruler {
-  position: absolute;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  color: var(--muted);
-  pointer-events: none;
-  user-select: none;
-}
-/* Bottom axis (u) */
-#axis-bottom {
-  bottom: 0;
-  left: 48px;
-  right: 0;
-  height: 42px;
-  display: flex;
-  align-items: flex-start;
-}
-#axis-bottom .axis-label-u {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
-}
-#axis-bottom .tick-label {
-  position: absolute;
-  top: 5px;
-  transform: translateX(-50%);
-}
-/* Left axis (v) */
-#axis-left {
-  top: 0;
-  left: 0;
-  width: 48px;
-  bottom: 42px;
-  display: flex;
-  align-items: flex-end;
-}
-#axis-left .axis-label-v {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -40px;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  font-family: 'IBM Plex Mono', monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#axis-left .tick-label {
-  position: absolute;
-  right: 10px;
-  transform: translateY(-50%);
-}
-/* Axis tick marks that sit right against the canvas */
-.axis-tick-line {
-  position: absolute;
-  background: var(--border);
-  pointer-events: none;
-}
-/* bottom ticks */
-#axis-bottom .axis-tick-line {
-  top: 0;
-  width: 1px;
-  height: 5px;
-}
-/* left ticks */
-#axis-left .axis-tick-line {
-  right: 0;
-  height: 1px;
-  width: 5px;
-}
-/* ─── HUD info panel (DOM, below canvas) ─── */
-#hud-panel {
-  margin-left: 48px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-bottom: none;
-  padding: 7px 14px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: var(--text);
-  box-sizing: border-box;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 24px;
-  width: min(calc(100vw - 460px), 80vh);
-  box-shadow: 0 -6px 20px rgba(0,0,0,0.22), 0 -2px 6px rgba(0,0,0,0.14);
-  position: relative;
-  z-index: 1;
-}
-.hud-row {
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
-  white-space: nowrap;
-}
-.hud-label {
-  color: var(--muted);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-.hud-val {
-  color: var(--text);
-  font-size: 10px;
-}
+/* ─── Axes moved to src/ui/panels/axes.css ─── */
+
+/* ─── HUD panel moved to src/ui/panels/hud.css ─── */
+
 /* ─── Canvas column wrapper ─── */
 #canvas-col {
   overflow: visible;
 }
-/* ─── Legend panel (below canvas) ─── */
-#legend-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: none;
-  box-shadow: 0 -8px 24px rgba(0,0,0,0.30), 0 -2px 8px rgba(0,0,0,0.18), 0 6px 20px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08);
-  position: relative;
-  z-index: 2;
-  margin-left: 48px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  flex-wrap: wrap;
-  min-height: 34px;
-  box-sizing: border-box;
-  width: min(calc(100vw - 460px), 80vh);
-}
-#legend-panel .leg-title {
-  color: var(--muted);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  white-space: nowrap;
-  align-self: center;
-  padding-right: 6px;
-  border-right: 1px solid var(--rule);
-  margin-right: 2px;
-}
-#legend-panel .leg-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  color: var(--muted);
-}
-#legend-panel .leg-swatch {
-  width: 10px;
-  height: 10px;
-  flex-shrink: 0;
-  border: 1px solid rgba(0,0,0,0.12);
-}
-#legend-panel .leg-bar-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 100px;
-}
-#legend-panel .leg-bar {
-  height: 8px;
-  width: 100%;
-  flex-shrink: 0;
-}
-#legend-panel .leg-bar-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: var(--muted);
-  width: 100%;
-}
+
+/* ─── Legend panel moved to src/ui/panels/legend.css ─── */
+
 /* ─── Progress overlay (hidden — progress now lives in #status) ─── */
 #overlay { display: none !important; }
-/* ─── Settings side panel ─── */
-#settingsPanelOverlay {
-  position: fixed; inset: 0; z-index: 200;
-  display: none;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-#settingsPanelOverlay.open { display: block; }
-#settingsPanel {
-  position: fixed; top: 0; right: 0; bottom: 0;
-  width: 33vw;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
-  display: flex; flex-direction: column;
-  z-index: 201; overflow: hidden;
-}
-#settingsPanelHeader {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--border-strong);
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
-  position: relative; z-index: 1;
-}
-#settingsPanelTitle {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text);
-}
-#settingsPanelClose {
-  background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1; padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-#settingsPanelClose:hover { background: var(--text); color: var(--bg); }
-#settingsPanelContent {
-  flex: 1; overflow-y: auto;
-  padding: 12px 14px 16px;
-  scrollbar-width: none;
-}
-#settingsPanelContent::-webkit-scrollbar { display: none; }
-.stg-group { margin-bottom: 16px; }
-.stg-group-title {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 9px; font-weight: 500; text-transform: uppercase;
-  letter-spacing: 0.12em; color: var(--muted); margin-bottom: 6px;
-  padding-bottom: 4px; border-bottom: 1px solid var(--border);
-}
-.stg-row {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 10px; padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-  font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; color: var(--text);
-}
-.stg-row:last-child { border-bottom: none; }
-/* .stg-slider-row removed — settings sliders now use .sl-row structure */
-/* ─── Info side panel ─── */
-#infoPanelOverlay {
-  position: fixed; inset: 0; z-index: 200;
-  display: none;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-#infoPanelOverlay.open { display: block; }
-#infoPanel {
-  position: fixed; top: 0; right: 0; bottom: 0;
-  width: 33vw;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
-  display: flex; flex-direction: column;
-  z-index: 201; overflow: hidden;
-}
-#infoPanelHeader {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--border-strong);
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
-  position: relative; z-index: 1;
-}
-#infoPanelTitle {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text);
-}
-#infoPanelClose {
-  background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1; padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-#infoPanelClose:hover { background: var(--text); color: var(--bg); }
-#infoPanelContent {
-  flex: 1; overflow-y: auto;
-  padding: 12px 14px 16px;
-  scrollbar-width: none;
-}
-#infoPanelContent::-webkit-scrollbar { display: none; }
-.info-group { margin-bottom: 14px; }
-.info-group-title {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px; font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  margin-bottom: 5px;
-  padding-bottom: 4px; border-bottom: 1px solid var(--border);
-}
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
+
+/* ─── Settings panel moved to src/ui/panels/settings.css ─── */
+
+/* ─── Info panel moved to src/ui/panels/info.css ─── */
+
+/* ─── Canvas-overlay controls moved to src/ui/components/canvas-controls/canvas-controls.css ─── */
+
+/* ─── Sidebar moved to src/ui/components/sidebar/sidebar.css ─── */
+/* (info modal webkit scrollbar rules removed — now a side panel with hidden scrollbar) */
+
+/* ─── Picker styles moved to src/ui/components/picker/ and src/ui/pickers/ ─── */
+
+/* ─── Buttons ─── */
+.btn {
+  border: 1px solid var(--border-strong);
+  padding: 7px 12px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-}
-.info-row:last-child { border-bottom: none; }
-.info-key { color: var(--text); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
-.info-val { color: var(--muted); font-weight: 400; text-align: right; }
-/* ─── Canvas-overlay controls ─── */
-#canvas-controls {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.canvas-ctrl-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
   font-weight: 600;
-}
-/* ─── Sidebar ─── */
-#sidebar {
-  width: 380px;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: -6px 0 28px rgba(0,0,0,0.22), -1px 0 6px rgba(0,0,0,0.14);
-  position: relative;
-  z-index: 10;
-}
-/* ─── Sidebar scroll + custom scrollbar ─── */
-#scroll-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-  min-height: 0;
-}
-#sidebar-scroll {
-  flex: 1;
-  overflow-y: scroll;
-  scrollbar-width: none; /* Firefox */
-  min-height: 0;
-}
-#sidebar-scroll::-webkit-scrollbar {
-  display: none; /* Chrome/Safari — hide native */
-}
-#custom-sb {
-  width: 20px;
-  flex-shrink: 0;
-  display: none; /* shown by JS when needed */
-  flex-direction: column;
-  border-left: 1px solid var(--border-strong);
-}
-/* Arrow buttons */
-#custom-sb-up, #custom-sb-down {
-  width: 100%;
-  height: 18px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  border: none;
-  border-bottom: 1px solid var(--border-strong);
-  color: var(--text);
   cursor: pointer;
-  padding: 0;
-  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
+  background: var(--bg);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease, border-color 0.1s ease;
+  white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
 }
-#custom-sb-down {
-  border-bottom: none;
-  border-top: 1px solid var(--border-strong);
-  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), 0 -2px 6px rgba(0,0,0,0.10), inset 0 -1px 0 rgba(255,255,255,0.20);
-}
-#custom-sb-up:hover, #custom-sb-down:hover {
+.btn:hover {
   background: var(--text);
   color: var(--bg);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
 }
-#custom-sb-up:active, #custom-sb-down:active {
+.btn:active {
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
   transform: translateY(1px);
 }
-/* Track — recessed channel, slightly darker warm white */
-#custom-sb-track {
-  flex: 1;
-  position: relative;
-  background: var(--highlight);
-  /* deep inset shadow on all 4 sides — looks sunken */
-  box-shadow:
-    inset  3px  0   6px rgba(0,0,0,0.13),
-    inset -3px  0   6px rgba(0,0,0,0.13),
-    inset  0    3px 6px rgba(0,0,0,0.13),
-    inset  0   -3px 6px rgba(0,0,0,0.13);
-  cursor: pointer;
-}
-/* Thumb — matches .btn secondary: raised, bg coloured, border, drop shadow */
-#custom-sb-thumb {
-  position: absolute;
-  top: 0;
-  left: 2px;
-  right: 2px;
-  min-height: 28px;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  /* raised drop shadow — casts into the track around it */
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.28),
-    0 1px 3px rgba(0,0,0,0.18),
-    0 -1px 4px rgba(0,0,0,0.14),
-    inset 0 1px 0 rgba(255,255,255,0.50);
-  cursor: grab;
-  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
-}
-#custom-sb-thumb:hover {
+.btn.primary {
   background: var(--text);
+  color: var(--bg);
   border-color: var(--text);
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.22),
-    0 1px 3px rgba(0,0,0,0.14),
-    0 -1px 4px rgba(0,0,0,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.10);
 }
-#custom-sb-thumb:active {
-  cursor: grabbing;
-  background: var(--text);
-  border-color: var(--text);
+.btn.primary:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+.btn.primary:active {
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+  transform: translateY(1px);
 }
-/* (info modal webkit scrollbar rules removed — now a side panel with hidden scrollbar) */
-
-/* ─── Picker lists — hide native scrollbar (DOM scrollbar used instead) ─── */
-#modePickerList, #customDimPickerList, #resPickerList, #tiltPickerList {
-  scrollbar-width: none;
-  overflow-y: scroll;
+.btn.danger {
+  color: var(--danger);
+  border-color: var(--danger);
 }
-#modePickerList::-webkit-scrollbar,
-#customDimPickerList::-webkit-scrollbar,
-#resPickerList::-webkit-scrollbar,
-#tiltPickerList::-webkit-scrollbar { display: none; }
-
-/* ─── Picker list wrapper + DOM scrollbar ─── */
-.picker-list-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-  min-height: 0;
+.btn.danger:hover {
+  background: var(--danger);
+  color: var(--bg);
 }
-.picker-sb {
-  width: 20px;
-  flex-shrink: 0;
-  display: none; /* shown by JS */
-  flex-direction: column;
-  border-left: 1px solid var(--border-strong);
+.btn.danger:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+  transform: translateY(1px);
 }
-.picker-sb-up, .picker-sb-down {
-  width: 100%;
-  height: 18px;
-  flex-shrink: 0;
+.btn.danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+}
+/* ─── Icon buttons (SVG + text label) ─── */
+.icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  border: none;
-  border-bottom: 1px solid var(--border-strong);
-  color: var(--text);
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.12s ease, color 0.12s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.20);
+  gap: 5px;
+  font-size: 10px;
+  padding: 5px 8px;
 }
-.picker-sb-down {
-  border-bottom: none;
-  border-top: 1px solid var(--border-strong);
-  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), inset 0 -1px 0 rgba(255,255,255,0.20);
+.icon-btn svg {
+  flex-shrink: 0;
+  display: block;
 }
-.picker-sb-up:hover, .picker-sb-down:hover { background: var(--text); color: var(--bg); }
-.picker-sb-up:active, .picker-sb-down:active { box-shadow: inset 0 2px 5px rgba(0,0,0,0.22); }
-.picker-sb-track {
-  flex: 1;
-  position: relative;
-  background: var(--highlight);
-  box-shadow: inset 3px 0 6px rgba(0,0,0,0.13), inset -3px 0 6px rgba(0,0,0,0.13),
-              inset 0 3px 6px rgba(0,0,0,0.13), inset 0 -3px 6px rgba(0,0,0,0.13);
-  cursor: pointer;
-}
-.picker-sb-thumb {
-  position: absolute;
-  top: 0; left: 2px; right: 2px;
-  min-height: 24px;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.28), 0 -1px 4px rgba(0,0,0,0.14),
-              inset 0 1px 0 rgba(255,255,255,0.50);
-  cursor: grab;
-  transition: background 0.12s ease;
-}
-.picker-sb-thumb:hover { background: var(--text); border-color: var(--text); }
-.picker-sb-thumb:active { cursor: grabbing; background: var(--text); box-shadow: inset 0 2px 5px rgba(0,0,0,0.30); }
-/* ─── Sections ─── */
-.section {
-  border-bottom: 1px solid var(--border-strong);
-}
-.section-head {
-  padding: 9px 16px;
+/* ─── Layout helpers ─── */
+.row { display: flex; gap: 6px; }
+.row > * { flex: 1; min-width: 0; }
+.kv {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
+  align-items: center;
+  margin-top: 3px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text);
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.10);
-  transition: background 0.12s ease, color 0.12s ease;
+  color: var(--faint);
 }
-.section-head:hover {
-  background: var(--text);
-  color: var(--bg);
+.kv code {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
 }
-.section-head .arrow {
-  font-size: 20px;
-  line-height: 1;
-  transition: transform 0.15s, color 0.12s ease;
-}
-.section-head.open .arrow { transform: rotate(90deg); }
-.section-body {
-  padding: 10px 16px 14px;
-  display: none;
-}
-.section-body.open { display: block; }
+
+/* ─── Collapsible section styles moved to src/ui/components/section/section.css ─── */
+
 /* ─── Controls section (always visible) ─── */
 #ctrl-section {
   padding: 12px 16px;
@@ -712,80 +270,9 @@ select:focus, input[type="number"]:focus {
   box-shadow: inset 0 1px 4px rgba(0,0,0,0.10), inset 0 2px 6px rgba(0,0,0,0.06);
 }
 #stateBox::-webkit-scrollbar { display: none; }
-/* stateBox scrollbar — same as sidebar */
-#stateBox-sb {
-  width: 20px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid var(--border-strong);
-}
-#stateBox-sb-up, #stateBox-sb-down {
-  width: 100%;
-  height: 18px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  border: none;
-  border-bottom: 1px solid var(--border-strong);
-  color: var(--text);
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
-}
-#stateBox-sb-down {
-  border-bottom: none;
-  border-top: 1px solid var(--border-strong);
-  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), 0 -2px 6px rgba(0,0,0,0.10), inset 0 -1px 0 rgba(255,255,255,0.20);
-}
-#stateBox-sb-up:hover, #stateBox-sb-down:hover {
-  background: var(--text);
-  color: var(--bg);
-}
-#stateBox-sb-up:active, #stateBox-sb-down:active {
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
-}
-#stateBox-sb-track {
-  flex: 1;
-  position: relative;
-  background: var(--highlight);
-  box-shadow:
-    inset  3px  0   6px rgba(0,0,0,0.13),
-    inset -3px  0   6px rgba(0,0,0,0.13),
-    inset  0    3px 6px rgba(0,0,0,0.13),
-    inset  0   -3px 6px rgba(0,0,0,0.13);
-  cursor: pointer;
-}
-#stateBox-sb-thumb {
-  position: absolute;
-  top: 0;
-  left: 2px;
-  right: 2px;
-  min-height: 24px;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.28),
-    0 1px 3px rgba(0,0,0,0.18),
-    0 -1px 4px rgba(0,0,0,0.14),
-    inset 0 1px 0 rgba(255,255,255,0.50);
-  cursor: grab;
-  transition: background 0.12s ease, box-shadow 0.08s ease;
-}
-#stateBox-sb-thumb:hover {
-  background: var(--text);
-  border-color: var(--text);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.22), 0 -1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-#stateBox-sb-thumb:active {
-  cursor: grabbing;
-  background: var(--text);
-  border-color: var(--text);
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
-}
+
+/* ─── Custom scrollbars moved to src/ui/components/scrollbar/scrollbar.css ─── */
+
 textarea {
   width: 100%;
   padding: 8px;
@@ -803,18 +290,11 @@ textarea:focus {
   border-color: var(--border-strong);
   box-shadow: inset 0 1px 5px rgba(0,0,0,0.14), inset 0 2px 8px rgba(0,0,0,0.09);
 }
-/* ─── Range inputs ─── */
-.sl-range-wrap {
-  flex: 1;
-  min-width: 0;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
 
-/* Track container with filled background */
-.sl-track-container {
+/* ─── Slider/Range inputs moved to src/ui/components/slider/slider.css ─── */
+
+/* ─── Large resolution warning dialog ─── */
+#largeResOverlay {
   position: relative;
   width: 100%;
   height: 28px;
@@ -1073,61 +553,7 @@ input.slider-num:hover, input.slider-num:focus {
   user-select: none;
   line-height: 1.3;
 }
-.dim-pair-cell .sl-dim-label {
-  align-self: stretch; /* fill the cell width */
-  width: 100%;
-  justify-content: space-between;
-}
-
-/* Clickable label — styled as a primary button (dark fill, white text) */
-.sl-dim-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--bg);
-  background: var(--text);
-  border: 1px solid var(--text);
-  cursor: pointer;
-  user-select: none;
-  align-self: flex-start;
-  white-space: nowrap;
-  padding: 4px 8px;
-  height: 28px;
-  box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.10);
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.08s ease;
-}
-.sl-dim-label:hover {
-  background: var(--border);
-  border-color: var(--border-strong);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.30);
-}
-.sl-dim-label:active {
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
-  transform: translateY(1px);
-}
-/* Dotted underline on the text content only (not the arrow) */
-.sl-dim-text {
-  border-bottom: 1px dashed rgba(255,255,255,0.55);
-  padding-bottom: 1px;
-}
-.sl-dim-label:hover .sl-dim-text {
-  border-bottom-color: rgba(0,0,0,0.35);
-}
-.sl-dim-label .sl-dim-arrow {
-  font-size: 16px;
-  opacity: 1;
-  flex-shrink: 0;
-  margin-left: 2px;
-  line-height: 1;
-  position: relative;
-  top: -1px;
-}
+/* ─── Picker label (dropdown triggers) moved to src/ui/components/picker/picker-label.css ─── */
 
 /* ─── Large resolution warning dialog ─── */
 #largeResOverlay {
@@ -1199,145 +625,7 @@ input.slider-num:hover, input.slider-num:focus {
   font-weight: 500;
 }
 
-/* ─── Generic dialog system ─── */
-.dialog-overlay {
-  position: fixed; inset: 0; z-index: 10000;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-.dialog-overlay.open { display: flex; }
-.dialog-overlay[aria-modal="true"] {
-  /* Accessibility: screen reader will treat as modal */
-}
-/* ─── Dialog spacing rhythm: 8 / 12 / 16 / 20 / 24 / 28 ─── */
-.dialog-box {
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
-  padding: 16px 20px;  /* Standard medium padding */
-  width: 800px;
-  max-width: calc(100vw - 32px);
-  border-radius: 2px;
-  margin-top: -5vh;
-}
-
-/* Keyboard mode focus styling - orange outline with no radius */
-:root:not(.keyboard-mode) .dialog-box button:focus,
-:root:not(.keyboard-mode) .dialog-box input:focus,
-:root:not(.keyboard-mode) .dialog-box [tabindex]:focus {
-  outline: none;
-}
-.keyboard-mode .dialog-box button:focus,
-.keyboard-mode .dialog-box input:focus,
-.keyboard-mode .dialog-box [tabindex]:focus {
-  outline: 2px solid #ff8800;
-  outline-offset: 2px;
-  border-radius: 0;
-}
-.keyboard-mode .dialog-input:focus {
-  outline: 2px solid #ff8800;
-  outline-offset: -2px;
-  border-radius: 0;
-}
-.dialog-title {
-  font-family: 'Helvetica';
-  font-size: 40px;
-  font-weight: 1000;
-  color: var(--text);
-  margin-bottom: 20px;  /* Spacing scale: 20px */
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-.dialog-content {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
-  color: var(--muted);
-  line-height: 1.65;
-  margin-bottom: 0;  /* No margin - handled by paragraphs */
-}
-.dialog-content p {
-  margin: 0 0 12px 0;  /* Spacing scale: 12px between paragraphs */
-}
-.dialog-content p:last-child {
-  margin-bottom: 20px;  /* Spacing scale: 20px after content block */
-}
-.dialog-para-warning {
-  /* Boxed system notice treatment */
-  background: var(--panel);  /* Darker tint than dialog body */
-  border: 1px solid var(--border);
-  padding: 10px 12px;  /* Tighter than dialog padding */
-  margin: 12px 0;  /* Spacing scale: 12px */
-  color: var(--text);
-  font-weight: 500;
-  line-height: 1.5;
-  border-radius: 1px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-.dialog-para-technical {
-  font-style: italic;
-  opacity: 0.7;
-  font-size: 9.5px;  /* Slightly bigger: was 9px */
-}
-.dialog-para-muted {
-  opacity: 0.6;
-}
-.dialog-field {
-  margin-top: 16px;  /* Spacing scale: 16px */
-}
-.dialog-field label {
-  display: block;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  color: var(--muted);
-  margin-bottom: 8px;  /* Spacing scale: 8px */
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.dialog-input {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  padding: 8px 10px;  /* Spacing scale: 8px vertical */
-  border-radius: 1px;
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-.dialog-input:focus {
-  border-color: var(--text);
-}
-.dialog-checkbox {
-  margin-top: 12px;  /* Spacing scale: 12px between checkboxes */
-}
-.dialog-buttons {
-  margin-top: 24px;  /* Spacing scale: 24px before buttons */
-}
-.dialog-overlay.is-busy .dialog-box {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-/* ─── Responsive adjustments for small screens ─── */
-@media (max-width: 600px) {
-  .dialog-box {
-    padding: 14px 16px;  /* Tighter padding on small screens */
-  }
-  
-  .dialog-title {
-    font-size: 24px;  /* Smaller title: was 35px */
-    margin-bottom: 16px;
-  }
-  
-  .dialog-content {
-    font-size: 11px;  /* Smaller: was 12px */
-  }
-  
-  /* Mobile dialog button overrides removed - text-fit handles all sizing */
-}
+/* ─── Slider styles moved to src/ui/components/slider/slider.css ─── */
 
 /* ─── Value-edit dialog ─── */
 #valEditOverlay {
@@ -1404,265 +692,16 @@ input.slider-num:hover, input.slider-num:focus {
   flex: 1; padding: 6px 8px; font-size: 10px;
 }
 
-/* ─── Render mode picker overlay ─── */
-#modePickerOverlay {
-  position: fixed; inset: 0; z-index: 200;
-  display: none;
-  background: transparent;
-}
-#modePickerOverlay.open { display: block; }
-#modePickerPanel {
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: 220px;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
-  display: flex;
-  flex-direction: column;
-  z-index: 201;
-  overflow: hidden;
-}
-#modePickerHeader {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--border-strong);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-#modePickerTitle {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted);
-}
-#modePickerClose {
-  background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-  border-radius: 0;
-}
-#modePickerClose:hover { background: var(--text); color: var(--bg); padding: 2px 4px; }
-#modePickerList {
-  flex: 1; overflow-y: auto;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* ─── Mode picker moved to src/ui/pickers/mode.css ─── */
 
-/* ─── Custom dim picker overlay ─── */
-#customDimPickerOverlay {
-  position: fixed; inset: 0; z-index: 200;
-  display: none;
-  background: transparent;
-}
-#customDimPickerOverlay.open { display: block; }
-#customDimPickerPanel {
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: 220px;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
-  display: flex;
-  flex-direction: column;
-  z-index: 201;
-  overflow: hidden;
-}
-#customDimPickerHeader {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--border-strong);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-#customDimPickerTitle {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted);
-}
-#customDimPickerClose {
-  background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-#customDimPickerClose:hover { background: var(--text); color: var(--bg); }
-#customDimPickerList {
-  flex: 1; overflow-y: auto;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* ─── Custom dim picker moved to src/ui/pickers/custom-dim.css ─── */
 
-/* ─── Resolution picker overlay ─── */
-#resPickerOverlay {
-  position: fixed; inset: 0; z-index: 200;
-  display: none;
-  background: transparent;
-}
-#resPickerOverlay.open { display: block; }
-#resPickerPanel {
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: 220px;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
-  display: flex;
-  flex-direction: column;
-  z-index: 201;
-  overflow: hidden;
-}
-#resPickerHeader {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--border-strong);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-#resPickerTitle {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted);
-}
-#resPickerClose {
-  background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-#resPickerClose:hover { background: var(--text); color: var(--bg); }
-#resPickerList {
-  flex: 1; overflow-y: auto;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* ─── Resolution picker moved to src/ui/pickers/resolution.css ─── */
 
-/* ─── Tilt dimension picker overlay ─── */
-#tiltPickerOverlay {
-  position: fixed; inset: 0; z-index: 200;
-  display: none;
-  background: transparent;
-}
-#tiltPickerOverlay.open { display: block; }
-#tiltPickerPanel {
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: 220px;
-  background: var(--panel);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
-  display: flex;
-  flex-direction: column;
-  z-index: 201;
-  overflow: hidden;
-}
-#tiltPickerHeader {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--border-strong);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-#tiltPickerTitle {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted);
-}
-#tiltPickerClose {
-  background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px; color: var(--muted); line-height: 1; padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-#tiltPickerClose:hover { background: var(--text); color: var(--bg); }
-#tiltPickerList {
-  flex: 1; overflow-y: auto;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-.tilt-pick-btn {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  padding: 9px 14px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-  border: none;
-  background: transparent;
-  text-align: left;
-  width: 100%;
-  transition: background 0.12s ease, color 0.12s ease;
-  letter-spacing: 0.04em;
-}
-.tilt-pick-btn:hover { background: var(--text); color: var(--bg); }
-.tilt-pick-btn.active {
-  background: var(--text); color: var(--bg);
-}
-.tilt-pick-btn.active:hover {
-  background: var(--border);
-  color: var(--text);
-}
-/* When hovering a non-active sibling, dim the active item to signal it will deselect */
-#modePickerList:hover .tilt-pick-btn.active:not(:hover),
-#customDimPickerList:hover .tilt-pick-btn.active:not(:hover),
-#resPickerList:hover .tilt-pick-btn.active:not(:hover),
-#tiltPickerList:hover .tilt-pick-btn.active:not(:hover) {
-  background: var(--border);
-  color: var(--text);
-}
-.tilt-pick-idx {
-  font-size: 9px;
-  color: var(--faint);
-  min-width: 16px;
-  flex-shrink: 0;
-}
-.tilt-pick-btn.active .tilt-pick-idx { color: var(--bg); opacity: 0.6; }
-/* Dim active .tilt-pick-idx when active is being de-emphasised */
-#modePickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx,
-#customDimPickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx,
-#resPickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx,
-#tiltPickerList:hover .tilt-pick-btn.active:not(:hover) .tilt-pick-idx {
-  color: var(--muted);
-  opacity: 1;
-}
-/* Dividing lines between picker items + no top padding gap */
-.tilt-pick-btn {
-  border-bottom: 1px solid var(--border);
-}
-.tilt-pick-btn:last-child { border-bottom: none; }
-/* Drop shadow below all picker headers */
-#modePickerHeader, #customDimPickerHeader, #resPickerHeader, #tiltPickerHeader {
-  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
-  position: relative;
-  z-index: 1;
-}
-/* All picker + panel titles share the same weight/colour treatment */
-#modePickerTitle, #customDimPickerTitle, #resPickerTitle, #tiltPickerTitle {
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--text);
-  letter-spacing: 0.06em;
-}
-/* All picker close buttons */
-#modePickerClose, #customDimPickerClose, #resPickerClose, #tiltPickerClose {
-  font-weight: 600;
-}
+/* ─── Tilt picker moved to src/ui/pickers/tilt.css ─── */
+
+/* ─── Shared picker button styles moved to src/ui/components/picker/picker-base.css ─── */
+
 /* ─── Buttons ─── */
 .btn {
   border: 1px solid var(--border-strong);
@@ -1707,23 +746,6 @@ input.slider-num:hover, input.slider-num:focus {
   color: var(--danger);
   border-color: var(--danger);
 }
-
-/* Dialog button overrides (must come after general .btn styles) */
-.dialog-buttons .btn {
-  padding: 10px 20px;  /* Reasonable horizontal padding */
-  height: 40px;  /* Fixed height - text will scale to fit */
-  min-height: 30px;
-  font-size: 20px;  /* Starting font size - will scale down if needed */
-  font-weight: 500;  /* Bold - matches base .btn weight */
-  white-space: nowrap;  /* Prevent text wrapping - text-fit will handle sizing */
-  overflow: hidden;  /* Hide any overflow */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-rendering: geometricPrecision;  /* Better rendering for scaled text */
-  -webkit-font-smoothing: antialiased;  /* Maintain visual weight */
-  -moz-osx-font-smoothing: grayscale;  /* Maintain visual weight on Mac */
-}
 .btn.danger:hover { background: var(--danger); color: var(--bg); }
 .btn.danger:active {
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
@@ -1760,79 +782,8 @@ input.slider-num:hover, input.slider-num:focus {
   font-family: 'IBM Plex Mono', monospace;
 }
 /* ─── Checkbox ─── */
-.check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  color: var(--muted);
-  cursor: pointer;
-}
-.check input[type="checkbox"],
-#settingsPanel input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 15px;
-  height: 15px;
-  min-width: 15px;
-  border: 1px solid var(--border-strong);
-  border-radius: 0;
-  background: var(--bg);
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  /* unchecked = recessed/inset, looks sunken */
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.18), inset 0 1px 3px rgba(0,0,0,0.12);
-  transition: background 0.12s ease, box-shadow 0.08s ease, border-color 0.1s ease;
-}
-.check input[type="checkbox"]:hover,
-#settingsPanel input[type="checkbox"]:hover {
-  background: var(--muted);
-  border-color: var(--text);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.18);
-}
-.check input[type="checkbox"]:checked,
-#settingsPanel input[type="checkbox"]:checked {
-  background: var(--text);
-  border-color: var(--text);
-  /* checked = raised, like a button */
-  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.14);
-}
-.check input[type="checkbox"]:checked:hover,
-#settingsPanel input[type="checkbox"]:checked:hover {
-  background: var(--border);
-  border-color: var(--border-strong);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.14), 0 2px 5px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,0.30);
-}
-.check input[type="checkbox"]::after,
-#settingsPanel input[type="checkbox"]::after {
-  content: '';
-  display: none;
-  position: absolute;
-  /* centered tick: 15px box, tick is ~5×9px, offset to visually center */
-  left: 4px;
-  top: 0px;
-  width: 5px;
-  height: 9px;
-  border: 2px solid var(--bg);
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg) translate(-1px, 0px);
-}
-.check input[type="checkbox"]:checked::after,
-#settingsPanel input[type="checkbox"]:checked::after {
-  display: block;
-}
-.check label { 
-  margin: 0; 
-  text-transform: none; 
-  letter-spacing: 0; 
-  font-size: 10.5px;  /* Smaller than main text (11px) for hierarchy */
-  color: var(--muted);  /* More subtle */
-  cursor: pointer; 
-}
+/* ─── Checkboxes moved to src/ui/components/checkbox/checkbox.css ─── */
+
 /* ─── Presets ─── */
 .presetGrid {
   display: grid;

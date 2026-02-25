@@ -1,0 +1,48 @@
+/**
+ * @fileoverview HUD Panel Styles
+ * Heads-up display panel showing probe information below the canvas
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HUD Panel
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#hud-panel {
+  margin-left: 48px;
+  background: var(--bg);
+  border-top: none;
+  border-bottom: none;
+  padding: 7px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--text);
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 24px;
+  width: min(calc(100vw - 460px), 80vh);
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+}
+
+.hud-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.hud-label {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.hud-val {
+  color: var(--text);
+  font-size: 10px;
+}

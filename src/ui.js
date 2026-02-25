@@ -26,7 +26,7 @@ export { bindCustomDimPicker } from './ui/pickers/custom-dim.js';
 // Builders
 export { buildResolutions } from './ui/builders/resolutions.js';
 export { buildPresets, applyCustomBasis, updateCustomPanelVisibility } from './ui/builders/presets.js';
-export { buildZ0Sliders, setZ0Range, zeroZ0, smallRandomZ0, applyQualityPreset, enhanceAllSliders } from './ui/builders/sliders.js';
+export { buildZ0Sliders, setZ0Range, zeroZ0, smallRandomZ0, applyQualityPreset, enhanceAllSliders } from './ui/components/slider/slider.js';
 export { buildAxisSelects, buildCustomDimSelects } from './ui/builders/selects.js';
 
 // Sync
@@ -46,8 +46,9 @@ import { bindCustomDimPicker } from './ui/pickers/custom-dim.js';
 import { bindResPicker } from './ui/pickers/resolution.js';
 import { applyCustomBasis } from './ui/builders/presets.js';
 import { buildPresets } from './ui/builders/presets.js';
-import { setZ0Range, zeroZ0, smallRandomZ0, enhanceAllSliders } from './ui/builders/sliders.js';
+import { setZ0Range, zeroZ0, smallRandomZ0, enhanceAllSliders } from './ui/components/slider/slider.js';
 import { buildCustomDimSelects } from './ui/builders/selects.js';
+import { initializePickerLabels, attachDynamicBehaviorBatch as refitPickerLabel } from './ui/components/picker/PickerLabel.js';
 
 export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch) {
   function updateStateBox_() { updateStateBox(); }
@@ -56,6 +57,9 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
 
   // Enhance all sliders with markers and fill tracks
   enhanceAllSliders();
+  
+  // Initialize dynamic text-fitting for picker labels
+  initializePickerLabels();
 
   bindValEditDialog();
 
@@ -63,6 +67,7 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
     state.mode = m;
     $("mode").value = String(m);
     $("modeName").textContent = MODE_INFO[m]?.name || "";
+    refitPickerLabel([$("modeLabel")]);
     scheduleRender("mode"); writeHash(); updateStateBox_(); drawHUD();
   });
 
@@ -82,6 +87,7 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
     state.res = r;
     $("resolution").value = String(r);
     $("resName").textContent = `${r} × ${r}`;
+    refitPickerLabel([$("resLabel")]);
     console.log(`[UI] Updated resolution UI elements`);
     writeHash(); 
     updateStateBox_(); 

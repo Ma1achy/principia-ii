@@ -1,0 +1,28 @@
+/**
+ * @fileoverview Canvas Control Buttons Styles
+ * Info and Settings buttons at top-left of canvas
+ * Uses shared .btn styles with specific positioning
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Controls Container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#canvas-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Button variant with icon + text */
+.canvas-ctrl-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  font-weight: 600;
+}

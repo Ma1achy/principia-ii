@@ -16,6 +16,6 @@ That avoids “I told it not to warn me and now it froze my laptop” moments.
 
 > figure out max tile size can render (maybe underestimate to be conservative (so half tile size?)), then using current Resolution split into N tiles, then render from middle title outwards in a spiral
 
-> BUG: with Chazy typing: sometimes doesn't fully finish typing then starts deleting (like doesn't let the text display just half writes then deletes when theres no interruption, this is most jarring when its a multiline sequence) or entire message just appears after half typing
-> also i think the speeds etc still need more damping / guardrails as it can still goo too crazy, like chazy is supposed to be a more sort of calm etheral character
-> also noticed that sometimes chazy doesn't say the next line in a multiline sequence and just goes to another random ambient line
+
+>potentially a race condition bug? theres a bug with chazy text resizing? maybe to do with typing animation and window resizing... text sometimes doesnt resize?
+> inner pp + config default view? 

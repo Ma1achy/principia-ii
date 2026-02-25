@@ -109,6 +109,19 @@ export class ChazyView {
     
     this.constraints = { ...this.constraints, ...constraints };
     this.applyLayout();
+    
+    // If subtitle has content, refit it to new constraints
+    // (Only if not already handled by applyLayout)
+    if (!this.isApplyingLayout && 
+        this.elements.subtitle && 
+        this.elements.subtitle.textContent.trim().length > 0) {
+      // Use requestAnimationFrame to ensure layout is settled
+      requestAnimationFrame(() => {
+        if (!this.isApplyingLayout) {
+          this._refitSubtitleToConstraints();
+        }
+      });
+    }
   }
   
   /**
@@ -185,17 +198,9 @@ export class ChazyView {
   }
   
   _initTextStateMachine() {
-    // Store reference to orchestrator (will be set by Orchestrator after View creation)
-    this.orchestrator = null;
-    
     this.textStateMachine = new TextStateMachine(
       this.elements.subtitle,
-      () => this._onSubtitleUpdate(),
-      () => {  // NEW: context provider callback
-        return {
-          sequenceLocked: this.orchestrator?.coordinator?.isLocked() || false
-        };
-      }
+      () => this._onSubtitleUpdate()
     );
   }
   
@@ -203,9 +208,17 @@ export class ChazyView {
     // Called when subtitle content changes - re-adjust letter-spacing for new text
     if (!this.mounted || this.isApplyingLayout) return;
     
+    this._refitSubtitleToConstraints();
+  }
+  
+  /**
+   * Refit subtitle to current constraints (extracted for reuse)
+   * @private
+   */
+  _refitSubtitleToConstraints() {
     // Defensive checks
     if (!this.elements || !this.elements.subtitle || !this.elements.title) {
-      console.warn('[ChazyView] Missing elements in _onSubtitleUpdate');
+      console.warn('[ChazyView] Missing elements in _refitSubtitleToConstraints');
       return;
     }
     
@@ -217,12 +230,15 @@ export class ChazyView {
       const subtitleFontSize = maxFontSize * this.config.subtitleFontRatio;
       subtitle.style.fontSize = `${subtitleFontSize}px`;
       
+      // Update max-width constraint (important for resize)
+      const opticalCorrection = maxFontSize * this.config.opticalCorrection;
+      const subtitleMaxWidth = availableWidth - opticalCorrection;
+      subtitle.style.maxWidth = `${subtitleMaxWidth}px`;
+      
       // Force reflow to get accurate measurement
       subtitle.offsetHeight;
       
       const titleWidth = title.getBoundingClientRect().width;
-      const opticalCorrection = maxFontSize * this.config.opticalCorrection;
-      const subtitleMaxWidth = availableWidth - opticalCorrection;
       
       // Target width: smaller of title match or available space
       const idealTitleMatch = titleWidth * this.config.subtitleWidthRatio;
@@ -231,7 +247,7 @@ export class ChazyView {
       // Re-adjust letter-spacing for the new content
       this._fitTrackingToWidth(subtitle, targetWidth);
     } catch (error) {
-      console.error('[ChazyView] Error in _onSubtitleUpdate:', error);
+      console.error('[ChazyView] Error in _refitSubtitleToConstraints:', error);
     }
   }
   

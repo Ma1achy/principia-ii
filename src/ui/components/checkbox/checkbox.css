@@ -1,0 +1,99 @@
+/**
+ * @fileoverview Checkbox Component Styles
+ * Custom-styled checkboxes with raised/sunken aesthetic
+ * Used throughout the UI (settings panel, dialogs, etc.)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Checkbox Container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Checkbox Input
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.check input[type="checkbox"],
+#settingsPanel input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: var(--bg);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  /* Unchecked = recessed/inset, looks sunken */
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.18), inset 0 1px 3px rgba(0,0,0,0.12);
+  transition: background 0.12s ease, box-shadow 0.08s ease, border-color 0.1s ease;
+}
+
+.check input[type="checkbox"]:hover,
+#settingsPanel input[type="checkbox"]:hover {
+  background: var(--muted);
+  border-color: var(--text);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.18);
+}
+
+.check input[type="checkbox"]:checked,
+#settingsPanel input[type="checkbox"]:checked {
+  background: var(--text);
+  border-color: var(--text);
+  /* Checked = raised, like a button */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+
+.check input[type="checkbox"]:checked:hover,
+#settingsPanel input[type="checkbox"]:checked:hover {
+  background: var(--border);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.14), 0 2px 5px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+
+/* Checkmark tick */
+.check input[type="checkbox"]::after,
+#settingsPanel input[type="checkbox"]::after {
+  content: '';
+  display: none;
+  position: absolute;
+  /* Centered tick: 15px box, tick is ~5×9px, offset to visually center */
+  left: 4px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid var(--bg);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, 0px);
+}
+
+.check input[type="checkbox"]:checked::after,
+#settingsPanel input[type="checkbox"]:checked::after {
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Checkbox Label
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.check label { 
+  margin: 0; 
+  text-transform: none; 
+  letter-spacing: 0; 
+  font-size: 10.5px;  /* Smaller than main text (11px) for hierarchy */
+  color: var(--muted);  /* More subtle */
+  cursor: pointer; 
+}

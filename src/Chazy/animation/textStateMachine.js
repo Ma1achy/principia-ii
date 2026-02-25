@@ -22,12 +22,10 @@ export class TextStateMachine {
   /**
    * @param {HTMLElement} element - DOM element to animate
    * @param {Function} onUpdateCallback - Called when text content changes (optional)
-   * @param {Function} getInterruptContext - Returns interrupt context (optional)
    */
-  constructor(element, onUpdateCallback = null, getInterruptContext = null) {
+  constructor(element, onUpdateCallback = null) {
     this.element = element;
     this.onUpdateCallback = onUpdateCallback;
-    this.getInterruptContext = getInterruptContext;  // NEW: context provider
     
     // FSM state
     this.currentState = 'IDLE';
@@ -63,6 +61,7 @@ export class TextStateMachine {
     // NEW: Multi-line sequence tracking
     this.currentLineSequence = [];
     this.currentLineIndex = 0;
+    this.inMultiLineSequence = false;  // Track if currently in a multi-line sequence
     
     // NEW: Clear strategy lock (prevent concurrent clears)
     this._clearInProgress = false;
@@ -168,20 +167,6 @@ export class TextStateMachine {
     const state = this.currentState;
     const currentPriority = this.currentLinePriority || 1;
     
-    // NEW: Get interrupt context if available
-    const context = this.getInterruptContext ? this.getInterruptContext() : {};
-    
-    // NEW: Check sequence lock from context (highest priority check)
-    if (context.sequenceLocked) {
-      console.log('[FSM] Interrupt blocked - sequence locked');
-      return {
-        allowed: false,
-        strategy: 'none',
-        shouldWait: true,
-        reason: 'sequence_locked'
-      };
-    }
-    
     // NEVER interrupt welcome text
     if (this.isWelcomeText) {
       console.log('[FSM] Welcome text protected from interrupt');
@@ -190,6 +175,17 @@ export class TextStateMachine {
         strategy: 'none',
         shouldWait: false,  // Don't queue, just discard
         reason: 'welcome_protected'
+      };
+    }
+    
+    // NEVER interrupt multi-line sequences (except FORCE urgency for critical user actions)
+    if (this.inMultiLineSequence && urgency !== INTERRUPT_URGENCY.FORCE) {
+      console.log('[FSM] Multi-line sequence protected from interrupt (urgency=' + urgency + ')');
+      return {
+        allowed: false,
+        strategy: 'none',
+        shouldWait: false,  // Don't queue, just discard (keeps narrative flow)
+        reason: 'multi_line_protected'
       };
     }
     
@@ -351,7 +347,8 @@ export class TextStateMachine {
       try {
         // Cancel any ongoing operations
         if (this.currentAnimationCancel) {
-          this.currentAnimationCancel();
+          // Pass partialOnly=true to keep typed text for graceful deletion
+          this.currentAnimationCancel(true);
           this.currentAnimationCancel = null;
         }
         if (this.currentTimer) {
@@ -557,38 +554,7 @@ export class TextStateMachine {
       
       // Cancel any ongoing operations
       if (this.currentAnimationCancel) {
-        // NEW: Determine cancel mode based on strategy
-        let cancelMode = 'clear';
-        
-        switch (strategy) {
-          case 'abort_and_clear':
-          case 'fast_select_delete':
-          case 'abort_delete_and_clear':
-          case 'instant_clear':
-            cancelMode = 'clear';
-            break;
-            
-          case 'instant_complete':  // If we add this strategy
-            cancelMode = 'complete';
-            break;
-            
-          case 'freeze':  // If we add this strategy
-            cancelMode = 'freeze';
-            break;
-        }
-        
-        // NEW: Use new API if available, fallback to old
-        if (typeof this.currentAnimationCancel === 'function') {
-          // Check if it has the new cancel method
-          if (this.currentAnimationCancel.cancel) {
-            // New API
-            this.currentAnimationCancel.cancel(cancelMode);
-          } else {
-            // Old API
-            this.currentAnimationCancel();
-          }
-        }
-        
+        this.currentAnimationCancel();
         this.currentAnimationCancel = null;
       }
       if (this.currentTimer) {
@@ -640,6 +606,9 @@ export class TextStateMachine {
     
     try {
       this.currentState = 'TYPING';
+      
+      // Track multi-line sequence state (passed from orchestrator)
+      this.inMultiLineSequence = config.inMultiLineSequence || false;
       
       // Remove any existing cursors before starting animation
       this.element.querySelectorAll('.text-cursor').forEach(c => c.remove());
@@ -720,6 +689,12 @@ export class TextStateMachine {
         
         // Clear welcome flag once text completes (allows future interrupts)
         this.isWelcomeText = false;
+        
+        // Clear multi-line flag once sequence completes (passed from orchestrator)
+        if (config.isLastInSequence) {
+          this.inMultiLineSequence = false;
+          console.log('[FSM] Multi-line sequence completed');
+        }
         
         // Check for pending interrupts before idle
         this._processPendingInterrupts();

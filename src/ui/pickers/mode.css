@@ -1,0 +1,88 @@
+/**
+ * @fileoverview Mode Picker Styles
+ * Picker for selecting render mode (points, lines, surface, etc.)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Mode Picker Overlay & Panel
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#modePickerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  background: transparent;
+}
+
+#modePickerOverlay.open {
+  display: block;
+}
+
+#modePickerPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 220px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Header
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#modePickerHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#modePickerTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+#modePickerClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1;
+  padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+  border-radius: 0;
+}
+
+#modePickerClose:hover {
+  background: var(--text);
+  color: var(--bg);
+  padding: 2px 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   List
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#modePickerList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}

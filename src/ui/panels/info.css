@@ -1,0 +1,140 @@
+/**
+ * @fileoverview Info Panel Styles  
+ * Right slide-in panel with controls and information
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Info Panel Overlay & Panel
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#infoPanelOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#infoPanelOverlay.open {
+  display: block;
+}
+
+#infoPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 33vw;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.28);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Header
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#infoPanelHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.10);
+  position: relative;
+  z-index: 1;
+}
+
+#infoPanelTitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+#infoPanelClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1;
+  padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+#infoPanelClose:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Content
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#infoPanelContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px 16px;
+  scrollbar-width: none;
+}
+
+#infoPanelContent::-webkit-scrollbar {
+  display: none;
+}
+
+/* Info groups */
+.info-group {
+  margin-bottom: 14px;
+}
+
+.info-group-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-key {
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.info-val {
+  color: var(--muted);
+  font-weight: 400;
+  text-align: right;
+}

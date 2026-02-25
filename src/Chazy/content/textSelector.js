@@ -15,10 +15,10 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
   
   switch(emotion.toUpperCase()) {
     case 'BORED':
-      multiplier = 2.0;
-      minRange = 1.5;
-      maxRange = 3.0;
-      if (intensity < 0.2) multiplier = 3.5;
+      multiplier = 1.5;        // Was 2.0 (too extreme)
+      minRange = 1.2;          // Was 1.5
+      maxRange = 2.0;          // Was 3.0 (way too high)
+      if (intensity < 0.2) multiplier = 2.2;  // Was 3.5 (extreme - caused 30s+ gaps)
       break;
       
     case 'EXCITED':
@@ -43,9 +43,9 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
       break;
       
     case 'CONTEMPLATIVE':
-      multiplier = 1.8;
-      minRange = 1.3;
-      maxRange = 2.5;
+      multiplier = 1.5;        // Was 1.8 (too slow)
+      minRange = 1.1;          // Was 1.3
+      maxRange = 2.0;          // Was 2.5 (too extreme)
       break;
       
     case 'CONCERNED':
@@ -270,7 +270,7 @@ export class TextSelector {
     }
     
     const promises = files.map(f => 
-      fetch(basePath + f)
+      fetch(basePath + f, { cache: 'no-store' })
         .then(r => {
           if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
           return r.json();
@@ -283,7 +283,7 @@ export class TextSelector {
     
     // Load interaction content (gracefully fail if not present)
     const interactionPromises = interactionFiles.map(f =>
-      fetch(basePath + f)
+      fetch(basePath + f, { cache: 'no-store' })
         .then(r => {
           if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
           return r.json();
@@ -330,6 +330,15 @@ export class TextSelector {
           continue;
         }
         
+        // Get entry's when array (use entry's when if present, otherwise use file context)
+        const entryWhen = (entry.when || defaultWhen).map(normalizeWildcard);
+        
+        // CRITICAL: Skip welcome entries in core files (welcome should only be in welcome.json)
+        if (entryWhen.some(w => w === 'welcome')) {
+          console.warn('[TextSelector] Skipping welcome entry in core file (should be in welcome.json)');
+          continue;
+        }
+        
         // Add to ambient pool (core files)
         this.ambientEntries.push({
           // Backwards compatible: keep weights field
@@ -337,7 +346,7 @@ export class TextSelector {
           themes: entry.themes || [],
           lines: entry.lines || [],
           // Use entry's when/what if present, otherwise use file context
-          when: (entry.when || defaultWhen).map(normalizeWildcard),
+          when: entryWhen,
           what: (entry.what || defaultWhat).map(normalizeWildcard),
           
           // NEW FIELDS (v3 schema)
@@ -371,7 +380,7 @@ export class TextSelector {
       }
     }
     
-    // 2. AMBIENT POOL: Core files + idle.json only
+    // 2. AMBIENT POOL: Core files + idle.json only (welcome entries already filtered out)
     const idleFile = allInteractionData.find(f => f?._file === 'idle');
     if (idleFile && idleFile.lines) {
       const context = idleFile._context || {};
@@ -379,11 +388,20 @@ export class TextSelector {
       const defaultWhat = (context.what || ['any']).map(normalizeWildcard);
       
       for (const entry of idleFile.lines) {
+        // Get entry's when array
+        const entryWhen = (entry.when || defaultWhen).map(normalizeWildcard);
+        
+        // CRITICAL: Skip welcome entries in idle.json (welcome should only be in welcome.json)
+        if (entryWhen.some(w => w === 'welcome')) {
+          console.warn('[TextSelector] Skipping welcome entry in idle.json (should be in welcome.json)');
+          continue;
+        }
+        
         this.ambientEntries.push({
           weights: entry.weights || {},
           themes: entry.themes || [],
           lines: entry.lines || [],
-          when: (entry.when || defaultWhen).map(normalizeWildcard),
+          when: entryWhen,
           what: (entry.what || defaultWhat).map(normalizeWildcard),
           select_bias: entry.select_bias || {},
           reflect_pull: entry.reflect_pull || {},

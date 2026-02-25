@@ -8,9 +8,15 @@
  * - Persistence hooks (onOpenLoadState, onConfirmPersist)
  * - Keyboard navigation (Enter, Escape, Tab trap)
  * - Accessibility (ARIA attributes, focus management)
+ * 
+ * Styling contract:
+ * - src/ui/dialogs/dialog.css defines all visual appearance (colors, sizes, spacing)
+ * - CSS font-size values are maximums - this JS reduces them dynamically if needed
+ * - fitTextToWidth() adjusts letter-spacing (0.00-0.50em) and font-size as needed
+ * - CSS must be loaded via <link> tag in index.html
  */
 
-import { fitTextToWidth } from '../../utils/textFit.js';
+import { attachDynamicBehaviorBatch } from '../components/button/DynamicButton.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DialogManager - Singleton State Machine
@@ -499,7 +505,7 @@ function renderDialog(rootElement, options, initialState) {
   
   options.buttons.forEach(button => {
     const btn = document.createElement('button');
-    btn.className = 'btn';
+    btn.className = 'btn dynamic-btn';
     btn.dataset.buttonId = button.id;
     btn.textContent = button.label;
     
@@ -563,66 +569,21 @@ function bindHandlers(options, rootElement) {
     DialogManager.handlers.push(() => field.removeEventListener('focus', handler));
   });
   
-  // Button text fitting on resize
+  // Button text fitting on resize using DynamicButton component
   const buttonWrap = DialogManager.buttonWrap;
   if (buttonWrap) {
-    const fitAllButtonText = () => {
-      console.log('[Dialog] fitAllButtonText called');
-      
-      // First, reset all buttons to base styles
-      options.buttons.forEach((button, index) => {
-        const btn = buttonWrap.children[index];
-        if (!btn) return;
-        btn.style.fontSize = '25px';
-        btn.style.letterSpacing = '0.06em';
-      });
-      
-      // Wait for next frame to ensure layout is complete
-      requestAnimationFrame(() => {
-        options.buttons.forEach((button, index) => {
-          const btn = buttonWrap.children[index];
-          if (!btn) return;
-          
-          // Get button's available width AFTER layout completes
-          const btnRect = btn.getBoundingClientRect();
-          const computedStyle = window.getComputedStyle(btn);
-          const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-          const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
-          
-          // Fixed internal margin for breathing room
-          const internalMargin = 16;
-
-          const availableWidth = btnRect.width - paddingLeft - paddingRight - (internalMargin * 2);
-          
-          console.log('[Dialog] Button resize:', {
-            buttonId: button.id,
-            buttonWidth: btnRect.width,
-            padding: paddingLeft + paddingRight,
-            availableWidth: availableWidth,
-            textLength: btn.textContent.length
-          });
-          
-          if (availableWidth > 0) {
-            fitTextToWidth(btn, availableWidth);
-          }
-        });
-      });
-    };
+    // Get all button elements
+    const buttonElements = Array.from(buttonWrap.querySelectorAll('.btn'));
     
-    // Fit button text initially
-    fitAllButtonText();
+    // Attach dynamic behavior to all buttons
+    const dynamicControls = attachDynamicBehaviorBatch(buttonElements, {
+      targetWidth: 'auto',
+      internalMargin: 16
+    });
     
-    // Re-fit button text on window resize
-    const resizeHandler = () => {
-      console.log('[Dialog] Resize event fired');
-      fitAllButtonText();
-    };
-    
-    window.addEventListener('resize', resizeHandler);
-    console.log('[Dialog] Resize handler attached');
-    DialogManager.handlers.push(() => {
-      console.log('[Dialog] Cleaning up resize handler');
-      window.removeEventListener('resize', resizeHandler);
+    // Store cleanup functions
+    dynamicControls.forEach(control => {
+      DialogManager.handlers.push(control.cleanup);
     });
   }
 }

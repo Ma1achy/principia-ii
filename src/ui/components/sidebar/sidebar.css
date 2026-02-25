@@ -1,0 +1,43 @@
+/**
+ * @fileoverview Main Sidebar Styles
+ * The primary left sidebar containing all controls and settings
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sidebar Container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#sidebar {
+  width: 380px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -6px 0 28px rgba(0,0,0,0.22), -1px 0 6px rgba(0,0,0,0.14);
+  position: relative;
+  z-index: 10;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scrollable Content Area
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#scroll-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#sidebar-scroll {
+  flex: 1;
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  min-height: 0;
+}
+
+#sidebar-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari — hide native */
+}

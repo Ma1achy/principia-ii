@@ -1,0 +1,229 @@
+/**
+ * @fileoverview Dialog Component Styles
+ * Defines the visual appearance of modal dialogs
+ * Dynamic resizing handled by dialog.js using fitTextToWidth()
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Overlay & Container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.dialog-overlay.open {
+  display: flex;
+}
+
+.dialog-overlay[aria-modal="true"] {
+  /* Accessibility: screen reader will treat as modal */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dialog Box
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Dialog spacing rhythm: 8 / 12 / 16 / 20 / 24 / 28 */
+.dialog-box {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  padding: 16px 20px;
+  width: 800px;
+  max-width: calc(100vw - 32px);
+  border-radius: 2px;
+  margin-top: -5vh;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Focus Management (Keyboard Mode)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Hide focus outlines when not in keyboard mode */
+:root:not(.keyboard-mode) .dialog-box button:focus,
+:root:not(.keyboard-mode) .dialog-box input:focus,
+:root:not(.keyboard-mode) .dialog-box [tabindex]:focus {
+  outline: none;
+}
+
+/* Show focus outlines in keyboard mode */
+.keyboard-mode .dialog-box button:focus,
+.keyboard-mode .dialog-box input:focus,
+.keyboard-mode .dialog-box [tabindex]:focus {
+  outline: 2px solid #ff8800;
+  outline-offset: 2px;
+  border-radius: 0;
+}
+
+.keyboard-mode .dialog-input:focus {
+  outline: 2px solid #ff8800;
+  outline-offset: -2px;
+  border-radius: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Title
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-title {
+  font-family: 'Helvetica';
+  font-size: 40px;
+  font-weight: 1000;
+  color: var(--text);
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Content
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-content {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 0;
+}
+
+.dialog-content p {
+  margin: 0 0 12px 0;
+}
+
+.dialog-content p:last-child {
+  margin-bottom: 20px;
+}
+
+/* Paragraph variants */
+.dialog-para-warning {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  margin: 12px 0;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: 1px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.dialog-para-technical {
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 9.5px;
+}
+
+.dialog-para-muted {
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Form Fields
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-field {
+  margin-top: 16px;
+}
+
+.dialog-field label {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dialog-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 8px 10px;
+  border-radius: 1px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.dialog-input:focus {
+  border-color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Checkboxes
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-checkbox {
+  margin-top: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Buttons
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-buttons {
+  margin-top: 24px;
+}
+
+/**
+ * Dialog button sizing
+ * font-size and letter-spacing are maximum values - dynamically reduced by fitTextToWidth()
+ */
+.dialog-buttons .btn {
+  padding: 10px 20px;
+  height: 40px;
+  min-height: 30px;
+  font-size: 25px;              /* Maximum font-size - JS may reduce if text too long */
+  letter-spacing: 0.06em;       /* Initial letter-spacing - JS adjusts between 0.00-0.50em */
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Busy State
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dialog-overlay.is-busy .dialog-box {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .dialog-box {
+    width: calc(100vw - 32px);
+    padding: 12px 16px;
+  }
+  
+  .dialog-title {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+  
+  .dialog-content {
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,67 @@
+/**
+ * @fileoverview Collapsible Section Component Styles
+ * Used for collapsible sections in the settings panel
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Section Container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section {
+  border-bottom: 1px solid var(--border-strong);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Section Header (Clickable)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section-head {
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.10);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.section-head:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Section Arrow Indicator
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section-head .arrow {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.15s, color 0.12s ease;
+}
+
+.section-head.open .arrow {
+  transform: rotate(90deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Section Body (Collapsible Content)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section-body {
+  padding: 10px 16px 14px;
+  display: none;
+}
+
+.section-body.open {
+  display: block;
+}

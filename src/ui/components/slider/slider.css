@@ -1,0 +1,317 @@
+/**
+ * @fileoverview Slider Component Styles
+ * Custom range sliders with visual markers, fill indicators, and value displays
+ * Used for parameter adjustment throughout the application
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Slider Container & Track
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sl-range-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Track container with filled background */
+.sl-track-container {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+.sl-track-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1px;
+  background: var(--border-strong);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sl-track-fill {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  background: var(--text);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Markers & Labels
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Markers and labels container - positioned at track level */
+.sl-markers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  z-index: 0;
+}
+
+.sl-marker {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  top: 50%;
+}
+
+.sl-marker-line {
+  width: 1px;
+  height: 12px;
+  background: var(--border-strong);
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.sl-marker-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  color: var(--faint);
+  white-space: nowrap;
+  position: absolute;
+  top: 50%;
+  margin-top: 8px;
+}
+
+/* Min label - shift right to avoid overflow */
+.sl-marker.min .sl-marker-label {
+  left: 0;
+  transform: translateX(0);
+}
+
+/* Max label - shift left to avoid overflow */
+.sl-marker.max .sl-marker-label {
+  right: 0;
+  left: auto;
+  transform: translateX(0);
+}
+
+/* Zero marker - same size and color as others */
+.sl-marker.zero .sl-marker-line {
+  height: 12px;
+  background: var(--border-strong);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Range Input Styling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+input[type="range"] {
+  width: 100%;
+  margin: 0;
+  height: 28px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 28px;
+  background: var(--text);
+  border-radius: 0;
+  margin-top: -13.5px;
+  box-shadow: 
+    2px 2px 4px rgba(0,0,0,0.35),
+    -2px 2px 4px rgba(0,0,0,0.25),
+    2px -2px 4px rgba(0,0,0,0.25),
+    -2px -2px 4px rgba(0,0,0,0.25);
+  transition: background 0.1s ease, box-shadow 0.08s ease;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb,
+input[type="range"]:active::-webkit-slider-thumb {
+  background: var(--muted);
+  box-shadow: 
+    2px 2px 6px rgba(0,0,0,0.40),
+    -2px 2px 6px rgba(0,0,0,0.30),
+    2px -2px 6px rgba(0,0,0,0.30),
+    -2px -2px 6px rgba(0,0,0,0.30);
+}
+
+input[type="range"]:hover ~ .sl-track-fill {
+  opacity: 0.75;
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: transparent;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 8px;
+  height: 26px;
+  background: var(--text);
+  border: none;
+  border-radius: 0;
+  box-shadow: 
+    2px 2px 4px rgba(0,0,0,0.35),
+    -2px 2px 4px rgba(0,0,0,0.25),
+    2px -2px 4px rgba(0,0,0,0.25),
+    -2px -2px 4px rgba(0,0,0,0.25);
+  transition: background 0.1s ease, box-shadow 0.08s ease;
+}
+
+input[type="range"]:hover::-moz-range-thumb,
+input[type="range"]:active::-moz-range-thumb {
+  background: var(--muted);
+  box-shadow: 
+    2px 2px 6px rgba(0,0,0,0.40),
+    -2px 2px 6px rgba(0,0,0,0.30),
+    2px -2px 6px rgba(0,0,0,0.30),
+    -2px -2px 6px rgba(0,0,0,0.30);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Slider Value Input
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Editable numeric input next to slider */
+input.slider-num {
+  width: 100%;
+  min-width: 0;
+  background: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--text);
+  color: var(--bg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  text-align: right;
+  padding: 6px 6px;
+  height: 28px;
+  box-sizing: border-box;
+  outline: none;
+  -moz-appearance: textfield;
+  box-shadow: none;
+  cursor: text;
+  transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+
+input.slider-num::-webkit-outer-spin-button,
+input.slider-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+input.slider-num:hover,
+input.slider-num:focus {
+  background: var(--border);
+  color: var(--text);
+  border-bottom-color: var(--border-strong);
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Slider Row Layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Slider row: label above, track + value inline */
+.sl-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 7px 9px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 1px 4px rgba(0,0,0,0.09),
+    inset 0 2px 7px rgba(0,0,0,0.05),
+    0 1px 0 rgba(255,255,255,0.70);
+}
+
+.section-body > .sl-row:first-child,
+.section-body > *:first-child .sl-row:first-child {
+  margin-top: 0;
+}
+
+.sl-row label {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  line-height: 1.3;
+}
+
+.sl-track-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sl-row .sl-val-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 52px;
+  height: 28px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Paired Dimension Labels (Special Layout)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Paired dim-label layout (half-width each) */
+.dim-pair-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.dim-pair-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dim-pair-cell label {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  line-height: 1.3;
+}
+
+/* ─── Picker label styles moved to src/ui/components/picker/picker-label.css ─── */

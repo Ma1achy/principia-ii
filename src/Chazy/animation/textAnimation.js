@@ -30,7 +30,7 @@ const DEBUG_DELETION = false;
 
 // Timing bounds to prevent unreadable extremes
 const SPEED_BOUNDS = {
-  min: 40,    // Raised from 30ms - prevents machine-gun typing
+  min: 30,    // Never faster than 30ms/char (readability floor)
   max: 200    // Never slower than 200ms/char (feels broken/frozen)
 };
 
@@ -48,10 +48,6 @@ const DISPLAY_BOUNDS = {
   min: 1500,   // Never less than 1.5s visible (too brief to read)
   max: 15000   // Never more than 15s visible (feels stuck)
 };
-
-// NEW: Global animation run tracking (prevents stale completions)
-let globalAnimationRunId = 0;
-let currentActiveRunId = 0;
 
 // QWERTY keyboard adjacency map for realistic typos
 const QWERTY_NEIGHBORS = {
@@ -444,97 +440,87 @@ const animationMomentum = new AnimationMomentum();
 
 function getTypingParams(emotion, intensity) {
   const params = {
-    baseSpeed: 70,              // Slower default (was 50)
-    speedVariation: 0.15,       // Much lower jitter (was 0.3)
+    baseSpeed: 50,
+    speedVariation: 0.3,
     typoChance: 0.03,
-    pauseChance: 0.08,          // Slightly lower (was 0.1)
+    pauseChance: 0.1,
     pauseDuration: 200,
-    emphasisMultiplier: 1.0     // NEW: for intentional slowdowns on punctuation
   };
 
   switch (emotion) {
     case 'BORED':
       params.baseSpeed = 120 + (1.0 - intensity) * 80;
-      params.speedVariation = 0.2;        // Reduced (was 0.25)
+      params.speedVariation = 0.25;
       params.typoChance = 0.015 + intensity * 0.01;
-      params.pauseChance = 0.25;          // Reduced (was 0.3)
+      params.pauseChance = 0.3;
       params.pauseDuration = 400 + (1.0 - intensity) * 300;
-      params.emphasisMultiplier = 1.5;    // NEW: Strong emphasis
       break;
 
     case 'EXCITED':
+      // Use damped intensity to prevent extreme speeds (calm ethereal character)
       {
-        const damped = dampedIntensity(intensity, 2.0);
-        params.baseSpeed = 60 - damped * 10;  // Range: 50-60ms (was 35-50ms)
-        params.speedVariation = 0.2;          // ±20% (was 0.4)
+        const damped = dampedIntensity(intensity, 2.5);  // Stronger damping curve
+        params.baseSpeed = 65 - damped * 20;  // Range: 45-65ms (was 35-50ms)
+        params.speedVariation = 0.35;  // Reduced from 0.4
         params.typoChance = 0.025 + intensity * 0.025;
         params.pauseChance = 0.05;
         params.pauseDuration = 100;
-        params.emphasisMultiplier = 0.95;     // NEW: Slightly quicker emphasis
       }
       break;
 
     case 'CONCERNED':
-      params.baseSpeed = 95 + (1.0 - intensity) * 35;
-      params.speedVariation = 0.25;           // Reduced (was 0.3)
+      params.baseSpeed = 95 + (1.0 - intensity) * 35;  // Range: 95-130ms (was 80-120ms)
+      params.speedVariation = 0.3;
       params.typoChance = 0.02 + intensity * 0.015;
       params.pauseChance = 0.2;
       params.pauseDuration = 300 + intensity * 200;
-      params.emphasisMultiplier = 1.2;        // NEW: Moderate emphasis
       break;
 
     case 'SURPRISED':
+      // Use damped intensity for smoother scaling (calm ethereal character)
       {
-        const damped = dampedIntensity(intensity, 2.0);
-        params.baseSpeed = 65 - damped * 10;  // Range: 55-65ms (was 40-55ms)
-        params.speedVariation = 0.25;         // ±25% (was 0.5!)
+        const damped = dampedIntensity(intensity, 2.5);  // Stronger damping curve
+        params.baseSpeed = 65 - damped * 15;  // Range: 50-65ms (was 40-55ms)
+        params.speedVariation = 0.4;  // Reduced from 0.5
         params.typoChance = 0.035 + intensity * 0.03;
-        params.pauseChance = 0.12;            // Reduced (was 0.15)
+        params.pauseChance = 0.15;
         params.pauseDuration = 200;
-        params.emphasisMultiplier = 1.2;      // NEW: Moderate emphasis
       }
       break;
 
     case 'AMUSED':
-      params.baseSpeed = 60;                  // Slightly slower (was 55)
-      params.speedVariation = 0.25;           // Reduced (was 0.35)
+      params.baseSpeed = 55;
+      params.speedVariation = 0.35;
       params.typoChance = 0.025;
       params.pauseChance = 0.12;
       params.pauseDuration = 250;
-      params.emphasisMultiplier = 1.1;        // NEW: Slight emphasis
       break;
 
     case 'ANALYTICAL':
-      params.baseSpeed = 65;                  // Slightly slower (was 60)
-      params.speedVariation = 0.18;           // Slightly reduced (was 0.2)
+      params.baseSpeed = 60;
+      params.speedVariation = 0.2;
       params.typoChance = 0.015;
       params.pauseChance = 0.15;
       params.pauseDuration = 300;
-      params.emphasisMultiplier = 1.3;        // NEW: Strong emphasis
       break;
 
     case 'CONTEMPLATIVE':
       params.baseSpeed = 90 + (1.0 - intensity) * 60;
-      params.speedVariation = 0.3;            // Reduced (was 0.4)
+      params.speedVariation = 0.4;
       params.typoChance = 0.02;
-      params.pauseChance = 0.2;               // Reduced (was 0.25)
+      params.pauseChance = 0.25;
       params.pauseDuration = 350 + (1.0 - intensity) * 250;
-      params.emphasisMultiplier = 1.4;        // NEW: Very strong emphasis
       break;
 
     case 'CURIOUS':
-      params.baseSpeed = 55;                  // Slightly slower (was 50)
-      params.speedVariation = 0.25;           // Reduced (was 0.35)
+      params.baseSpeed = 50;
+      params.speedVariation = 0.35;
       params.typoChance = 0.02;
       params.pauseChance = 0.12;
       params.pauseDuration = 220;
-      params.emphasisMultiplier = 1.0;        // NEW: Neutral emphasis
       break;
 
-    default:  // NEUTRAL
-      params.baseSpeed = 70;                  // Slower (was 50)
-      params.speedVariation = 0.2;            // Reduced (was 0.3)
-      params.emphasisMultiplier = 1.0;        // NEW: Neutral emphasis
+    default:
       break;
   }
 
@@ -923,12 +909,6 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
     return () => {};
   }
   
-  // NEW: Generate unique run ID for this animation instance
-  const animationRunId = ++globalAnimationRunId;
-  currentActiveRunId = animationRunId;
-  
-  console.log(`[Animation] Starting typing run ${animationRunId}`);
-  
   const {
     emotion = 'NEUTRAL',
     intensity = 0.5,
@@ -983,17 +963,8 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
   // Prevent double onComplete() calls in edge cases (interrupts, errors)
   let finished = false;
   function finishOnce() {
-    // NEW: Guard by run ID (prevents stale completions)
-    if (animationRunId !== currentActiveRunId) {
-      console.log(`[Animation] Stale completion ignored (run ${animationRunId} vs current ${currentActiveRunId})`);
-      return;
-    }
-    
     if (finished) return;
     finished = true;
-    
-    console.log(`[Animation] Typing completed (run ${animationRunId})`);
-    
     if (onComplete) onComplete();
   }
 
@@ -1404,43 +1375,53 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
   }
 
   // Humanized per-character start delay (punctuation pauses, word boundaries, hesitations)
-  function getHumanizedStepDelay(index, baseSpeed, emphasisMultiplier) {
+  function getHumanizedStepDelay(index) {
     const char = chars[index];
     const prevChar = index > 0 ? chars[index - 1] : '';
 
-    // Start with base speed (not varied speed)
-    let delay = baseSpeed;
+    // Base cadence randomness
+    const delayVariation = 1.0 + ((Math.random() - 0.5) * 2 * typingParams.speedVariation);
+    let delay = cascadeDelay * delayVariation;
     
-    // Apply small base variation (not compounding)
-    const baseVariation = 0.9 + Math.random() * 0.2;  // ±10% only (was much larger)
-    delay *= baseVariation;
+    // HARD FLOOR: Never go below 30ms per character (readability + calm character)
+    delay = Math.max(30, delay);
     
-    // Apply character complexity weight
+    // Apply character complexity weight (perceptual reading time)
     delay *= getCharacterComplexity(char);
 
-    // Micro-pause at word boundaries (slightly reduced)
+    // Micro-pause at word boundaries (space after a word)
     if (isWordBoundaryChar(char)) {
-      delay += 12 + Math.random() * 35;  // Reduced (was 15-60)
+      delay += 15 + Math.random() * 45;
     }
 
-    // Slight pause for first char after a space
+    // Slight pause for first char after a space (starting next word)
     if (isWordBoundaryChar(prevChar)) {
-      delay += 8 + Math.random() * 25;  // Reduced (was 10-45)
+      delay += 10 + Math.random() * 35;
     }
 
-    // Apply emphasis multiplier to punctuation (intentional, not random)
+    // Clause punctuation gets a pause
     if (isClausePunctuation(char)) {
-      delay *= emphasisMultiplier;
-      delay += 40 + Math.random() * 80;  // Reduced (was 60-180)
+      delay += 60 + Math.random() * 120;
     }
 
+    // Sentence punctuation gets a bigger pause
     if (isSentencePunctuation(char)) {
-      delay *= emphasisMultiplier * 1.5;
-      delay += 100 + Math.random() * 200;  // Reduced (was 140-400)
+      delay += 140 + Math.random() * 260;
     }
 
-    // Remove old random hesitation system (was too chaotic)
-    // Punctuation emphasis above replaces this
+    // Optional random hesitation (uses existing pauseChance/pauseDuration params!)
+    // Bias toward occurring at boundaries / punctuation rather than random mid-word
+    const hesitationBias =
+      (isWordBoundaryChar(char) ? 1.5 : 1.0) *
+      (isPunctuation(char) ? 1.8 : 1.0) *
+      (isWordBoundaryChar(prevChar) ? 1.2 : 1.0);
+
+    const effectivePauseChance = clamp01(typingParams.pauseChance * hesitationBias * 0.6);
+
+    if (Math.random() < effectivePauseChance) {
+      const jitter = 0.6 + Math.random() * 0.8; // 0.6x to 1.4x
+      delay += typingParams.pauseDuration * jitter;
+    }
 
     if (DEBUG_TYPING) {
       console.log('[TypingDelay]', { index, char, prevChar, delay: Math.round(delay) });
@@ -1476,16 +1457,8 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
 
         // Humanized staggered delay between character starts
         if (index > 0) {
-          const rawDelay = getHumanizedStepDelay(
-            index, 
-            typingParams.baseSpeed,
-            typingParams.emphasisMultiplier  // NEW: pass emphasis multiplier
-          );
-          
-          // NEW: Apply momentum smoothing to final delay
-          const smoothedDelay = animationMomentum.update(rawDelay);
-          
-          const okDelay = await safeTimeout(smoothedDelay);
+          const stepDelay = getHumanizedStepDelay(index);
+          const okDelay = await safeTimeout(stepDelay);
           if (!okDelay) return;
         }
 
@@ -1574,66 +1547,24 @@ export function animateTextInTyping(element, targetText, onComplete, options = {
   setCursorBoundary(0);
   run();
 
-  // Return object with cancel methods
-  const cancelObj = {
-    cancel(mode = 'clear') {
-      if (cancelled) return; // Already cancelled
-      
-      console.log(`[Animation] Cancelling run ${animationRunId} with mode: ${mode}`);
-      
-      cancelled = true;
-      
-      // NEW: Invalidate this and all prior runs
-      if (animationRunId === currentActiveRunId) {
-        currentActiveRunId++;
-      }
-      
-      // Cancel all pending operations
-      animationFrames.forEach(raf => cancelAnimationFrame(raf));
-      timeouts.forEach(t => clearTimeout(t));
-      animationFrames.length = 0;
-      timeouts.length = 0;
-      
-      // Apply cancel mode
-      switch (mode) {
-        case 'clear':
-          // Abort and clear (interrupt)
-          element.textContent = '';
-          break;
-          
-        case 'complete':
-          // Skip animation but show final text (instant complete)
-          element.textContent = cleanPauseMarkers(targetText);
-          break;
-          
-        case 'freeze':
-          // Leave partial text as-is
-          // Do nothing - text stays at current state
-          break;
-          
-        default:
-          console.warn(`[Animation] Unknown cancel mode: ${mode}, defaulting to clear`);
-          element.textContent = '';
-      }
-      
-      // Add cursor in all cases
+  return (partialOnly = false) => {
+    cancelled = true;
+    animationFrames.forEach(raf => cancelAnimationFrame(raf));
+    timeouts.forEach(t => clearTimeout(t));
+
+    // If partialOnly, keep whatever text has been typed so far (for graceful interrupts)
+    // Otherwise, snap to full text (for normal completion/legacy behavior)
+    if (!partialOnly) {
+      element.textContent = targetText;
       const finalCursor = document.createElement('span');
       finalCursor.className = 'text-cursor blinking';
       finalCursor.textContent = '█';
       element.appendChild(finalCursor);
-      
-      // Only call finishOnce if NOT already completed
-      if (!finished) {
-        finishOnce();
-      }
     }
+    // else: leave partial text as-is for clear strategy to handle
+
+    finishOnce();
   };
-  
-  // Make cancelObj callable as function (backwards compatibility)
-  const cancelFn = cancelObj.cancel.bind(cancelObj, 'clear');
-  cancelFn.cancel = cancelObj.cancel;
-  
-  return cancelFn;
 }
 
 // Copy deletion animation from textAnimation.js (preserving full implementation)
@@ -1730,12 +1661,6 @@ export function animateTextOut(element, onComplete, options = {}) {
     return () => {};
   }
   
-  // NEW: Generate unique run ID
-  const animationRunId = ++globalAnimationRunId;
-  currentActiveRunId = animationRunId;
-  
-  console.log(`[Animation] Starting deletion run ${animationRunId}`);
-  
   const {
     emotion = 'NEUTRAL',
     intensity = 0.5,
@@ -1778,12 +1703,6 @@ export function animateTextOut(element, onComplete, options = {}) {
   // Prevent double onComplete() calls
   let finished = false;
   function finishOnce() {
-    // NEW: Guard by run ID
-    if (animationRunId !== currentActiveRunId) {
-      console.log(`[Animation] Stale deletion completion ignored (run ${animationRunId})`);
-      return;
-    }
-    
     if (finished) return;
     finished = true;
     if (onComplete) onComplete();
@@ -2041,15 +1960,8 @@ export function animateTextOut(element, onComplete, options = {}) {
   const initialTimeout = setTimeout(deleteNext, initialDeleteDelay);
   timeouts.push(initialTimeout);
 
-  return () => {
-    if (cancelled) return;
+  return (partialOnly = false) => {
     cancelled = true;
-    
-    // NEW: Invalidate this and all prior runs
-    if (animationRunId === currentActiveRunId) {
-      currentActiveRunId++;
-    }
-    
     timeouts.forEach(t => clearTimeout(t));
     if (cursor) cursor.remove();
     element.textContent = '';

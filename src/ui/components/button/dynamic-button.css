@@ -1,0 +1,62 @@
+/**
+ * @fileoverview Dynamic Button Styles
+ * Buttons with automatic text-fitting behavior
+ * 
+ * Font-size and letter-spacing are maximum values.
+ * DynamicButton.js reads these and may reduce them to fit text.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dynamic Button
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Dynamic buttons inherit from base .btn styles (defined in style.css)
+ * Additional styles specific to text-fitting behavior:
+ */
+.btn.dynamic-btn {
+  /* Typography - MAXIMUM VALUES (JS may reduce) */
+  font-size: 25px;              /* Maximum font-size - JS reduces if text too long */
+  letter-spacing: 0.06em;       /* Initial letter-spacing - JS adjusts 0.00-0.50em */
+  
+  /* Layout constraints for text fitting */
+  padding: 10px 20px;           /* Horizontal padding for text breathing room */
+  height: 40px;                 /* Fixed height - text scales to fit */
+  min-height: 30px;             /* Minimum height fallback */
+  
+  /* Text behavior */
+  white-space: nowrap;          /* Prevent text wrapping - text-fit handles sizing */
+  overflow: hidden;             /* Hide any overflow */
+  
+  /* Visual alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Rendering optimization */
+  text-rendering: geometricPrecision;  /* Better rendering for scaled text */
+  -webkit-font-smoothing: antialiased;  /* Maintain visual weight */
+  -moz-osx-font-smoothing: grayscale;   /* Maintain visual weight on Mac */
+}
+
+/**
+ * Button groups (typically used in dialogs)
+ * Layout is handled by parent container, not button styles
+ */
+.dialog-buttons .btn.dynamic-btn {
+  /* Inherits all .btn.dynamic-btn styles */
+  /* No additional overrides needed */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .btn.dynamic-btn {
+    /* Reduce maximum font-size on smaller screens */
+    font-size: 20px;
+    padding: 8px 16px;
+    height: 36px;
+  }
+}

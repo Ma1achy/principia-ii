@@ -1,0 +1,78 @@
+/**
+ * @fileoverview Legend Panel Styles
+ * Legend panel showing color mappings below the canvas
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Legend Panel
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#legend-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  z-index: 2;
+  margin-left: 48px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  min-height: 40px;
+  box-sizing: border-box;
+  width: min(calc(100vw - 460px), 80vh);
+}
+
+#legend-panel .leg-title {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  align-self: center;
+  padding-right: 6px;
+  border-right: 1px solid var(--rule);
+  margin-right: 2px;
+}
+
+#legend-panel .leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+#legend-panel .leg-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+#legend-panel .leg-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 100px;
+}
+
+#legend-panel .leg-bar {
+  height: 10px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+#legend-panel .leg-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  width: 100%;
+}
