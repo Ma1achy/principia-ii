@@ -28,7 +28,7 @@ export class TextStateMachine {
     this.onUpdateCallback = onUpdateCallback;
     
     // FSM state
-    this.currentState = 'IDLE';
+    this._enterIdle();
     this.currentAnimationCancel = null;
     this.currentTimer = null;
     this.pendingLine = null;
@@ -66,11 +66,28 @@ export class TextStateMachine {
     // NEW: Clear strategy lock (prevent concurrent clears)
     this._clearInProgress = false;
     
+    // Full line currently being shown (for resize refit during typing/deletion)
+    this.currentDisplayLine = null;
+    
     // NEW: Cleanup interval for interrupt history
     this._cleanupInterval = setInterval(() => this._cleanupInterruptHistory(), 10000); // Every 10s
     
     // Show blinking cursor immediately on construction
     this._showInitialCursor();
+  }
+  
+  /** Transition to IDLE and clear current-display line (for refit during typing) */
+  _enterIdle() {
+    this.currentState = 'IDLE';
+    this.currentDisplayLine = null;
+  }
+  
+  /**
+   * Full line text currently being typed or deleted (for resize refit).
+   * @returns {string|null} The full line, or null when idle.
+   */
+  getCurrentFullLine() {
+    return this.currentDisplayLine || null;
   }
   
   _showInitialCursor() {
@@ -390,13 +407,13 @@ export class TextStateMachine {
                 element.classList.remove('has-selection', 'interrupting');
                 element.style.minWidth = '';
                 element.style.maxWidth = '';
-                this.currentState = 'IDLE';
+                this._enterIdle();
                 this._clearInProgress = false;
                 resolve();
               }, 120);
             } else {
               element.classList.remove('has-selection', 'interrupting');
-              this.currentState = 'IDLE';
+              this._enterIdle();
               this._clearInProgress = false;
               resolve();
             }
@@ -415,20 +432,20 @@ export class TextStateMachine {
             element.style.minWidth = '';
             element.style.maxWidth = '';
             element.textContent = '';
-            this.currentState = 'IDLE';
+            this._enterIdle();
             this._clearInProgress = false;
             resolve();
             break;
           
           default:
             // Unknown strategy, just go to IDLE
-            this.currentState = 'IDLE';
+            this._enterIdle();
             this._clearInProgress = false;
             resolve();
         }
       } catch (error) {
         console.error('[FSM] Error in _executeClearStrategy:', error);
-        this.currentState = 'IDLE';
+        this._enterIdle();
         this._clearInProgress = false;
         resolve();
       }
@@ -580,7 +597,7 @@ export class TextStateMachine {
       });
     } catch (error) {
       console.error('[FSM] Error in processLine:', error);
-      this.currentState = 'IDLE';
+      this._enterIdle();
     }
   }
   
@@ -588,24 +605,25 @@ export class TextStateMachine {
     // Defensive null checks
     if (!line || typeof line !== 'string') {
       console.error('[FSM] Invalid line in startTyping:', line);
-      this.currentState = 'IDLE';
+      this._enterIdle();
       return;
     }
     
     if (!config || typeof config !== 'object') {
       console.error('[FSM] Invalid config in startTyping');
-      this.currentState = 'IDLE';
+      this._enterIdle();
       return;
     }
     
     if (!config.onComplete || typeof config.onComplete !== 'function') {
       console.error('[FSM] Missing or invalid onComplete callback');
-      this.currentState = 'IDLE';
+      this._enterIdle();
       return;
     }
     
     try {
       this.currentState = 'TYPING';
+      this.currentDisplayLine = line;
       
       // Track multi-line sequence state (passed from orchestrator)
       this.inMultiLineSequence = config.inMultiLineSequence || false;
@@ -653,7 +671,7 @@ export class TextStateMachine {
       });
     } catch (error) {
       console.error('[FSM] Error in startTyping:', error);
-      this.currentState = 'IDLE';
+      this._enterIdle();
       // Try to call onComplete to prevent hanging
       if (config.onComplete) {
         setTimeout(config.onComplete, 1000);
@@ -665,13 +683,13 @@ export class TextStateMachine {
     // Defensive null checks
     if (!config || typeof config !== 'object') {
       console.error('[FSM] Invalid config in startDeleting');
-      this.currentState = 'IDLE';
+      this._enterIdle();
       return;
     }
     
     if (!config.onComplete || typeof config.onComplete !== 'function') {
       console.error('[FSM] Missing or invalid onComplete callback in startDeleting');
-      this.currentState = 'IDLE';
+      this._enterIdle();
       return;
     }
     
@@ -685,7 +703,7 @@ export class TextStateMachine {
       
       this.currentAnimationCancel = animateTextOut(this.element, () => {
         this.currentAnimationCancel = null;
-        this.currentState = 'IDLE';
+        this._enterIdle();
         
         // Clear welcome flag once text completes (allows future interrupts)
         this.isWelcomeText = false;
@@ -711,7 +729,7 @@ export class TextStateMachine {
       });
     } catch (error) {
       console.error('[FSM] Error in startDeleting:', error);
-      this.currentState = 'IDLE';
+      this._enterIdle();
       // Try to call onComplete to prevent hanging
       if (config.onComplete) {
         setTimeout(config.onComplete, 1000);
@@ -738,7 +756,7 @@ export class TextStateMachine {
         clearTimeout(this.currentTimer);
         this.currentTimer = null;
       }
-      this.currentState = 'IDLE';
+      this._enterIdle();
       return true;
     }
     console.log('[FSM Interrupt] Rejected - state:', this.currentState);

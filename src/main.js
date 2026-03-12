@@ -102,20 +102,17 @@ let selectTracker = null;
 let patternDetector = null;
 
 // Update layout on resize/changes
-let layoutUpdateTimeout = null;
+let layoutUpdateRafId = null;
 function updateChazyLayout() {
-  // Always clear any pending timeout to ensure fresh calculation
-  if (layoutUpdateTimeout) {
-    clearTimeout(layoutUpdateTimeout);
-    layoutUpdateTimeout = null;
+  if (layoutUpdateRafId != null) {
+    cancelAnimationFrame(layoutUpdateRafId);
+    layoutUpdateRafId = null;
   }
-  
-  // Use requestAnimationFrame to batch with browser layout
-  layoutUpdateTimeout = requestAnimationFrame(() => {
+  layoutUpdateRafId = requestAnimationFrame(() => {
     const bbox = computeTitleBoundingBox();
     console.log('[Main] Layout calculated:', bbox);
     chazy.updateLayout(bbox);
-    layoutUpdateTimeout = null;
+    layoutUpdateRafId = null;
   });
 }
 

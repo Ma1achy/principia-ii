@@ -39,6 +39,7 @@ export class ChazyView {
     };
     
     this.isApplyingLayout = false; // Prevent recursive layout
+    this._pendingRefitRafId = null; // So we cancel previous refit when layout updates again
   }
   
   /**
@@ -102,26 +103,22 @@ export class ChazyView {
    * Update layout constraints (called by external layout system)
    */
   updateConstraints(constraints) {
-    // Prevent recursive layout updates
-    if (this.isApplyingLayout) {
-      return;
-    }
-    
+    if (this.isApplyingLayout) return;
     this.constraints = { ...this.constraints, ...constraints };
     this.applyLayout();
-    
-    // If subtitle has content, refit it to new constraints
-    // (Only if not already handled by applyLayout)
-    if (!this.isApplyingLayout && 
-        this.elements.subtitle && 
-        this.elements.subtitle.textContent.trim().length > 0) {
-      // Use requestAnimationFrame to ensure layout is settled
-      requestAnimationFrame(() => {
-        if (!this.isApplyingLayout) {
-          this._refitSubtitleToConstraints();
-        }
-      });
+    // Schedule refit for next frame; cancel any previous pending refit so only latest runs
+    if (!this.elements?.subtitle) return;
+    const hasContent = this.textStateMachine?.getCurrentFullLine?.() ||
+      this.elements.subtitle.textContent.trim().length > 0;
+    if (!hasContent) return;
+    if (this._pendingRefitRafId != null) {
+      cancelAnimationFrame(this._pendingRefitRafId);
+      this._pendingRefitRafId = null;
     }
+    this._pendingRefitRafId = requestAnimationFrame(() => {
+      this._pendingRefitRafId = null;
+      if (!this.isApplyingLayout) this._refitSubtitleToConstraints();
+    });
   }
   
   /**
@@ -216,36 +213,56 @@ export class ChazyView {
    * @private
    */
   _refitSubtitleToConstraints() {
-    // Defensive checks
-    if (!this.elements || !this.elements.subtitle || !this.elements.title) {
+    if (!this.elements?.subtitle || !this.elements.title) {
       console.warn('[ChazyView] Missing elements in _refitSubtitleToConstraints');
       return;
     }
-    
     try {
       const { maxFontSize, availableWidth } = this.constraints;
       const { title, subtitle } = this.elements;
-      
-      // Reset font size to base size (might have been reduced on previous text)
       const subtitleFontSize = maxFontSize * this.config.subtitleFontRatio;
       subtitle.style.fontSize = `${subtitleFontSize}px`;
-      
-      // Update max-width constraint (important for resize)
       const opticalCorrection = maxFontSize * this.config.opticalCorrection;
       const subtitleMaxWidth = availableWidth - opticalCorrection;
       subtitle.style.maxWidth = `${subtitleMaxWidth}px`;
-      
-      // Force reflow to get accurate measurement
       subtitle.offsetHeight;
-      
       const titleWidth = title.getBoundingClientRect().width;
-      
-      // Target width: smaller of title match or available space
       const idealTitleMatch = titleWidth * this.config.subtitleWidthRatio;
       const targetWidth = Math.min(idealTitleMatch, subtitleMaxWidth);
-      
-      // Re-adjust letter-spacing for the new content
-      this._fitTrackingToWidth(subtitle, targetWidth);
+      const fullLine = this.textStateMachine?.getCurrentFullLine?.();
+      const currentContent = subtitle.textContent.replace(/█/g, '').trim();
+      if (typeof fullLine === 'string' && fullLine.length > 0) {
+        console.log('[ChazyView] Refit using full line:', { 
+          fullLineLength: fullLine.length, 
+          currentContentLength: currentContent.length,
+          fullLine: fullLine.substring(0, 50) + (fullLine.length > 50 ? '...' : ''),
+          targetWidth 
+        });
+        const temp = document.createElement('span');
+        const cs = window.getComputedStyle(subtitle);
+        temp.style.cssText = `position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font-size:${subtitleFontSize}px;font-family:${cs.fontFamily};font-weight:${cs.fontWeight};text-transform:${cs.textTransform};line-height:${cs.lineHeight};letter-spacing:${cs.letterSpacing};`;
+        temp.textContent = fullLine;
+        document.body.appendChild(temp);
+        this._fitTrackingToWidth(temp, targetWidth);
+        const newLetterSpacing = temp.style.letterSpacing;
+        const newFontSize = temp.style.fontSize;
+        temp.remove();
+        
+        // Batch style updates to prevent flash
+        if (newLetterSpacing && newLetterSpacing !== cs.letterSpacing) {
+          subtitle.style.letterSpacing = newLetterSpacing;
+        }
+        if (newFontSize && newFontSize !== cs.fontSize) {
+          subtitle.style.fontSize = newFontSize;
+        }
+      } else {
+        console.log('[ChazyView] Refit using current DOM:', { 
+          currentContentLength: currentContent.length,
+          fullLineAvailable: !!fullLine,
+          targetWidth 
+        });
+        this._fitTrackingToWidth(subtitle, targetWidth);
+      }
     } catch (error) {
       console.error('[ChazyView] Error in _refitSubtitleToConstraints:', error);
     }
@@ -267,13 +284,19 @@ export class ChazyView {
       const { title, subtitle } = this.elements;
       
       // Set title font size first
+      // Temporarily disable transition to get accurate measurement
+      const titleTransition = title.style.transition;
+      title.style.transition = 'none';
       title.style.fontSize = `${maxFontSize}px`;
       
-      // Force a reflow to ensure title has rendered before measuring
+      // Force a reflow to ensure title has rendered at final size before measuring
       title.offsetHeight;
       
       // Measure the actual rendered title width (optical width)
       const titleWidth = title.getBoundingClientRect().width;
+      
+      // Re-enable transition after measurement
+      title.style.transition = titleTransition;
       
       // Set subtitle font size
       const subtitleFontSize = maxFontSize * this.config.subtitleFontRatio;
@@ -297,7 +320,14 @@ export class ChazyView {
       const targetWidth = Math.min(idealTitleMatch, subtitleMaxWidth);
       
       // Adjust letter-spacing to fit subtitle under title
-      this._fitTrackingToWidth(subtitle, targetWidth);
+      // But only if no content or not animating - otherwise scheduled refit handles it
+      const fullLine = this.textStateMachine?.getCurrentFullLine?.();
+      const hasContent = subtitle.textContent.trim().length > 0;
+      if (!hasContent || !fullLine) {
+        // No animation in progress, safe to fit directly
+        this._fitTrackingToWidth(subtitle, targetWidth);
+      }
+      // else: skip fit here, let scheduled _refitSubtitleToConstraints handle it with temp element
       
       console.log('[ChazyView] Layout applied:', { 
         maxFontSize, 

@@ -20,6 +20,7 @@
   color: var(--text);
   line-height: 0.90;
   white-space: nowrap;
+  transition: font-size 0.0167s linear;
 }
 
 .chazy-subtitle {
@@ -33,6 +34,7 @@
   pointer-events: auto;
   overflow: hidden;
   text-overflow: clip;
+  transition: letter-spacing 0.0167s linear, font-size 0.0167s linear;
 }
 
 /* Cursor animation */
