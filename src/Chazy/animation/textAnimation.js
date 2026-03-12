@@ -1785,22 +1785,14 @@ export function animateTextOut(element, onComplete, options = {}) {
       // Remove selection styling
       element.classList.remove('has-selection');
       
-      // Show cursor again
-      cursor.style.opacity = '1';
+      // Instantly remove all characters (like pressing delete on selection)
+      charSpans.forEach(span => span.remove());
       
-      // Fade out characters
-      charSpans.forEach(span => span.style.opacity = '0');
-
-      const deleteTimeout = setTimeout(() => {
-        if (cancelled) return;
-
-        charSpans.forEach(span => span.remove());
-        cursor.className = 'text-cursor blinking';
-        element.style.minWidth = '';
-        element.style.maxWidth = '';
-        finishOnce();
-      }, 100);
-      timeouts.push(deleteTimeout);
+      // Show blinking cursor
+      cursor.className = 'text-cursor blinking';
+      element.style.minWidth = '';
+      element.style.maxWidth = '';
+      finishOnce();
     }, selectionPause);
     timeouts.push(timeout);
 
