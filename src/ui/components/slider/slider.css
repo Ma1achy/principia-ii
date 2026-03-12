@@ -257,6 +257,11 @@ input.slider-num:focus {
   margin-top: 0;
 }
 
+/* Gap between ±RANGE slider and Zₒ sliders (match .sl-row spacing) */
+#z0Sliders {
+  margin-top: 6px;
+}
+
 .sl-row label {
   margin: 0;
   font-size: 12.5px;
