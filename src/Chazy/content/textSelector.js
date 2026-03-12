@@ -15,25 +15,25 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
   
   switch(emotion.toUpperCase()) {
     case 'BORED':
-      multiplier = 1.5;        // Was 2.0 (too extreme)
-      minRange = 1.2;          // Was 1.5
-      maxRange = 2.0;          // Was 3.0 (way too high)
-      if (intensity < 0.2) multiplier = 2.2;  // Was 3.5 (extreme - caused 30s+ gaps)
+      multiplier = 1.5;
+      minRange = 1.2;
+      maxRange = 2.0;
+      if (intensity < 0.2) multiplier = 2.2;
       break;
       
     case 'EXCITED':
-      multiplier = 0.5;        // Changed from 0.3
-      minRange = 0.3;          // Changed from 0.1
-      maxRange = 0.8;          // Changed from 0.5
+      multiplier = 0.8;        // Was 0.5 - now much calmer (20% faster instead of 50%)
+      minRange = 0.6;          // Was 0.3 - narrower range
+      maxRange = 1.0;          // Was 0.8 - cap at normal speed
       if (intensity > 0.8) {
-        multiplier = 0.35;     // Changed from 0.15
+        multiplier = 0.7;      // Was 0.35 - still faster but not hyperactive
       }
       break;
       
     case 'SURPRISED':
-      multiplier = 0.7;        // Changed from 0.5
-      minRange = 0.5;          // Changed from 0.3
-      maxRange = 0.9;          // Changed from 0.7
+      multiplier = 0.85;       // Was 0.7 - now calmer
+      minRange = 0.7;          // Was 0.5 - less extreme
+      maxRange = 1.0;          // Was 0.9 - cap at normal
       break;
       
     case 'ANALYTICAL':
@@ -43,15 +43,15 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
       break;
       
     case 'CONTEMPLATIVE':
-      multiplier = 1.5;        // Was 1.8 (too slow)
-      minRange = 1.1;          // Was 1.3
-      maxRange = 2.0;          // Was 2.5 (too extreme)
+      multiplier = 1.5;
+      minRange = 1.1;
+      maxRange = 2.0;
       break;
       
     case 'CONCERNED':
-      multiplier = 1.0;        // Changed from 0.9
-      minRange = 0.7;          // Changed from 0.6
-      maxRange = 1.3;          // Changed from 1.2
+      multiplier = 1.0;
+      minRange = 0.7;
+      maxRange = 1.3;
       break;
       
     case 'AMUSED':
@@ -61,8 +61,8 @@ function getEmotionalIdleTime(emotion, intensity, baseDisplayTime) {
       break;
       
     case 'CURIOUS':
-      multiplier = 0.9;
-      minRange = 0.6;
+      multiplier = 0.95;       // Was 0.9 - slightly calmer
+      minRange = 0.7;          // Was 0.6 - less extreme
       maxRange = 1.2;
       break;
       

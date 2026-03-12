@@ -17,5 +17,4 @@ That avoids “I told it not to warn me and now it froze my laptop” moments.
 > figure out max tile size can render (maybe underestimate to be conservative (so half tile size?)), then using current Resolution split into N tiles, then render from middle title outwards in a spiral
 
 
->potentially a race condition bug? theres a bug with chazy text resizing? maybe to do with typing animation and window resizing... text sometimes doesnt resize?
 > inner pp + config default view? 

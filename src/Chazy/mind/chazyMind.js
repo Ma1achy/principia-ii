@@ -741,17 +741,17 @@ export class ChazyMind {
     
     // Excited + high intensity → wants to talk more (shorter delays)
     if (emotion === 'EXCITED' && intensity > 0.7) {
-      return 0.7;  // Changed from 0.5 (was too chatty)
+      return 0.9;  // Was 0.7 - now calmer (only 11% faster)
     }
     
     // Curious + high transition pressure → eager to share observations
     if (emotion === 'CURIOUS' && transitionPressure > 0.7) {
-      return 0.85;  // Changed from 0.7
+      return 0.95;  // Was 0.85 - now much calmer
     }
     
     // Surprised → wants to express quickly
     if (emotion === 'SURPRISED' && intensity > 0.5) {
-      return 0.8;  // Changed from 0.6 (give more breathing room)
+      return 0.9;  // Was 0.8 - now calmer
     }
     
     // Contemplative + low intensity → needs more silence for thought

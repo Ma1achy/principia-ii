@@ -13,6 +13,7 @@ import { ChazyMind } from './mind/chazyMind.js';
 import { TextSelector } from './content/textSelector.js';
 import { ChazyEventRouter } from './events/eventRouter.js';
 import { getStateReferences } from './content/stateReferences.js';
+import { ChazyWatchdog } from './ChazyWatchdog.js';
 
 export class Chazy {
   constructor(options = {}) {
@@ -39,6 +40,9 @@ export class Chazy {
     this.inMultiLineSequence = false;
     this.multiLineSequenceToken = null;
     
+    // WATCHDOG: Initialize watchdog for stuck state detection
+    this.watchdog = new ChazyWatchdog(this);
+    
     this.displayMinMs = options.displayMinMs || 2000;
     this.displayMaxMs = options.displayMaxMs || 10000;
   }
@@ -60,6 +64,11 @@ export class Chazy {
     if (this.running) return;
     this.running = true;
     
+    // WATCHDOG: Start monitoring
+    if (this.watchdog) {
+      this.watchdog.start();
+    }
+    
     // Emit initial ambient cycle event
     this.scheduleAmbient(0, 'startup');
     
@@ -72,6 +81,12 @@ export class Chazy {
   stop() {
     this.running = false;
     this.cancelAmbient('stop');
+    
+    // WATCHDOG: Stop monitoring
+    if (this.watchdog) {
+      this.watchdog.stop();
+    }
+    
     console.log('[Chazy] Stopped');
   }
   
@@ -255,6 +270,25 @@ export class Chazy {
   }
   
   _showLines(lines, config) {
+    // PRIMARY FIX: Block new sequences if multi-line lock held
+    // This prevents token invalidation during multi-line sequences
+    if (this.inMultiLineSequence && this.multiLineSequenceToken !== null) {
+      console.warn('[Chazy] Blocked new text - multi-line sequence in progress');
+      console.warn('[Chazy] Blocked details:', {
+        currentToken: this.multiLineSequenceToken,
+        requestedLines: lines?.length,
+        requestedSource: config?._source
+      });
+      // Don't reschedule here - let the sequence complete naturally
+      return;
+    }
+    
+    console.log('[Chazy] _showLines() starting:', {
+      lineCount: lines?.length,
+      source: config?._source,
+      multiLineActive: this.inMultiLineSequence
+    });
+    
     // Defensive null checks
     if (!lines || !Array.isArray(lines) || lines.length === 0) {
       console.error('[Chazy] Invalid lines array in _showLines');
@@ -271,19 +305,6 @@ export class Chazy {
     
     // Check if this is a multi-line sequence
     const isMultiLineSequence = lines.length > 1;
-    
-    // Mark start of multi-line sequence
-    if (isMultiLineSequence) {
-      this.inMultiLineSequence = true;
-      this.multiLineSequenceToken = token;
-      console.log(`[Chazy] Starting multi-line sequence (${lines.length} lines, token ${token})`);
-      
-      // CRITICAL: Clear any queued interrupts to prevent self-interruption during narrative
-      if (this.router && this.router.queuedImmediate) {
-        console.log('[Chazy] Clearing queued interrupt for multi-line sequence');
-        this.router.queuedImmediate = null;
-      }
-    }
     
     // Track total text length for idle calculation
     // NOTE: Text has \ref{} already replaced, but \pause{} markers still present
@@ -370,10 +391,13 @@ export class Chazy {
       // Check rarity for object lines
       if (isObject && lineItem.rarity !== undefined) {
         if (Math.random() > lineItem.rarity) {
-          console.log(`[Chazy] Rare line skipped (rarity=${lineItem.rarity})`);
+          console.log(`[Chazy] Rare line skipped (rarity=${lineItem.rarity}), moving to line ${lineIndex + 1}`);
           
           // Skip this line, try next
           if (lineIndex < lines.length - 1) {
+            // WATCHDOG: Record skip event (prevents false stuck detection)
+            this._recordWatchdogState();
+            
             showLine(lineIndex + 1);
           } else {
             // Clear multi-line state before emitting text_complete (no more lines to show)
@@ -540,6 +564,10 @@ export class Chazy {
           inMultiLineSequence: isMultiLineSequence,  // Pass multi-line state to FSM
           isLastInSequence: isMultiLine && lineIndex === lines.length - 1  // Track last line for cleanup
         });
+        
+        // WATCHDOG: Record state after starting display
+        this._recordWatchdogState();
+        
       } catch (error) {
         console.error('[Chazy] Error in view.showText:', error);
         // Clear multi-line state on error to prevent lock
@@ -563,13 +591,59 @@ export class Chazy {
       }
     };
     
+    // PRIMARY FIX: Set multi-line flag NOW (after all validation, right before starting)
+    // This ensures flag is only set if sequence actually starts, preventing stuck flags
+    if (isMultiLineSequence) {
+      this.inMultiLineSequence = true;
+      this.multiLineSequenceToken = token;
+      console.log(`[Chazy] Starting multi-line sequence (${lines.length} lines, token ${token})`);
+      
+      // CRITICAL: Clear any queued interrupts to prevent self-interruption during narrative
+      if (this.router && this.router.queuedImmediate) {
+        console.log('[Chazy] Clearing queued interrupt for multi-line sequence');
+        this.router.queuedImmediate = null;
+      }
+    }
+    
     showLine(0);
+    
+    // WATCHDOG: Record initial state for watchdog
+    this._recordWatchdogState();
+    console.log('[Chazy] Sequence started, watchdog recording initiated');
   }
   
   _tryInterrupt() {
     if (this.view.interrupt()) {
       console.log('[Chazy] Interrupted - selecting new text');
       this.selectAndShowAmbient();
+    }
+  }
+  
+  /**
+   * WATCHDOG: Record current state for watchdog monitoring
+   */
+  _recordWatchdogState() {
+    if (!this.watchdog) {
+      console.warn('[Chazy] Watchdog not initialized, skipping state recording');
+      return;
+    }
+    
+    try {
+      const snapshot = {
+        fsmState: this.view?.textStateMachine?.currentState || 'UNKNOWN',
+        textContent: this.view?.elements?.subtitle?.textContent || '',
+        lockHeld: this.inMultiLineSequence,
+        timestamp: Date.now()
+      };
+      
+      this.watchdog.recordState(snapshot);
+      
+      // Log if debug enabled
+      if (typeof window !== 'undefined' && window.chazyDebug?.orchestrator) {
+        console.log('[Chazy] Watchdog state recorded:', snapshot);
+      }
+    } catch (error) {
+      console.error('[Chazy] Error recording watchdog state:', error);
     }
   }
 }
