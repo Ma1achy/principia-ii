@@ -451,6 +451,7 @@ export class Chazy {
       
       let nextIdleTime;
       let nextCallback;
+      let watchdogRecordingInterval = null;  // Store interval reference for cleanup
       
       // Check if this is multiline by looking at total lines
       const isMultiLine = lines.length > 1;
@@ -465,6 +466,12 @@ export class Chazy {
           }
           
           nextCallback = () => {
+            // Clean up watchdog recording interval
+            if (watchdogRecordingInterval) {
+              clearInterval(watchdogRecordingInterval);
+              watchdogRecordingInterval = null;
+            }
+            
             // Validate token before continuing
             if (token !== this.currentTextToken) {
               console.log(`[Chazy] Stale multi-line callback ignored (token ${token})`);
@@ -483,6 +490,12 @@ export class Chazy {
         } else {
           nextIdleTime = config.idleTime || 2000;
           nextCallback = () => {
+            // Clean up watchdog recording interval
+            if (watchdogRecordingInterval) {
+              clearInterval(watchdogRecordingInterval);
+              watchdogRecordingInterval = null;
+            }
+            
             // Validate token before emitting
             if (token !== this.currentTextToken) {
               console.log(`[Chazy] Stale completion ignored (token ${token})`);
@@ -515,6 +528,12 @@ export class Chazy {
       } else {
         nextIdleTime = config.idleTime || 2000;
         nextCallback = () => {
+          // Clean up watchdog recording interval
+          if (watchdogRecordingInterval) {
+            clearInterval(watchdogRecordingInterval);
+            watchdogRecordingInterval = null;
+          }
+          
           // Validate token before emitting
           if (token !== this.currentTextToken) {
             console.log(`[Chazy] Stale completion ignored (token ${token})`);
@@ -568,8 +587,27 @@ export class Chazy {
         // WATCHDOG: Record state after starting display
         this._recordWatchdogState();
         
+        // WATCHDOG: Set up periodic recording during animation to detect progress
+        // This prevents false stuck detection during slow typing animations
+        watchdogRecordingInterval = setInterval(() => {
+          if (token === this.currentTextToken) {
+            // Still valid token, record state to show animation progress
+            this._recordWatchdogState();
+          } else {
+            // Token changed, this sequence is stale - stop recording
+            clearInterval(watchdogRecordingInterval);
+          }
+        }, 5000); // Record every 5s during animation
+        
       } catch (error) {
         console.error('[Chazy] Error in view.showText:', error);
+        
+        // Clean up watchdog recording interval
+        if (watchdogRecordingInterval) {
+          clearInterval(watchdogRecordingInterval);
+          watchdogRecordingInterval = null;
+        }
+        
         // Clear multi-line state on error to prevent lock
         if (isMultiLineSequence && this.multiLineSequenceToken === token) {
           this.inMultiLineSequence = false;
