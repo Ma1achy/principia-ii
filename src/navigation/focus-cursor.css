@@ -1,0 +1,99 @@
+/**
+ * Focus Cursor Styles
+ * Visual feedback for keyboard navigation
+ */
+
+/* ── Main Cursor ─────────────────────────────────────────────────────────── */
+
+.nav-cursor {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid #ff6b35; /* Orange for focus */
+  border-radius: 4px;
+  z-index: 10000;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  display: none;
+  box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.2);
+}
+
+/* Interaction state (cyan) */
+.nav-cursor--interacting {
+  border-color: #00d4ff !important;
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2) !important;
+}
+
+/* ── Corner Brackets ─────────────────────────────────────────────────────── */
+
+.nav-bracket {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 10001;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+  border-color: #ff6b35; /* Orange to match cursor */
+}
+
+.nav-bracket--topLeft {
+  border-left: 2px solid;
+  border-top: 2px solid;
+}
+
+.nav-bracket--topRight {
+  border-right: 2px solid;
+  border-top: 2px solid;
+}
+
+.nav-bracket--bottomLeft {
+  border-left: 2px solid;
+  border-bottom: 2px solid;
+}
+
+.nav-bracket--bottomRight {
+  border-right: 2px solid;
+  border-bottom: 2px solid;
+}
+
+/* ── Accessibility ───────────────────────────────────────────────────────── */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .nav-cursor,
+  .nav-bracket {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .nav-cursor {
+    border-width: 3px;
+    box-shadow: none;
+  }
+  
+  .nav-bracket {
+    border-width: 3px;
+  }
+}
+
+/* ── Focus States for Native Elements ────────────────────────────────────── */
+
+/* Hide native focus rings when keyboard nav is active */
+.nav-active *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* But keep them for accessibility if keyboard nav fails */
+.nav-active *:focus-visible {
+  outline: 2px solid #ff6b35;
+  outline-offset: 2px;
+}
+
+/* Specifically hide canvas focus outline */
+canvas:focus {
+  outline: none !important;
+}

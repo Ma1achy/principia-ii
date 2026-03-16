@@ -26,7 +26,7 @@ export { bindCustomDimPicker } from './ui/pickers/custom-dim.js';
 // Builders
 export { buildResolutions } from './ui/builders/resolutions.js';
 export { buildPresets, applyCustomBasis, updateCustomPanelVisibility } from './ui/builders/presets.js';
-export { buildZ0Sliders, setZ0Range, zeroZ0, smallRandomZ0, applyQualityPreset, enhanceAllSliders } from './ui/components/slider/slider.js';
+export { buildZ0Sliders, setZ0Range, zeroZ0, smallRandomZ0, applyQualityPreset, enhanceAllSliders } from './ui/builders/sliders.js';
 export { buildAxisSelects, buildCustomDimSelects } from './ui/builders/selects.js';
 
 // Sync
@@ -50,10 +50,10 @@ import { setZ0Range, zeroZ0, smallRandomZ0, enhanceAllSliders } from './ui/compo
 import { buildCustomDimSelects } from './ui/builders/selects.js';
 import { initializePickerLabels, attachDynamicBehaviorBatch as refitPickerLabel } from './ui/components/picker/PickerLabel.js';
 
-export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch) {
+export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch, uiTree = null) {
   function updateStateBox_() { updateStateBox(); }
   function drawHUD() { drawOverlayHUD(renderer, glCanvas, outCanvas, uiCanvas, ui2d, resizeUiCanvasToMatch); }
-  function buildPresets_() { buildPresets(scheduleRender, writeHash, updateStateBox_, drawHUD); }
+  function buildPresets_() { buildPresets(scheduleRender, writeHash, updateStateBox_, drawHUD, uiTree); }
 
   // Enhance all sliders with markers and fill tracks
   enhanceAllSliders();
@@ -116,7 +116,7 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
     if (!txt) { setStatus("Paste JSON into the box first."); return; }
     try {
       applyCanonical(JSON.parse(txt), applyCustomBasis);
-      buildPresets_(); syncUIFromState(renderer, scheduleRender, writeHash, drawHUD); writeHash(); updateStateBox_();
+      buildPresets_(); syncUIFromState(renderer, scheduleRender, writeHash, drawHUD, uiTree); writeHash(); updateStateBox_();
       scheduleRender("json apply");
       setStatus("State applied.");
     } catch (e) {
@@ -156,7 +156,7 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
     state.customMag = 1.0; state.customDimH = 0; state.customDimV = 1;
     const resNameEl = $("resName"); if (resNameEl) resNameEl.textContent = "1024 × 1024";
     setZ0Range(2.0); $("z0Range").value = "2.0"; $("z0RangeVal").value = "2.0";
-    buildPresets_(); syncUIFromState(renderer, scheduleRender, writeHash, drawHUD); writeHash(); scheduleRender("reset");
+    buildPresets_(); syncUIFromState(renderer, scheduleRender, writeHash, drawHUD, uiTree); writeHash(); scheduleRender("reset");
   });
 
   $("copyLinkBtn").addEventListener("click", async () => {
@@ -359,12 +359,37 @@ export function bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeToolt
   });
 
   document.querySelectorAll('.section-head').forEach(head => {
-    head.addEventListener('click', () => {
+    head.addEventListener('click', async () => {
       const target = head.dataset.target;
       const body = $(target);
       const isOpen = body.classList.contains('open');
       body.classList.toggle('open', !isOpen);
       head.classList.toggle('open', !isOpen);
+      
+      // Update semantic tree - hide the body grid when collapsed
+      if (window.uiTree) {
+        try {
+          // Map DOM target to body grid ID (e.g., "sec-mode" -> "sec-mode-body")
+          const bodyGridId = `${target}-body`;
+          const bodyGrid = window.uiTree.getNode(bodyGridId);
+          
+          if (bodyGrid && bodyGrid.kind === 'grid') {
+            // Mark body as hidden/visible
+            window.uiTree.updateNode(bodyGridId, {
+              hidden: isOpen  // Hide when collapsing (isOpen = was open, now closing)
+            });
+            console.log('[UI] Section', target, isOpen ? 'collapsed' : 'expanded', '- body grid', bodyGridId, 'hidden:', isOpen);
+            
+            // Rebuild sidebar grid to reflect new state
+            const { rebuildSidebarGrid } = await import('./ui/semantic-tree/grid-rebuilder.js');
+            rebuildSidebarGrid(window.uiTree);
+          } else {
+            console.warn('[UI] Body grid not found:', bodyGridId);
+          }
+        } catch (err) {
+          console.warn('[UI] Failed to update section collapse state:', err);
+        }
+      }
     });
     const target = head.dataset.target;
     if ($(target).classList.contains('open')) head.classList.add('open');

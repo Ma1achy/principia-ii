@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\")",
+      "Bash(move \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\REFACTOR_SUMMARY.md\" \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\"\" && move \"C:UsersMa1a_OneDriveDocumentsdevprincipia-iidocsKEYBOARD_NAVIGATION_SPEC.md\" \"C:UsersMa1a_OneDriveDocumentsdevprincipia-iidocsbackup\"\")",
+      "Bash(move \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\SEMANTIC_TREE_REFACTOR_PLAN.md\" \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\"\" && move \"C:UsersMa1a_OneDriveDocumentsdevprincipia-iidocsPHASE_1_CHECKLIST.md\" \"C:UsersMa1a_OneDriveDocumentsdevprincipia-iidocsbackup\"\")",
+      "Bash(move \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\PRINCIPIA_UI_TREE_MAPPING.md\" \"C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\"\" && move \"C:UsersMa1a_OneDriveDocumentsdevprincipia-iidocsSEMANTIC_UI_TREE_SPEC.md\" \"C:UsersMa1a_OneDriveDocumentsdevprincipia-iidocsbackup\"\")",
+      "Bash(mkdir -p \"/mnt/c/Users/Ma1a_/OneDrive/Documents/dev/principia-ii/docs/backup\")",
+      "Read(//mnt/c/Users/Ma1a_/OneDrive/Documents/dev/principia-ii/**)",
+      "Bash(mv REFACTOR_SUMMARY.md KEYBOARD_NAVIGATION_SPEC.md SEMANTIC_TREE_REFACTOR_PLAN.md PHASE_1_CHECKLIST.md PRINCIPIA_UI_TREE_MAPPING.md SEMANTIC_UI_TREE_SPEC.md backup/)",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Path ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup'' -Force; Move-Item ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\REFACTOR_SUMMARY.md'' ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\\\\''; Move-Item ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\KEYBOARD_NAVIGATION_SPEC.md'' ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\\\\''; Move-Item ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\SEMANTIC_TREE_REFACTOR_PLAN.md'' ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\\\\''; Move-Item ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\PHASE_1_CHECKLIST.md'' ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\\\\''; Move-Item ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\PRINCIPIA_UI_TREE_MAPPING.md'' ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\\\\''; Move-Item ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\SEMANTIC_UI_TREE_SPEC.md'' ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs\\\\backup\\\\''\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem ''C:\\\\Users\\\\Ma1a_\\\\OneDrive\\\\Documents\\\\dev\\\\principia-ii\\\\docs'' -Recurse | Select-Object FullName\")",
+      "Bash(grep -E \"\\\\.\\(json|js|ts\\)$\")",
+      "Bash(grep -r import.*from.*main.js /c/Users/Ma1a_/OneDrive/Documents/dev/principia-ii/src)"
+    ]
+  }
+}

@@ -124,9 +124,12 @@ export function enhanceAllSliders() {
 
 // ─── Z0 sliders builder ──────────────────────────────────────────────────────
 
-export function buildZ0Sliders(scheduleRender, writeHash, updateStateBox, drawOverlayHUD) {
+export function buildZ0Sliders(scheduleRender, writeHash, updateStateBox, drawOverlayHUD, uiTree = null) {
   const wrap = $("z0Sliders");
   wrap.innerHTML = "";
+  
+  const sliderNodes = [];
+  
   for (let i = 0; i < 10; i++) {
     const row = document.createElement("div");
     row.className = "sl-row";
@@ -252,6 +255,105 @@ export function buildZ0Sliders(scheduleRender, writeHash, updateStateBox, drawOv
     
     updateTrackFill();
     wrap.appendChild(row);
+    
+    // Register with semantic tree (Phase 2)
+    if (uiTree) {
+      const sliderId = `slider-z${i}`;
+      const analogId = `${sliderId}:analog`;
+      const valueId = `${sliderId}:value`;
+      
+      sliderNodes.push(
+        {
+          id: sliderId,
+          kind: 'grid',  // Sliders are enterable grids
+          role: 'slider',  // But semantically they're sliders
+          parentId: 'sec-z0-body',  // Parent is the grid, not the section
+          children: [analogId, valueId],
+          rows: 1,  // Single row (analog and value side by side)
+          cols: 2,  // Two columns
+          cells: [
+            { id: analogId, rowSpan: 1, colSpan: 1 },  // Analog (col 0)
+            { id: valueId, rowSpan: 1, colSpan: 1 }    // Value (col 1)
+          ],
+          focusMode: 'entry-node',
+          wrapRows: false,
+          wrapCols: false,
+          entryPolicy: 'primary',  // Default to analog control
+          meta: {
+            label: AXIS_NAMES[i],
+            min: -2.0,
+            max: 2.0,
+            step: 0.01,
+            value: 0.0
+          },
+          element: row // Store for later attachment
+        },
+        {
+          id: analogId,
+          kind: 'analog-control',
+          parentId: sliderId,
+          children: [],
+          focusMode: 'leaf',
+          role: 'analog-control',
+          primary: true,
+          ariaLabel: `${AXIS_NAMES[i]} slider`,
+          element: input // Store for later attachment
+        },
+        {
+          id: valueId,
+          kind: 'value-editor',
+          parentId: sliderId,
+          children: [],
+          focusMode: 'leaf',
+          role: 'value-editor',
+          primary: false,
+          ariaLabel: `${AXIS_NAMES[i]} value`,
+          element: numInput // Store for later attachment
+        }
+      );
+    }
+  }
+  
+  // Add all slider nodes to tree and update parent grid
+  if (uiTree && sliderNodes.length > 0) {
+    console.log('[buildZ0Sliders] Adding', sliderNodes.length / 3, 'sliders to tree');
+    uiTree.addNodes(sliderNodes);
+    
+    // NOW attach elements after nodes exist
+    sliderNodes.forEach(node => {
+      if (node.element) {
+        uiTree.attachElement(node.id, node.element);
+      }
+    });
+    
+    // Update sec-z0-body grid to include z0 slider cells
+    const secZ0Body = uiTree.getNode('sec-z0-body');
+    if (secZ0Body) {
+      // Build flat cells array
+      const cells = [
+        { id: 'z0Zero', rowSpan: 1, colSpan: 1 },
+        { id: 'z0SmallRand', rowSpan: 1, colSpan: 1 },
+        { id: 'slider-z0Range', rowSpan: 1, colSpan: 2 }
+      ];
+      
+      // Add z0-z9 sliders (each spans 2 columns)
+      for (let i = 0; i < 10; i++) {
+        cells.push({ id: `slider-z${i}`, rowSpan: 1, colSpan: 2 });
+      }
+      
+      console.log('[buildZ0Sliders] Rebuilding sec-z0-body with', cells.length, 'cells:', cells.map(c => c.id));
+      
+      uiTree.updateNode('sec-z0-body', {
+        cells: cells,
+        rows: 2 + 10,  // 1 row for buttons, 1 for range slider, 10 for z sliders
+        cols: 2
+      });
+      
+      const updated = uiTree.getNode('sec-z0-body');
+      console.log('[buildZ0Sliders] Updated sec-z0-body - cells:', updated.cells.length, 'rows:', updated.rows);
+    } else {
+      console.warn('[buildZ0Sliders] sec-z0-body node not found in tree!');
+    }
   }
 }
 

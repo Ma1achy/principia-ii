@@ -10,7 +10,7 @@ export function updateStateBox() {
   $("stateBox").value = JSON.stringify(canonicalState(state), null, 2);
 }
 
-export function syncUIFromState(renderer, scheduleRender, writeHash, drawOverlayHUD) {
+export function syncUIFromState(renderer, scheduleRender, writeHash, drawOverlayHUD, uiTree = null) {
   $("mode").value = String(state.mode);
   $("modeName").textContent = MODE_INFO[state.mode]?.name || "";
   $("resolution").value = String(state.res);
@@ -48,7 +48,7 @@ export function syncUIFromState(renderer, scheduleRender, writeHash, drawOverlay
   [...grid.children].forEach(child => {
     child.classList.toggle("active", child.textContent === name);
   });
-  updateCustomPanelVisibility();
+  updateCustomPanelVisibility(uiTree);
   const cH = $("customDimH"), cV = $("customDimV"), cM = $("customMag");
   if (cH) { cH.value = String(state.customDimH); const hn = $("customDimHName"); if (hn) hn.textContent = AXIS_NAMES[state.customDimH]; }
   if (cV) { cV.value = String(state.customDimV); const vn = $("customDimVName"); if (vn) vn.textContent = AXIS_NAMES[state.customDimV]; }

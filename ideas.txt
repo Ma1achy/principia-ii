@@ -18,3 +18,7 @@ That avoids “I told it not to warn me and now it froze my laptop” moments.
 
 
 > inner pp + config default view? 
+
+> bug where it appears the text highlight effect sometimes doesnt clear correctly and then gets stuck on after a delete animation, so its always on even during typing/display/idle
+
+one small detail i think would be great. clicking on a text entry field activates keyboard nav mode and makes the cursor cyan to signify interaction mode. just to visually indicate to the user that their keyboard input is being consumed by that element

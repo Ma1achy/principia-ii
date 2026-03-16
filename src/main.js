@@ -25,6 +25,11 @@ import { createControlSection } from './ui/sidebar/initControlSection.js';
 import { initSidebarSections } from './ui/sidebar/initSections.js';
 import { initSidebarScrollbar } from './ui/sidebar/initScrollbar.js';
 
+// ─── Semantic UI Tree (Phase 1) ──────────────────────────────────────────────
+import { uiTree } from './ui/semantic-tree/index.js';
+import { buildPrincipiaUITree } from './ui/semantic-tree/principia-tree.js';
+import { attachPrincipiaElements, syncCollapseState, initTabindexes } from './ui/semantic-tree/attach.js';
+
 const glCanvas  = document.getElementById('glCanvas');
 const outCanvas = document.getElementById('outCanvas');
 const uiCanvas  = document.getElementById('uiCanvas');
@@ -424,6 +429,12 @@ async function boot() {
   initSidebarScrollbar();
   console.log('[Boot] ✓ Sidebar scrollbar created');
   
+  // Build semantic UI tree (Phase 1)
+  console.log('[Boot] Building semantic UI tree...');
+  uiTree.addNodes(buildPrincipiaUITree());
+  console.log('[Boot] ✓ Semantic tree built:', uiTree.toJSON().nodes.length, 'nodes');
+  window.uiTree = uiTree; // Debug access
+  
   // Create pickers and panels (must be before applySavedSettings)
   console.log('[Boot] Creating picker overlays...');
   initAllPickers();
@@ -459,10 +470,36 @@ async function boot() {
   selectTracker = new SelectTracker(chazy.router);
   patternDetector = new PatternDetector(chazy.router);
   
+  // ─── Navigation System (Early Init) ────────────────────────────────────────
+  console.log('[Boot] Initializing keyboard navigation...');
+  const { KeyboardNavigationManager } = await import('./navigation/KeyboardNavigationManager.js');
+  const { SemanticTreeAdapter } = await import('./navigation/SemanticTreeAdapter.js');
+  const { TreeNavigationBridge } = await import('./navigation/TreeNavigationBridge.js');
+  const { BehaviorRegistry } = await import('./navigation/BehaviorRegistry.js');
+  const { DOMFocusEffects } = await import('./navigation/FocusEffects.js');
+  const { FocusVisualizer } = await import('./navigation/FocusVisualizer.js');
+  const behaviors = await import('./navigation/behaviors.js');
+  const { createCanvasActionDispatcher } = await import('./canvas-actions.js');
+  
+  // Setup behavior registry
+  const behaviorRegistry = new BehaviorRegistry();
+  behaviorRegistry.register('section-header', behaviors.sectionHeaderBehavior);
+  behaviorRegistry.register('button', behaviors.buttonBehavior);
+  behaviorRegistry.register('checkbox', behaviors.checkboxBehavior);
+  behaviorRegistry.register('value-editor', behaviors.valueEditorBehavior);
+  behaviorRegistry.register('analog-control', behaviors.analogControlBehavior);
+  behaviorRegistry.register('canvas', behaviors.canvasBehavior);
+  
+  // Setup focus effects and visualizer
+  const effects = new DOMFocusEffects();
+  const visualizer = new FocusVisualizer(document.body);
+  const navManager = new KeyboardNavigationManager({ effects, visualizer, uiTree, behaviorRegistry });
+  console.log('[Boot] ✓ Keyboard navigation initialized');
+  
   buildResolutions(renderer);
-  buildPresets(scheduleRender, writeHash, updateStateBox, drawHUD);
+  await buildPresets(scheduleRender, writeHash, updateStateBox, drawHUD, uiTree, navManager);
   buildAxisSelects();
-  buildZ0Sliders(scheduleRender, writeHash, updateStateBox, drawHUD);
+  buildZ0Sliders(scheduleRender, writeHash, updateStateBox, drawHUD, uiTree);
   setZ0Range(+document.getElementById('z0Range').value);
 
   if (location.hash && location.hash.length > 2) {
@@ -472,10 +509,51 @@ async function boot() {
   const resOptions = [...document.getElementById('resolution').options].map(o => +o.value);
   if (!resOptions.includes(state.res)) state.res = resOptions[0];
 
-  buildPresets(scheduleRender, writeHash, updateStateBox, drawHUD);
-  syncUIFromState(renderer, scheduleRender, writeHash, drawHUD);
+  syncUIFromState(renderer, scheduleRender, writeHash, drawHUD, uiTree);
 
-  bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch);
+  bindUI(renderer, glCanvas, outCanvas, uiCanvas, ui2d, probeTooltip, doRender, scheduleRender, writeHash, resizeUiCanvasToMatch, uiTree);
+  
+  // ─── Element Binding (Phase 2) ─────────────────────────────────────────────
+  console.log('[Boot] Binding elements to semantic tree...');
+  attachPrincipiaElements(uiTree);
+  await syncCollapseState(uiTree);
+  initTabindexes(uiTree);
+  console.log('[Boot] ✓ Elements bound to semantic tree');
+  
+  // Setup canvas action dispatcher
+  const dispatchCanvasAction = createCanvasActionDispatcher({
+    glCanvas,
+    outCanvas,
+    scheduleRender,
+    writeHash,
+    updateStateBox,
+    drawHUD
+  });
+  
+  // Register param-trigger behavior with dependencies
+  const triggerDeps = { uiTree, navManager };
+  behaviorRegistry.register('param-trigger', (n, el, deps) =>
+    behaviors.paramTriggerBehavior(n, el, { ...deps, ...triggerDeps }));
+  
+  // Setup behavior dependencies
+  const behaviorDeps = {
+    uiTree,
+    dispatchCanvasAction,
+    PAN_STEP: 20,
+    ZOOM_STEP: 0.1
+  };
+  
+  // Build navigation tree
+  const adapter = new SemanticTreeAdapter(uiTree, behaviorRegistry, behaviorDeps);
+  const navTree = adapter.buildNavigationTree();
+  navManager.init(navTree);
+  
+  // Setup tree-navigation bridge
+  const bridge = new TreeNavigationBridge(uiTree, adapter, navManager);
+  
+  // Debug access
+  window.navManager = navManager;
+  console.log('[Boot] ✓ Keyboard navigation ready');
   
   // NOW track buttons (after UI is built)
   console.log('[Boot] Setting up button tracking...');

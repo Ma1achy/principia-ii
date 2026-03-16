@@ -774,114 +774,535 @@ Behavior:
 
 ## Semantic Composite Widgets
 
-### Slider Scope Structure
+## Updated Slider Interaction Model
 
-A Principia slider is modeled semantically:
+Sliders are not treated as a flat trio of "label, knob, value". They are treated as a **semantic composite widget** with optional nested depth on the label.
+
+### Canonical Slider Semantic Tree
 
 ```text
 slider-scope (ScopeNode, focusMode: 'entry-node', entryPolicy: 'primary')
-├─ param-trigger   (optional leaf)
-├─ analog-control  (leaf, primary)
-└─ value-editor    (leaf)
+├─ param-trigger   (optional leaf, opens submenu/dropdown)
+├─ analog-control  (leaf, slider/range control)
+└─ value-editor    (leaf, numeric/text value input)
 ```
 
-**Roles**
+### Roles
 
-* **param-trigger**
-  * top button/label
-  * may open dropdown
-  * optional
+#### `param-trigger`
 
-* **analog-control**
-  * slider knob/range target
-  * owns left/right during adjustment
-  * usually primary entry point
+* Usually the label/button at the top of the slider row
+* Opens a submenu/dropdown that changes what the slider controls
+* Is not just decorative text
+* If present, it is a first-class sibling in slider navigation
 
-* **value-editor**
-  * numeric input
-  * can enter text editing mode
+#### `analog-control`
 
----
+* The slider track / knob / native range input
+* Used for analog adjustment
+* Can enter interaction mode
+* While interacting, left/right belong to the native range input
 
-### Slider Interaction Model (Single Highlight)
+#### `value-editor`
 
-**Outside slider**
-
-* cursor highlights whole slider row
-* orange
-* animated brackets if enterable
-
-**Enter slider**
-
-* cursor moves onto primary child
-* usually analog-control
-* still orange
-
-**Interact with analog-control**
-
-* Press Enter on focused analog-control
-* Same cursor turns cyan
-* No second row outline remains
-* Left/Right now adjust value
-
-**Move to param-trigger**
-
-* Same cursor relocates to top button
-* orange
-* Enter opens dropdown overlay
-
-**Move to value-editor**
-
-* Same cursor relocates to value box
-* orange
-* Press Enter to begin text editing
-* While editing, same cursor turns cyan
+* Numeric input / text box for direct value entry
+* Can enter text-edit interaction mode
+* While editing, keys belong to the native input
 
 ---
 
-### Recommended Slider Entry Policy
+## Visual / Structural Rule
 
-**Metadata-Driven Primary Entry**
+At the outer level, the slider row is one **entry-node scope**.
 
-Instead of a global default, define primary entry per slider based on usage pattern:
+* When the slider row is selected from outside, the **single orange highlight** wraps the whole slider row
+* Because the slider has depth, it shows the **enterable bracket treatment**
+* Pressing `Enter` moves the highlight *inside* the slider
+* The parent row highlight disappears immediately
+* Only the child target remains highlighted
+
+This preserves the **single-highlight invariant**.
+
+---
+
+## Default Internal Order
+
+Internal slider traversal order is:
+
+```text
+param-trigger (if present)
+→ analog-control
+→ value-editor
+```
+
+If there is no `param-trigger`, then internal traversal is:
+
+```text
+analog-control
+→ value-editor
+```
+
+This order is vertical/semantic, not merely DOM-positional.
+
+---
+
+## Primary Entry Policy
+
+Sliders use:
+
+```text
+entryPolicy: 'primary'
+```
+
+But the actual primary child is metadata-driven per slider:
 
 ```javascript
-// In slider scope metadata
 preferredPrimaryRole: 'analog-control' | 'value-editor' | 'param-trigger'
 ```
 
-**Slider Classes**
+### Recommended Defaults
 
-*Analog-First Sliders* (most common)
-- Entry: `analog-control`
-- For continuous scientific controls
-- Fast adjustment workflow
+#### Analog-first sliders
 
-*Value-First Sliders* (precision workflows)
-- Entry: `value-editor`
-- For precise calibration
-- Frequently typed values
-- Less analog adjustment
-
-*Trigger-First Sliders* (rare)
-- Entry: `param-trigger`
-- Parameter selection is dominant task
-- Less value manipulation
-
-**Implementation**
+Use when the control is mainly adjusted continuously.
 
 ```javascript
-// In ScopeNode.resolveEntry() for primary policy
-case 'primary':
-  if (this.preferredPrimaryRole) {
-    const preferred = this.children.find(c => c.role === this.preferredPrimaryRole);
-    if (preferred) return preferred;
-  }
-  // Fallback to first child with primary flag
-  return this.children.find(c => c.primary) || this.children[0] || null;
+preferredPrimaryRole: 'analog-control'
 ```
 
-This keeps `entryPolicy: 'primary'` generic while allowing per-widget customization.
+Best for:
+
+* ordinary scientific sliders
+* frequently nudged controls
+* interactive tuning
+
+#### Value-first sliders
+
+Use when the main workflow is precise manual entry.
+
+```javascript
+preferredPrimaryRole: 'value-editor'
+```
+
+Best for:
+
+* calibration values
+* exact numeric workflows
+* infrequently dragged controls
+
+#### Trigger-first sliders
+
+Use when choosing the parameter is the dominant action.
+
+```javascript
+preferredPrimaryRole: 'param-trigger'
+```
+
+Best for:
+
+* multi-mode sliders
+* parameter remapping rows
+* sliders whose label is effectively a mode selector
+
+---
+
+## Recommended Principia Default
+
+For the current Principia slider design:
+
+* if a slider has a label button that opens a submenu, keep it as `param-trigger`
+* default `preferredPrimaryRole` should still usually be:
+
+```javascript
+preferredPrimaryRole: 'analog-control'
+```
+
+Reason:
+
+* the slider should still feel like an instrument first
+* the label-trigger remains one step away
+* `ArrowUp` from the analog control reaches it immediately
+* the workflow remains fast for repeated adjustment
+
+Only switch a specific slider to value-first or trigger-first if that particular control is genuinely dominated by those actions.
+
+---
+
+## Entry Behavior
+
+### From outside the slider
+
+When the slider row itself is selected:
+
+* highlight = orange
+* brackets visible
+* row is treated as an enterable scope
+
+#### `Enter`
+
+* enters slider scope
+* resolves `entryPolicy: 'primary'`
+* highlight moves to the chosen internal child
+
+Examples:
+
+* analog-first slider → lands on `analog-control`
+* value-first slider → lands on `value-editor`
+* trigger-first slider → lands on `param-trigger`
+
+---
+
+## Internal Navigation Behavior
+
+### If `param-trigger` exists
+
+Internal navigation should feel like:
+
+```text
+param-trigger
+↓
+analog-control
+↓
+value-editor
+```
+
+And correspondingly upward:
+
+```text
+value-editor
+↑
+analog-control
+↑
+param-trigger
+```
+
+### If `param-trigger` does not exist
+
+Internal navigation becomes:
+
+```text
+analog-control
+↕
+value-editor
+```
+
+---
+
+## Param Trigger Interaction
+
+### Focused state
+
+When `param-trigger` is focused:
+
+* highlight tightens around the label button itself
+* highlight remains orange
+* because it opens deeper UI, it may also display enterable/activatable brackets
+
+### `Enter`
+
+* opens the submenu/dropdown overlay
+* overlay is pushed onto `overlayStack`
+* slider internal highlight disappears
+* single highlight moves into overlay entry target
+
+### While overlay is open
+
+* slider shows no second cursor
+* overlay traps arrow navigation
+* `Escape` closes overlay
+* focus restores to `param-trigger` if still valid
+
+---
+
+## Analog Control Interaction
+
+### Focused state
+
+When `analog-control` is focused but not interacting:
+
+* highlight tightens around the range input / knob region
+* highlight remains orange
+
+### `Enter`
+
+* begins analog interaction mode
+* same highlight turns cyan
+* no duplicate outline appears
+
+### While interacting
+
+Behavior uses **native range semantics**.
+
+#### `ArrowLeft` / `ArrowRight`
+
+* return `IGNORED`
+* native `<input type="range">` adjusts value
+
+#### `ArrowUp` / `ArrowDown`
+
+* end interaction mode
+* then continue structural navigation to sibling target
+
+#### `Escape`
+
+* end interaction mode
+* remain focused on `analog-control`
+* highlight returns to orange
+
+This preserves:
+
+* native accessibility
+* native step/min/max behavior
+* less custom bug surface
+
+---
+
+## Value Editor Interaction
+
+### Focused state
+
+When `value-editor` is focused but not editing:
+
+* highlight tightens around the numeric input
+* highlight remains orange
+
+### `Enter`
+
+* begins text-edit interaction mode
+* same highlight turns cyan
+* input receives native focus and text selection
+
+### While editing
+
+#### Text keys / numeric keys
+
+* native input behavior
+
+#### Arrow keys
+
+* return `IGNORED`
+* native input behavior
+
+#### `Enter`
+
+* commit / exit edit mode
+* remain focused on value editor
+* highlight returns to orange
+
+#### `Escape`
+
+* exit edit mode
+* optionally revert if desired by widget policy
+* remain focused on value editor
+* highlight returns to orange
+
+#### `Blur`
+
+* also exits edit mode
+
+---
+
+## Boundary Behavior Inside Slider Scope
+
+When internal traversal hits a boundary:
+
+### At top boundary
+
+If current internal target is `param-trigger` and user navigates upward again:
+
+* exit slider scope
+* focus returns to slider row scope
+* if upward traversal continues, bubble to previous sibling in parent scope
+
+### At bottom boundary
+
+If current internal target is `value-editor` and user navigates downward again:
+
+* exit slider scope
+* focus returns to slider row scope
+* if downward traversal continues, bubble to next sibling in parent scope
+
+This follows the general rule:
+
+> local traversal first, then bubble upward, then descend into next resolved target
+
+---
+
+## Fast-Travel Shortcut (Optional Power-User Behavior)
+
+If desired, support:
+
+### `Shift + Enter` on selected slider row
+
+* bypass normal primary entry
+* deep-jump directly to `value-editor`
+* immediately begin edit interaction
+
+This is useful for power users who often want to type exact values.
+
+### Rule
+
+Normal `Enter` respects `preferredPrimaryRole`.
+`Shift + Enter` is a shortcut, not a replacement.
+
+---
+
+## Visual Rules for Slider States
+
+### 1. Slider row selected from outside
+
+* orange highlight around full row
+* animated brackets visible
+* means: "this control has depth"
+
+### 2. Internal target focused
+
+* highlight moves inward onto current child target
+* orange
+* row outline disappears
+
+### 3. Internal target interacting
+
+* same highlight turns cyan
+* no second cursor
+* no parent outline
+* no duplicate border
+
+### 4. Param trigger submenu open
+
+* highlight leaves slider entirely
+* moves into submenu overlay
+* slider shows no active cursor
+
+---
+
+## Breadcrumb / Mode Indicator Examples
+
+These are strongly recommended for clarity inside composite controls.
+
+Examples:
+
+```text
+[NAV] Slice Offset > Slider Q1 > Parameter
+[NAV] Slice Offset > Slider Q1 > Analog Control
+[NAV] Slice Offset > Slider Q1 > Value Editor
+[NAV] Slice Offset > Slider Q1 > Parameter Menu
+```
+
+This communicates context without violating the one-highlight rule.
+
+---
+
+## Canonical Interaction Examples
+
+### Example 1: Standard analog-first slider with label submenu
+
+```text
+1. ArrowDown → slider row selected
+   Orange row highlight + brackets
+
+2. Enter → enter slider
+   Focus lands on analog-control
+
+3. ArrowUp → move to param-trigger
+   Orange highlight around label button
+
+4. Enter → open submenu
+   Highlight moves into overlay
+   Slider no longer highlighted
+
+5. Escape → close submenu
+   Focus restores to param-trigger
+
+6. ArrowDown → analog-control
+7. Enter → begin analog interaction
+   Highlight turns cyan
+
+8. ArrowLeft / ArrowRight
+   Native range input adjusts value
+
+9. Escape
+   End interaction, remain on analog-control
+   Highlight returns orange
+
+10. ArrowDown → value-editor
+11. Enter → begin text editing
+   Highlight turns cyan
+```
+
+### Example 2: Value-first slider
+
+```text
+1. Slider row selected
+2. Enter
+3. Focus lands directly on value-editor
+4. Enter again
+5. Begin text-edit interaction
+```
+
+### Example 3: Trigger-first slider
+
+```text
+1. Slider row selected
+2. Enter
+3. Focus lands directly on param-trigger
+4. Enter again
+5. Open submenu overlay
+```
+
+---
+
+## Implementation Notes
+
+### Tree builder requirement
+
+If the slider label opens a submenu, it must be detected and registered as:
+
+```javascript
+role: 'param-trigger'
+```
+
+It must **not** be treated as plain text.
+
+### Semantic rule
+
+A slider with a label-trigger is not:
+
+```text
+[label] + [knob] + [value]
+```
+
+It is:
+
+```text
+[param-trigger] + [analog-control] + [value-editor]
+```
+
+That distinction is critical to correct navigation.
+
+### Recommended detection heuristic
+
+If a slider label:
+
+* is a `<button>`, or
+* has a click handler that opens a picker/menu/dropdown, or
+* has explicit metadata like `data-slider-param`
+
+then classify it as `param-trigger`.
+
+---
+
+## Spec Insert Summary
+
+If you want a short insertable rule block:
+
+> Sliders are semantic composite widgets with optional `param-trigger`, `analog-control`, and `value-editor` children.
+> The slider row itself is an `entry-node` scope.
+> Entering the slider resolves a metadata-driven primary child (`preferredPrimaryRole`).
+> If the label opens a submenu, it must be modeled as `param-trigger`, not plain text.
+> Internal navigation moves between semantic children, not arbitrary DOM fragments.
+> The single highlight moves from the row into the active child, and from there into overlays when triggered.
+> Interaction state changes the same highlight from orange to cyan; no duplicate highlight is ever shown.
 
 ---
 

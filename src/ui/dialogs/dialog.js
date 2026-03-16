@@ -526,6 +526,114 @@ function renderDialog(rootElement, options, initialState) {
   
   // Show dialog
   rootElement.classList.add('open');
+  
+  // Register as transient overlay with keyboard navigation (Phase 4)
+  if (window.uiTree && window.navManager) {
+    const dialogId = `dialog-${options.id}`;
+    const triggerId = DialogManager.restoreFocusTarget?.id || null;
+    
+    // Get button elements from DOM
+    const buttonElements = buttonWrap.querySelectorAll('[data-button-id]');
+    const fieldElements = rootElement.querySelectorAll('[data-field-id]');
+    const checkElements = rootElement.querySelectorAll('[data-check-id]');
+    
+    // Build child node IDs
+    const childIds = [
+      ...Array.from(buttonElements).map(b => `${dialogId}:btn-${b.dataset.buttonId}`),
+      ...Array.from(fieldElements).map(f => `${dialogId}:field-${f.dataset.fieldId}`),
+      ...Array.from(checkElements).map(c => `${dialogId}:check-${c.dataset.checkId}`)
+    ];
+    
+    // Build child nodes
+    const childNodes = [
+      // Button nodes
+      ...Array.from(buttonElements).map((b, idx) => ({
+        id: `${dialogId}:btn-${b.dataset.buttonId}`,
+        kind: 'button',
+        parentId: dialogId,
+        children: [],
+        focusMode: 'leaf',
+        role: 'button',
+        ariaRole: 'button',
+        ariaLabel: b.textContent.trim(),
+        primary: idx === 0,
+        element: b
+      })),
+      // Field nodes
+      ...Array.from(fieldElements).map(f => ({
+        id: `${dialogId}:field-${f.dataset.fieldId}`,
+        kind: 'value-editor',
+        parentId: dialogId,
+        children: [],
+        focusMode: 'leaf',
+        role: 'value-editor',
+        ariaLabel: f.placeholder || f.dataset.fieldId,
+        element: f
+      })),
+      // Checkbox nodes
+      ...Array.from(checkElements).map(c => ({
+        id: `${dialogId}:check-${c.dataset.checkId}`,
+        kind: 'checkbox',
+        parentId: dialogId,
+        children: [],
+        focusMode: 'leaf',
+        role: 'checkbox',
+        ariaLabel: c.dataset.checkId,
+        element: c
+      }))
+    ];
+    
+    // Build dialog node structure as a grid (vertical list of children)
+    const dialogNode = {
+      id: dialogId,
+      kind: 'grid',
+      parentId: null,
+      rows: childIds.length,
+      cols: 1,
+      cells: childIds.map(id => ({ id, rowSpan: 1, colSpan: 1 })),
+      children: childIds,
+      wrapRows: true,
+      wrapCols: false,
+      entryPolicy: 'first',
+      focusMode: 'entry-node',
+      overlay: true,
+      modal: true,
+      transient: true,
+      isOverlay: true,
+      closeOnEscape: options.closeOnEscape !== false,
+      ariaRole: 'dialog',
+      ariaLabel: options.title,
+      meta: {
+        title: options.title,
+        triggerId,
+        closeOnEscape: options.closeOnEscape !== false,
+        gridLayout: true
+      }
+    };
+    
+    try {
+      console.log('[Dialog] Registering overlay with', childNodes.length, 'children');
+      // Register all nodes (dialog + children) as a batch
+      window.uiTree.addNodes([dialogNode, ...childNodes]);
+      
+      // Attach elements
+      childNodes.forEach(node => {
+        if (node.element) {
+          window.uiTree.attachElement(node.id, node.element);
+        }
+      });
+      
+      // Emit overlay event
+      window.uiTree._events.emit('overlay:registered', { id: dialogId, triggerId });
+      
+      DialogManager.overlayRegistered = true;
+      DialogManager.dialogNodeId = dialogId;
+      console.log('[Dialog] Registered overlay:', dialogId);
+    } catch (err) {
+      console.warn('[Dialog] Failed to register overlay:', err);
+      DialogManager.overlayRegistered = false;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -545,10 +653,7 @@ function bindHandlers(options, rootElement) {
     DialogManager.handlers.push(() => btn.removeEventListener('click', handler));
   });
   
-  // Keyboard events
-  const keyHandler = (e) => handleKeyboard(e, options, rootElement);
-  document.addEventListener('keydown', keyHandler);
-  DialogManager.handlers.push(() => document.removeEventListener('keydown', keyHandler));
+  // NO keyboard handler - navigation system handles all keyboard input
   
   // Backdrop click
   if (options.closeOnBackdrop) {
@@ -604,123 +709,14 @@ function handleButtonClick(btn) {
   });
 }
 
-function handleKeyboard(e, options, rootElement) {
-  // Ignore if busy
-  if (DialogManager.isBusy) return;
-  
-  // Escape key
-  if (e.key === 'Escape') {
-    if (options.closeOnEscape) {
-      // Check if button has Escape hotkey
-      const escapeButton = options.buttons.find(b => b.hotkey === 'Escape');
-      if (escapeButton) {
-        handleCloseAttempt({ action: escapeButton.id, dismissedBy: 'button' });
-      } else {
-        handleCloseAttempt({ action: null, dismissedBy: 'escape' });
-      }
-      e.preventDefault();
-    }
-    return;
-  }
-  
-  // Enter key
-  if (e.key === 'Enter') {
-    // Check if focused element is a button
-    if (document.activeElement?.tagName === 'BUTTON') {
-      // Let button's click handler deal with it
-      return;
-    }
-    
-    // Check if focused element is textarea (future-proofing)
-    if (document.activeElement?.tagName === 'TEXTAREA') {
-      return; // Let native newline behavior happen
-    }
-    
-    // Check for button with Enter hotkey
-    const enterButton = options.buttons.find(b => b.hotkey === 'Enter');
-    if (enterButton && !enterButton.disabled) {
-      handleCloseAttempt({ action: enterButton.id, dismissedBy: 'button' });
-      e.preventDefault();
-      return;
-    }
-    
-    // Default to first primary button
-    const primaryButton = options.buttons.find(b => b.role === 'primary' && !b.disabled);
-    if (primaryButton) {
-      handleCloseAttempt({ action: primaryButton.id, dismissedBy: 'button' });
-      e.preventDefault();
-      return;
-    }
-  }
-  
-  // Tab key - focus trap
-  if (e.key === 'Tab') {
-    trapFocus(e, rootElement);
-  }
-}
-
-function trapFocus(e, rootElement) {
-  const focusableElements = rootElement.querySelectorAll(
-    'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
-  );
-  
-  const focusable = Array.from(focusableElements).filter(el => {
-    return el.offsetParent !== null; // Visible check
-  });
-  
-  if (focusable.length === 0) return;
-  
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  
-  if (e.shiftKey) {
-    // Shift+Tab
-    if (document.activeElement === first) {
-      last.focus();
-      e.preventDefault();
-    }
-  } else {
-    // Tab
-    if (document.activeElement === last) {
-      first.focus();
-      e.preventDefault();
-    }
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Focus Management
 // ═══════════════════════════════════════════════════════════════════════════
 
 function focusInitialElement(rootElement, options) {
-  // Priority order:
-  // 1. Element with autoFocus
-  // 2. First field
-  // 3. First primary button
-  // 4. Dialog container
-  
-  const autoFocusBtn = rootElement.querySelector('[data-auto-focus]');
-  if (autoFocusBtn) {
-    autoFocusBtn.focus();
-    return;
-  }
-  
-  const firstField = rootElement.querySelector('.dialog-input');
-  if (firstField) {
-    firstField.focus();
-    if (firstField.dataset.selectOnFocus) {
-      firstField.select();
-    }
-    return;
-  }
-  
-  const primaryBtn = rootElement.querySelector('.btn.primary');
-  if (primaryBtn) {
-    primaryBtn.focus();
-    return;
-  }
-  
-  rootElement.focus();
+  // Don't set native focus - navigation system handles this
+  // Just ensure the dialog container can receive focus events if needed
+  console.log('[Dialog] Skipping native focus - navigation system will handle');
 }
 
 function restoreFocus() {
@@ -902,6 +898,8 @@ async function finalizeClose(result) {
   const options = DialogManager.currentOptions;
   const rootElement = DialogManager.rootElement;
   
+  console.log('[Dialog] finalizeClose called, result:', result);
+  
   // Run persistence hook (only if confirmed)
   if (result.confirmed && options.onConfirmPersist) {
     try {
@@ -915,14 +913,38 @@ async function finalizeClose(result) {
   DialogManager.handlers.forEach(cleanup => cleanup());
   DialogManager.handlers = [];
   
+  // Close overlay in navigation system BEFORE removing from tree
+  if (DialogManager.overlayRegistered && window.navManager && DialogManager.dialogNodeId) {
+    console.log('[Dialog] Closing overlay in navigation manager:', DialogManager.dialogNodeId);
+    try {
+      window.navManager.closeOverlay(DialogManager.dialogNodeId);
+    } catch (err) {
+      console.warn('[Dialog] Failed to close overlay in nav manager:', err);
+    }
+  }
+  
+  // Remove transient overlay from tree
+  if (DialogManager.overlayRegistered && window.uiTree && DialogManager.dialogNodeId) {
+    try {
+      console.log('[Dialog] Removing overlay from tree:', DialogManager.dialogNodeId);
+      window.uiTree.removeTransientOverlay(DialogManager.dialogNodeId);
+    } catch (err) {
+      console.warn('[Dialog] Failed to remove overlay:', err);
+    }
+    DialogManager.overlayRegistered = false;
+    DialogManager.dialogNodeId = null;
+  }
+  
   // Hide dialog
   if (rootElement) {
     rootElement.classList.remove('open');
   }
   
-  // Restore focus
-  if (options.restoreFocus) {
+  // Restore focus (only if nav system is not active)
+  if (options.restoreFocus && !window.navManager?.sessionState.active) {
     restoreFocus();
+  } else {
+    console.log('[Dialog] Skipping native focus restore - nav system active');
   }
   
   // Emit close event
