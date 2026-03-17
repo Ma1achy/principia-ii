@@ -3,21 +3,33 @@
  * Single unified manager for all keyboard navigation using coordinate arithmetic
  */
 
+import { KeyRepeatManager } from './KeyRepeatManager.js';
+
 export class KeyboardNavigationManager {
   constructor(options = {}) {
-    const { effects, visualizer, uiTree, behaviorRegistry } = options;
+    const { effects, visualizer, uiTree, behaviorRegistry, behaviorDeps = {} } = options;
     
     this.effects = effects;
     this.visualizer = visualizer;
     this.uiTree = uiTree;
     this.behaviorRegistry = behaviorRegistry;
+    this.behaviorDeps = behaviorDeps; // Store behavior dependencies
     
     // Behavior cache (nodeId -> behavior instance)
     // Behaviors are stateful, so we need to reuse the same instance
     this.behaviorCache = new Map();
     
-    // Scope stack (each entry is a grid context with coordinates)
-    this.scopeStack = [];
+    // Key repeat manager (DAS/ARR for keyboard navigation)
+    this.repeatManager = new KeyRepeatManager();
+    
+    // Navigation context system - stack of stacks for overlay isolation
+    // Each context represents an isolated navigation scope (main UI or an overlay)
+    this.currentContext = {
+      scopeStack: [],      // Grid scopes within this context
+      parentContext: null, // Link to parent context (null for root)
+      overlayId: null,     // ID of overlay grid (null for root context)
+      triggerId: null      // ID of element that opened this overlay
+    };
     
     // Grid memory (remembers last position in each grid)
     this.gridMemory = new Map();
@@ -26,15 +38,15 @@ export class KeyboardNavigationManager {
     this.sessionState = {
       active: false, // Lazy activation on first nav key
       currentFocusId: null,
-      interactingNodeId: null,
-      overlayStack: [] // {overlayId, triggerId}
+      interactingNodeId: null
     };
     
     // Bound handlers
     this._boundKeyHandler = null;
+    this._boundKeyUpHandler = null;
     this._boundMouseHandler = null;
     
-    console.log('[KNM] Initialized with grid navigation');
+    console.log('[KNM] Initialized with context-isolated navigation');
   }
   
   // ── Initialization ─────────────────────────────────────────────────────────
@@ -50,9 +62,12 @@ export class KeyboardNavigationManager {
     // Handle legacy API: if passed an object (nav tree), ignore it and use 'root'
     const rootId = typeof rootIdOrTree === 'string' ? rootIdOrTree : 'root';
     
-    // Attach keyboard listener
+    // Attach keyboard listeners
     this._boundKeyHandler = this._handleKeyDown.bind(this);
     document.addEventListener('keydown', this._boundKeyHandler);
+    
+    this._boundKeyUpHandler = this._handleKeyUp.bind(this);
+    document.addEventListener('keyup', this._boundKeyUpHandler);
     
     // Attach mouse interaction handler
     this._boundMouseHandler = this._handleMouseInteraction.bind(this);
@@ -137,12 +152,33 @@ export class KeyboardNavigationManager {
     const navEvent = this._mapKeyToNavEvent(key);
     if (!navEvent) return; // Ignore unmapped keys
     
-    // Lazy activation: only activate on navigation events
+    // Track if we're activating on this keypress
+    const wasActive = this.sessionState.active;
+    
+    // Lazy activation: activate on ANY navigation event (even if it fails)
     if (!this.sessionState.active) {
-      // Activate on first navigation event
       console.log('[KNM] Activating navigation on first nav event:', navEvent);
       this.sessionState.active = true;
+      this.sessionState.justActivated = true; // Flag for special first-press behavior
       document.body.classList.add('nav-active');
+      
+      // Show cursor at current focus location
+      const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
+      if (currentNode && this.visualizer) {
+        const element = this.uiTree.getElement(this.sessionState.currentFocusId);
+        if (element) {
+          const isEnterable = currentNode.focusMode === 'entry-node' || currentNode.kind === 'grid';
+          const isInteracting = this.sessionState.interactingNodeId === currentNode.id;
+          
+          this.visualizer.render({
+            element,
+            isEnterable,
+            isInteracting
+          });
+        }
+      }
+    } else {
+      this.sessionState.justActivated = false;
     }
     
     // Route to appropriate handler based on nav event type
@@ -151,9 +187,9 @@ export class KeyboardNavigationManager {
     } else if (navEvent === 'nav-up' || navEvent === 'nav-down' || navEvent === 'nav-left' || navEvent === 'nav-right') {
       this._handleNavigation(event, navEvent);
     } else if (navEvent === 'nav-enter') {
-      this._handleEnter(event);
+      this._handleEnter(event, wasActive);
     } else if (navEvent === 'nav-escape') {
-      this._handleEscape(event);
+      this._handleEscape(event, wasActive);
     } else if (navEvent === 'nav-tab') {
       // Tab - ignore for now (browser default)
     }
@@ -165,18 +201,56 @@ export class KeyboardNavigationManager {
    * @param {string} navEvent - 'increment' or 'decrement'
    */
   _handleIncrement(event, navEvent) {
+    // Ignore browser's native key repeat
+    if (event.repeat) return;
+    
     if (!this.sessionState.interactingNodeId) return;
     
     event.preventDefault();
+    
+    // Execute action immediately on first press
+    this._executeIncrementAction(navEvent);
+    
+    // Start repeat with appropriate profile
+    const profile = this._getRepeatProfile();
+    this.repeatManager.startRepeat(event.key, () => {
+      this._executeIncrementAction(navEvent);
+    }, profile);
+  }
+  
+  /**
+   * Execute increment/decrement action (extracted for repeat support)
+   * @private
+   * @param {string} navEvent - 'increment' or 'decrement'
+   */
+  _executeIncrementAction(navEvent) {
+    if (!this.sessionState.interactingNodeId) return;
+    
     const currentNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
     if (currentNode) {
       const behavior = this._getBehavior(currentNode);
+      
+      // First try dedicated increment/decrement handlers
+      if (navEvent === 'increment' && behavior?.onIncrement) {
+        const result = behavior.onIncrement();
+        if (result === 'handled') {
+          console.log('[KNM] Increment handled by behavior');
+          return;
+        }
+      } else if (navEvent === 'decrement' && behavior?.onDecrement) {
+        const result = behavior.onDecrement();
+        if (result === 'handled') {
+          console.log('[KNM] Decrement handled by behavior');
+          return;
+        }
+      }
+      
+      // Fallback: Map increment/decrement to arrow directions for analog controls
       if (behavior?.onArrowKey) {
-        // Map increment/decrement to arrow directions for analog controls
         const mappedKey = navEvent === 'increment' ? 'ArrowUp' : 'ArrowDown';
         const result = behavior.onArrowKey(mappedKey);
         if (result === 'handled') {
-          console.log('[KNM] Increment/decrement handled by behavior:', navEvent);
+          console.log('[KNM] Increment/decrement mapped to arrow, handled by behavior');
           return;
         }
       }
@@ -189,8 +263,31 @@ export class KeyboardNavigationManager {
    * @param {string} navEvent - 'nav-up', 'nav-down', 'nav-left', 'nav-right'
    */
   _handleNavigation(event, navEvent) {
+    // Ignore browser's native key repeat
+    if (event.repeat) return;
+    
     event.preventDefault();
     
+    // Execute action immediately on first press
+    const result = this._executeNavigationAction(navEvent);
+    
+    // Only start repeat for actions that actually did something
+    // (ignore non-repeatable results like 'escape_scope' or 'ignored')
+    if (result !== 'escape_scope' && result !== 'ignored') {
+      const profile = this._getRepeatProfile();
+      this.repeatManager.startRepeat(event.key, () => {
+        this._executeNavigationAction(navEvent);
+      }, profile);
+    }
+  }
+  
+  /**
+   * Execute navigation action (extracted for repeat support)
+   * @private
+   * @param {string} navEvent - 'nav-up', 'nav-down', 'nav-left', 'nav-right'
+   * @returns {string} Result indicator ('handled', 'ignored', 'escape_scope', or undefined)
+   */
+  _executeNavigationAction(navEvent) {
     // Map nav event to arrow key for behavior compatibility
     const arrowKeyMap = {
       'nav-up': 'ArrowUp',
@@ -209,11 +306,11 @@ export class KeyboardNavigationManager {
           const result = behavior.onArrowKey(arrowKey);
           if (result === 'handled') {
             console.log('[KNM] Navigation handled by interacting behavior:', navEvent);
-            return;
+            return 'handled';
           } else if (result === 'ignored') {
             // Behavior says "ignore" - let native input handle, don't navigate
             console.log('[KNM] Navigation ignored by interacting behavior (native input):', navEvent);
-            return;
+            return 'ignored';
           } else if (result === 'escape_scope') {
             // Behavior requests escape to parent scope
             console.log('[KNM] Navigation escape requested by behavior:', navEvent);
@@ -221,7 +318,7 @@ export class KeyboardNavigationManager {
             if (parentCellId) {
               this._setFocus(parentCellId);
             }
-            return;
+            return 'escape_scope';
           }
         }
       }
@@ -239,7 +336,7 @@ export class KeyboardNavigationManager {
           if (parentCellId) {
             this._setFocus(parentCellId);
           }
-          return;
+          return 'escape_scope';
         }
       }
     }
@@ -256,29 +353,57 @@ export class KeyboardNavigationManager {
     if (newCellId) {
       this._setFocus(newCellId);
     }
+    
+    return 'handled';
   }
   
   /**
    * Handle enter/activate events (Enter/Space)
    * @param {KeyboardEvent} event
+   * @param {boolean} wasActive - Whether nav was active before this keypress
    */
-  _handleEnter(event) {
+  _handleEnter(event, wasActive) {
     event.preventDefault();
+    
+    // If we just activated (cursor was hidden), show cursor and move to primary button
+    if (!wasActive) {
+      console.log('[KNM] First Enter - showing cursor and moving to primary');
+      
+      // If we're in an overlay (dialog), move to primary button
+      if (this.isInsideOverlay()) {
+        const primaryButton = this._findPrimaryButton();
+        if (primaryButton) {
+          this._setFocus(primaryButton);
+          return;
+        }
+      }
+      
+      // Otherwise, just show the cursor at current location (already done in _handleKeyDown)
+      return;
+    }
+    
     const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
     
     if (!currentNode) return;
     
-    console.log('[KNM] Enter pressed on:', currentNode.id, 'kind:', currentNode.kind);
+    console.log('[KNM] Enter pressed on:', currentNode.id, 'kind:', currentNode.kind, 'focusMode:', currentNode.focusMode);
     
     // Get behavior from cache (stateful)
     const behavior = this._getBehavior(currentNode);
+    console.log('[KNM] Behavior found:', !!behavior, 'has onActivate:', !!behavior?.onActivate);
+    
     if (behavior?.onActivate) {
       const result = behavior.onActivate();
+      console.log('[KNM] onActivate returned:', result);
+      
       if (result === 'handled') {
         console.log('[KNM] Enter handled by behavior');
         
         // Check if behavior toggled interaction mode
-        if (behavior.isInteracting && behavior.isInteracting()) {
+        const nowInteracting = behavior.isInteracting && behavior.isInteracting();
+        console.log('[KNM] Behavior isInteracting:', nowInteracting);
+        
+        if (nowInteracting) {
           this._enterInteractionMode(currentNode.id);
         } else if (this.sessionState.interactingNodeId === currentNode.id) {
           this._exitInteractionMode();
@@ -288,8 +413,9 @@ export class KeyboardNavigationManager {
       }
     }
     
-    // Try to enter if it's a grid
-    if (currentNode.kind === 'grid' || currentNode.focusMode === 'entry-node') {
+    // Try to enter if it's a grid (but not if it's a leaf or has no cells)
+    if ((currentNode.kind === 'grid' || currentNode.focusMode === 'entry-node') && 
+        currentNode.focusMode !== 'leaf') {
       console.log('[KNM] Attempting to enter grid:', currentNode.id);
       const cellId = this.enterGrid(currentNode.id, currentNode.entryPolicy);
       if (cellId) {
@@ -297,28 +423,70 @@ export class KeyboardNavigationManager {
       } else {
         console.warn('[KNM] Failed to enter grid:', currentNode.id);
       }
+    } else {
+      console.log('[KNM] Not entering grid - kind:', currentNode.kind, 'focusMode:', currentNode.focusMode);
     }
   }
   
   /**
    * Handle escape/back events (Escape/R)
    * @param {KeyboardEvent} event
+   * @param {boolean} wasActive - Whether nav was active before this keypress
    */
-  _handleEscape(event) {
+  _handleEscape(event, wasActive) {
     event.preventDefault();
     
-    // Check for overlay first
-    const currentScope = this.getCurrentScope();
-    if (currentScope) {
-      const gridNode = this.uiTree.getNode(currentScope.gridId);
+    // If we just activated (cursor was hidden), show cursor and move to cancel button
+    if (!wasActive) {
+      console.log('[KNM] First Escape - showing cursor and moving to cancel button');
       
-      if (gridNode?.isOverlay) {
-        // Check if overlay allows escape
-        if (gridNode.closeOnEscape !== false) {
-          this.closeOverlay(gridNode.id);
+      // If we're in an overlay (dialog), move to cancel/escape button
+      if (this.isInsideOverlay()) {
+        const cancelButton = this._findCancelButton();
+        if (cancelButton) {
+          this._setFocus(cancelButton);
+          return;
         }
+      }
+      
+      // Otherwise, just show the cursor at current location (already done in _handleKeyDown)
+      return;
+    }
+    
+    // Check if we're in an overlay - need to handle two-stage escape
+    if (this.isInsideOverlay()) {
+      const overlayId = this.currentContext.overlayId;
+      const overlayNode = this.uiTree.getNode(overlayId);
+      
+      // Check if overlay allows escape
+      if (overlayNode?.closeOnEscape === false) {
+        console.log('[KNM] Escape pressed - overlay does not allow escape:', overlayId);
         return;
       }
+      
+      // Two-stage escape: if not on cancel button, move to it first
+      const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
+      const isOnCancelButton = currentNode?.kind === 'button' && 
+                               (currentNode.meta?.buttonRole === 'danger' ||
+                                currentNode.meta?.buttonRole === 'secondary' ||
+                                currentNode.meta?.intent === 'cancel' ||
+                                currentNode.meta?.intent === 'escape');
+      
+      if (!isOnCancelButton) {
+        // Stage 1: Move to cancel button (if one exists)
+        const cancelButton = this._findCancelButton();
+        if (cancelButton) {
+          console.log('[KNM] Escape stage 1 - moving to cancel button');
+          this._setFocus(cancelButton);
+          return;
+        }
+        // No cancel button found - proceed to close
+      }
+      
+      // Stage 2: We're on cancel button (or no cancel button exists) - close overlay
+      console.log('[KNM] Escape stage 2 - closing overlay:', overlayId);
+      this.closeOverlay(overlayId);
+      return;
     }
     
     // Check for interaction mode - let behavior handle first
@@ -352,6 +520,46 @@ export class KeyboardNavigationManager {
   }
   
   /**
+   * Handle key release events
+   * @param {KeyboardEvent} event
+   */
+  _handleKeyUp(event) {
+    const { key } = event;
+    
+    // Stop repeat for this key
+    this.repeatManager.stopRepeat(key);
+  }
+  
+  /**
+   * Get repeat profile based on current interaction context
+   * @returns {string} Profile name ('canvas', 'slider', 'navigation')
+   */
+  _getRepeatProfile() {
+    // If not interacting with anything, use fast navigation profile
+    if (!this.sessionState.interactingNodeId) {
+      return 'navigation';
+    }
+    
+    const node = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    if (!node) {
+      return 'navigation';
+    }
+    
+    // Canvas interactions use slow profile for precision
+    if (node.kind === 'canvas' || node.role === 'canvas') {
+      return 'canvas';
+    }
+    
+    // Slider/analog controls use medium profile
+    if (node.kind === 'analog-control' || node.role === 'slider') {
+      return 'slider';
+    }
+    
+    // Default to navigation profile
+    return 'navigation';
+  }
+  
+  /**
    * Get or create a cached behavior instance for a node
    * Behaviors are stateful, so we reuse the same instance
    * @param {Object} node - Navigation node
@@ -369,12 +577,21 @@ export class KeyboardNavigationManager {
     const element = this.uiTree.getElement(node.id);
     const deps = {
       uiTree: this.uiTree,
-      navManager: this
+      navManager: this,
+      ...this.behaviorDeps // Include canvas action dispatcher and other deps
     };
-    const behavior = this.behaviorRegistry.create(node.kind, node, element, deps);
+    
+    // Try role first (more specific), then fall back to kind
+    const behaviorType = node.role || node.kind;
+    console.log('[KNM] Getting behavior for node:', node.id, 'behaviorType:', behaviorType, 'kind:', node.kind, 'role:', node.role);
+    
+    const behavior = this.behaviorRegistry.create(behaviorType, node, element, deps);
     
     if (behavior) {
       this.behaviorCache.set(node.id, behavior);
+      console.log('[KNM] Created and cached behavior for:', node.id);
+    } else {
+      console.warn('[KNM] No behavior found for type:', behaviorType);
     }
     
     return behavior;
@@ -387,6 +604,9 @@ export class KeyboardNavigationManager {
   _handleMouseInteraction(event) {
     if (this.sessionState.active) {
       console.log('[KNM] Deactivating keyboard navigation due to mouse click');
+      
+      // Stop all key repeats
+      this.repeatManager.stopAll();
       
       // Exit interaction mode if active
       if (this.sessionState.interactingNodeId) {
@@ -409,7 +629,7 @@ export class KeyboardNavigationManager {
    * @returns {string|null} New cell ID or null
    */
   handleArrowKey(direction) {
-    if (this.scopeStack.length === 0) {
+    if (this.currentContext.scopeStack.length === 0) {
       console.warn('[KNM] No active scope');
       return null;
     }
@@ -620,7 +840,7 @@ export class KeyboardNavigationManager {
     console.log('[KNM] Entering cell:', cell?.id, 'at [', row, col, ']');
     
     // Push scope
-    this.scopeStack.push({
+    this.currentContext.scopeStack.push({
       gridId,
       cellId: cell.id,
       coords: [row, col]
@@ -628,7 +848,7 @@ export class KeyboardNavigationManager {
     
     this.gridMemory.set(gridId, [row, col]);
     
-    console.log('[KNM] Entered', gridId, 'at', cell.id, '- depth:', this.scopeStack.length);
+    console.log('[KNM] Entered', gridId, 'at', cell.id, '- depth:', this.currentContext.scopeStack.length);
     return cell.id;
   }
   
@@ -637,12 +857,22 @@ export class KeyboardNavigationManager {
    * @returns {string|null} Parent cell ID
    */
   exitScope() {
-    if (this.scopeStack.length <= 1) {
+    if (this.currentContext.scopeStack.length <= 1) {
       console.log('[KNM] Cannot exit root');
       return null;
     }
     
-    const exited = this.scopeStack.pop();
+    // ENFORCEMENT: Don't allow exiting an overlay scope
+    // The only way to exit an overlay should be through closeOverlay()
+    const currentScope = this.getCurrentScope();
+    const currentGrid = this.uiTree.getNode(currentScope.gridId);
+    
+    if (currentGrid?.isOverlay) {
+      console.log('[KNM] Cannot exit overlay via exitScope - use closeOverlay() or Escape');
+      return null;
+    }
+    
+    const exited = this.currentContext.scopeStack.pop();
     this.gridMemory.set(exited.gridId, exited.coords);
     
     const parent = this.getCurrentScope();
@@ -657,8 +887,8 @@ export class KeyboardNavigationManager {
    * @returns {string|null} Target cell ID
    */
   exitScopeAndFocus(targetId) {
-    // Try to find target in scope chain
-    while (this.scopeStack.length > 1) {
+    // Try to find target in current context's scope chain
+    while (this.currentContext.scopeStack.length > 1) {
       const scope = this.getCurrentScope();
       const coords = this.uiTree.getCellCoords(scope.gridId, targetId);
       
@@ -666,12 +896,19 @@ export class KeyboardNavigationManager {
         return this.moveToCellInScope(scope.gridId, coords[0], coords[1]);
       }
       
+      // Check if we can exit this scope
+      const currentGrid = this.uiTree.getNode(scope.gridId);
+      if (currentGrid?.isOverlay) {
+        console.log('[KNM] Cannot exit overlay to reach escape target');
+        return null;
+      }
+      
       // Pop and try parent
-      const exited = this.scopeStack.pop();
+      const exited = this.currentContext.scopeStack.pop();
       this.gridMemory.set(exited.gridId, exited.coords);
     }
     
-    // At root - try to find target
+    // At root of current context - try to find target
     const rootScope = this.getCurrentScope();
     const coords = this.uiTree.getCellCoords(rootScope.gridId, targetId);
     
@@ -694,7 +931,9 @@ export class KeyboardNavigationManager {
    * @returns {Object|null} Scope
    */
   getCurrentScope() {
-    return this.scopeStack.length > 0 ? this.scopeStack[this.scopeStack.length - 1] : null;
+    return this.currentContext.scopeStack.length > 0 
+      ? this.currentContext.scopeStack[this.currentContext.scopeStack.length - 1] 
+      : null;
   }
   
   /**
@@ -716,7 +955,7 @@ export class KeyboardNavigationManager {
           console.log('[KNM] Returning focus to trigger:', preferredTargetId);
           
           // Exit scopes until we find the target or reach root
-          while (this.scopeStack.length > 1) {
+          while (this.currentContext.scopeStack.length > 1) {
             const scope = this.getCurrentScope();
             const coords = this.uiTree.getCellCoords(scope.gridId, preferredTargetId);
             
@@ -728,7 +967,7 @@ export class KeyboardNavigationManager {
             }
             
             // Not in this scope, exit to parent
-            this.scopeStack.pop();
+            this.currentContext.scopeStack.pop();
           }
           
           // Check root scope
@@ -743,7 +982,7 @@ export class KeyboardNavigationManager {
       }
       
       // Fallback: Exit scopes until we find a visible location
-      while (this.scopeStack.length > 1) {
+      while (this.currentContext.scopeStack.length > 1) {
         const scope = this.getCurrentScope();
         const scopeNode = this.uiTree.getNode(scope.gridId);
         
@@ -758,7 +997,7 @@ export class KeyboardNavigationManager {
         
         // No visible cells in this scope, exit it
         console.log('[KNM] No visible cells in', scope.gridId, 'exiting...');
-        this.scopeStack.pop();
+        this.currentContext.scopeStack.pop();
       }
       
       // If we're at root and still no focus, try to enter root
@@ -776,52 +1015,205 @@ export class KeyboardNavigationManager {
   // ── Overlay Management ─────────────────────────────────────────────────────
   
   /**
-   * Open overlay
+   * Check if we're currently inside an overlay
+   * @returns {boolean}
+   */
+  isInsideOverlay() {
+    return this.currentContext.overlayId !== null;
+  }
+  
+  /**
+   * Find primary button in current overlay
+   * @returns {string|null} Button node ID
+   */
+  _findPrimaryButton() {
+    if (!this.currentContext.overlayId) return null;
+    
+    const overlayNode = this.uiTree.getNode(this.currentContext.overlayId);
+    if (!overlayNode) return null;
+    
+    // Search children recursively for a button with primary: true
+    const findPrimary = (nodeId) => {
+      const node = this.uiTree.getNode(nodeId);
+      if (!node) return null;
+      
+      if (node.kind === 'button' && node.primary === true) {
+        return node.id;
+      }
+      
+      if (node.children) {
+        for (const childId of node.children) {
+          const result = findPrimary(childId);
+          if (result) return result;
+        }
+      }
+      
+      return null;
+    };
+    
+    return findPrimary(this.currentContext.overlayId);
+  }
+  
+  /**
+   * Find cancel/escape button in current overlay
+   * Looks for buttons with buttonRole='danger', 'secondary' or intent='cancel' or 'escape'
+   * @returns {string|null} Button node ID
+   */
+  _findCancelButton() {
+    if (!this.currentContext.overlayId) return null;
+    
+    const overlayNode = this.uiTree.getNode(this.currentContext.overlayId);
+    if (!overlayNode) return null;
+    
+    // Search children recursively for a cancel-type button
+    const findCancel = (nodeId) => {
+      const node = this.uiTree.getNode(nodeId);
+      if (!node) return null;
+      
+      if (node.kind === 'button') {
+        // Check meta.buttonRole or meta.intent
+        if (node.meta?.buttonRole === 'danger' || 
+            node.meta?.buttonRole === 'secondary' ||
+            node.meta?.intent === 'cancel' || 
+            node.meta?.intent === 'escape') {
+          return node.id;
+        }
+      }
+      
+      if (node.children) {
+        for (const childId of node.children) {
+          const result = findCancel(childId);
+          if (result) return result;
+        }
+      }
+      
+      return null;
+    };
+    
+    return findCancel(this.currentContext.overlayId);
+  }
+  
+  /**
+   * Open overlay - creates a new isolated navigation context
    * @param {string} overlayId - Overlay grid ID
    * @param {string} triggerId - Trigger element ID
    */
   openOverlayById(overlayId, triggerId = null) {
     console.log('[KNM] Opening overlay:', overlayId, 'trigger:', triggerId);
     
-    this.sessionState.overlayStack.push({ overlayId, triggerId });
+    // Preserve active state when entering overlay
+    const wasActive = this.sessionState.active;
     
-    // Enter the overlay grid
+    // Create new context for the overlay
+    const newContext = {
+      scopeStack: [],
+      parentContext: this.currentContext, // Link to current context
+      overlayId: overlayId,
+      triggerId: triggerId
+    };
+    
+    // Switch to new context
+    this.currentContext = newContext;
+    
+    // Enter the overlay grid in the new context
     const cellId = this.enterGrid(overlayId, 'explicit');
     if (cellId) {
       this._setFocus(cellId);
+      
+      // If navigation was active, ensure it stays active and cursor is visible
+      if (wasActive) {
+        console.log('[KNM] Overlay opened while nav active - maintaining active state');
+        this.sessionState.active = true;
+        this.sessionState.justActivated = false;
+        document.body.classList.add('nav-active');
+        
+        // Ensure visualizer shows cursor at new focus location
+        const node = this.uiTree.getNode(cellId);
+        if (node && this.visualizer) {
+          const element = this.uiTree.getElement(cellId);
+          if (element) {
+            const isEnterable = node.focusMode === 'entry-node' || node.kind === 'grid';
+            const isInteracting = this.sessionState.interactingNodeId === cellId;
+            
+            this.visualizer.render({
+              element,
+              isEnterable,
+              isInteracting
+            });
+          }
+        }
+      }
     }
   }
   
   /**
-   * Close overlay
+   * Close overlay - restores parent navigation context
    * @param {string} overlayId - Overlay to close
    */
   closeOverlay(overlayId) {
     console.log('[KNM] Closing overlay:', overlayId);
     
-    const index = this.sessionState.overlayStack.findIndex(o => o.overlayId === overlayId);
-    if (index === -1) {
-      console.warn('[KNM] Overlay not in stack');
+    // Verify we're actually closing the current overlay
+    if (this.currentContext.overlayId !== overlayId) {
+      console.warn('[KNM] Attempted to close overlay that is not current:', overlayId);
       return;
     }
     
-    const overlay = this.sessionState.overlayStack[index];
-    
-    // Pop scopes until overlay is exited
-    while (this.scopeStack.length > 0) {
-      const scope = this.getCurrentScope();
-      if (scope.gridId === overlayId) {
-        this.scopeStack.pop();
-        break;
-      }
-      this.scopeStack.pop();
+    if (!this.currentContext.parentContext) {
+      console.warn('[KNM] Cannot close root context');
+      return;
     }
     
-    this.sessionState.overlayStack.splice(index, 1);
+    // Guard against duplicate close attempts
+    if (this.currentContext._pendingClose) {
+      console.log('[KNM] Overlay close already pending, ignoring duplicate call');
+      return;
+    }
     
-    // Restore focus
-    if (overlay.triggerId) {
-      this._setFocus(overlay.triggerId);
+    const triggerId = this.currentContext.triggerId;
+    
+    // Emit event FIRST - allows overlay content (like dialogs) to intercept
+    // The overlay content is responsible for actually removing itself from DOM
+    if (this.uiTree?._events) {
+      console.log('[KNM] Emitting overlay:before-close event for:', overlayId);
+      this.uiTree._events.emit('overlay:before-close', { 
+        id: overlayId, 
+        triggerId: triggerId 
+      });
+    }
+    
+    // DON'T restore parent context yet!
+    // The dialog will call back when it's done closing via removeTransientOverlay
+    // For now, just mark that we want to close
+    this.currentContext._pendingClose = true;
+    this.currentContext._restoreTriggerId = triggerId;
+  }
+  
+  /**
+   * Complete overlay close - called by overlay content after it finishes cleanup
+   * @param {string} overlayId - Overlay that finished closing
+   */
+  completeOverlayClose(overlayId) {
+    console.log('[KNM] Completing overlay close:', overlayId);
+    
+    if (this.currentContext.overlayId !== overlayId) {
+      console.warn('[KNM] Cannot complete close - not current overlay:', overlayId);
+      return;
+    }
+    
+    if (!this.currentContext.parentContext) {
+      console.warn('[KNM] Cannot complete close - no parent context');
+      return;
+    }
+    
+    const triggerId = this.currentContext._restoreTriggerId;
+    
+    // NOW restore parent context
+    this.currentContext = this.currentContext.parentContext;
+    
+    // Restore focus to trigger or current cell in restored context
+    if (triggerId) {
+      this._setFocus(triggerId);
     } else {
       const scope = this.getCurrentScope();
       if (scope) {
@@ -919,6 +1311,22 @@ export class KeyboardNavigationManager {
    */
   _exitInteractionMode() {
     console.log('[KNM] Exited interaction mode');
+    
+    // Stop all key repeats when exiting interaction mode
+    this.repeatManager.stopAll();
+    
+    // Notify the behavior to exit its interaction state
+    if (this.sessionState.interactingNodeId) {
+      const node = this.uiTree.getNode(this.sessionState.interactingNodeId);
+      if (node) {
+        const behavior = this._getBehavior(node);
+        if (behavior?.onEscape) {
+          console.log('[KNM] Notifying behavior to exit interaction mode');
+          behavior.onEscape();
+        }
+      }
+    }
+    
     this.sessionState.interactingNodeId = null;
     
     if (this.sessionState.currentFocusId) {
@@ -935,11 +1343,24 @@ export class KeyboardNavigationManager {
     if (this._boundKeyHandler) {
       document.removeEventListener('keydown', this._boundKeyHandler);
     }
+    if (this._boundKeyUpHandler) {
+      document.removeEventListener('keyup', this._boundKeyUpHandler);
+    }
     if (this._boundMouseHandler) {
       document.removeEventListener('pointerdown', this._boundMouseHandler, true);
     }
     
-    this.scopeStack = [];
+    // Cleanup repeat manager
+    if (this.repeatManager) {
+      this.repeatManager.destroy();
+    }
+    
+    // Clear all contexts (walk up parent chain)
+    while (this.currentContext.parentContext) {
+      this.currentContext = this.currentContext.parentContext;
+    }
+    this.currentContext.scopeStack = [];
+    
     this.gridMemory.clear();
     
     console.log('[KNM] Destroyed');

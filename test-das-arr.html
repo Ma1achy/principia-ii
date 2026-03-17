@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DAS/ARR Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 2px solid #333;
+      border-radius: 8px;
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      color: #4af;
+    }
+    
+    .counter {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 20px 0;
+      color: #4f4;
+    }
+    
+    .instructions {
+      color: #aaa;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .profile-info {
+      color: #fa4;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    
+    .log-entry {
+      font-size: 12px;
+      color: #888;
+      padding: 2px 0;
+    }
+    
+    .log-entry.das {
+      color: #4af;
+    }
+    
+    .log-entry.arr {
+      color: #4f4;
+    }
+    
+    #log {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #0a0a0a;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>DAS/ARR Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>Navigation Profile (Fast)</h2>
+    <div class="instructions">
+      Hold Arrow Up/Down to increment counter rapidly<br>
+      Expected: DAS=200ms, ARR=50ms (~20 actions/sec)
+    </div>
+    <div class="counter" id="nav-counter">0</div>
+    <div class="profile-info">Profile: navigation | DAS: 200ms | ARR: 50ms</div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Slider Profile (Medium)</h2>
+    <div class="instructions">
+      Hold Arrow Left/Right to adjust slider value<br>
+      Expected: DAS=300ms, ARR=60ms (~16.7 actions/sec)
+    </div>
+    <div class="counter" id="slider-counter">50</div>
+    <div class="profile-info">Profile: slider | DAS: 300ms | ARR: 60ms</div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Canvas Profile (Slow)</h2>
+    <div class="instructions">
+      Hold +/- to zoom in/out slowly for precision<br>
+      Expected: DAS=400ms, ARR=80ms (~12.5 actions/sec)
+    </div>
+    <div class="counter" id="canvas-counter">1.0</div>
+    <div class="profile-info">Profile: canvas | DAS: 400ms | ARR: 80ms</div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Event Log</h2>
+    <div id="log"></div>
+  </div>
+  
+  <script type="module">
+    import { KeyRepeatManager } from './src/navigation/KeyRepeatManager.js';
+    
+    // Initialize counters
+    let navCount = 0;
+    let sliderValue = 50;
+    let canvasZoom = 1.0;
+    
+    const navCounter = document.getElementById('nav-counter');
+    const sliderCounter = document.getElementById('slider-counter');
+    const canvasCounter = document.getElementById('canvas-counter');
+    const logEl = document.getElementById('log');
+    
+    // Initialize KeyRepeatManager
+    const repeatManager = new KeyRepeatManager();
+    
+    function log(message, type = '') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `${new Date().toLocaleTimeString()}.${String(Date.now() % 1000).padStart(3, '0')} - ${message}`;
+      logEl.insertBefore(entry, logEl.firstChild);
+      
+      // Keep only last 50 entries
+      while (logEl.children.length > 50) {
+        logEl.removeChild(logEl.lastChild);
+      }
+    }
+    
+    // Navigation actions (fast)
+    function incrementNav() {
+      navCount++;
+      navCounter.textContent = navCount;
+      log(`Navigation: ${navCount}`, 'arr');
+    }
+    
+    function decrementNav() {
+      navCount--;
+      navCounter.textContent = navCount;
+      log(`Navigation: ${navCount}`, 'arr');
+    }
+    
+    // Slider actions (medium)
+    function incrementSlider() {
+      sliderValue = Math.min(100, sliderValue + 1);
+      sliderCounter.textContent = sliderValue;
+      log(`Slider: ${sliderValue}`, 'arr');
+    }
+    
+    function decrementSlider() {
+      sliderValue = Math.max(0, sliderValue - 1);
+      sliderCounter.textContent = sliderValue;
+      log(`Slider: ${sliderValue}`, 'arr');
+    }
+    
+    // Canvas actions (slow)
+    function zoomIn() {
+      canvasZoom += 0.1;
+      canvasCounter.textContent = canvasZoom.toFixed(1);
+      log(`Zoom: ${canvasZoom.toFixed(1)}`, 'arr');
+    }
+    
+    function zoomOut() {
+      canvasZoom = Math.max(0.1, canvasZoom - 0.1);
+      canvasCounter.textContent = canvasZoom.toFixed(1);
+      log(`Zoom: ${canvasZoom.toFixed(1)}`, 'arr');
+    }
+    
+    // Key handlers
+    document.addEventListener('keydown', (e) => {
+      if (e.repeat) return; // Ignore browser repeat
+      
+      let action = null;
+      let profile = null;
+      
+      switch (e.key) {
+        // Navigation (fast)
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          e.preventDefault();
+          action = incrementNav;
+          profile = 'navigation';
+          log('Key DOWN: ArrowUp (navigation profile)', 'das');
+          break;
+          
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          e.preventDefault();
+          action = decrementNav;
+          profile = 'navigation';
+          log('Key DOWN: ArrowDown (navigation profile)', 'das');
+          break;
+        
+        // Slider (medium)
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          e.preventDefault();
+          action = decrementSlider;
+          profile = 'slider';
+          log('Key DOWN: ArrowLeft (slider profile)', 'das');
+          break;
+          
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          e.preventDefault();
+          action = incrementSlider;
+          profile = 'slider';
+          log('Key DOWN: ArrowRight (slider profile)', 'das');
+          break;
+        
+        // Canvas (slow)
+        case '+':
+        case '=':
+        case 'e':
+        case 'E':
+          e.preventDefault();
+          action = zoomIn;
+          profile = 'canvas';
+          log('Key DOWN: + (canvas profile)', 'das');
+          break;
+          
+        case '-':
+        case '_':
+        case 'q':
+        case 'Q':
+          e.preventDefault();
+          action = zoomOut;
+          profile = 'canvas';
+          log('Key DOWN: - (canvas profile)', 'das');
+          break;
+      }
+      
+      if (action && profile) {
+        // Execute immediately
+        action();
+        
+        // Start repeat
+        repeatManager.startRepeat(e.key, action, profile);
+      }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+      const profiles = {
+        'ArrowUp': 'navigation',
+        'ArrowDown': 'navigation',
+        'ArrowLeft': 'slider',
+        'ArrowRight': 'slider',
+        '+': 'canvas',
+        '=': 'canvas',
+        '-': 'canvas',
+        '_': 'canvas',
+        'w': 'navigation',
+        'W': 'navigation',
+        's': 'navigation',
+        'S': 'navigation',
+        'a': 'slider',
+        'A': 'slider',
+        'd': 'slider',
+        'D': 'slider',
+        'e': 'canvas',
+        'E': 'canvas',
+        'q': 'canvas',
+        'Q': 'canvas'
+      };
+      
+      if (profiles[e.key]) {
+        log(`Key UP: ${e.key}`);
+        repeatManager.stopRepeat(e.key);
+      }
+    });
+    
+    log('DAS/ARR Test initialized. Use arrow keys, WASD, +/- to test different profiles.');
+  </script>
+</body>
+</html>

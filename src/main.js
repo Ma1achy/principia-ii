@@ -493,7 +493,26 @@ async function boot() {
   // Setup focus effects and visualizer
   const effects = new DOMFocusEffects();
   const visualizer = new FocusVisualizer(document.body);
-  const navManager = new KeyboardNavigationManager({ effects, visualizer, uiTree, behaviorRegistry });
+  
+  // Setup canvas action dispatcher (needed before navManager)
+  const dispatchCanvasAction = createCanvasActionDispatcher({
+    glCanvas,
+    outCanvas,
+    scheduleRender,
+    writeHash,
+    updateStateBox,
+    drawHUD
+  });
+  
+  // Setup behavior dependencies
+  const behaviorDeps = {
+    uiTree,
+    dispatchCanvasAction,
+    PAN_STEP: 20,
+    ZOOM_STEP: 0.1
+  };
+  
+  const navManager = new KeyboardNavigationManager({ effects, visualizer, uiTree, behaviorRegistry, behaviorDeps });
   console.log('[Boot] ✓ Keyboard navigation initialized');
   
   buildResolutions(renderer);
@@ -520,28 +539,10 @@ async function boot() {
   initTabindexes(uiTree);
   console.log('[Boot] ✓ Elements bound to semantic tree');
   
-  // Setup canvas action dispatcher
-  const dispatchCanvasAction = createCanvasActionDispatcher({
-    glCanvas,
-    outCanvas,
-    scheduleRender,
-    writeHash,
-    updateStateBox,
-    drawHUD
-  });
-  
   // Register param-trigger behavior with dependencies
   const triggerDeps = { uiTree, navManager };
   behaviorRegistry.register('param-trigger', (n, el, deps) =>
     behaviors.paramTriggerBehavior(n, el, { ...deps, ...triggerDeps }));
-  
-  // Setup behavior dependencies
-  const behaviorDeps = {
-    uiTree,
-    dispatchCanvasAction,
-    PAN_STEP: 20,
-    ZOOM_STEP: 0.1
-  };
   
   // Build navigation tree
   const adapter = new SemanticTreeAdapter(uiTree, behaviorRegistry, behaviorDeps);

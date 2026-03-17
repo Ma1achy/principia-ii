@@ -350,7 +350,7 @@ export function paramTriggerBehavior(node, element, deps = {}) {
 /**
  * Canvas behavior - leaf node with interaction mode for pan/zoom
  * Like analog-control: Enter activates (cyan), Escape exits (orange)
- * While interacting: arrows pan, +/- zoom, ArrowUp/Down can exit
+ * While interacting: arrows pan, +/- zoom
  * @param {Object} node - Navigation node
  * @param {HTMLElement} element - DOM element (canvas)
  * @param {Object} deps - { dispatchCanvasAction, PAN_STEP, ZOOM_STEP }
@@ -362,15 +362,27 @@ export function canvasBehavior(node, element, deps = {}) {
 
   return {
     onActivate() {
-      return BEHAVIOR_RESULT.IGNORED; // Not a button, use onInteract
+      console.log('[canvasBehavior] onActivate called, current isInteracting:', isInteracting);
+      // Enter key toggles interaction mode
+      isInteracting = !isInteracting;
+      console.log('[canvasBehavior] Toggled interaction mode to:', isInteracting ? 'ACTIVE (cyan)' : 'INACTIVE (orange)');
+      return BEHAVIOR_RESULT.HANDLED;
     },
 
     onArrowKey(direction) {
+      console.log('[canvasBehavior] onArrowKey called:', direction, 'isInteracting:', isInteracting, 'hasDispatcher:', !!dispatchCanvasAction);
       if (!isInteracting || !dispatchCanvasAction) {
         return BEHAVIOR_RESULT.IGNORED;
       }
 
-      // While interacting: arrows pan
+      // While interacting: handle both pan (arrows) and zoom (+/- mapped to up/down)
+      
+      // Check if this is a zoom operation (from increment/decrement mapping)
+      if (direction === 'ArrowUp' || direction === 'ArrowDown') {
+        // This could be either pan (actual arrow key) or zoom (+/- key)
+        // For now, treat it as pan. Zoom is handled by onIncrement/onDecrement
+      }
+      
       const panMap = {
         ArrowUp: { x: 0, y: PAN_STEP },
         ArrowDown: { x: 0, y: -PAN_STEP },
@@ -380,21 +392,40 @@ export function canvasBehavior(node, element, deps = {}) {
 
       const pan = panMap[direction];
       if (pan) {
+        console.log('[canvasBehavior] Panning:', pan);
         dispatchCanvasAction('pan', pan);
         return BEHAVIOR_RESULT.HANDLED;
       }
 
       return BEHAVIOR_RESULT.IGNORED;
     },
-
-    onInteract() {
-      // Toggle interaction mode
-      isInteracting = !isInteracting;
-      console.log('[canvasBehavior] Interaction mode:', isInteracting ? 'ACTIVE (cyan)' : 'INACTIVE (orange)');
+    
+    onIncrement() {
+      console.log('[canvasBehavior] onIncrement called, isInteracting:', isInteracting, 'hasDispatcher:', !!dispatchCanvasAction);
+      if (!isInteracting || !dispatchCanvasAction) {
+        return BEHAVIOR_RESULT.IGNORED;
+      }
+      
+      // + or E key: zoom in
+      dispatchCanvasAction('zoom', { delta: ZOOM_STEP });
+      console.log('[canvasBehavior] Zoom in:', ZOOM_STEP);
+      return BEHAVIOR_RESULT.HANDLED;
+    },
+    
+    onDecrement() {
+      console.log('[canvasBehavior] onDecrement called, isInteracting:', isInteracting, 'hasDispatcher:', !!dispatchCanvasAction);
+      if (!isInteracting || !dispatchCanvasAction) {
+        return BEHAVIOR_RESULT.IGNORED;
+      }
+      
+      // - or Q key: zoom out
+      dispatchCanvasAction('zoom', { delta: -ZOOM_STEP });
+      console.log('[canvasBehavior] Zoom out:', -ZOOM_STEP);
       return BEHAVIOR_RESULT.HANDLED;
     },
 
     onEscape() {
+      console.log('[canvasBehavior] onEscape called, isInteracting:', isInteracting);
       if (isInteracting) {
         // Exit interaction mode, stay focused on canvas
         isInteracting = false;

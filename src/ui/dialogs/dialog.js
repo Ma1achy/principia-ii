@@ -201,6 +201,38 @@ export async function showDialog(options) {
   // 2.6 Bind event handlers
   bindHandlers(normalized, DialogManager.rootElement);
   
+  // 2.6.5 Register escape event listener (after bindHandlers to avoid immediate cleanup)
+  if (window.uiTree?._events && normalized.closeOnEscape !== false) {
+    const dialogId = `dialog-${normalized.id}`;
+    console.log('[Dialog] Setting up overlay:before-close listener for:', dialogId, 'closeOnEscape:', normalized.closeOnEscape);
+    
+    const beforeCloseHandler = (event) => {
+      console.log('[Dialog] overlay:before-close event received:', event);
+      if (event.id === dialogId) {
+        console.log('[Dialog] Overlay close requested by navigation system (Escape)');
+        // Trigger dialog's close flow
+        handleCloseAttempt({
+          action: 'escape',
+          dismissedBy: 'escape',
+          buttonReturn: null
+        });
+      } else {
+        console.log('[Dialog] Event was for different overlay:', event.id, 'expected:', dialogId);
+      }
+    };
+    
+    window.uiTree._events.on('overlay:before-close', beforeCloseHandler);
+    console.log('[Dialog] Event listener registered successfully');
+    
+    // Clean up listener when dialog closes
+    DialogManager.handlers.push(() => {
+      console.log('[Dialog] Cleaning up overlay:before-close listener');
+      window.uiTree._events.off('overlay:before-close', beforeCloseHandler);
+    });
+  } else {
+    console.log('[Dialog] NOT setting up listener - uiTree._events:', !!window.uiTree?._events, 'closeOnEscape:', normalized.closeOnEscape);
+  }
+  
   // 2.7 Focus initial element
   focusInitialElement(DialogManager.rootElement, normalized);
   
@@ -537,28 +569,66 @@ function renderDialog(rootElement, options, initialState) {
     const fieldElements = rootElement.querySelectorAll('[data-field-id]');
     const checkElements = rootElement.querySelectorAll('[data-check-id]');
     
-    // Build child node IDs
-    const childIds = [
-      ...Array.from(buttonElements).map(b => `${dialogId}:btn-${b.dataset.buttonId}`),
+    // Build button grid ID
+    const buttonGridId = `${dialogId}:button-grid`;
+    const buttonIds = Array.from(buttonElements).map(b => `${dialogId}:btn-${b.dataset.buttonId}`);
+    
+    // Build content IDs (fields and checkboxes)
+    const contentIds = [
       ...Array.from(fieldElements).map(f => `${dialogId}:field-${f.dataset.fieldId}`),
       ...Array.from(checkElements).map(c => `${dialogId}:check-${c.dataset.checkId}`)
     ];
     
-    // Build child nodes
-    const childNodes = [
-      // Button nodes
-      ...Array.from(buttonElements).map((b, idx) => ({
-        id: `${dialogId}:btn-${b.dataset.buttonId}`,
-        kind: 'button',
-        parentId: dialogId,
+    // Build button nodes
+    const buttonNodes = Array.from(buttonElements).map((b, idx) => {
+      const buttonId = b.dataset.buttonId;
+      const buttonDef = options.buttons.find(btn => btn.id === buttonId);
+      
+      return {
+        id: `${dialogId}:btn-${buttonId}`,
+        kind: 'button',  // Always 'button' for behavior lookup
+        parentId: buttonGridId,
         children: [],
         focusMode: 'leaf',
-        role: 'button',
+        role: 'button',  // Keep as 'button' for behavior
         ariaRole: 'button',
         ariaLabel: b.textContent.trim(),
-        primary: idx === 0,
-        element: b
-      })),
+        primary: buttonDef?.role === 'primary',  // Check button definition, not array index
+        element: b,
+        meta: {
+          buttonRole: buttonDef?.role,  // Store original role in meta
+          intent: buttonDef?.intent,
+          hotkey: buttonDef?.hotkey
+        }
+      };
+    });
+    
+    // Build button grid node (horizontal layout)
+    // Note: No element and no focusMode = transparent grid (auto-enters)
+    // This allows seamless up/down navigation between content and buttons
+    const buttonGridNode = {
+      id: buttonGridId,
+      kind: 'grid',
+      parentId: dialogId,
+      rows: 1,
+      cols: buttonIds.length,
+      cells: buttonIds.map((id, col) => ({ id, row: 0, col, rowSpan: 1, colSpan: 1 })),
+      children: buttonIds,
+      wrapRows: false,
+      wrapCols: true,
+      entryPolicy: 'remembered', // Remember which button was last focused
+      // No focusMode - will auto-enter since it has no element
+      // Escape up: go back to last content item (or exit dialog if no content)
+      escapeUp: contentIds.length > 0 ? contentIds[contentIds.length - 1] : null,
+      role: 'button-group',
+      ariaLabel: 'Dialog buttons',
+      meta: {
+        isButtonRow: true
+      }
+    };
+    
+    // Build content nodes (fields and checkboxes)
+    const contentNodes = [
       // Field nodes
       ...Array.from(fieldElements).map(f => ({
         id: `${dialogId}:field-${f.dataset.fieldId}`,
@@ -583,15 +653,19 @@ function renderDialog(rootElement, options, initialState) {
       }))
     ];
     
-    // Build dialog node structure as a grid (vertical list of children)
+    // Main dialog child IDs: content items + button grid
+    const dialogChildIds = [...contentIds, buttonGridId];
+    
+    // Build dialog node structure as a vertical grid
+    // Content items are in individual rows, button grid is in the last row
     const dialogNode = {
       id: dialogId,
       kind: 'grid',
       parentId: null,
-      rows: childIds.length,
+      rows: dialogChildIds.length,
       cols: 1,
-      cells: childIds.map(id => ({ id, rowSpan: 1, colSpan: 1 })),
-      children: childIds,
+      cells: dialogChildIds.map((id, row) => ({ id, row, col: 0, rowSpan: 1, colSpan: 1 })),
+      children: dialogChildIds,
       wrapRows: true,
       wrapCols: false,
       entryPolicy: 'first',
@@ -610,6 +684,9 @@ function renderDialog(rootElement, options, initialState) {
         gridLayout: true
       }
     };
+    
+    // All child nodes to register
+    const childNodes = [...contentNodes, buttonGridNode, ...buttonNodes];
     
     try {
       console.log('[Dialog] Registering overlay with', childNodes.length, 'children');
@@ -900,6 +977,14 @@ async function finalizeClose(result) {
   
   console.log('[Dialog] finalizeClose called, result:', result);
   
+  // Guard against duplicate close attempts
+  if (DialogManager.state === 'CLEANUP') {
+    console.log('[Dialog] Already closing, ignoring duplicate finalizeClose');
+    return;
+  }
+  
+  DialogManager.state = 'CLEANUP';
+  
   // Run persistence hook (only if confirmed)
   if (result.confirmed && options.onConfirmPersist) {
     try {
@@ -914,20 +999,31 @@ async function finalizeClose(result) {
   DialogManager.handlers = [];
   
   // Close overlay in navigation system BEFORE removing from tree
-  if (DialogManager.overlayRegistered && window.navManager && DialogManager.dialogNodeId) {
-    console.log('[Dialog] Closing overlay in navigation manager:', DialogManager.dialogNodeId);
-    try {
-      window.navManager.closeOverlay(DialogManager.dialogNodeId);
-    } catch (err) {
-      console.warn('[Dialog] Failed to close overlay in nav manager:', err);
+  // NOTE: This is called from handleCloseAttempt when user initiates close (button click)
+  // When Escape is pressed, closeOverlay() is called by nav manager first, then
+  // the overlay:before-close event triggers handleCloseAttempt, so we skip this
+  const dialogId = DialogManager.dialogNodeId;
+  if (DialogManager.overlayRegistered && window.navManager && dialogId) {
+    // Check if nav manager already started closing (via Escape)
+    const isAlreadyClosing = window.navManager.currentContext._pendingClose;
+    
+    if (!isAlreadyClosing) {
+      console.log('[Dialog] Closing overlay in navigation manager:', dialogId);
+      try {
+        window.navManager.closeOverlay(dialogId);
+      } catch (err) {
+        console.warn('[Dialog] Failed to close overlay in nav manager:', err);
+      }
+    } else {
+      console.log('[Dialog] Overlay close already pending from nav manager');
     }
   }
   
   // Remove transient overlay from tree
-  if (DialogManager.overlayRegistered && window.uiTree && DialogManager.dialogNodeId) {
+  if (DialogManager.overlayRegistered && window.uiTree && dialogId) {
     try {
-      console.log('[Dialog] Removing overlay from tree:', DialogManager.dialogNodeId);
-      window.uiTree.removeTransientOverlay(DialogManager.dialogNodeId);
+      console.log('[Dialog] Removing overlay from tree:', dialogId);
+      window.uiTree.removeTransientOverlay(dialogId);
     } catch (err) {
       console.warn('[Dialog] Failed to remove overlay:', err);
     }
@@ -940,11 +1036,14 @@ async function finalizeClose(result) {
     rootElement.classList.remove('open');
   }
   
-  // Restore focus (only if nav system is not active)
-  if (options.restoreFocus && !window.navManager?.sessionState.active) {
-    restoreFocus();
-  } else {
-    console.log('[Dialog] Skipping native focus restore - nav system active');
+  // Complete overlay close in navigation system (restores parent context and focus)
+  if (window.navManager && dialogId) {
+    console.log('[Dialog] Completing overlay close in navigation manager');
+    try {
+      window.navManager.completeOverlayClose(dialogId);
+    } catch (err) {
+      console.warn('[Dialog] Failed to complete overlay close:', err);
+    }
   }
   
   // Emit close event
