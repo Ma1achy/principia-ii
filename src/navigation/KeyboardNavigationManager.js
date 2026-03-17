@@ -56,11 +56,8 @@ export class KeyboardNavigationManager {
    * @param {string} rootId - Root grid ID (default 'root')
    * @param {Object} options - {setInitialFocus: boolean}
    */
-  init(rootIdOrTree = 'root', options = {}) {
+  init(rootId = 'root', options = {}) {
     const { setInitialFocus = false } = options;
-    
-    // Handle legacy API: if passed an object (nav tree), ignore it and use 'root'
-    const rootId = typeof rootIdOrTree === 'string' ? rootIdOrTree : 'root';
     
     // Attach keyboard listeners
     this._boundKeyHandler = this._handleKeyDown.bind(this);
@@ -72,6 +69,9 @@ export class KeyboardNavigationManager {
     // Attach mouse interaction handler
     this._boundMouseHandler = this._handleMouseInteraction.bind(this);
     document.addEventListener('pointerdown', this._boundMouseHandler, true);
+    
+    // Setup UITree event listeners for reactive updates
+    this._setupTreeListeners();
     
     // Always enter the root grid to set up scope stack
     const cellId = this.enterGrid(rootId, 'explicit');
@@ -177,7 +177,26 @@ export class KeyboardNavigationManager {
           });
         }
       }
-    } else {
+      
+      // IMPORTANT: Don't process this keypress - just show the cursor
+      // Special handling for Enter/Escape happens in their handlers via wasActive check
+      if (navEvent === 'nav-enter' || navEvent === 'nav-escape') {
+        // Let these through so they can move to primary/cancel button
+        // but their handlers will check wasActive and not activate
+        // Note: handlers will clear justActivated flag after moving cursor
+      } else {
+        // For all other keys (arrows, +/-, etc), consume this first press
+        console.log('[KNM] First press consumed - only showing cursor');
+        this.sessionState.justActivated = false;
+        event.preventDefault();
+        return;
+      }
+    }
+    
+    // Clear justActivated flag at the start of any subsequent keypress
+    // (unless we just set it above in activation block)
+    if (wasActive && this.sessionState.justActivated) {
+      console.log('[KNM] Clearing justActivated flag from previous activation');
       this.sessionState.justActivated = false;
     }
     
@@ -1254,6 +1273,31 @@ export class KeyboardNavigationManager {
       }
     }
     
+    // If focusing a leaf node, ensure we're in the correct parent grid scope
+    // This is important when jumping directly to a node (e.g., Enter -> primary button)
+    if (node.parentId && (node.focusMode === 'leaf' || node.kind !== 'grid')) {
+      const parentNode = this.uiTree.getNode(node.parentId);
+      if (parentNode && parentNode.kind === 'grid') {
+        // Check if we're already in this parent grid's scope
+        const currentScope = this.getCurrentScope();
+        if (!currentScope || currentScope.gridId !== node.parentId) {
+          console.log('[KNM] Not in parent grid scope, entering:', node.parentId);
+          // We need to enter the parent grid and position at this node's cell
+          const cell = parentNode.cells?.find(c => c.id === nodeId);
+          if (cell) {
+            // Enter the parent grid and set our coordinates to this cell
+            this.enterGrid(node.parentId, 'first'); // Enter grid (will pick first by default)
+            // Override the coordinates to point to our target cell
+            const scope = this.getCurrentScope();
+            if (scope) {
+              scope.coords = [cell.row, cell.col];
+              console.log('[KNM] Set scope coordinates to [', cell.row, cell.col, ']');
+            }
+          }
+        }
+      }
+    }
+    
     this.sessionState.currentFocusId = nodeId;
     
     if (!element) {
@@ -1334,6 +1378,70 @@ export class KeyboardNavigationManager {
     }
   }
   
+  // ── UITree Event Listeners ─────────────────────────────────────────────────
+  
+  /**
+   * Setup event listeners for UITree mutations
+   */
+  _setupTreeListeners() {
+    if (!this.uiTree?._events) {
+      console.warn('[KNM] UITree events not available');
+      return;
+    }
+    
+    // Node updated: no action needed (we read directly from UITree)
+    this.uiTree._events.on('node:updated', (event) => {
+      console.log('[KNM] Node updated:', event.id);
+    });
+    
+    // Nodes added: no action needed (we read directly from UITree)
+    this.uiTree._events.on('nodes:added', (event) => {
+      console.log('[KNM] Nodes added:', event.ids);
+    });
+    
+    // Node removed: restore focus if needed
+    this.uiTree._events.on('node:removed', (event) => {
+      const { id, parentId } = event;
+      
+      // If focused node was removed, restore focus to parent
+      if (this.sessionState.currentFocusId === id && parentId) {
+        this._setFocus(parentId);
+      }
+      
+      console.log('[KNM] Node removed:', id);
+    });
+    
+    // Subtree removed: restore focus if needed
+    this.uiTree._events.on('subtree:removed', (event) => {
+      const { rootId, removedIds } = event;
+      
+      // Check if any removed node was focused
+      if (removedIds.includes(this.sessionState.currentFocusId)) {
+        // Restore focus to nearest ancestor
+        const ancestorId = this.uiTree.getNearestAncestor(rootId);
+        if (ancestorId) {
+          this._setFocus(ancestorId);
+        }
+      }
+      
+      console.log('[KNM] Subtree removed:', rootId, removedIds.length, 'nodes');
+    });
+    
+    // Overlay registered: open overlay in nav manager
+    this.uiTree._events.on('overlay:registered', (event) => {
+      const { id, triggerId } = event;
+      console.log('[KNM] Overlay registered:', id, 'trigger:', triggerId);
+      this.openOverlayById(id, triggerId);
+    });
+    
+    // Overlay removed: close overlay in nav manager
+    this.uiTree._events.on('overlay:removed', (event) => {
+      const { id } = event;
+      console.log('[KNM] Overlay removed:', id);
+      this.closeOverlay(id);
+    });
+  }
+  
   // ── Cleanup ────────────────────────────────────────────────────────────────
   
   /**
@@ -1348,6 +1456,16 @@ export class KeyboardNavigationManager {
     }
     if (this._boundMouseHandler) {
       document.removeEventListener('pointerdown', this._boundMouseHandler, true);
+    }
+    
+    // Cleanup UITree event listeners
+    if (this.uiTree?._events) {
+      this.uiTree._events.off('node:updated');
+      this.uiTree._events.off('nodes:added');
+      this.uiTree._events.off('node:removed');
+      this.uiTree._events.off('subtree:removed');
+      this.uiTree._events.off('overlay:registered');
+      this.uiTree._events.off('overlay:removed');
     }
     
     // Cleanup repeat manager

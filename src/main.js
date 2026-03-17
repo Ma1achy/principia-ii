@@ -473,8 +473,6 @@ async function boot() {
   // ─── Navigation System (Early Init) ────────────────────────────────────────
   console.log('[Boot] Initializing keyboard navigation...');
   const { KeyboardNavigationManager } = await import('./navigation/KeyboardNavigationManager.js');
-  const { SemanticTreeAdapter } = await import('./navigation/SemanticTreeAdapter.js');
-  const { TreeNavigationBridge } = await import('./navigation/TreeNavigationBridge.js');
   const { BehaviorRegistry } = await import('./navigation/BehaviorRegistry.js');
   const { DOMFocusEffects } = await import('./navigation/FocusEffects.js');
   const { FocusVisualizer } = await import('./navigation/FocusVisualizer.js');
@@ -544,13 +542,8 @@ async function boot() {
   behaviorRegistry.register('param-trigger', (n, el, deps) =>
     behaviors.paramTriggerBehavior(n, el, { ...deps, ...triggerDeps }));
   
-  // Build navigation tree
-  const adapter = new SemanticTreeAdapter(uiTree, behaviorRegistry, behaviorDeps);
-  const navTree = adapter.buildNavigationTree();
-  navManager.init(navTree);
-  
-  // Setup tree-navigation bridge
-  const bridge = new TreeNavigationBridge(uiTree, adapter, navManager);
+  // Initialize navigation manager (will setup UITree event listeners)
+  navManager.init('root');
   
   // Debug access
   window.navManager = navManager;
