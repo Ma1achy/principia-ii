@@ -49,7 +49,7 @@ export class FocusVisualizer {
   }
 
   /**
-   * Create cursor overlay element
+   * Create cursor overlay element with 4 edges for inner/outer glow
    */
   _createCursorElement() {
     this.cursor = document.createElement('div');
@@ -58,13 +58,34 @@ export class FocusVisualizer {
     this.cursor.style.cssText = `
       position: fixed;
       pointer-events: none;
-      border: 2px solid transparent;
-      border-radius: 0;
       z-index: 999999;
       transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
       display: none;
     `;
+    
+    // Create 4 edge pieces for glow effect
+    this.cursorEdges = {
+      top: this._createEdge('top'),
+      right: this._createEdge('right'),
+      bottom: this._createEdge('bottom'),
+      left: this._createEdge('left')
+    };
+    
+    // Append edges to cursor
+    Object.values(this.cursorEdges).forEach(edge => {
+      this.cursor.appendChild(edge);
+    });
+    
     this.container.appendChild(this.cursor);
+  }
+  
+  /**
+   * Create a single cursor edge
+   */
+  _createEdge(position) {
+    const edge = document.createElement('div');
+    edge.className = `nav-cursor-edge nav-cursor-edge--${position}`;
+    return edge;
   }
 
   /**

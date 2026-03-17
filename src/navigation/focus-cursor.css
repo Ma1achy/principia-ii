@@ -8,18 +8,96 @@
 .nav-cursor {
   position: fixed;
   pointer-events: none;
-  border: 2px solid #ff6b35; /* Orange for focus */
-  border-radius: 4px;
   z-index: 10000;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   display: none;
-  box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.2);
+}
+
+/* Cursor pieces for inner glow effect */
+.nav-cursor-edge {
+  position: absolute;
+  background-color: #ff6b35;
+}
+
+/* Top edge */
+.nav-cursor-edge--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  filter: drop-shadow(0 -2px 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(0 -1px 2px rgba(255, 107, 53, 0.5))
+          drop-shadow(0 2px 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(0 1px 2px rgba(255, 107, 53, 0.5));
+}
+
+/* Right edge */
+.nav-cursor-edge--right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2px;
+  filter: drop-shadow(2px 0 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(1px 0 2px rgba(255, 107, 53, 0.5))
+          drop-shadow(-2px 0 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(-1px 0 2px rgba(255, 107, 53, 0.5));
+}
+
+/* Bottom edge */
+.nav-cursor-edge--bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  filter: drop-shadow(0 2px 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(0 1px 2px rgba(255, 107, 53, 0.5))
+          drop-shadow(0 -2px 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(0 -1px 2px rgba(255, 107, 53, 0.5));
+}
+
+/* Left edge */
+.nav-cursor-edge--left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 2px;
+  filter: drop-shadow(-2px 0 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(-1px 0 2px rgba(255, 107, 53, 0.5))
+          drop-shadow(2px 0 3px rgba(255, 107, 53, 0.4))
+          drop-shadow(1px 0 2px rgba(255, 107, 53, 0.5));
 }
 
 /* Interaction state (cyan) */
-.nav-cursor--interacting {
-  border-color: #00d4ff !important;
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2) !important;
+.nav-cursor--interacting .nav-cursor-edge {
+  background-color: #00d4ff !important;
+}
+
+.nav-cursor--interacting .nav-cursor-edge--top {
+  filter: drop-shadow(0 -2px 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(0 -1px 2px rgba(0, 212, 255, 0.5))
+          drop-shadow(0 2px 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(0 1px 2px rgba(0, 212, 255, 0.5)) !important;
+}
+
+.nav-cursor--interacting .nav-cursor-edge--right {
+  filter: drop-shadow(2px 0 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(1px 0 2px rgba(0, 212, 255, 0.5))
+          drop-shadow(-2px 0 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(-1px 0 2px rgba(0, 212, 255, 0.5)) !important;
+}
+
+.nav-cursor--interacting .nav-cursor-edge--bottom {
+  filter: drop-shadow(0 2px 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(0 1px 2px rgba(0, 212, 255, 0.5))
+          drop-shadow(0 -2px 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(0 -1px 2px rgba(0, 212, 255, 0.5)) !important;
+}
+
+.nav-cursor--interacting .nav-cursor-edge--left {
+  filter: drop-shadow(-2px 0 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(-1px 0 2px rgba(0, 212, 255, 0.5))
+          drop-shadow(2px 0 3px rgba(0, 212, 255, 0.4))
+          drop-shadow(1px 0 2px rgba(0, 212, 255, 0.5)) !important;
 }
 
 /* ── Corner Brackets ─────────────────────────────────────────────────────── */
