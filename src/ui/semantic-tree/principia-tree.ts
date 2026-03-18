@@ -100,8 +100,9 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
-    escapeDown: 'sec-mode:header'  // Down escapes to next section
+    entryPolicy: 'remembered',  // Remember last position in this grid
+    escapeLeft: 'canvas',  // Left from any button goes to canvas
+    escapeDown: 'sec-mode:header'  // Down from button row goes to Display header
   });
   
   nodes.push(controlGrid, renderBtn, copyLinkBtn, copyJsonBtn, savePngBtn, resetAllBtn);
@@ -141,8 +142,8 @@ export function buildPrincipiaUITree(): UINode[] {
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeUp: 'ctrl-section',  // Up escapes to controls
-    escapeDown: 'sec-presets:header'  // Down escapes to presets header
+    escapeUp: 'sec-mode-body',  // Up exits this scope
+    escapeDown: 'sec-mode-body'  // Down exits this scope
   });
 
   const { header: displayHeader, section: displaySection } = section("sec-mode", "Display", [
@@ -204,8 +205,8 @@ export function buildPrincipiaUITree(): UINode[] {
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeUp: 'sec-mode-body',  // Up escapes to display
-    escapeDown: 'sec-z0:header',  // Down escapes to z0 header
+    escapeUp: 'sec-presets-body',  // Up exits this scope
+    escapeDown: 'sec-presets-body',  // Down exits this scope
     meta: { dynamic: true }  // Will be updated by buildPresets
   });
 
@@ -255,8 +256,8 @@ export function buildPrincipiaUITree(): UINode[] {
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeUp: 'sec-presets-body',  // Up escapes to slice basis
-    escapeDown: 'sec-orient:header',  // Down escapes to orientation header
+    escapeUp: 'sec-z0-body',  // Up exits this scope
+    escapeDown: 'sec-z0-body',  // Down exits this scope
     meta: { dynamic: true }  // Sliders added dynamically
   });
 
@@ -372,7 +373,8 @@ export function buildPrincipiaUITree(): UINode[] {
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeUp: 'sec-z0-body'  // Up escapes to z0 section (last section has no escapeDown)
+    escapeUp: 'sec-orient-body',  // Up exits this scope
+    escapeDown: 'sec-orient-body'  // Down exits this scope
   });
 
   const { header: orientationHeader, section: orientationSection } = section("sec-orient", "Orientation (γ + tilts)", [
@@ -450,8 +452,8 @@ export function buildPrincipiaUITree(): UINode[] {
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeUp: 'sec-orient-body',  // Up escapes to orientation
-    escapeDown: 'sec-state:header'  // Down escapes to export header
+    escapeUp: 'sec-sim-body',  // Up exits this scope
+    escapeDown: 'sec-sim-body'  // Down exits this scope
   });
 
   const { header: simHeader, section: simSection } = section("sec-sim", "Simulation", [
@@ -467,24 +469,39 @@ export function buildPrincipiaUITree(): UINode[] {
   const downloadJsonBtn = button("downloadJsonBtn", { 
     ariaLabel: "Download JSON" 
   });
+  
+  // Button row: 1×2 horizontal grid
+  const exportButtonGrid = grid("sec-state-buttons", {
+    cells: [
+      [cell("pasteJsonBtn"), cell("downloadJsonBtn")]
+    ],
+    rows: 1,
+    cols: 2,
+    wrapCols: false,
+    wrapRows: false,
+    entryPolicy: 'first',
+    escapeUp: 'sec-state-body',  // Up exits to parent body
+    escapeDown: 'sec-state-body'  // Down exits to parent body
+  });
 
-  // Vertical grid: 2×1
+  // Section body: vertical grid with button row (and textarea will be added later)
   const exportBodyGrid = grid("sec-state-body", {
     cells: [
-      [cell("pasteJsonBtn")],
-      [cell("downloadJsonBtn")]
+      [cell("sec-state-buttons")]
+      // stateBox textarea could be added here in future
     ],
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeUp: 'sec-sim-body'  // Up escapes to simulation (last section has no escapeDown)
+    escapeUp: 'sec-state-body',  // Up exits this scope
+    escapeDown: 'sec-state-body'  // Down exits this scope
   });
 
   const { header: exportHeader, section: exportSection } = section("sec-state", "Export / Import", [
     exportBodyGrid
   ], { collapsed: true });
 
-  nodes.push(exportHeader, exportSection, exportBodyGrid, pasteJsonBtn, downloadJsonBtn);
+  nodes.push(exportHeader, exportSection, exportBodyGrid, exportButtonGrid, pasteJsonBtn, downloadJsonBtn);
 
   // ─── Sidebar Scope (Wraps All Sections) ───────────────────────────────────
   // Sidebar: vertical grid (N×1) of controls and sections
