@@ -103,8 +103,9 @@ export class UITreeStore {
    */
   addNode(node: UINode): string {
     if (this._nodes.has(node.id)) {
-      console.error('[UITreeStore] Node already exists:', node.id, 'existing:', this._nodes.get(node.id));
-      throw new Error(`Node "${node.id}" already exists`);
+      console.warn('[UITreeStore] Node already exists:', node.id, 'existing:', this._nodes.get(node.id));
+      // Return existing ID instead of throwing - this prevents UI breakage
+      return node.id;
     }
     this._nodes.set(node.id, { ...node });
     if (node.kind === 'root') {

@@ -483,12 +483,117 @@ export class ChazyEventRouter {
   // ─── System Event Handlers ─────────────────────────────────────────────────
   
   private _handleAmbientCycle(data: EventData): RouteResult {
+    const reason = data.reason || 'unknown';
+    console.log(`[EventRouter] Ambient cycle triggered (${reason})`);
+
+    // Check queued immediate events first
     this._checkQueuedImmediate();
-    return { responded: false, kind: null, reason: 'cycle_ready' };
+
+    // NEVER suppress the welcome text (startup cycle)
+    const isWelcome = reason === 'startup';
+    
+    // PRIMARY FIX: Block ambient if multi-line sequence in progress (but not for welcome)
+    if (!isWelcome && this.orchestrator.inMultiLineSequence) {
+      console.warn('[EventRouter] Deferred ambient - multi-line in progress');
+      console.warn('[EventRouter] Multi-line details:', {
+        token: this.orchestrator.multiLineSequenceToken,
+        currentToken: this.orchestrator.currentTextToken,
+        reason
+      });
+
+      // Don't reschedule - let sequence complete naturally
+      return {
+        responded: false,
+        kind: null,
+        reason: 'multi_line_in_progress'
+      };
+    }
+    
+    // Check if Mind wants to stay quiet (but not for welcome text)
+    if (!isWelcome && this.mind.shouldSuppressAmbient()) {
+      console.log('[EventRouter] Mind vetoed ambient, rescheduling');
+      
+      // Reschedule for later (short delay, check again)
+      this.orchestrator.scheduleAmbient(3000, 'mind_veto');
+      
+      return {
+        responded: false,
+        kind: null,
+        reason: 'mind_suppressed',
+        scheduledAmbientInMs: 3000
+      };
+    }
+    
+    // Delegate to orchestrator to select and show ambient text
+    this.orchestrator.selectAndShowAmbient();
+    
+    this.sessionMetrics.shownAmbient++;
+    
+    return {
+      responded: true,
+      kind: 'ambient',
+      reason: 'ambient_shown'
+    };
   }
   
   private _handleTextComplete(data: EventData): RouteResult {
-    return { responded: false, kind: null, reason: 'acknowledged' };
+    const { type, token, textLength, themes } = data;
+    
+    console.log(`[EventRouter] Text complete (${type}, token ${token})`);
+    
+    // Validate token (stale callback protection)
+    if (token && token !== this.orchestrator.currentTextToken) {
+      console.log(`[EventRouter] Stale text_complete ignored (token ${token} vs ${this.orchestrator.currentTextToken})`);
+      return {
+        responded: false,
+        kind: null,
+        reason: 'stale_text_complete',
+        metadata: { token, current: this.orchestrator.currentTextToken }
+      };
+    }
+    
+    // PRIMARY FIX: Check multi-line BEFORE scheduling ambient
+    // This prevents timer from being set during multi-line sequences
+    if (this.orchestrator.inMultiLineSequence) {
+      console.warn('[EventRouter] Multi-line in progress - blocking ambient schedule and interrupts');
+      console.warn('[EventRouter] Multi-line details:', {
+        token: this.orchestrator.multiLineSequenceToken,
+        currentToken: this.orchestrator.currentTextToken
+      });
+      
+      // WATCHDOG: Still record state even though not scheduling
+      if (this.orchestrator._recordWatchdogState) {
+        this.orchestrator._recordWatchdogState();
+      }
+      
+      return {
+        responded: false,
+        kind: null,
+        reason: 'multi_line_in_progress'
+      };
+    }
+    
+    // Now safe to check for queued polite interrupts (only if NOT in multi-line)
+    this._checkQueuedImmediate();
+    
+    // Now safe to schedule ambient
+    const delay = this._getEmotionalAmbientDelay(textLength || 50, themes || []);
+    this.orchestrator.scheduleAmbient(delay, 'text_complete');
+    
+    console.log(`[EventRouter] Text complete (${type}), scheduling next ambient in ${delay}ms`);
+    
+    // WATCHDOG: Record state for watchdog
+    if (this.orchestrator._recordWatchdogState) {
+      this.orchestrator._recordWatchdogState();
+      console.log('[EventRouter] Watchdog state recorded after text complete');
+    }
+    
+    return {
+      responded: false,
+      kind: null,
+      reason: type === 'ambient' ? 'scheduled_next' : 'immediate_complete',
+      scheduledAmbientInMs: delay
+    };
   }
   
   private _handlePageLoaded(data: EventData): RouteResult {

@@ -405,35 +405,19 @@ export class Chazy {
       }
       
       const line = isObject ? lineItem.t : lineItem;
-      const isLastLine = lineIndex === lines.length - 1;
       
-      let nextCallback: (() => void) | undefined;
-      
-      if (!isLastLine) {
-        nextCallback = () => {
-          if (token === this.currentTextToken) {
-            this._recordWatchdogState();
-            showLine(lineIndex + 1);
-          } else {
-            console.log(`[Chazy] Stale next callback ignored (token ${token} vs ${this.currentTextToken})`);
-          }
-        };
-      } else {
-        nextCallback = () => {
-          if (token !== this.currentTextToken) {
-            console.log(`[Chazy] Stale completion callback ignored (token ${token})`);
-            return;
-          }
-          
-          if (watchdogRecordingInterval) {
-            clearInterval(watchdogRecordingInterval);
-            watchdogRecordingInterval = null;
-          }
-          
+      // Validate line is a string
+      if (typeof line !== 'string') {
+        console.error(`[Chazy] Line is not a string at index ${lineIndex}:`, line);
+        // Skip this line
+        if (lineIndex < lines.length - 1) {
+          showLine(lineIndex + 1);
+        } else {
+          // Clear multi-line state before emitting text_complete
           if (isMultiLineSequence && this.multiLineSequenceToken === token) {
             this.inMultiLineSequence = false;
             this.multiLineSequenceToken = null;
-            console.log(`[Chazy] Cleared multi-line sequence after completion (token ${token})`);
+            console.log(`[Chazy] Cleared multi-line sequence due to invalid line type (token ${token})`);
           }
           
           this.route('text_complete', {
@@ -442,27 +426,111 @@ export class Chazy {
             textLength: this.lastTextLength,
             themes: this.lastThemes
           });
+        }
+        return;
+      }
+      
+      const lineTone = isObject ? (lineItem.tone || config.tone) : config.tone;
+      const durationMult = isObject ? (lineItem.duration_mult || 1.0) : 1.0;
+      const isLastLine = isMultiLineSequence && lineIndex === lines.length - 1;
+
+      // Calculate idle time based on multi-line context
+      let nextIdleTime: number;
+      if (isMultiLineSequence) {
+        if (!isLastLine) {
+          // Not last line - check for staged interrupt pause
+          if (config.interrupt_style === 'staged' && config.stage_pause) {
+            nextIdleTime = config.stage_pause;
+          } else {
+            nextIdleTime = 500 + Math.random() * 500;
+          }
+        } else {
+          // Last line of multi-line sequence
+          nextIdleTime = config.idleTime || 2000;
+        }
+      } else {
+        // Single line
+        nextIdleTime = config.idleTime || 2000;
+      }
+
+      let nextCallback: (() => void) | undefined;
+      
+      if (!isLastLine) {
+        nextCallback = () => {
+          // Clean up watchdog recording interval
+          if (watchdogRecordingInterval) {
+            clearInterval(watchdogRecordingInterval);
+            watchdogRecordingInterval = null;
+          }
           
-          const delay = (this.router as any)._getEmotionalAmbientDelay(
-            this.lastTextLength,
-            this.lastThemes
-          );
-          this.scheduleAmbient(delay, 'sequence_complete');
+          // Validate token before continuing
+          if (token !== this.currentTextToken) {
+            console.log(`[Chazy] Stale multi-line callback ignored (token ${token})`);
+            
+            // CRITICAL: Clear multi-line state if this sequence is stale
+            if (isMultiLineSequence && this.multiLineSequenceToken === token) {
+              this.inMultiLineSequence = false;
+              this.multiLineSequenceToken = null;
+              console.log(`[Chazy] Cleared stale multi-line sequence (token ${token})`);
+            }
+            
+            return;
+          }
+          showLine(lineIndex + 1);
+        };
+      } else {
+        nextCallback = () => {
+          // Clean up watchdog recording interval
+          if (watchdogRecordingInterval) {
+            clearInterval(watchdogRecordingInterval);
+            watchdogRecordingInterval = null;
+          }
+          
+          // Validate token before emitting
+          if (token !== this.currentTextToken) {
+            console.log(`[Chazy] Stale completion ignored (token ${token})`);
+            
+            // CRITICAL: Clear multi-line state if this sequence is stale
+            if (isMultiLineSequence && this.multiLineSequenceToken === token) {
+              this.inMultiLineSequence = false;
+              this.multiLineSequenceToken = null;
+              console.log(`[Chazy] Cleared stale multi-line sequence (token ${token})`);
+            }
+            
+            return;
+          }
+          
+          // Mark end of multi-line sequence
+          if (isMultiLineSequence && this.multiLineSequenceToken === token) {
+            this.inMultiLineSequence = false;
+            this.multiLineSequenceToken = null;
+            console.log(`[Chazy] Completed multi-line sequence (token ${token})`);
+          }
+          
+          this.route('text_complete', {
+            type: config._source || 'ambient',
+            token,
+            textLength: this.lastTextLength,
+            themes: this.lastThemes
+          });
         };
       }
       
       try {
         this.view.showText(line, {
-          displayTime: config.displayTime,
-          idleTime: config.idleTime,
+          displayTime: (config.displayTime || 3000) * durationMult,
+          idleTime: nextIdleTime,
           emotion: config.emotion,
           intensity: config.intensity,
-          tone: config.tone,
+          tone: lineTone || 'neutral',
           isWelcome: config.isWelcome || false,
           inMultiLineSequence: isMultiLineSequence,
           isLastInSequence: isLastLine,
           onComplete: nextCallback as () => void
         } as any);
+        
+        // WATCHDOG: Record state after starting display
+        this._recordWatchdogState();
         
         watchdogRecordingInterval = setInterval(() => {
           if (token === this.currentTextToken) {

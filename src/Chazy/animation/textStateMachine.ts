@@ -97,6 +97,7 @@ export class TextStateMachine {
   _clearInProgress: boolean;
   currentDisplayLine: string | null;
   _cleanupInterval: ReturnType<typeof setInterval> | null;
+  _multiLineLockTimestamp: number | undefined;
   
   constructor(element: HTMLElement, onUpdateCallback: (() => void) | null = null) {
     this.element = element;
@@ -244,6 +245,24 @@ export class TextStateMachine {
         shouldWait: false,
         reason: 'welcome_protected'
       };
+    }
+    
+    // BUG FIX: Safety timeout for stuck multi-line lock
+    // If we're in IDLE state with multi-line lock for >45s, something went wrong
+    if (this.inMultiLineSequence && state === 'IDLE') {
+      // Check how long we've been in this state
+      if (!this._multiLineLockTimestamp) {
+        this._multiLineLockTimestamp = Date.now();
+      } else {
+        const lockDuration = Date.now() - this._multiLineLockTimestamp;
+        if (lockDuration > 45000) {
+          console.error(`[FSM] SAFETY: Multi-line lock stuck for ${(lockDuration / 1000).toFixed(1)}s in IDLE state - force clearing`);
+          this.inMultiLineSequence = false;
+          this._multiLineLockTimestamp = undefined;
+        }
+      }
+    } else {
+      this._multiLineLockTimestamp = undefined;
     }
     
     if (this.inMultiLineSequence && urgency !== INTERRUPT_URGENCY.FORCE) {
@@ -678,12 +697,18 @@ export class TextStateMachine {
     if (!config || typeof config !== 'object') {
       console.error('[FSM] Invalid config in startDeleting');
       this._enterIdle();
+      // CRITICAL: Clear multi-line lock even on error
+      this.inMultiLineSequence = false;
+      this.isWelcomeText = false;
       return;
     }
     
     if (!config.onComplete || typeof config.onComplete !== 'function') {
       console.error('[FSM] Missing or invalid onComplete callback in startDeleting');
       this._enterIdle();
+      // CRITICAL: Clear multi-line lock even on error
+      this.inMultiLineSequence = false;
+      this.isWelcomeText = false;
       return;
     }
     
@@ -700,6 +725,7 @@ export class TextStateMachine {
         
         this.isWelcomeText = false;
         
+        // Clear multi-line flag once sequence completes (passed from orchestrator)
         if (config.isLastInSequence) {
           this.inMultiLineSequence = false;
           console.log('[FSM] Multi-line sequence completed');
@@ -720,6 +746,9 @@ export class TextStateMachine {
     } catch (error) {
       console.error('[FSM] Error in startDeleting:', error);
       this._enterIdle();
+      // CRITICAL: Clear multi-line lock on error to prevent permanent lockout
+      this.inMultiLineSequence = false;
+      this.isWelcomeText = false;
       if (config.onComplete) {
         setTimeout(config.onComplete, 1000);
       }

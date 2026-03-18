@@ -62,10 +62,11 @@ export function buildPrincipiaUITree(): UINode[] {
       [cell("settingsBtn")]
     ],
     wrapCols: false,
-    wrapRows: true,  // Wrap vertically to cycle between buttons
+    wrapRows: false,  // Don't wrap vertically
     entryPolicy: 'remembered',  // Remember which button you were on
     entryCell: 1,  // Default to Settings button (row 1)
-    escapeRight: 'canvas'  // Right goes to canvas
+    escapeRight: 'canvas',  // Right goes to canvas
+    escapeUp: 'canvas'  // Up from INFO button goes to canvas
   });
   
   nodes.push(canvasControlsGrid, infoBtnNode, settingsBtnNode);
