@@ -10,7 +10,6 @@
 > ability to show / hide sidebar
 > on page load, choose from random selection of hand chosen state jsons.
 
-
 If the user checks “Don’t warn me again”, I’d still allow the app to show the warning again automatically on clearly risky contexts (mobile / known weak GPU / WebGL/WebGPU fallback), or at least show a smaller non-blocking banner.
 That avoids “I told it not to warn me and now it froze my laptop” moments.
 
@@ -19,6 +18,6 @@ That avoids “I told it not to warn me and now it froze my laptop” moments.
 
 > inner pp + config default view? 
 
-> bug where it appears the text highlight effect sometimes doesnt clear correctly and then gets stuck on after a delete animation, so its always on even during typing/display/idle
-
 > chazy needs to react to interactions with gui elements via keyboard.
+
+>dragging and dropping in state jsons to load them?

@@ -3,6 +3,9 @@ import { GlassPanel } from './GlassPanel.js';
 // ─── GlTooltip ───────────────────────────────────────────────────────────────
 // Floating fixed-position tooltip using the glass effect.
 // Styles: src/ui/components/glass/glass-tooltip.css
+// 
+// DEPRECATED: This file uses WebGL/GLSL and will be rewritten for WebGPU.
+// DO NOT CONVERT TO TYPESCRIPT - will be completely rewritten.
 
 export class GlTooltip {
   constructor() {

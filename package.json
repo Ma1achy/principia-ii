@@ -1,0 +1,30 @@
+{
+  "name": "principia",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "lint": "echo 'No linter configured yet'",
+    "clean": "rm -rf dist node_modules package-lock.json",
+    "clean:install": "npm run clean && npm install",
+    "debug:types": "tsc --noEmit --listFiles",
+    "debug:imports": "tsc --noEmit --traceResolution > trace.log"
+  },
+  "devDependencies": {
+    "@types/three": "^0.163.0",
+    "@webgpu/types": "^0.1.44",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6"
+  },
+  "dependencies": {
+    "three": "^0.163.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

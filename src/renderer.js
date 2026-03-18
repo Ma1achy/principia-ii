@@ -1,4 +1,4 @@
-import { dot10, add10, sub10, scale10, norm10, normalize10, basis10 } from './math.js';
+import { dot10, add10, sub10, scale10, norm10, normalize10, basis10 } from './math.ts';
 
 async function fetchShader(url) {
   const res = await fetch(url);
