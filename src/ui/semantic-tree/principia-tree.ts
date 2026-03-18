@@ -141,7 +141,7 @@ export function buildPrincipiaUITree(): UINode[] {
     cols: 2,
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
+    entryPolicy: 'remembered',  // Remember last position in this section
     escapeUp: 'sec-mode-body',  // Up exits this scope
     escapeDown: 'sec-mode-body'  // Down exits this scope
   });
@@ -204,7 +204,7 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
+    entryPolicy: 'remembered',  // Remember last position in this section
     escapeUp: 'sec-presets-body',  // Up exits this scope
     escapeDown: 'sec-presets-body',  // Down exits this scope
     meta: { dynamic: true }  // Will be updated by buildPresets
@@ -255,7 +255,7 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
+    entryPolicy: 'remembered',  // Remember last position in this section
     escapeUp: 'sec-z0-body',  // Up exits this scope
     escapeDown: 'sec-z0-body',  // Down exits this scope
     meta: { dynamic: true }  // Sliders added dynamically
@@ -372,7 +372,7 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
+    entryPolicy: 'remembered',  // Remember last position in this section
     escapeUp: 'sec-orient-body',  // Up exits this scope
     escapeDown: 'sec-orient-body'  // Down exits this scope
   });
@@ -451,7 +451,7 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
+    entryPolicy: 'remembered',  // Remember last position in this section
     escapeUp: 'sec-sim-body',  // Up exits this scope
     escapeDown: 'sec-sim-body'  // Down exits this scope
   });
@@ -492,7 +492,7 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first',
+    entryPolicy: 'remembered',  // Remember last position in this section
     escapeUp: 'sec-state-body',  // Up exits this scope
     escapeDown: 'sec-state-body'  // Down exits this scope
   });
