@@ -1,5 +1,6 @@
 import { state, AXIS_NAMES } from '../../state.js';
 import { $ } from '../utils.js';
+import { registerPickerOverlay, unregisterPickerOverlay } from './keyboard-nav-integration.js';
 
 // ─── Custom dimension picker overlay ─────────────────────────────────────────
 
@@ -34,12 +35,34 @@ export function bindCustomDimPicker(onPickH: (dim: number) => void, onPickV: (di
   function closeCustomDimPicker(): void {
     if (overlay) overlay.classList.remove("open");
     _customDimPickerCallback = null;
+    
+    // Unregister from keyboard navigation
+    const uiTree = (window as any).uiTree;
+    if (uiTree) {
+      unregisterPickerOverlay(uiTree, 'customDimPickerOverlay');
+    }
   }
 
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeCustomDimPicker(); });
-  closeBtn.addEventListener("click", closeCustomDimPicker);
-  document.addEventListener("keydown", (e) => {
-    if (overlay && e.key === "Escape" && overlay.classList.contains("open")) closeCustomDimPicker();
+  overlay.addEventListener("click", (e) => { 
+    if (e.target === overlay) {
+      // Close via KNM to ensure proper state management
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('customDimPickerOverlay');
+      } else {
+        closeCustomDimPicker();
+      }
+    }
+  });
+  closeBtn.addEventListener("click", () => {
+    // Close button click already handled by pickerCloseButtonBehavior
+    // But keep this as fallback if KNM is not active
+    const navManager = (window as any).navManager;
+    if (navManager) {
+      navManager.closeOverlay('customDimPickerOverlay');
+    } else {
+      closeCustomDimPicker();
+    }
   });
 
   const customDimHLabel = $("customDimHLabel");
@@ -52,6 +75,21 @@ export function bindCustomDimPicker(onPickH: (dim: number) => void, onPickV: (di
       buildList(state.customDimH);
       _customDimPickerCallback = onPickH;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'customDimPickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount: 10,
+          triggerId: 'customDimH-picker:trigger',
+          onClose: closeCustomDimPicker
+        });
+      }
     });
   }
 
@@ -61,6 +99,21 @@ export function bindCustomDimPicker(onPickH: (dim: number) => void, onPickV: (di
       buildList(state.customDimV);
       _customDimPickerCallback = onPickV;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'customDimPickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount: 10,
+          triggerId: 'customDimV-picker:trigger',
+          onClose: closeCustomDimPicker
+        });
+      }
     });
   }
 }

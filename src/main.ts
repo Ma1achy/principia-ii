@@ -1,9 +1,9 @@
 import { createThreeBodyRenderer } from './renderer.js';
-import { state, encodeStateHash, decodeStateHash, applyPackedHash, MODE_INFO } from './state.js';
+import { state, encodeStateHash, decodeStateHash, applyPackedHash, MODE_INFO, canonicalState } from './state.js';
 import { GlTooltip } from './ui/components/tooltip.js';
 import {
   buildResolutions, buildPresets, buildAxisSelects, buildZ0Sliders,
-  setZ0Range, applyCustomBasis, updateStateBox,
+  setZ0Range, applyCustomBasis, updateStateBox, getStateBoxValue,
   syncUIFromState, drawOverlayHUD, showProbeAtEvent, setOverlay, setStatus,
   showGL, showOut, bindUI, setRenderingState,
 } from './ui.js';
@@ -495,6 +495,19 @@ async function boot(): Promise<void> {
   const behaviors = await import('./navigation/behaviors.ts');
   const { createCanvasActionDispatcher } = await import('./canvas-actions.ts');
   
+  // Setup editor registry
+  const { EditorRegistry } = await import('./ui/editors/EditorRegistry.ts');
+  const { createJSONEditor } = await import('./ui/editors/JSONEditor.ts');
+  const { createWGSLEditor } = await import('./ui/editors/WGSLEditor.ts');
+  
+  const editorRegistry = new EditorRegistry();
+  editorRegistry.register('json', createJSONEditor);
+  editorRegistry.register('wgsl', createWGSLEditor);
+  console.log('[Boot] ✓ Editor registry initialized');
+  
+  // Editor instance map (shared across behaviors)
+  const editors = new Map();
+  
   // Setup behavior registry
   const behaviorRegistry = new BehaviorRegistry();
   behaviorRegistry.register('section-header', behaviors.sectionHeaderBehavior);
@@ -503,6 +516,8 @@ async function boot(): Promise<void> {
   behaviorRegistry.register('value-editor', behaviors.valueEditorBehavior);
   behaviorRegistry.register('analog-control', behaviors.analogControlBehavior);
   behaviorRegistry.register('canvas', behaviors.canvasBehavior);
+  behaviorRegistry.register('textarea', behaviors.textareaBehavior);
+  behaviorRegistry.register('code-editor', behaviors.codeEditorBehavior);
   
   // Setup focus effects and visualizer
   const effects = new DOMFocusEffects();
@@ -522,6 +537,8 @@ async function boot(): Promise<void> {
   const behaviorDeps = {
     uiTree,
     dispatchCanvasAction,
+    editorRegistry,
+    editors,
     PAN_STEP: 20,
     ZOOM_STEP: 0.1
   };
@@ -553,10 +570,79 @@ async function boot(): Promise<void> {
   initTabindexes(uiTree);
   console.log('[Boot] ✓ Elements bound to semantic tree');
   
+  console.log('[Boot] Initializing code editors...');
+  const editorContainer = document.getElementById('stateJsonEditor');
+  console.log('[Boot] stateJsonEditor container:', editorContainer);
+  
+  if (editorContainer) {
+    console.log('[Boot] Creating JSON editor...');
+    const jsonEditor = editorRegistry.create('json', {
+      theme: 'light',  // Use 'light' for Atom One Light
+      lineNumbers: true,
+      linting: true,
+      autoFormat: true,
+      autocompletion: true
+    });
+    
+    console.log('[Boot] Editor created:', jsonEditor);
+    
+    if (jsonEditor) {
+      console.log('[Boot] Mounting editor...');
+      jsonEditor.mount(editorContainer);
+      console.log('[Boot] Editor mounted');
+      
+      // Set initial state value
+      const initialValue = JSON.stringify(canonicalState(state), null, 2);
+      console.log('[Boot] Setting initial value, length:', initialValue.length);
+      jsonEditor.setValue(initialValue);
+      console.log('[Boot] Value set');
+      
+      // Debug: Check if syntax highlighting was applied
+      setTimeout(() => {
+        const content = editorContainer.querySelector('.cm-content');
+        if (content) {
+          const lines = content.querySelectorAll('.cm-line');
+          console.log('[Boot] Total lines in editor:', lines.length);
+          
+          if (lines.length > 0) {
+            const firstLine = lines[0];
+            console.log('[Boot] First line HTML:', firstLine.innerHTML);
+            
+            const spans = firstLine.querySelectorAll('span[class]');
+            console.log('[Boot] Spans with classes in first line:', spans.length);
+            spans.forEach((span, i) => {
+              const style = window.getComputedStyle(span);
+              console.log(`[Boot]   Span ${i}: class="${span.className}" text="${span.textContent}" color="${style.color}"`);
+            });
+          }
+        }
+      }, 500);
+      
+      // Register editor instance
+      const { initStateBoxEditor } = await import('./ui/editors/stateBoxEditor.ts');
+      initStateBoxEditor(jsonEditor);
+      editors.set('stateBox', jsonEditor);
+      
+      console.log('[Boot] ✓ State JSON editor initialized');
+    } else {
+      console.error('[Boot] Failed to create JSON editor');
+    }
+  } else {
+    console.error('[Boot] stateJsonEditor container not found!');
+  }
+  
   // Register param-trigger behavior with dependencies
   const triggerDeps = { uiTree, navManager };
   behaviorRegistry.register('param-trigger', (n: any, el: HTMLElement, deps: any) =>
     behaviors.paramTriggerBehavior(n, el, { ...deps, ...triggerDeps }));
+  
+  // Register picker-close-button behavior with navManager dependency
+  behaviorRegistry.register('picker-close-button', (n: any, el: HTMLElement, deps: any) =>
+    behaviors.pickerCloseButtonBehavior(n, el, { ...deps, navManager }));
+  
+  // Register menu-item behavior with navManager dependency
+  behaviorRegistry.register('menu-item', (n: any, el: HTMLElement, deps: any) =>
+    behaviors.menuItemBehavior(n, el, { ...deps, navManager, uiTree }));
   
   // Initialize navigation manager (will setup UITree event listeners)
   navManager.init('root');
@@ -637,6 +723,26 @@ async function boot(): Promise<void> {
   requestAnimationFrame(() => resizeUiCanvasToMatch());
   
   console.log('[Boot] ✓ UI built, everything ready');
+  
+  // Prevent buttons from retaining focus after click/keyboard interaction
+  // This ensures box-shadows are not affected by browser focus styling
+  document.addEventListener('focusin', (event) => {
+    const target = event.target as HTMLElement;
+    if (target && (target.tagName === 'BUTTON' || target.classList.contains('btn'))) {
+      // Only blur if not in interaction mode (inputs should keep focus when editing)
+      const isInputElement = target.tagName === 'INPUT' || 
+                            target.tagName === 'TEXTAREA' || 
+                            target.tagName === 'SELECT' ||
+                            target.classList.contains('cm-content');
+      
+      if (!isInputElement) {
+        // Use setTimeout to ensure click event completes first
+        setTimeout(() => {
+          (target as HTMLButtonElement).blur();
+        }, 0);
+      }
+    }
+  }, true); // Use capture phase to catch all focus events
   
   // Make page visible immediately (HTML/CSS rendering)
   document.body.classList.add('loaded');

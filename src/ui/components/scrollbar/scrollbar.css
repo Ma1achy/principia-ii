@@ -145,11 +145,13 @@
 #stateBox-sb-down:hover {
   background: var(--text);
   color: var(--bg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 #stateBox-sb-up:active,
 #stateBox-sb-down:active {
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+  transform: translateY(1px);
 }
 
 #stateBox-sb-track {
@@ -169,7 +171,7 @@
   top: 0;
   left: 2px;
   right: 2px;
-  min-height: 24px;
+  min-height: 28px;
   background: var(--bg);
   border: 1px solid var(--border-strong);
   box-shadow:
@@ -178,16 +180,127 @@
     0 -1px 4px rgba(0,0,0,0.14),
     inset 0 1px 0 rgba(255,255,255,0.50);
   cursor: grab;
-  transition: background 0.12s ease, box-shadow 0.08s ease;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
 }
 
 #stateBox-sb-thumb:hover {
   background: var(--text);
   border-color: var(--text);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.22), 0 -1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.22),
+    0 1px 3px rgba(0,0,0,0.14),
+    0 -1px 4px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 #stateBox-sb-thumb:active {
+  cursor: grabbing;
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.30), inset 0 1px 2px rgba(0,0,0,0.20);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   StateBox Horizontal Scrollbar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#stateBox-sb-horizontal {
+  grid-column: 1;
+  grid-row: 2;
+  height: 20px;
+  display: none; /* Hidden by default, shown by JS when needed */
+  flex-direction: row;
+  border-top: 1px solid var(--border-strong);
+}
+
+/* Left/Right arrow buttons */
+#stateBox-sb-horizontal-up,
+#stateBox-sb-horizontal-down {
+  width: 20px;
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: none;
+  border-right: 1px solid var(--border-strong);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20);
+}
+
+#stateBox-sb-horizontal-down {
+  border-right: none;
+  border-left: 1px solid var(--border-strong);
+  box-shadow: 0 -1px 3px rgba(0,0,0,0.18), 0 -2px 6px rgba(0,0,0,0.10), inset 0 -1px 0 rgba(255,255,255,0.20);
+}
+
+#stateBox-sb-horizontal-up svg {
+  transform: rotate(-90deg); /* Left arrow */
+}
+
+#stateBox-sb-horizontal-down svg {
+  transform: rotate(-90deg) scaleX(-1); /* Right arrow - flip horizontally */
+}
+
+#stateBox-sb-horizontal-up:hover,
+#stateBox-sb-horizontal-down:hover {
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+#stateBox-sb-horizontal-up:active,
+#stateBox-sb-horizontal-down:active {
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.22), inset 0 1px 2px rgba(0,0,0,0.16);
+  transform: translateX(1px);
+}
+
+/* Horizontal track */
+#stateBox-sb-horizontal-track {
+  flex: 1;
+  position: relative;
+  background: var(--highlight);
+  box-shadow:
+    inset  3px  0   6px rgba(0,0,0,0.13),
+    inset -3px  0   6px rgba(0,0,0,0.13),
+    inset  0    3px 6px rgba(0,0,0,0.13),
+    inset  0   -3px 6px rgba(0,0,0,0.13);
+  cursor: pointer;
+}
+
+/* Horizontal thumb */
+#stateBox-sb-horizontal-thumb {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  min-width: 28px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.28),
+    0 1px 3px rgba(0,0,0,0.18),
+    0 -1px 4px rgba(0,0,0,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.50);
+  cursor: grab;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.08s ease;
+}
+
+#stateBox-sb-horizontal-thumb:hover {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.22),
+    0 1px 3px rgba(0,0,0,0.14),
+    0 -1px 4px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+#stateBox-sb-horizontal-thumb:active {
   cursor: grabbing;
   background: var(--text);
   border-color: var(--text);

@@ -160,6 +160,47 @@ export class KeyboardNavigationManager {
   private _handleKeyDown(event: KeyboardEvent): void {
     const { key } = event;
     
+    // If interacting with a text input element (textarea, value-editor, code-editor), 
+    // let ALL keys through except Escape (and Enter for value-editor)
+    if (this.sessionState.interactingNodeId) {
+      const interactingNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
+      if (interactingNode && (interactingNode.kind === 'textarea' || interactingNode.kind === 'value-editor' || interactingNode.kind === 'code-editor')) {
+        const isTextarea = interactingNode.kind === 'textarea';
+        const isValueEditor = interactingNode.kind === 'value-editor';
+        const isCodeEditor = interactingNode.kind === 'code-editor';
+        
+        // Escape always exits interaction mode
+        if (key === 'Escape') {
+          const behavior = this._getBehavior(interactingNode);
+          if (behavior?.onEscape) {
+            const result = behavior.onEscape();
+            if (result === 'handled') {
+              event.preventDefault();
+              this._exitInteractionMode();
+            }
+          }
+          return;
+        }
+        
+        // For value-editor, Enter also exits interaction mode (confirms the value)
+        if (isValueEditor && key === 'Enter') {
+          const behavior = this._getBehavior(interactingNode);
+          if (behavior?.onActivate) {
+            const result = behavior.onActivate();
+            if (result === 'handled') {
+              event.preventDefault();
+              // Exit interaction mode in navigation manager
+              this._exitInteractionMode();
+            }
+          }
+          return;
+        }
+        
+        // Let all other keys pass through to the text input
+        return;
+      }
+    }
+    
     const navEvent = this._mapKeyToNavEvent(key);
     if (!navEvent) return;
     
@@ -263,9 +304,14 @@ export class KeyboardNavigationManager {
   private _handleNavigation(event: KeyboardEvent, navEvent: 'nav-up' | 'nav-down' | 'nav-left' | 'nav-right'): void {
     if (event.repeat) return;
     
-    event.preventDefault();
-    
+    // Check with behavior first before preventing default
+    // If behavior returns 'ignored', we should let browser handle it (e.g., cursor movement in inputs)
     const result = this._executeNavigationAction(navEvent);
+    
+    // Only prevent default if behavior didn't ignore the event
+    if (result !== 'ignored') {
+      event.preventDefault();
+    }
     
     if (result !== 'escape_scope' && result !== 'ignored') {
       const profile = this._getRepeatProfile();
@@ -283,6 +329,16 @@ export class KeyboardNavigationManager {
       'nav-right': 'ArrowRight'
     };
     const arrowKey = arrowKeyMap[navEvent];
+    
+    console.log('[KNM] === NAVIGATION:', navEvent, '===');
+    console.log('[KNM] Current focus:', this.sessionState.currentFocusId);
+    console.log('[KNM] Scope stack depth:', this.currentContext.scopeStack.length);
+    if (this.currentContext.scopeStack.length > 0) {
+      for (let i = 0; i < this.currentContext.scopeStack.length; i++) {
+        const scope = this.currentContext.scopeStack[i];
+        console.log('[KNM]   Scope [' + i + ']:', scope.gridId, 'coords:', scope.coords, 'cellId:', scope.cellId);
+      }
+    }
     
     if (this.sessionState.interactingNodeId) {
       const currentNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
@@ -310,12 +366,16 @@ export class KeyboardNavigationManager {
     
     const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
     if (currentNode) {
+      console.log('[KNM] Current node kind:', currentNode.kind);
       const behavior = this._getBehavior(currentNode);
       if (behavior?.onArrowKey) {
+        console.log('[KNM] Calling behavior.onArrowKey');
         const result = behavior.onArrowKey(arrowKey);
+        console.log('[KNM] Behavior returned:', result);
         if (result === 'escape_scope') {
-          console.log('[KNM] Escape scope requested by behavior:', navEvent);
+          console.log('[KNM] ✓ Escape scope requested by behavior:', navEvent);
           const parentCellId = this.exitScope();
+          console.log('[KNM] exitScope returned:', parentCellId);
           if (parentCellId) {
             this._setFocus(parentCellId);
           }
@@ -400,6 +460,13 @@ export class KeyboardNavigationManager {
   }
   
   private _handleEscape(event: KeyboardEvent, wasActive: boolean): void {
+    // Ignore browser key repeat events - only process discrete key presses
+    if (event.repeat) {
+      console.log('[KNM] Ignoring repeated Escape key event');
+      event.preventDefault();
+      return;
+    }
+    
     event.preventDefault();
     
     if (!wasActive) {
@@ -527,8 +594,125 @@ export class KeyboardNavigationManager {
   }
   
   private _handleMouseInteraction(event: PointerEvent): void {
+    const target = event.target as HTMLElement;
+    
+    console.log('[KNM] Mouse click detected on:', target.tagName, target.className, target.id);
+    console.log('[KNM] Current state - active:', this.sessionState.active, 'focus:', this.sessionState.currentFocusId, 'interacting:', this.sessionState.interactingNodeId);
+    console.log('[KNM] Scope stack length:', this.currentContext.scopeStack.length);
+    
+    // Check if clicking on an interactive element (value-editor or code-editor)
+    const isValueEditor = target.classList.contains('slider-num');
+    const isCodeEditor = target.closest('.cm-editor, .cm-content, .cm-scroller, #stateBox-wrap');
+    
+    console.log('[KNM] Element type - isValueEditor:', isValueEditor, 'isCodeEditor:', !!isCodeEditor);
+    
+    if (isValueEditor || isCodeEditor) {
+      console.log('[KNM] === INTERACTIVE ELEMENT CLICKED ===');
+      
+      // Find the node for this element
+      let nodeId: string | null = null;
+      
+      if (isValueEditor) {
+        console.log('[KNM] Searching for value-editor node...');
+        // For value editors, find by element match
+        const bindings = (this.uiTree as any)._elementBindings as Map<string, HTMLElement>;
+        if (bindings) {
+          console.log('[KNM] Element bindings count:', bindings.size);
+          for (const [id, element] of bindings.entries()) {
+            if (element === target) {
+              const node = this.uiTree.getNode(id);
+              console.log('[KNM] Found binding:', id, 'node kind:', node?.kind);
+              if (node && node.kind === 'value-editor') {
+                nodeId = id;
+                console.log('[KNM] ✓ Matched value-editor node:', nodeId);
+                break;
+              }
+            }
+          }
+        }
+      } else if (isCodeEditor) {
+        console.log('[KNM] Using stateBox node for code editor');
+        nodeId = 'stateBox';
+      }
+      
+      if (!nodeId) {
+        console.warn('[KNM] ✗ Could not find node for clicked interactive element');
+        return;
+      }
+      
+      console.log('[KNM] Target node:', nodeId);
+      
+      // Activate keyboard nav if not active
+      if (!this.sessionState.active) {
+        console.log('[KNM] Activating keyboard nav');
+        this.sessionState.active = true;
+        document.body.classList.add('nav-active');
+        console.log('[KNM] ✓ Keyboard nav activated');
+      } else {
+        console.log('[KNM] Keyboard nav already active');
+      }
+      
+      // Ensure scope stack is initialized
+      console.log('[KNM] Checking scope stack...');
+      if (this.currentContext.scopeStack.length === 0) {
+        console.log('[KNM] Scope stack empty, entering root');
+        const rootNode = this.uiTree.getRoot();
+        console.log('[KNM] Root node:', rootNode?.id, rootNode?.kind);
+        if (rootNode && rootNode.kind === 'grid') {
+          const cellId = this.enterGrid(rootNode.id, 'first');
+          console.log('[KNM] ✓ Entered root grid, cellId:', cellId);
+          console.log('[KNM] Scope stack after root entry:', this.currentContext.scopeStack.length);
+        }
+      } else {
+        console.log('[KNM] Scope stack already initialized, length:', this.currentContext.scopeStack.length);
+        const currentScope = this.getCurrentScope();
+        console.log('[KNM] Current scope:', currentScope?.gridId, 'coords:', currentScope?.coords);
+      }
+      
+      // Navigate to the element
+      console.log('[KNM] Calling _setFocus to navigate to:', nodeId);
+      this._setFocus(nodeId);
+      console.log('[KNM] ✓ _setFocus completed');
+      console.log('[KNM] State after _setFocus - focus:', this.sessionState.currentFocusId);
+      console.log('[KNM] Scope stack after _setFocus:', this.currentContext.scopeStack.length);
+      if (this.currentContext.scopeStack.length > 0) {
+        const scope = this.getCurrentScope();
+        console.log('[KNM] Current scope:', scope?.gridId, 'coords:', scope?.coords, 'cellId:', scope?.cellId);
+      }
+      
+      // Enter interaction mode
+      const node = this.uiTree.getNode(nodeId);
+      console.log('[KNM] Getting node for interaction:', nodeId, 'found:', !!node);
+      if (node) {
+        console.log('[KNM] Node kind:', node.kind, 'parentId:', node.parentId);
+        const behavior = this._getBehavior(node);
+        console.log('[KNM] Behavior found:', !!behavior, 'has onActivate:', !!behavior?.onActivate);
+        if (behavior?.onActivate) {
+          console.log('[KNM] Calling behavior.onActivate()');
+          const result = behavior.onActivate();
+          console.log('[KNM] onActivate returned:', result);
+          if (result === 'handled') {
+            const nowInteracting = behavior.isInteracting && behavior.isInteracting();
+            console.log('[KNM] behavior.isInteracting():', nowInteracting);
+            if (nowInteracting) {
+              console.log('[KNM] Calling _enterInteractionMode');
+              this._enterInteractionMode(nodeId);
+              console.log('[KNM] ✓ Entered interaction mode');
+              console.log('[KNM] Final state - interacting:', this.sessionState.interactingNodeId);
+            }
+          }
+        }
+      }
+      
+      console.log('[KNM] === INTERACTIVE ELEMENT HANDLING COMPLETE ===');
+      console.log('[KNM] Final state - active:', this.sessionState.active, 'focus:', this.sessionState.currentFocusId, 'interacting:', this.sessionState.interactingNodeId);
+      
+      return;
+    }
+    
+    // Clicking elsewhere: deactivate keyboard nav if active
     if (this.sessionState.active) {
-      console.log('[KNM] Deactivating keyboard navigation due to mouse click');
+      console.log('[KNM] Deactivating keyboard navigation due to mouse click elsewhere');
       
       this.repeatManager.stopAll();
       
@@ -541,6 +725,8 @@ export class KeyboardNavigationManager {
       if (this.visualizer) {
         this.visualizer.hide();
       }
+      
+      console.log('[KNM] ✓ Keyboard nav deactivated');
     }
   }
   
@@ -767,6 +953,14 @@ export class KeyboardNavigationManager {
     while (this.currentContext.scopeStack.length > 1) {
       const scope = this.getCurrentScope();
       if (!scope) break;
+      
+      // If target is the current grid itself, pop scope first before looking for it
+      if (scope.gridId === targetId) {
+        console.log('[KNM] Escape target is current grid, popping scope first');
+        const exited = this.currentContext.scopeStack.pop()!;
+        this.gridMemory.set(exited.gridId, exited.coords);
+        continue; // Continue to look for targetId in parent scope
+      }
       
       const coords = this.uiTree.getCellCoords(scope.gridId, targetId);
       
@@ -1071,13 +1265,15 @@ export class KeyboardNavigationManager {
         const currentScope = this.getCurrentScope();
         if (!currentScope || currentScope.gridId !== node.parentId) {
           console.log('[KNM] Not in parent grid scope, entering:', node.parentId);
-          const cell = parentNode.cells?.find((c: any) => c.id === nodeId);
-          if (cell) {
+          // Get the coordinates of this cell in the parent grid
+          const coords = this.uiTree.getCellCoords(node.parentId, nodeId);
+          if (coords) {
             this.enterGrid(node.parentId, 'first');
             const scope = this.getCurrentScope();
             if (scope) {
-              scope.coords = [cell.row, cell.col];
-              console.log('[KNM] Set scope coordinates to [', cell.row, cell.col, ']');
+              scope.coords = coords;
+              scope.cellId = nodeId;
+              console.log('[KNM] Set scope coordinates to [', coords[0], coords[1], '] for cell:', nodeId);
             }
           }
         }

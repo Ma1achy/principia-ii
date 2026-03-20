@@ -1,5 +1,6 @@
 import { state, AXIS_NAMES } from '../../state.js';
 import { $ } from '../utils.js';
+import { registerPickerOverlay, unregisterPickerOverlay } from './keyboard-nav-integration.js';
 
 // ─── Tilt dimension picker overlay ───────────────────────────────────────────
 
@@ -34,12 +35,34 @@ export function bindTiltPicker(onPick1: (dim: number) => void, onPick2: (dim: nu
   function closeTiltPicker(): void {
     if (overlay) overlay.classList.remove("open");
     _tiltPickerCallback = null;
+    
+    // Unregister from keyboard navigation
+    const uiTree = (window as any).uiTree;
+    if (uiTree) {
+      unregisterPickerOverlay(uiTree, 'tiltPickerOverlay');
+    }
   }
 
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeTiltPicker(); });
-  closeBtn.addEventListener("click", closeTiltPicker);
-  document.addEventListener("keydown", (e) => {
-    if (overlay && e.key === "Escape" && overlay.classList.contains("open")) closeTiltPicker();
+  overlay.addEventListener("click", (e) => { 
+    if (e.target === overlay) {
+      // Close via KNM to ensure proper state management
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('tiltPickerOverlay');
+      } else {
+        closeTiltPicker();
+      }
+    }
+  });
+  closeBtn.addEventListener("click", () => {
+    // Close button click already handled by pickerCloseButtonBehavior
+    // But keep this as fallback if KNM is not active
+    const navManager = (window as any).navManager;
+    if (navManager) {
+      navManager.closeOverlay('tiltPickerOverlay');
+    } else {
+      closeTiltPicker();
+    }
   });
 
   const tiltDim1Label = $("tiltDim1Label");
@@ -52,6 +75,21 @@ export function bindTiltPicker(onPick1: (dim: number) => void, onPick2: (dim: nu
       buildList(state.tiltDim1);
       _tiltPickerCallback = onPick1;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'tiltPickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount: 10,
+          triggerId: 'tiltDim1-picker:trigger',
+          onClose: closeTiltPicker
+        });
+      }
     });
   }
 
@@ -61,6 +99,21 @@ export function bindTiltPicker(onPick1: (dim: number) => void, onPick2: (dim: nu
       buildList(state.tiltDim2);
       _tiltPickerCallback = onPick2;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'tiltPickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount: 10,
+          triggerId: 'tiltDim2-picker:trigger',
+          onClose: closeTiltPicker
+        });
+      }
     });
   }
 }

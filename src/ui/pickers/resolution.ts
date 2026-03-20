@@ -1,6 +1,7 @@
 import { state } from '../../state.js';
 import { $ } from '../utils.js';
 import { showLargeResWarning } from '../dialogs/resolution-warning.js';
+import { registerPickerOverlay, unregisterPickerOverlay } from './keyboard-nav-integration.js';
 
 // ─── Resolution picker overlay ───────────────────────────────────────────────
 
@@ -50,12 +51,34 @@ export function bindResPicker(onPick: (res: number) => void): void {
   function closeResPicker(): void {
     if (overlay) overlay.classList.remove("open");
     _resPickerCallback = null;
+    
+    // Unregister from keyboard navigation
+    const uiTree = (window as any).uiTree;
+    if (uiTree) {
+      unregisterPickerOverlay(uiTree, 'resPickerOverlay');
+    }
   }
 
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeResPicker(); });
-  closeBtn.addEventListener("click", closeResPicker);
-  document.addEventListener("keydown", (e) => {
-    if (overlay && e.key === "Escape" && overlay.classList.contains("open")) closeResPicker();
+  overlay.addEventListener("click", (e) => { 
+    if (e.target === overlay) {
+      // Close via KNM to ensure proper state management
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('resPickerOverlay');
+      } else {
+        closeResPicker();
+      }
+    }
+  });
+  closeBtn.addEventListener("click", () => {
+    // Close button click already handled by pickerCloseButtonBehavior
+    // But keep this as fallback if KNM is not active
+    const navManager = (window as any).navManager;
+    if (navManager) {
+      navManager.closeOverlay('resPickerOverlay');
+    } else {
+      closeResPicker();
+    }
   });
 
   const resLabel = $("resLabel");
@@ -64,6 +87,24 @@ export function bindResPicker(onPick: (res: number) => void): void {
       buildList(state.res);
       _resPickerCallback = onPick;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      const sel = $("resolution") as HTMLSelectElement | null;
+      const itemCount = sel ? sel.options.length : 0;
+      
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'resPickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount,
+          triggerId: 'resolution-picker:trigger',
+          onClose: closeResPicker
+        });
+      }
     });
   }
 }

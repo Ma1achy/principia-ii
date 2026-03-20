@@ -94,6 +94,90 @@ export function buttonBehavior(node: UINode, element: HTMLElement | null, deps: 
   };
 }
 
+// ── Menu Item Behavior ─────────────────────────────────────────────────────
+
+export function menuItemBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {
+  const { navManager, uiTree } = deps;
+  
+  return {
+    onActivate() {
+      console.log('[menuItemBehavior] onActivate called for:', node.id);
+      
+      // First, trigger the button's click to do its work (change state, etc.)
+      if (element && !(element as HTMLButtonElement).disabled) {
+        console.log('[menuItemBehavior] Clicking element');
+        element.click();
+      }
+      
+      // Then, close the picker overlay through KNM
+      // Find the picker overlay ID from the node's parent
+      const pickerId = node.parentId;
+      console.log('[menuItemBehavior] Picker overlay ID:', pickerId);
+      
+      if (navManager && pickerId) {
+        // Small delay to let the click handler complete first
+        console.log('[menuItemBehavior] Closing overlay via KNM:', pickerId);
+        setTimeout(() => {
+          navManager.closeOverlay(pickerId);
+        }, 0);
+      }
+      
+      return BEHAVIOR_RESULT.HANDLED;
+    },
+
+    onArrowKey(direction: string) {
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onInteract() {
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onEscape() {
+      return BEHAVIOR_RESULT.IGNORED;
+    }
+  };
+}
+
+// ── Picker Close Button Behavior ──────────────────────────────────────────
+
+export function pickerCloseButtonBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {
+  const { navManager } = deps;
+  
+  return {
+    onActivate() {
+      // Find the picker overlay ID from the node's parent
+      const pickerId = node.parentId;
+      
+      console.log('[pickerCloseButtonBehavior] onActivate called');
+      console.log('[pickerCloseButtonBehavior]   node.id:', node.id);
+      console.log('[pickerCloseButtonBehavior]   node.parentId (pickerId):', pickerId);
+      console.log('[pickerCloseButtonBehavior]   has navManager:', !!navManager);
+      
+      if (navManager && pickerId) {
+        console.log('[pickerCloseButtonBehavior] Closing overlay via KNM:', pickerId);
+        navManager.closeOverlay(pickerId);
+      } else {
+        console.warn('[pickerCloseButtonBehavior] No navManager or pickerId');
+      }
+      
+      return BEHAVIOR_RESULT.HANDLED;
+    },
+
+    onArrowKey(direction: string) {
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onInteract() {
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onEscape() {
+      return BEHAVIOR_RESULT.IGNORED;
+    }
+  };
+}
+
 // ── Checkbox Behavior ──────────────────────────────────────────────────────
 
 export function checkboxBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {
@@ -279,16 +363,23 @@ export function analogControlBehavior(node: UINode, element: HTMLElement | null,
 
 export function paramTriggerBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {
   const { uiTree, navManager } = deps;
+  
+  console.log('[paramTriggerBehavior] Creating behavior for:', node.id, 'has navManager:', !!navManager, 'has element:', !!element);
 
   return {
     onActivate() {
-      const overlayId = node.meta?.overlayId;
-      if (!overlayId || !uiTree || !navManager) {
-        return BEHAVIOR_RESULT.IGNORED;
+      console.log('[paramTriggerBehavior] onActivate called for:', node.id);
+      
+      // For now, just trigger a click on the element to open the existing picker overlay
+      // The old picker system handles the overlay display
+      if (element) {
+        console.log('[paramTriggerBehavior] Triggering click on element');
+        element.click();
+        return BEHAVIOR_RESULT.HANDLED;
       }
-
-      navManager.openOverlayById(overlayId, node.id);
-      return BEHAVIOR_RESULT.HANDLED;
+      
+      console.warn('[paramTriggerBehavior] No element to click for:', node.id);
+      return BEHAVIOR_RESULT.IGNORED;
     },
 
     onArrowKey(direction: string) {
@@ -421,6 +512,156 @@ export function nativeSelectBehavior(node: UINode, element: HTMLElement | null, 
 
     onEscape() {
       return BEHAVIOR_RESULT.IGNORED;
+    }
+  };
+}
+
+// ── Textarea Behavior ──────────────────────────────────────────────────────
+
+export function textareaBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {
+  let isInteracting = false;
+  
+  return {
+    onActivate() {
+      if (!isInteracting && element && !(element as HTMLTextAreaElement).disabled) {
+        isInteracting = true;
+        (element as HTMLTextAreaElement).focus();
+        console.log('[textareaBehavior] Entered edit mode');
+        return BEHAVIOR_RESULT.HANDLED;
+      } else if (isInteracting) {
+        // Don't exit on Enter - Enter creates new lines in textarea
+        console.log('[textareaBehavior] Enter key creates new line (staying in edit mode)');
+        return BEHAVIOR_RESULT.IGNORED;
+      }
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onArrowKey(direction: string) {
+      if (isInteracting) {
+        // While editing, arrow keys move cursor within textarea - don't intercept
+        console.log('[textareaBehavior] Arrow key used for cursor movement:', direction);
+        return BEHAVIOR_RESULT.IGNORED;
+      }
+      
+      // When not editing, arrows navigate out of the textarea
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onInteract() {
+      return this.onActivate();
+    },
+
+    onEscape() {
+      if (isInteracting) {
+        isInteracting = false;
+        (element as HTMLTextAreaElement).blur();
+        console.log('[textareaBehavior] Exited edit mode (Escape)');
+        return BEHAVIOR_RESULT.HANDLED;
+      }
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+    
+    isInteracting() {
+      return isInteracting;
+    }
+  };
+}
+
+// ── Code Editor Behavior ───────────────────────────────────────────────────
+
+interface CodeEditorDeps extends BaseDeps {
+  editorRegistry?: any;
+  editors?: Map<string, any>;  // Map of nodeId -> CodeEditor instance
+}
+
+export function codeEditorBehavior(node: UINode, element: HTMLElement | null, deps: CodeEditorDeps = {}): Behavior {
+  const { editorRegistry, editors } = deps;
+  let isInteracting = false;
+  let editor: any = null;
+  
+  // Initialize editor on first access
+  const getEditor = () => {
+    if (editor) return editor;
+    
+    if (!editorRegistry || !editors) {
+      console.warn('[codeEditorBehavior] No editor registry or editors map provided');
+      return null;
+    }
+    
+    // Check if editor already exists (shared instance created in main.ts)
+    if (editors.has(node.id)) {
+      editor = editors.get(node.id);
+      console.log('[codeEditorBehavior] Using existing editor for', node.id);
+      return editor;
+    }
+    
+    // Create new editor instance (fallback, usually created in main.ts)
+    const language = node.meta?.editorLanguage || 'json';
+    editor = editorRegistry.create(language, {
+      lineNumbers: true,
+      linting: true,
+      autoFormat: true,
+      autocompletion: true
+    });
+    
+    if (editor && element) {
+      // Clear any existing content in container
+      element.innerHTML = '';
+      editor.mount(element);
+      editors.set(node.id, editor);
+      console.log('[codeEditorBehavior] Created', language, 'editor for', node.id);
+    }
+    
+    return editor;
+  };
+  
+  return {
+    onActivate() {
+      const ed = getEditor();
+      if (!ed) return BEHAVIOR_RESULT.IGNORED;
+      
+      if (!isInteracting) {
+        isInteracting = true;
+        ed.focus();
+        console.log('[codeEditorBehavior] Entered edit mode');
+        return BEHAVIOR_RESULT.HANDLED;
+      } else {
+        // Don't exit on Enter - Enter creates new lines
+        console.log('[codeEditorBehavior] Enter key creates new line (staying in edit mode)');
+        return BEHAVIOR_RESULT.IGNORED;
+      }
+    },
+
+    onArrowKey(direction: string) {
+      if (isInteracting) {
+        // While editing, arrow keys work within editor - don't intercept
+        console.log('[codeEditorBehavior] Arrow key used for cursor movement:', direction);
+        return BEHAVIOR_RESULT.IGNORED;
+      }
+      
+      // When not editing, arrows navigate away
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onInteract() {
+      return this.onActivate();
+    },
+
+    onEscape() {
+      const ed = getEditor();
+      if (!ed) return BEHAVIOR_RESULT.IGNORED;
+      
+      if (isInteracting) {
+        isInteracting = false;
+        ed.blur();
+        console.log('[codeEditorBehavior] Exited edit mode (Escape)');
+        return BEHAVIOR_RESULT.HANDLED;
+      }
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+    
+    isInteracting() {
+      return isInteracting;
     }
   };
 }

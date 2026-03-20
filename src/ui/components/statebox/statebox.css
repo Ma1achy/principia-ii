@@ -1,6 +1,6 @@
 /**
- * @fileoverview StateBox Component
- * Textarea with custom scrollbar for displaying state vector
+ * @fileoverview StateBox Component - JSON Editor
+ * CodeMirror-based JSON editor for displaying state vector
  */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -8,12 +8,14 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 #stateBox-wrap {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 1fr 20px;
+  grid-template-rows: 1fr 20px;
   border: 1px solid var(--border);
   margin-top: 0;
   overflow: hidden;
   transition: border-color 0.1s;
+  background: #ffffff;
 }
 
 #stateBox-wrap:focus-within {
@@ -21,25 +23,37 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   StateBox Textarea
+   JSON Editor Container (CodeMirror mounts here)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-#stateBox {
-  flex: 1;
-  height: 140px;
-  padding: 8px;
-  border: none;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  outline: none;
-  resize: none;
-  overflow-y: scroll;
-  scrollbar-width: none;
+.json-editor-container {
+  grid-column: 1;
+  grid-row: 1;
+  height: 420px;
+  overflow: hidden;
   box-shadow: inset 0 1px 4px rgba(0,0,0,0.10), inset 0 2px 6px rgba(0,0,0,0.06);
 }
 
-#stateBox::-webkit-scrollbar {
+.json-editor-container .cm-editor {
+  height: 100%;
+}
+
+.json-editor-container .cm-scroller {
+  overflow: hidden; /* Both scrollbars handled externally */
+  scrollbar-width: none;
+}
+
+.json-editor-container .cm-scroller::-webkit-scrollbar {
   display: none;
 }
+
+/* Override default browser selection in CodeMirror */
+.json-editor-container ::selection {
+  background: transparent !important;
+}
+
+.json-editor-container ::-moz-selection {
+  background: transparent !important;
+}
+
+

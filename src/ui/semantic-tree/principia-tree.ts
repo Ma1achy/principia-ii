@@ -470,26 +470,29 @@ export function buildPrincipiaUITree(): UINode[] {
     ariaLabel: "Download JSON" 
   });
   
-  // Button row: 1×2 horizontal grid
-  const exportButtonGrid = grid("sec-state-buttons", {
-    cells: [
-      [cell("pasteJsonBtn"), cell("downloadJsonBtn")]
-    ],
-    rows: 1,
-    cols: 2,
-    wrapCols: false,
-    wrapRows: false,
-    entryPolicy: 'first',
-    escapeUp: 'sec-state-body',  // Up exits to parent body
-    escapeDown: 'sec-state-body'  // Down exits to parent body
-  });
-
-  // Section body: vertical grid with button row (and textarea will be added later)
+  // StateBox code editor node
+  const stateBoxNode: UINode = {
+    id: 'stateBox',
+    kind: 'code-editor',
+    parentId: 'sec-state-body',
+    role: 'code-editor',
+    ariaRole: 'textbox',
+    ariaLabel: 'State JSON code editor',
+    meta: {
+      multiline: true,
+      escapeOnly: true,  // Only Escape exits, not arrows
+      editorLanguage: 'json'
+    }
+  };
+  
+  // Section body: buttons in row 0, textarea in row 1
   const exportBodyGrid = grid("sec-state-body", {
     cells: [
-      [cell("sec-state-buttons")]
-      // stateBox textarea could be added here in future
+      [cell("pasteJsonBtn"), cell("downloadJsonBtn")],
+      [cell("stateBox", 1, 2)]  // Textarea spans both columns
     ],
+    rows: 2,
+    cols: 2,
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'remembered',  // Remember last position in this section
@@ -501,7 +504,7 @@ export function buildPrincipiaUITree(): UINode[] {
     exportBodyGrid
   ], { collapsed: true });
 
-  nodes.push(exportHeader, exportSection, exportBodyGrid, exportButtonGrid, pasteJsonBtn, downloadJsonBtn);
+  nodes.push(exportHeader, exportSection, exportBodyGrid, pasteJsonBtn, downloadJsonBtn, stateBoxNode);
 
   // ─── Sidebar Scope (Wraps All Sections) ───────────────────────────────────
   // Sidebar: vertical grid (N×1) of controls and sections

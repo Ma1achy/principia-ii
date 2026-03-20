@@ -1,0 +1,71 @@
+/**
+ * Code Editor Styling
+ * Single unified tooltip style for ALL CodeMirror tooltips
+ */
+
+/* Remove browser default focus outline - keyboard nav handles focus visualization */
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+
+.cm-editor {
+  outline: none !important;
+}
+
+/* Content area should not show focus outline either */
+.cm-content {
+  outline: none !important;
+}
+
+.cm-scroller {
+  outline: none !important;
+}
+
+/* Universal tooltip style - outer container only */
+.cm-tooltip,
+.cm-tooltip.cm-tooltip-lint,
+.cm-tooltip.cm-tooltip-hover,
+.cm-tooltip-lint,
+[class*="cm-tooltip"] {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+  color: #e45649 !important;
+  background: #fafafa !important;
+  border: 1px solid #e45649 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 8px rgba(228, 86, 73, 0.2) !important;
+  padding: 8px 10px !important;
+  max-width: 400px !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Remove borders/backgrounds from nested elements */
+.cm-tooltip > *,
+.cm-tooltip-lint > * {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+}
+
+/* All text inside any tooltip */
+.cm-tooltip,
+.cm-tooltip *,
+.cm-tooltip-lint,
+.cm-tooltip-lint * {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 10px !important;
+  color: #e45649 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
+
+
+
+
+

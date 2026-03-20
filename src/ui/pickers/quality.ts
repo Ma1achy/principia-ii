@@ -1,4 +1,5 @@
 import { $ } from '../utils.js';
+import { registerPickerOverlay, unregisterPickerOverlay } from './keyboard-nav-integration.js';
 
 // ─── Quality picker overlay ──────────────────────────────────────────────────
 
@@ -36,12 +37,34 @@ export function bindQualityPicker(onPick: (value: string) => void): void {
   function closeQualityPicker(): void {
     if (overlay) overlay.classList.remove("open");
     _qualityPickerCallback = null;
+    
+    // Unregister from keyboard navigation
+    const uiTree = (window as any).uiTree;
+    if (uiTree) {
+      unregisterPickerOverlay(uiTree, 'qualityPickerOverlay');
+    }
   }
 
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeQualityPicker(); });
-  closeBtn.addEventListener("click", closeQualityPicker);
-  document.addEventListener("keydown", (e) => {
-    if (overlay && e.key === "Escape" && overlay.classList.contains("open")) closeQualityPicker();
+  overlay.addEventListener("click", (e) => { 
+    if (e.target === overlay) {
+      // Close via KNM to ensure proper state management
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('qualityPickerOverlay');
+      } else {
+        closeQualityPicker();
+      }
+    }
+  });
+  closeBtn.addEventListener("click", () => {
+    // Close button click already handled by pickerCloseButtonBehavior
+    // But keep this as fallback if KNM is not active
+    const navManager = (window as any).navManager;
+    if (navManager) {
+      navManager.closeOverlay('qualityPickerOverlay');
+    } else {
+      closeQualityPicker();
+    }
   });
 
   const qualityLabel = $("qualityLabel");
@@ -51,6 +74,23 @@ export function bindQualityPicker(onPick: (value: string) => void): void {
       if (sel) buildList(sel.value);
       _qualityPickerCallback = onPick;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      const itemCount = sel ? sel.options.length : 0;
+      
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'qualityPickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount,
+          triggerId: 'quality-picker:trigger',
+          onClose: closeQualityPicker
+        });
+      }
     });
   }
 }

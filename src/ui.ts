@@ -31,6 +31,7 @@ export { buildAxisSelects, buildCustomDimSelects } from './ui/builders/selects.j
 
 // Sync
 export { updateStateBox, syncUIFromState } from './ui/sync.js';
+export { getStateBoxValue } from './ui/editors/stateBoxEditor.js';
 
 // Main controls - bindUI function
 import { state, navPrefs, canonicalState, applyCanonical, PRESETS, AXIS_NAMES, MODE_INFO } from './state.js';
@@ -39,6 +40,7 @@ import { setStatus, setOverlay } from './ui/panels/overlay.js';
 import { setRenderingState } from './ui/core/state.js';
 import { drawOverlayHUD } from './ui/panels/hud.js';
 import { updateStateBox, syncUIFromState } from './ui/sync.ts';
+import { getStateBoxValue } from './ui/editors/stateBoxEditor.ts';
 import { bindValEditDialog } from './ui/dialogs/value-edit.js';
 import { bindModePicker } from './ui/pickers/mode.js';
 import { bindTiltPicker, syncTiltDimLabels } from './ui/pickers/tilt.js';
@@ -113,13 +115,13 @@ export function bindUI(
   });
 
   async function copyJson() {
-    const txt = ($("stateBox") as HTMLTextAreaElement).value || JSON.stringify(canonicalState(state), null, 2);
+    const txt = getStateBoxValue() || JSON.stringify(canonicalState(state), null, 2);
     try { await navigator.clipboard.writeText(txt); setStatus("JSON copied."); }
     catch { prompt("Copy JSON:", txt); }
   }
 
   async function pasteJsonApply() {
-    const txt = ($("stateBox") as HTMLTextAreaElement).value.trim();
+    const txt = getStateBoxValue().trim();
     if (!txt) { setStatus("Paste JSON into the box first."); return; }
     try {
       applyCanonical(JSON.parse(txt), applyCustomBasis);
@@ -131,8 +133,8 @@ export function bindUI(
     }
   }
 
-  function downloadJson() {
-    const txt = ($("stateBox") as HTMLTextAreaElement).value || JSON.stringify(canonicalState(state), null, 2);
+  async function downloadJson() {
+    const txt = getStateBoxValue() || JSON.stringify(canonicalState(state), null, 2);
     const blob = new Blob([txt], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);

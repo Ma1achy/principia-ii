@@ -1,5 +1,6 @@
 import { state } from '../../state.js';
 import { $ } from '../utils.js';
+import { registerPickerOverlay, unregisterPickerOverlay } from './keyboard-nav-integration.js';
 
 // ─── Mode picker overlay ─────────────────────────────────────────────────────
 
@@ -38,12 +39,34 @@ export function bindModePicker(onPick: (mode: number) => void): void {
   function closeModePicker(): void {
     if (overlay) overlay.classList.remove("open");
     _modePickerCallback = null;
+    
+    // Unregister from keyboard navigation
+    const uiTree = (window as any).uiTree;
+    if (uiTree) {
+      unregisterPickerOverlay(uiTree, 'modePickerOverlay');
+    }
   }
 
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModePicker(); });
-  closeBtn.addEventListener("click", closeModePicker);
-  document.addEventListener("keydown", (e) => {
-    if (overlay && e.key === "Escape" && overlay.classList.contains("open")) closeModePicker();
+  overlay.addEventListener("click", (e) => { 
+    if (e.target === overlay) {
+      // Close via KNM to ensure proper state management
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('modePickerOverlay');
+      } else {
+        closeModePicker();
+      }
+    }
+  });
+  closeBtn.addEventListener("click", () => {
+    // Close button click already handled by pickerCloseButtonBehavior
+    // But keep this as fallback if KNM is not active
+    const navManager = (window as any).navManager;
+    if (navManager) {
+      navManager.closeOverlay('modePickerOverlay');
+    } else {
+      closeModePicker();
+    }
   });
 
   const modeLabel = $("modeLabel");
@@ -52,6 +75,24 @@ export function bindModePicker(onPick: (mode: number) => void): void {
       buildList(state.mode);
       _modePickerCallback = onPick;
       if (overlay) overlay.classList.add("open");
+      
+      // Register with keyboard navigation
+      const uiTree = (window as any).uiTree;
+      const sel = $("mode") as HTMLSelectElement | null;
+      const itemCount = sel ? sel.options.length : 0;
+      
+      if (uiTree && list && closeBtn) {
+        registerPickerOverlay({
+          uiTree,
+          pickerId: 'modePickerOverlay',
+          overlayElement: overlay,
+          listElement: list,
+          closeButtonElement: closeBtn,
+          itemCount,
+          triggerId: 'mode-picker:trigger',
+          onClose: closeModePicker
+        });
+      }
     });
   }
 }

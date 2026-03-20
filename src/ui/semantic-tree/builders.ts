@@ -429,6 +429,7 @@ export interface PickerConfig {
   triggerKind?: string;
   disabled?: boolean;
   hidden?: boolean;
+  wrap?: boolean;
 }
 
 /**
@@ -468,20 +469,31 @@ export function picker(id: string, config: PickerConfig): PickerResult {
     }
   }));
 
-  // Build dropdown overlay scope
+  // Build dropdown overlay scope (as a grid for keyboard navigation)
   const dropdown: UINode = {
     id: dropdownId,
-    kind: 'dropdown',
+    kind: 'grid',
     parentId: null, // Overlays have no structural parent
     children: menuItems.map(item => item.id),
-    focusMode: 'container',
+    focusMode: 'entry-node',
     overlay: true,
+    isOverlay: true,
+    closeOnEscape: true,
     disabled: config.disabled || false,
+    // Grid structure: vertical list of menu items (n rows × 1 col)
+    rows: menuItems.length,
+    cols: 1,
+    cells: menuItems.map((item, idx) => ({
+      id: item.id,
+      rowSpan: 1,
+      colSpan: 1
+    })),
+    wrapRows: config.wrap !== false,  // Default to true
+    wrapCols: false,
+    entryPolicy: config.selectedId ? 'primary' : 'first',
+    role: 'menu',
     meta: {
       modal: true,
-      strategy: 'linear',
-      entryPolicy: config.selectedId ? 'primary' : 'first',
-      wrap: true,
       ariaRole: 'menu',
       ariaLabel: `${config.label} menu`,
       triggerId,

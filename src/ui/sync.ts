@@ -4,9 +4,10 @@ import { setStatus } from './panels/overlay.ts';
 import { updateCustomPanelVisibility } from './builders/presets.ts';
 import { syncTiltDimLabels } from './pickers/tilt.ts';
 import type { UINode } from './semantic-tree/store.ts';
+import { setStateBoxValue } from './editors/stateBoxEditor.ts';
 
 export function updateStateBox(): void {
-  $("stateBox").value = JSON.stringify(canonicalState(state), null, 2);
+  setStateBoxValue(JSON.stringify(canonicalState(state), null, 2));
 }
 
 export function syncUIFromState(

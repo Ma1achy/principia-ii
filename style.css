@@ -33,6 +33,40 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Remove default browser focus outlines - keyboard nav handles all focus visualization */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
+a:focus,
+[tabindex]:focus {
+  outline: none !important;
+}
+
+/* Ensure no focus ring on any focusable element */
+*:focus {
+  outline: none !important;
+}
+
+/* Prevent focus-visible pseudo-class from applying styles */
+*:focus-visible {
+  outline: none !important;
+}
+
+/* CRITICAL: Prevent buttons from keeping focus after interaction */
+/* When buttons receive focus (via click or otherwise), they should immediately blur */
+/* This prevents browser focus styling from interfering with our custom box-shadows */
+button:focus,
+.btn:focus {
+  /* Don't apply any focus-specific styles that would override box-shadow */
+}
+
+/* Remove focus-visible ring */
+button:focus-visible,
+.btn:focus-visible {
+  outline: none !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    BODY & ROOT LAYOUT
    Base application structure and loading states

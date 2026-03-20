@@ -328,18 +328,24 @@ function createExportImportSection(): HTMLElement {
   label.textContent = 'State JSON';
   content.appendChild(label);
   
-  // StateBox wrap (textarea + scrollbar)
+  // StateBox wrap (CodeMirror editor container + scrollbars)
   const wrap = document.createElement('div');
   wrap.id = 'stateBox-wrap';
   
-  const textarea = document.createElement('textarea');
-  textarea.id = 'stateBox';
-  textarea.setAttribute('spellcheck', 'false');
+  // Create a div (not textarea) for CodeMirror to mount into
+  const editorContainer = document.createElement('div');
+  editorContainer.id = 'stateJsonEditor';
+  editorContainer.className = 'json-editor-container';
   
-  const scrollbar = createScrollbar('stateBox-sb');
+  // Vertical scrollbar (right side)
+  const verticalScrollbar = createScrollbar('stateBox-sb');
   
-  wrap.appendChild(textarea);
-  wrap.appendChild(scrollbar);
+  // Horizontal scrollbar (bottom)
+  const horizontalScrollbar = createScrollbar('stateBox-sb-horizontal');
+  
+  wrap.appendChild(editorContainer);
+  wrap.appendChild(verticalScrollbar);
+  wrap.appendChild(horizontalScrollbar);
   content.appendChild(wrap);
   
   return createSection({

@@ -135,6 +135,8 @@ export function attachPrincipiaElements(uiTree: UITreeStore): void {
   uiTree.attachElement('sec-state:header', secState?.parentElement?.querySelector('.section-head') as HTMLElement | null);
   uiTree.attachElement('pasteJsonBtn', document.getElementById('pasteJsonBtn'));
   uiTree.attachElement('downloadJsonBtn', document.getElementById('downloadJsonBtn'));
+  // Attach to the wrapper to include scrollbars in keyboard nav cursor
+  uiTree.attachElement('stateBox', document.getElementById('stateBox-wrap'));
   
   // ── Sidebar ────────────────────────────────────────────────────────────────
   // Sidebar is a transparent navigation container - no DOM element
@@ -246,6 +248,7 @@ export function initTabindexes(uiTree: UITreeStore): void {
     if (element.tagName === 'BUTTON' || 
         element.tagName === 'INPUT' || 
         element.tagName === 'SELECT' ||
+        element.tagName === 'TEXTAREA' ||
         element.hasAttribute('tabindex')) {
       element.setAttribute('tabindex', '-1');
     }

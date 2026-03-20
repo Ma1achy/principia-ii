@@ -75,7 +75,7 @@ export async function showWelcomeDialog(): Promise<void> {
         hotkey: 'Enter'
       }
     ],
-    closeOnEscape: true,
+    closeOnEscape: false,
     onConfirmPersist: (result) => {
       console.log('[Welcome] onConfirmPersist called with result:', result);
       
