@@ -11,7 +11,7 @@
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-overlay-current, 2000);
   display: none;
   align-items: center;
   justify-content: center;

@@ -127,9 +127,15 @@ export function registerPickerOverlay(config: PickerIntegrationConfig): void {
     uiTree._events.on('overlay:before-close', closeHandler);
   }
   
-  // Emit event to trigger KNM registration
-  console.log('[PickerKN] Emitting overlay:registered event with triggerId:', triggerId);
-  uiTree._events.emit('overlay:registered', { id: pickerId, triggerId });
+  // Use new openOverlay method for stack-based rendering
+  if ((window as any).navManager) {
+    console.log('[PickerKN] Opening overlay via navManager:', pickerId, 'triggerId:', triggerId);
+    (window as any).navManager.openOverlay(pickerId, triggerId, 'picker');
+  } else {
+    // Fallback to old event-based system
+    console.log('[PickerKN] Emitting overlay:registered event with triggerId:', triggerId);
+    uiTree._events.emit('overlay:registered', { id: pickerId, triggerId });
+  }
 }
 
 /**
@@ -137,6 +143,12 @@ export function registerPickerOverlay(config: PickerIntegrationConfig): void {
  */
 export function unregisterPickerOverlay(uiTree: UITreeStore, pickerId: string): void {
   console.log('[PickerKN] Unregistering picker overlay:', pickerId);
+  
+  // Use new closeOverlay method
+  if ((window as any).navManager) {
+    console.log('[PickerKN] Closing overlay via navManager:', pickerId);
+    (window as any).navManager.closeOverlay(pickerId);
+  }
   
   // Remove nodes from tree
   try {

@@ -142,7 +142,13 @@ function getEmotionalIdleTime(emotion: string, intensity: number, baseDisplayTim
   
   const intensityFactor = 0.7 + (intensity * 0.6);
   const variation = minRange + Math.random() * (maxRange - minRange);
-  return baseDisplayTime * multiplier * variation * intensityFactor;
+  const rawResult = baseDisplayTime * multiplier * variation * intensityFactor;
+  
+  // Cap the combined multiplier to prevent extreme stacking
+  const combinedMultiplier = multiplier * variation * intensityFactor;
+  const cappedMultiplier = Math.max(0.5, combinedMultiplier);
+  
+  return baseDisplayTime * cappedMultiplier;
 }
 
 function getEmotionalDisplayTime(emotion: string, intensity: number, baseMin: number, baseMax: number): number {
@@ -211,9 +217,13 @@ function getEmotionalDisplayTime(emotion: string, intensity: number, baseMin: nu
   const baseDisplay = baseMin + Math.random() * (baseMax - baseMin);
   const variation = minRange + Math.random() * (maxRange - minRange);
   
-  const calculated = baseDisplay * multiplier * variation * intensityFactor;
+  // Cap the combined multiplier to prevent extreme stacking
+  const combinedMultiplier = multiplier * variation * intensityFactor;
+  const cappedMultiplier = Math.max(0.5, combinedMultiplier);
   
-  const DISPLAY_MIN = 1500;
+  const calculated = baseDisplay * cappedMultiplier;
+  
+  const DISPLAY_MIN = 2500;
   const DISPLAY_MAX = 15000;
   
   return Math.max(DISPLAY_MIN, Math.min(DISPLAY_MAX, calculated));

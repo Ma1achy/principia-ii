@@ -510,11 +510,67 @@ async function boot(): Promise<void> {
   
   // Setup behavior registry
   const behaviorRegistry = new BehaviorRegistry();
-  behaviorRegistry.register('section-header', behaviors.sectionHeaderBehavior);
-  behaviorRegistry.register('button', behaviors.buttonBehavior);
-  behaviorRegistry.register('checkbox', behaviors.checkboxBehavior);
-  behaviorRegistry.register('value-editor', behaviors.valueEditorBehavior);
+  
+  // Import behavior composer for capability-based behaviors
+  const { BehaviorComposer } = await import('./navigation/BehaviorComposer.ts');
+  const behaviorComposer = new BehaviorComposer({ uiTree, behaviorDeps: {} });
+  const composerFactory = behaviorComposer.createFactory();
+  
+  // Import BEHAVIOR_RESULT for custom handlers
+  const { BEHAVIOR_RESULT } = await import('./navigation/behaviors.ts');
+  
+  // Simple behaviors use capability-based composer
+  behaviorRegistry.register('section-header', composerFactory);
+  behaviorRegistry.register('button', composerFactory);
+  behaviorRegistry.register('native-select', composerFactory);
+  behaviorRegistry.register('param-trigger', composerFactory);
+  
+  // Interactive behaviors with complex logic - keep original implementations
+  // value-editor works perfectly with capabilities, analog-control has different toggle semantics
+  behaviorRegistry.register('value-editor', (n: any, el: HTMLElement | null, deps: any) => {
+    const enhancedNode = {
+      ...n,
+      meta: {
+        ...n.meta,
+        capabilities: {
+          interactive: true,
+          escapePolicy: 'auto',
+          arrowPolicy: 'custom',
+          onArrowKey: (node: any, element: HTMLElement | null, direction: string, isInteracting: boolean, allDeps: any) => {
+            if (isInteracting) {
+              console.log('[valueEditorBehavior] Arrow key ignored while editing:', direction);
+              return BEHAVIOR_RESULT.IGNORED;
+            }
+            
+            const parentNode = allDeps.uiTree?.getNode(node.parentId);
+            const hasParamTrigger = parentNode?.children?.some((childId: string) => {
+              const child = allDeps.uiTree?.getNode(childId);
+              return child?.kind === 'param-trigger';
+            });
+            
+            if (hasParamTrigger) {
+              if (direction === 'ArrowDown' || direction === 'ArrowRight') {
+                return BEHAVIOR_RESULT.ESCAPE_SCOPE;
+              }
+            } else {
+              if (direction === 'ArrowUp' || direction === 'ArrowDown' || direction === 'ArrowRight') {
+                return BEHAVIOR_RESULT.ESCAPE_SCOPE;
+              }
+            }
+            
+            return BEHAVIOR_RESULT.IGNORED;
+          }
+        }
+      }
+    };
+    return composerFactory(enhancedNode, el, deps);
+  });
+  
+  // Analog-control has different toggle semantics - keep original implementation
   behaviorRegistry.register('analog-control', behaviors.analogControlBehavior);
+  
+  // Keep other specialized behaviors that need custom dependencies
+  behaviorRegistry.register('checkbox', behaviors.checkboxBehavior);
   behaviorRegistry.register('canvas', behaviors.canvasBehavior);
   behaviorRegistry.register('textarea', behaviors.textareaBehavior);
   behaviorRegistry.register('code-editor', behaviors.codeEditorBehavior);
@@ -623,6 +679,10 @@ async function boot(): Promise<void> {
       initStateBoxEditor(jsonEditor);
       editors.set('stateBox', jsonEditor);
       
+      // Initialize tooltip z-index fixer for CodeMirror tooltips
+      const { initTooltipZIndexFixer } = await import('./ui/editors/tooltip-z-index-fixer.ts');
+      initTooltipZIndexFixer();
+      
       console.log('[Boot] ✓ State JSON editor initialized');
     } else {
       console.error('[Boot] Failed to create JSON editor');
@@ -631,16 +691,15 @@ async function boot(): Promise<void> {
     console.error('[Boot] stateJsonEditor container not found!');
   }
   
-  // Register param-trigger behavior with dependencies
-  const triggerDeps = { uiTree, navManager };
-  behaviorRegistry.register('param-trigger', (n: any, el: HTMLElement, deps: any) =>
-    behaviors.paramTriggerBehavior(n, el, { ...deps, ...triggerDeps }));
+  // Register param-trigger with capability-based behavior (just needs click)
+  behaviorRegistry.register('param-trigger', composerFactory);
   
-  // Register picker-close-button behavior with navManager dependency
+  // Register picker-close-button and menu-item behaviors with navManager dependency
+  // These still need custom activation logic to call navManager.closeOverlay
+  const triggerDeps = { uiTree, navManager };
   behaviorRegistry.register('picker-close-button', (n: any, el: HTMLElement, deps: any) =>
     behaviors.pickerCloseButtonBehavior(n, el, { ...deps, navManager }));
   
-  // Register menu-item behavior with navManager dependency
   behaviorRegistry.register('menu-item', (n: any, el: HTMLElement, deps: any) =>
     behaviors.menuItemBehavior(n, el, { ...deps, navManager, uiTree }));
   

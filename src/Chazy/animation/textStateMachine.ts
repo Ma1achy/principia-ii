@@ -51,6 +51,7 @@ interface AnimationConfig {
   intensity?: number;
   tone?: string;
   themes?: string[];
+  _source?: string;
 }
 
 interface PendingInterrupt {
@@ -98,6 +99,7 @@ export class TextStateMachine {
   currentDisplayLine: string | null;
   _cleanupInterval: ReturnType<typeof setInterval> | null;
   _multiLineLockTimestamp: number | undefined;
+  currentTextSource: string;
   
   constructor(element: HTMLElement, onUpdateCallback: (() => void) | null = null) {
     this.element = element;
@@ -114,6 +116,7 @@ export class TextStateMachine {
     // Enhanced interrupt system
     this.pendingInterrupts = [];
     this.currentLinePriority = 1;
+    this.currentTextSource = 'ambient';
     this.currentEmotion = 'NEUTRAL';
     this.currentIntensity = 0.5;
     this.interruptHistory = [];
@@ -233,7 +236,7 @@ export class TextStateMachine {
   // Enhanced Interrupt API
   // ────────────────────────────────────────────────────────────────────
   
-  canInterrupt(urgency: number = INTERRUPT_URGENCY.ASSERTIVE, priority: number = 2): InterruptCheck {
+  canInterrupt(urgency: number = INTERRUPT_URGENCY.ASSERTIVE, priority: number = 2, incomingSource?: string): InterruptCheck {
     const state = this.currentState;
     const currentPriority = this.currentLinePriority || 1;
     
@@ -281,6 +284,17 @@ export class TextStateMachine {
         strategy: 'none',
         shouldWait: false,
         reason: 'observational_only'
+      };
+    }
+    
+    // Prevent ambient lines from interrupting other ambient lines
+    if (this.currentTextSource === 'ambient' && incomingSource === 'ambient') {
+      console.log('[FSM] Ambient line cannot interrupt another ambient line');
+      return {
+        allowed: false,
+        strategy: 'none',
+        shouldWait: true,
+        reason: 'ambient_self_protection'
       };
     }
     
@@ -596,6 +610,7 @@ export class TextStateMachine {
     
     try {
       this.isWelcomeText = config.isWelcome || false;
+      this.currentTextSource = config._source || 'ambient';
       
       if (this.currentAnimationCancel) {
         this.currentAnimationCancel();

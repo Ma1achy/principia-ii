@@ -328,12 +328,34 @@ export function bindUI(
     scheduleRender("rEsc"); writeHash(); updateStateBox_(); drawHUD();
   });
 
-  function openSettingsPanel()  { $("settingsPanelOverlay")!.classList.add("open"); }
-  function closeSettingsPanel() { $("settingsPanelOverlay")!.classList.remove("open"); }
+  function openSettingsPanel() {
+    // Use KNM to open overlay with stack-based rendering
+    if ((window as any).navManager) {
+      (window as any).navManager.openOverlay('settingsPanelOverlay', 'settingsBtn', 'panel');
+    } else {
+      // Fallback to old method if navManager not available
+      $("settingsPanelOverlay")!.classList.add("open");
+    }
+  }
+  
+  function closeSettingsPanel() {
+    // Use KNM to close overlay with stack-based rendering
+    if ((window as any).navManager) {
+      (window as any).navManager.closeOverlay('settingsPanelOverlay');
+    } else {
+      // Fallback to old method
+      $("settingsPanelOverlay")!.classList.remove("open");
+    }
+  }
+  
   $("settingsBtn")!.addEventListener("click", openSettingsPanel);
   $("settingsPanelClose")!.addEventListener("click", closeSettingsPanel);
   $("settingsPanelOverlay")!.addEventListener("click", (e) => { if (e.target === $("settingsPanelOverlay")) closeSettingsPanel(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("settingsPanelOverlay")!.classList.contains("open")) closeSettingsPanel(); });
+  document.addEventListener("keydown", (e) => { 
+    if (e.key === "Escape" && $("settingsPanelOverlay")!.classList.contains("open")) {
+      closeSettingsPanel();
+    }
+  });
 
   function syncSettingsUI() {
     ($("stgInvertScroll") as HTMLInputElement).checked = navPrefs.invertScroll;
@@ -354,8 +376,26 @@ export function bindUI(
   ($("stgPanSpeed") as HTMLInputElement).addEventListener("input",      (e) => { navPrefs.panSpeed     = +(e.target as HTMLInputElement).value; ($("stgPanSpeedVal") as HTMLInputElement).value  = navPrefs.panSpeed.toFixed(1); });
   ($("stgPanSpeedVal") as HTMLInputElement).addEventListener("change",  (e) => { navPrefs.panSpeed     = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0)); ($("stgPanSpeed") as HTMLInputElement).value  = String(navPrefs.panSpeed);  ($("stgPanSpeedVal") as HTMLInputElement).value  = navPrefs.panSpeed.toFixed(1); });
 
-  function openInfoPanel()  { $("infoPanelOverlay")!.classList.add("open"); }
-  function closeInfoPanel() { $("infoPanelOverlay")!.classList.remove("open"); }
+  function openInfoPanel() {
+    // Use KNM to open overlay with stack-based rendering
+    if ((window as any).navManager) {
+      (window as any).navManager.openOverlay('infoPanelOverlay', 'infoBtn', 'panel');
+    } else {
+      // Fallback to old method if navManager not available
+      $("infoPanelOverlay")!.classList.add("open");
+    }
+  }
+  
+  function closeInfoPanel() {
+    // Use KNM to close overlay with stack-based rendering
+    if ((window as any).navManager) {
+      (window as any).navManager.closeOverlay('infoPanelOverlay');
+    } else {
+      // Fallback to old method
+      $("infoPanelOverlay")!.classList.remove("open");
+    }
+  }
+  
   $("infoBtn")!.addEventListener("click", openInfoPanel);
   $("infoPanelClose")!.addEventListener("click", closeInfoPanel);
   $("infoPanelOverlay")!.addEventListener("click", (e) => { if (e.target === $("infoPanelOverlay")) closeInfoPanel(); });

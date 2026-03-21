@@ -88,10 +88,15 @@ export class DropdownRenderer {
     document.body.appendChild(this.container);
     this.activeDropdownId = dropdownId;
 
-    // Register with keyboard navigation as an overlay
-    // The dropdown is already a grid in the semantic tree, so KNM can navigate it
-    console.log('[DropdownRenderer] Opening overlay in KNM:', dropdownId);
-    this.navManager.openOverlayById(dropdownId, dropdownNode.meta?.triggerId || null);
+    // Use new openOverlay method for stack-based rendering
+    if (this.navManager) {
+      console.log('[DropdownRenderer] Opening overlay via navManager:', dropdownId);
+      this.navManager.openOverlay(dropdownId, dropdownNode.meta?.triggerId || null, 'dropdown');
+    } else {
+      // Fallback: Register with keyboard navigation as an overlay
+      console.log('[DropdownRenderer] Opening overlay (fallback):', dropdownId);
+      this.navManager.openOverlayById(dropdownId, dropdownNode.meta?.triggerId || null);
+    }
   }
 
   /**

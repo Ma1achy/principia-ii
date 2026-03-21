@@ -288,7 +288,7 @@ export class ChazyEventRouter {
       };
     }
     
-    const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority);
+    const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority, 'immediate');
     
     if (!interruptCheck.allowed) {
       if (interruptCheck.shouldWait) {
@@ -467,7 +467,7 @@ export class ChazyEventRouter {
       return;
     }
     
-    const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority);
+    const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority, 'immediate');
     
     if (interruptCheck.allowed) {
       console.log(`[EventRouter] Processing queued polite interrupt: ${eventType}`);
@@ -506,6 +506,26 @@ export class ChazyEventRouter {
         responded: false,
         kind: null,
         reason: 'multi_line_in_progress'
+      };
+    }
+    
+    // ADDITIONAL FIX: Block ambient if any text is currently active and source is ambient
+    const fsmState = this.orchestrator.view?.textStateMachine?.currentState;
+    const currentSource = this.orchestrator.view?.textStateMachine?.currentTextSource;
+    
+    if (!isWelcome && currentSource === 'ambient' && (fsmState === 'TYPING' || fsmState === 'DISPLAY')) {
+      console.warn('[EventRouter] Blocked ambient cycle - ambient text already active');
+      console.warn('[EventRouter] Current state:', {
+        fsmState,
+        currentSource,
+        reason
+      });
+      
+      // Don't reschedule - wait for text_complete event
+      return {
+        responded: false,
+        kind: null,
+        reason: 'ambient_already_active'
       };
     }
     
@@ -665,7 +685,7 @@ export class ChazyEventRouter {
       
       console.log('[EventRouter] Content selected, attempting interrupt...');
       
-      const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority);
+      const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority, 'immediate');
       
       if (interruptCheck.allowed && interruptCheck.strategy !== 'direct') {
         await this.orchestrator.view.textStateMachine._executeClearStrategy(interruptCheck.strategy);
@@ -765,7 +785,7 @@ export class ChazyEventRouter {
       
       console.log('[EventRouter] Button click content selected, attempting ASSERTIVE interrupt...');
       
-      const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority);
+      const interruptCheck = this.orchestrator.view.textStateMachine.canInterrupt(urgency, priority, 'immediate');
       
       if (interruptCheck.allowed && interruptCheck.strategy !== 'direct') {
         await this.orchestrator.view.textStateMachine._executeClearStrategy(interruptCheck.strategy);
@@ -914,8 +934,8 @@ export class ChazyEventRouter {
     const themeFloor = this._getContentTypeIdleFloor(lastThemes);
     const flooredDelay = Math.max(themeFloor, calculatedDelay);
     
-    const IDLE_MIN = 3000;
-    const IDLE_MAX = 12000;
+    const IDLE_MIN = 5000;
+    const IDLE_MAX = 20000;
     const finalDelay = Math.max(IDLE_MIN, Math.min(IDLE_MAX, flooredDelay));
     
     if (dampedMindMult !== 1.0 || lengthMult !== 1.0) {

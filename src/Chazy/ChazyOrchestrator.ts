@@ -155,6 +155,13 @@ export class Chazy {
       return false;
     }
     
+    // Check if current text is ambient - if so, don't allow ambient interrupt
+    const currentSource = this.view?.textStateMachine?.currentTextSource;
+    if (currentSource === 'ambient') {
+      console.log('[Chazy] Interrupt blocked - ambient cannot interrupt ambient');
+      return false;
+    }
+    
     if (this.view.interrupt()) {
       this.lastInterruptTime = now;
       this.selectAndShowAmbient();
@@ -432,7 +439,7 @@ export class Chazy {
       
       const lineTone = isObject ? (lineItem.tone || config.tone) : config.tone;
       const durationMult = isObject ? (lineItem.duration_mult || 1.0) : 1.0;
-      const isLastLine = isMultiLineSequence && lineIndex === lines.length - 1;
+      const isLastLine = lineIndex === lines.length - 1;
 
       // Calculate idle time based on multi-line context
       let nextIdleTime: number;
@@ -585,6 +592,13 @@ export class Chazy {
   }
   
   _tryInterrupt(): void {
+    // Check if current text is ambient - if so, don't allow ambient interrupt
+    const currentSource = this.view?.textStateMachine?.currentTextSource;
+    if (currentSource === 'ambient') {
+      console.log('[Chazy] Interrupt blocked - ambient cannot interrupt ambient');
+      return;
+    }
+    
     if (this.view.interrupt()) {
       console.log('[Chazy] Interrupted - selecting new text');
       this.selectAndShowAmbient();

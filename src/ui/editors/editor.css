@@ -40,6 +40,8 @@
   white-space: normal !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
+  z-index: 999999 !important;
+  position: fixed !important;
 }
 
 /* Remove borders/backgrounds from nested elements */

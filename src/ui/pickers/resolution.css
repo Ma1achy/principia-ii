@@ -10,7 +10,7 @@
 #resPickerOverlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: var(--z-overlay-current, 2000);
   display: none;
   background: transparent;
 }
@@ -30,7 +30,7 @@
   box-shadow: -8px 0 32px rgba(0,0,0,0.28);
   display: flex;
   flex-direction: column;
-  z-index: 201;
+  z-index: var(--z-overlay-current, 2000);
   overflow: hidden;
 }
 

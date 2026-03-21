@@ -704,7 +704,13 @@ function renderDialog(rootElement: HTMLElement, options: NormalizedOptions, init
         }
       });
       
-      (window as any).uiTree._events.emit('overlay:registered', { id: dialogId, triggerId });
+      // Use new openOverlay method for stack-based rendering
+      if ((window as any).navManager) {
+        (window as any).navManager.openOverlay(dialogId, triggerId, 'dialog');
+      } else {
+        // Fallback to old event-based system
+        (window as any).uiTree._events.emit('overlay:registered', { id: dialogId, triggerId });
+      }
       
       DialogManager.overlayRegistered = true;
       DialogManager.dialogNodeId = dialogId;
@@ -987,21 +993,18 @@ async function finalizeClose(result: DialogResult): Promise<void> {
   DialogManager.handlers = [];
   
   const dialogId = DialogManager.dialogNodeId;
+  
+  // Use new closeOverlay method (handles stack and rendering automatically)
   if (DialogManager.overlayRegistered && (window as any).navManager && dialogId) {
-    const isAlreadyClosing = (window as any).navManager.currentContext._pendingClose;
-    
-    if (!isAlreadyClosing) {
-      console.log('[Dialog] Closing overlay in navigation manager:', dialogId);
-      try {
-        (window as any).navManager.closeOverlay(dialogId);
-      } catch (err) {
-        console.warn('[Dialog] Failed to close overlay in nav manager:', err);
-      }
-    } else {
-      console.log('[Dialog] Overlay close already pending from nav manager');
+    console.log('[Dialog] Closing overlay in navigation manager:', dialogId);
+    try {
+      (window as any).navManager.closeOverlay(dialogId);
+    } catch (err) {
+      console.warn('[Dialog] Failed to close overlay in nav manager:', err);
     }
   }
   
+  // Remove from tree
   if (DialogManager.overlayRegistered && (window as any).uiTree && dialogId) {
     try {
       console.log('[Dialog] Removing overlay from tree:', dialogId);
@@ -1013,17 +1016,9 @@ async function finalizeClose(result: DialogResult): Promise<void> {
     DialogManager.dialogNodeId = null;
   }
   
+  // Fallback: remove 'open' class (stack renderer should have handled this)
   if (rootElement) {
     rootElement.classList.remove('open');
-  }
-  
-  if ((window as any).navManager && dialogId) {
-    console.log('[Dialog] Completing overlay close in navigation manager');
-    try {
-      (window as any).navManager.completeOverlayClose(dialogId);
-    } catch (err) {
-      console.warn('[Dialog] Failed to complete overlay close:', err);
-    }
   }
   
   if (options) {

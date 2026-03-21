@@ -5,28 +5,15 @@
 
 import { KeyRepeatManager } from './KeyRepeatManager.js';
 import type { RepeatProfile } from './KeyRepeatManager.js';
+import { NavigationStack, type NavigationFrame, type OverlayKind } from './NavigationStack.js';
+import { StackRenderer } from './StackRenderer.js';
+import { ZIndex } from '../ui/core/z-index.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
-
-interface GridScope {
-  gridId: string;
-  cellId: string;
-  coords: [number, number];
-}
-
-interface NavigationContext {
-  scopeStack: GridScope[];
-  parentContext: NavigationContext | null;
-  overlayId: string | null;
-  triggerId: string | null;
-  _pendingClose?: boolean;
-  _restoreTriggerId?: string | null;
-}
 
 interface SessionState {
   active: boolean;
   currentFocusId: string | null;
-  interactingNodeId: string | null;
   justActivated?: boolean;
 }
 
@@ -56,7 +43,8 @@ export class KeyboardNavigationManager {
   behaviorDeps: Record<string, any>;
   behaviorCache: Map<string, any>;
   repeatManager: KeyRepeatManager;
-  currentContext: NavigationContext;
+  navStack: NavigationStack;
+  stackRenderer: StackRenderer;
   gridMemory: Map<string, [number, number]>;
   sessionState: SessionState;
   _boundKeyHandler: ((e: KeyboardEvent) => void) | null;
@@ -75,26 +63,55 @@ export class KeyboardNavigationManager {
     this.behaviorCache = new Map();
     this.repeatManager = new KeyRepeatManager();
     
-    this.currentContext = {
-      scopeStack: [],
-      parentContext: null,
-      overlayId: null,
-      triggerId: null
-    };
+    // Initialize stack with automatic rendering
+    this.stackRenderer = new StackRenderer({
+      uiTree: this.uiTree,
+      visualizer: this.visualizer
+    });
+    
+    // If visualizer exists, give it access to stack depth
+    if (this.visualizer && typeof this.visualizer === 'object') {
+      (this.visualizer as any).getStackDepth = () => this.navStack.depth();
+    }
+    
+    this.navStack = new NavigationStack((frame) => {
+      // Auto-render on stack changes
+      this.stackRenderer.render(frame);
+      
+      // Update global z-index system with new stack depth
+      ZIndex.setStackDepth(this.navStack.depth());
+      ZIndex.updateCSSVariables();
+    });
     
     this.gridMemory = new Map();
     
     this.sessionState = {
       active: false,
       currentFocusId: null,
-      interactingNodeId: null
+      justActivated: false
     };
     
     this._boundKeyHandler = null;
     this._boundKeyUpHandler = null;
     this._boundMouseHandler = null;
     
-    console.log('[KNM] Initialized with context-isolated navigation');
+    console.log('[KNM] Initialized with stack-based navigation');
+  }
+  
+  // ── Computed Properties ────────────────────────────────────────────────────
+  
+  get currentFrame(): NavigationFrame | null {
+    return this.navStack.peek();
+  }
+  
+  get isInteracting(): boolean {
+    const frame = this.currentFrame;
+    return frame?.type === 'interaction';
+  }
+  
+  get interactingNodeId(): string | null {
+    const frame = this.currentFrame;
+    return frame?.type === 'interaction' ? (frame.interactingNodeId || null) : null;
   }
   
   // ── Initialization ─────────────────────────────────────────────────────────
@@ -162,8 +179,9 @@ export class KeyboardNavigationManager {
     
     // If interacting with a text input element (textarea, value-editor, code-editor), 
     // let ALL keys through except Escape (and Enter for value-editor)
-    if (this.sessionState.interactingNodeId) {
-      const interactingNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    const interactingId = this.interactingNodeId;
+    if (interactingId) {
+      const interactingNode = this.uiTree.getNode(interactingId);
       if (interactingNode && (interactingNode.kind === 'textarea' || interactingNode.kind === 'value-editor' || interactingNode.kind === 'code-editor')) {
         const isTextarea = interactingNode.kind === 'textarea';
         const isValueEditor = interactingNode.kind === 'value-editor';
@@ -257,7 +275,8 @@ export class KeyboardNavigationManager {
   
   private _handleIncrement(event: KeyboardEvent, navEvent: 'increment' | 'decrement'): void {
     if (event.repeat) return;
-    if (!this.sessionState.interactingNodeId) return;
+    const interactingId = this.interactingNodeId;
+    if (!interactingId) return;
     
     event.preventDefault();
     
@@ -270,9 +289,10 @@ export class KeyboardNavigationManager {
   }
   
   private _executeIncrementAction(navEvent: 'increment' | 'decrement'): void {
-    if (!this.sessionState.interactingNodeId) return;
+    const interactingId = this.interactingNodeId;
+    if (!interactingId) return;
     
-    const currentNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    const currentNode = this.uiTree.getNode(interactingId);
     if (currentNode) {
       const behavior = this._getBehavior(currentNode);
       
@@ -332,16 +352,12 @@ export class KeyboardNavigationManager {
     
     console.log('[KNM] === NAVIGATION:', navEvent, '===');
     console.log('[KNM] Current focus:', this.sessionState.currentFocusId);
-    console.log('[KNM] Scope stack depth:', this.currentContext.scopeStack.length);
-    if (this.currentContext.scopeStack.length > 0) {
-      for (let i = 0; i < this.currentContext.scopeStack.length; i++) {
-        const scope = this.currentContext.scopeStack[i];
-        console.log('[KNM]   Scope [' + i + ']:', scope.gridId, 'coords:', scope.coords, 'cellId:', scope.cellId);
-      }
-    }
+    console.log('[KNM] Stack depth:', this.navStack.depth());
+    console.log(this.navStack.toDebugString());
     
-    if (this.sessionState.interactingNodeId) {
-      const currentNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    const interactingId = this.interactingNodeId;
+    if (interactingId) {
+      const currentNode = this.uiTree.getNode(interactingId);
       if (currentNode) {
         const behavior = this._getBehavior(currentNode);
         if (behavior?.onArrowKey) {
@@ -426,6 +442,7 @@ export class KeyboardNavigationManager {
     console.log('[KNM] Behavior found:', !!behavior, 'has onActivate:', !!behavior?.onActivate);
     
     if (behavior?.onActivate) {
+      const wasInteracting = behavior.isInteracting && behavior.isInteracting();
       const result = behavior.onActivate();
       console.log('[KNM] onActivate returned:', result);
       
@@ -435,9 +452,11 @@ export class KeyboardNavigationManager {
         const nowInteracting = behavior.isInteracting && behavior.isInteracting();
         console.log('[KNM] Behavior isInteracting:', nowInteracting);
         
-        if (nowInteracting) {
+        // Only enter interaction mode if we weren't already interacting
+        if (nowInteracting && !wasInteracting) {
           this._enterInteractionMode(currentNode.id);
-        } else if (this.sessionState.interactingNodeId === currentNode.id) {
+        } else if (!nowInteracting && wasInteracting) {
+          // Exited interaction mode
           this._exitInteractionMode();
         }
         
@@ -483,12 +502,13 @@ export class KeyboardNavigationManager {
       return;
     }
     
-    if (this.isInsideOverlay()) {
-      const overlayId = this.currentContext.overlayId;
-      const overlayNode = this.uiTree.getNode(overlayId);
+    // Check if we're in an overlay
+    const overlayFrame = this.navStack.getCurrentOverlay();
+    if (overlayFrame && overlayFrame.overlayId) {
+      const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
       
       if (overlayNode?.closeOnEscape === false) {
-        console.log('[KNM] Escape pressed - overlay does not allow escape:', overlayId);
+        console.log('[KNM] Escape pressed - overlay does not allow escape:', overlayFrame.overlayId);
         return;
       }
       
@@ -508,16 +528,22 @@ export class KeyboardNavigationManager {
         }
       }
       
-      console.log('[KNM] Escape stage 2 - closing overlay:', overlayId);
-      this.closeOverlay(overlayId!);
+      console.log('[KNM] Escape stage 2 - closing overlay:', overlayFrame.overlayId);
+      this.closeOverlay(overlayFrame.overlayId);
       return;
     }
     
-    if (this.sessionState.interactingNodeId) {
-      const currentNode = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    // Check if we're in interaction mode
+    const interactingId = this.interactingNodeId;
+    if (interactingId) {
+      const currentNode = this.uiTree.getNode(interactingId);
       if (currentNode) {
         const behavior = this._getBehavior(currentNode);
         if (behavior?.onEscape) {
+          // Behavior's onEscape is auto-generated from capabilities
+          // Interactive controls use 'auto' escape policy (two-level: exit interaction, then scope)
+          // Non-interactive controls use 'bubble' policy (pass through to navigation)
+          // Modal controls can use 'modal' policy (prevent escape)
           const result = behavior.onEscape();
           if (result === 'handled') {
             console.log('[KNM] Escape handled by behavior');
@@ -533,6 +559,7 @@ export class KeyboardNavigationManager {
       return;
     }
     
+    // Otherwise, exit current scope
     const parentCellId = this.exitScope();
     if (parentCellId) {
       this._setFocus(parentCellId);
@@ -544,11 +571,12 @@ export class KeyboardNavigationManager {
   }
   
   private _getRepeatProfile(): string {
-    if (!this.sessionState.interactingNodeId) {
+    const interactingId = this.interactingNodeId;
+    if (!interactingId) {
       return 'navigation';
     }
     
-    const node = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    const node = this.uiTree.getNode(interactingId);
     if (!node) {
       return 'navigation';
     }
@@ -597,8 +625,8 @@ export class KeyboardNavigationManager {
     const target = event.target as HTMLElement;
     
     console.log('[KNM] Mouse click detected on:', target.tagName, target.className, target.id);
-    console.log('[KNM] Current state - active:', this.sessionState.active, 'focus:', this.sessionState.currentFocusId, 'interacting:', this.sessionState.interactingNodeId);
-    console.log('[KNM] Scope stack length:', this.currentContext.scopeStack.length);
+    console.log('[KNM] Current state - active:', this.sessionState.active, 'focus:', this.sessionState.currentFocusId, 'interacting:', this.interactingNodeId);
+    console.log('[KNM] Stack depth:', this.navStack.depth());
     
     // Check if clicking on an interactive element (value-editor or code-editor)
     const isValueEditor = target.classList.contains('slider-num');
@@ -652,21 +680,21 @@ export class KeyboardNavigationManager {
         console.log('[KNM] Keyboard nav already active');
       }
       
-      // Ensure scope stack is initialized
-      console.log('[KNM] Checking scope stack...');
-      if (this.currentContext.scopeStack.length === 0) {
-        console.log('[KNM] Scope stack empty, entering root');
+      // Ensure stack is initialized
+      console.log('[KNM] Checking stack...');
+      if (this.navStack.depth() === 0) {
+        console.log('[KNM] Stack empty, entering root');
         const rootNode = this.uiTree.getRoot();
         console.log('[KNM] Root node:', rootNode?.id, rootNode?.kind);
         if (rootNode && rootNode.kind === 'grid') {
           const cellId = this.enterGrid(rootNode.id, 'first');
           console.log('[KNM] ✓ Entered root grid, cellId:', cellId);
-          console.log('[KNM] Scope stack after root entry:', this.currentContext.scopeStack.length);
+          console.log('[KNM] Stack depth after root entry:', this.navStack.depth());
         }
       } else {
-        console.log('[KNM] Scope stack already initialized, length:', this.currentContext.scopeStack.length);
-        const currentScope = this.getCurrentScope();
-        console.log('[KNM] Current scope:', currentScope?.gridId, 'coords:', currentScope?.coords);
+        console.log('[KNM] Stack already initialized, depth:', this.navStack.depth());
+        const currentFrame = this.currentFrame;
+        console.log('[KNM] Current frame:', currentFrame?.gridId, 'coords:', currentFrame?.coords);
       }
       
       // Navigate to the element
@@ -674,11 +702,8 @@ export class KeyboardNavigationManager {
       this._setFocus(nodeId);
       console.log('[KNM] ✓ _setFocus completed');
       console.log('[KNM] State after _setFocus - focus:', this.sessionState.currentFocusId);
-      console.log('[KNM] Scope stack after _setFocus:', this.currentContext.scopeStack.length);
-      if (this.currentContext.scopeStack.length > 0) {
-        const scope = this.getCurrentScope();
-        console.log('[KNM] Current scope:', scope?.gridId, 'coords:', scope?.coords, 'cellId:', scope?.cellId);
-      }
+      console.log('[KNM] Stack depth after _setFocus:', this.navStack.depth());
+      console.log(this.navStack.toDebugString());
       
       // Enter interaction mode
       const node = this.uiTree.getNode(nodeId);
@@ -698,14 +723,14 @@ export class KeyboardNavigationManager {
               console.log('[KNM] Calling _enterInteractionMode');
               this._enterInteractionMode(nodeId);
               console.log('[KNM] ✓ Entered interaction mode');
-              console.log('[KNM] Final state - interacting:', this.sessionState.interactingNodeId);
+              console.log('[KNM] Final state - interacting:', this.interactingNodeId);
             }
           }
         }
       }
       
       console.log('[KNM] === INTERACTIVE ELEMENT HANDLING COMPLETE ===');
-      console.log('[KNM] Final state - active:', this.sessionState.active, 'focus:', this.sessionState.currentFocusId, 'interacting:', this.sessionState.interactingNodeId);
+      console.log('[KNM] Final state - active:', this.sessionState.active, 'focus:', this.sessionState.currentFocusId, 'interacting:', this.interactingNodeId);
       
       return;
     }
@@ -716,7 +741,7 @@ export class KeyboardNavigationManager {
       
       this.repeatManager.stopAll();
       
-      if (this.sessionState.interactingNodeId) {
+      if (this.interactingNodeId) {
         this._exitInteractionMode();
       }
       
@@ -733,22 +758,20 @@ export class KeyboardNavigationManager {
   // ── Grid Navigation ────────────────────────────────────────────────────────
   
   handleArrowKey(direction: Direction): string | null {
-    if (this.currentContext.scopeStack.length === 0) {
-      console.warn('[KNM] No active scope');
+    const currentFrame = this.currentFrame;
+    if (!currentFrame) {
+      console.warn('[KNM] No active frame');
       return null;
     }
     
-    const scope = this.getCurrentScope();
-    if (!scope) return null;
-    
-    const grid = this.uiTree.getNode(scope.gridId);
+    const grid = this.uiTree.getNode(currentFrame.gridId);
     
     if (!grid || grid.kind !== 'grid') {
-      console.error('[KNM] Current scope is not a grid:', scope.gridId);
+      console.error('[KNM] Current frame is not a grid:', currentFrame.gridId);
       return null;
     }
     
-    let [row, col] = scope.coords;
+    let [row, col] = currentFrame.coords;
     console.log('[KNM] Arrow:', direction, 'from [', row, col, '] in', grid.id);
     
     let targetRow = row, targetCol = col;
@@ -814,10 +837,11 @@ export class KeyboardNavigationManager {
       return null;
     }
     
-    const scope = this.getCurrentScope();
-    if (scope && scope.gridId === gridId) {
-      scope.coords = [row, col];
-      scope.cellId = cell.id;
+    // Update the current frame's coordinates
+    const currentFrame = this.currentFrame;
+    if (currentFrame && currentFrame.gridId === gridId) {
+      currentFrame.coords = [row, col];
+      currentFrame.cellId = cell.id;
       this.gridMemory.set(gridId, [row, col]);
       
       console.log('[KNM] Moved to', cell.id, 'at [', row, col, ']');
@@ -910,38 +934,44 @@ export class KeyboardNavigationManager {
     const cell = this.uiTree.getGridCell(gridId, row, col);
     console.log('[KNM] Entering cell:', cell?.id, 'at [', row, col, ']');
     
-    this.currentContext.scopeStack.push({
+    // Push grid frame onto stack
+    this.navStack.push({
+      type: 'grid',
       gridId,
       cellId: cell.id,
-      coords: [row, col]
+      coords: [row, col],
+      readonly: false
     });
     
     this.gridMemory.set(gridId, [row, col]);
     
-    console.log('[KNM] Entered', gridId, 'at', cell.id, '- depth:', this.currentContext.scopeStack.length);
+    console.log('[KNM] Entered', gridId, 'at', cell.id, '- depth:', this.navStack.depth());
     return cell.id;
   }
   
   exitScope(): string | null {
-    if (this.currentContext.scopeStack.length <= 1) {
+    if (this.navStack.depth() <= 1) {
       console.log('[KNM] Cannot exit root');
       return null;
     }
     
-    const currentScope = this.getCurrentScope();
-    if (!currentScope) return null;
+    const currentFrame = this.currentFrame;
+    if (!currentFrame) return null;
     
-    const currentGrid = this.uiTree.getNode(currentScope.gridId);
+    const currentGrid = this.uiTree.getNode(currentFrame.gridId);
     
-    if (currentGrid?.isOverlay) {
+    // Don't allow exiting from overlays via exitScope
+    if (currentFrame.type === 'overlay' || currentGrid?.isOverlay) {
       console.log('[KNM] Cannot exit overlay via exitScope - use closeOverlay() or Escape');
       return null;
     }
     
-    const exited = this.currentContext.scopeStack.pop()!;
+    const exited = this.navStack.pop();
+    if (!exited) return null;
+    
     this.gridMemory.set(exited.gridId, exited.coords);
     
-    const parent = this.getCurrentScope();
+    const parent = this.currentFrame;
     if (!parent) return null;
     
     console.log('[KNM] Exited', exited.gridId, '-> returned to', parent.cellId);
@@ -950,41 +980,45 @@ export class KeyboardNavigationManager {
   }
 
   exitScopeAndFocus(targetId: string): string | null {
-    while (this.currentContext.scopeStack.length > 1) {
-      const scope = this.getCurrentScope();
-      if (!scope) break;
+    while (this.navStack.depth() > 1) {
+      const frame = this.currentFrame;
+      if (!frame) break;
       
-      // If target is the current grid itself, pop scope first before looking for it
-      if (scope.gridId === targetId) {
-        console.log('[KNM] Escape target is current grid, popping scope first');
-        const exited = this.currentContext.scopeStack.pop()!;
-        this.gridMemory.set(exited.gridId, exited.coords);
-        continue; // Continue to look for targetId in parent scope
+      // If target is the current grid itself, pop frame first before looking for it
+      if (frame.gridId === targetId) {
+        console.log('[KNM] Escape target is current grid, popping frame first');
+        const exited = this.navStack.pop();
+        if (exited) {
+          this.gridMemory.set(exited.gridId, exited.coords);
+        }
+        continue; // Continue to look for targetId in parent frame
       }
       
-      const coords = this.uiTree.getCellCoords(scope.gridId, targetId);
+      const coords = this.uiTree.getCellCoords(frame.gridId, targetId);
       
       if (coords) {
-        return this.moveToCellInScope(scope.gridId, coords[0], coords[1]);
+        return this.moveToCellInScope(frame.gridId, coords[0], coords[1]);
       }
       
-      const currentGrid = this.uiTree.getNode(scope.gridId);
+      const currentGrid = this.uiTree.getNode(frame.gridId);
       if (currentGrid?.isOverlay) {
         console.log('[KNM] Cannot exit overlay to reach escape target');
         return null;
       }
       
-      const exited = this.currentContext.scopeStack.pop()!;
-      this.gridMemory.set(exited.gridId, exited.coords);
+      const exited = this.navStack.pop();
+      if (exited) {
+        this.gridMemory.set(exited.gridId, exited.coords);
+      }
     }
     
-    const rootScope = this.getCurrentScope();
-    if (!rootScope) return null;
+    const rootFrame = this.currentFrame;
+    if (!rootFrame) return null;
     
-    const coords = this.uiTree.getCellCoords(rootScope.gridId, targetId);
+    const coords = this.uiTree.getCellCoords(rootFrame.gridId, targetId);
     
     if (coords) {
-      return this.moveToCellInScope(rootScope.gridId, coords[0], coords[1]);
+      return this.moveToCellInScope(rootFrame.gridId, coords[0], coords[1]);
     }
     
     const targetNode = this.uiTree.getNode(targetId);
@@ -994,12 +1028,6 @@ export class KeyboardNavigationManager {
     
     console.warn('[KNM] Could not reach target:', targetId);
     return null;
-  }
-
-  getCurrentScope(): GridScope | null {
-    return this.currentContext.scopeStack.length > 0 
-      ? this.currentContext.scopeStack[this.currentContext.scopeStack.length - 1] 
-      : null;
   }
   
   validateCurrentFocus(preferredTargetId: string | null = null): void {
@@ -1014,26 +1042,27 @@ export class KeyboardNavigationManager {
         if (targetNode && !this.uiTree.isNodeHidden(preferredTargetId)) {
           console.log('[KNM] Returning focus to trigger:', preferredTargetId);
           
-          while (this.currentContext.scopeStack.length > 1) {
-            const scope = this.getCurrentScope();
-            if (!scope) break;
+          // Try to find target in current stack
+          while (this.navStack.depth() > 1) {
+            const frame = this.currentFrame;
+            if (!frame) break;
             
-            const coords = this.uiTree.getCellCoords(scope.gridId, preferredTargetId);
+            const coords = this.uiTree.getCellCoords(frame.gridId, preferredTargetId);
             
             if (coords) {
-              this.moveToCellInScope(scope.gridId, coords[0], coords[1]);
+              this.moveToCellInScope(frame.gridId, coords[0], coords[1]);
               this._setFocus(preferredTargetId);
               return;
             }
             
-            this.currentContext.scopeStack.pop();
+            this.navStack.pop();
           }
           
-          const rootScope = this.getCurrentScope();
-          if (rootScope) {
-            const rootCoords = this.uiTree.getCellCoords(rootScope.gridId, preferredTargetId);
+          const rootFrame = this.currentFrame;
+          if (rootFrame) {
+            const rootCoords = this.uiTree.getCellCoords(rootFrame.gridId, preferredTargetId);
             if (rootCoords) {
-              this.moveToCellInScope(rootScope.gridId, rootCoords[0], rootCoords[1]);
+              this.moveToCellInScope(rootFrame.gridId, rootCoords[0], rootCoords[1]);
               this._setFocus(preferredTargetId);
               return;
             }
@@ -1041,24 +1070,25 @@ export class KeyboardNavigationManager {
         }
       }
       
-      while (this.currentContext.scopeStack.length > 1) {
-        const scope = this.getCurrentScope();
-        if (!scope) break;
+      // Find any visible cell in current frame
+      while (this.navStack.depth() > 1) {
+        const frame = this.currentFrame;
+        if (!frame) break;
         
-        const visibleCells = this.uiTree.getVisibleCells(scope.gridId);
+        const visibleCells = this.uiTree.getVisibleCells(frame.gridId);
         if (visibleCells.length > 0) {
           this._setFocus(visibleCells[0].cellId);
           console.log('[KNM] Recovered focus to:', visibleCells[0].cellId);
           return;
         }
         
-        console.log('[KNM] No visible cells in', scope.gridId, 'exiting...');
-        this.currentContext.scopeStack.pop();
+        console.log('[KNM] No visible cells in', frame.gridId, 'exiting...');
+        this.navStack.pop();
       }
       
-      const rootScope = this.getCurrentScope();
-      if (rootScope) {
-        const cellId = this.enterGrid(rootScope.gridId, 'remembered');
+      const rootFrame = this.currentFrame;
+      if (rootFrame) {
+        const cellId = this.enterGrid(rootFrame.gridId, 'remembered');
         if (cellId) {
           this._setFocus(cellId);
           console.log('[KNM] Recovered focus to root:', cellId);
@@ -1070,13 +1100,14 @@ export class KeyboardNavigationManager {
   // ── Overlay Management ─────────────────────────────────────────────────────
   
   isInsideOverlay(): boolean {
-    return this.currentContext.overlayId !== null;
+    return this.navStack.isInsideOverlay();
   }
   
   private _findPrimaryButton(): string | null {
-    if (!this.currentContext.overlayId) return null;
+    const overlayFrame = this.navStack.getCurrentOverlay();
+    if (!overlayFrame?.overlayId) return null;
     
-    const overlayNode = this.uiTree.getNode(this.currentContext.overlayId);
+    const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
     if (!overlayNode) return null;
     
     const findPrimary = (nodeId: string): string | null => {
@@ -1097,13 +1128,14 @@ export class KeyboardNavigationManager {
       return null;
     };
     
-    return findPrimary(this.currentContext.overlayId);
+    return findPrimary(overlayFrame.overlayId);
   }
 
   private _findCancelButton(): string | null {
-    if (!this.currentContext.overlayId) return null;
+    const overlayFrame = this.navStack.getCurrentOverlay();
+    if (!overlayFrame?.overlayId) return null;
     
-    const overlayNode = this.uiTree.getNode(this.currentContext.overlayId);
+    const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
     if (!overlayNode) return null;
     
     const findCancel = (nodeId: string): string | null => {
@@ -1129,108 +1161,152 @@ export class KeyboardNavigationManager {
       return null;
     };
     
-    return findCancel(this.currentContext.overlayId);
+    return findCancel(overlayFrame.overlayId);
   }
   
-  openOverlayById(overlayId: string, triggerId: string | null = null): void {
-    console.log('[KNM] Opening overlay:', overlayId, 'trigger:', triggerId);
+  /**
+   * Open an overlay (dialog, panel, dropdown, picker)
+   */
+  openOverlay(overlayId: string, triggerId: string | null = null, kind?: OverlayKind): void {
+    console.log('[KNM] Opening overlay:', overlayId, 'trigger:', triggerId, 'kind:', kind);
     
     const wasActive = this.sessionState.active;
     
-    const newContext: NavigationContext = {
-      scopeStack: [],
-      parentContext: this.currentContext,
-      overlayId: overlayId,
-      triggerId: triggerId
-    };
-    
-    this.currentContext = newContext;
-    
-    const cellId = this.enterGrid(overlayId, 'explicit');
-    if (cellId) {
-      this._setFocus(cellId);
-      
-      if (wasActive) {
-        console.log('[KNM] Overlay opened while nav active - maintaining active state');
-        this.sessionState.active = true;
-        this.sessionState.justActivated = false;
-        document.body.classList.add('nav-active');
-        
-        const node = this.uiTree.getNode(cellId);
-        if (node && this.visualizer) {
-          const element = this.uiTree.getElement(cellId);
-          if (element) {
-            const isEnterable = node.focusMode === 'entry-node' || node.kind === 'grid';
-            const isInteracting = this.sessionState.interactingNodeId === cellId;
-            
-            this.visualizer.render({
-              element,
-              isEnterable,
-              isInteracting
-            });
-          }
-        }
-      }
+    // Enter the overlay grid and push as overlay frame
+    const grid = this.uiTree.getNode(overlayId);
+    if (!grid || grid.kind !== 'grid') {
+      console.error('[KNM] Overlay is not a grid:', overlayId);
+      return;
     }
+    
+    // Determine entry coordinates
+    const [row, col] = this._resolveEntryCoords(overlayId, 'explicit');
+    const cell = this.uiTree.getGridCell(overlayId, row, col);
+    if (!cell) {
+      console.error('[KNM] No cell found in overlay:', overlayId);
+      return;
+    }
+    
+    // Push overlay frame onto stack
+    this.navStack.push({
+      type: 'overlay',
+      gridId: overlayId,
+      cellId: cell.id,
+      coords: [row, col],
+      overlayId,
+      triggerId,
+      overlayKind: kind,
+      readonly: true  // Can only close via closeOverlay()
+    });
+    
+    this.gridMemory.set(overlayId, [row, col]);
+    
+    // Set focus
+    this._setFocus(cell.id);
+    
+    // Maintain active state if was active
+    if (wasActive) {
+      console.log('[KNM] Overlay opened while nav active - maintaining active state');
+      this.sessionState.active = true;
+      this.sessionState.justActivated = false;
+      document.body.classList.add('nav-active');
+    }
+  }
+  
+  /**
+   * Backward compatibility - same as openOverlay
+   */
+  openOverlayById(overlayId: string, triggerId: string | null = null): void {
+    this.openOverlay(overlayId, triggerId);
   }
 
   closeOverlay(overlayId: string): void {
     console.log('[KNM] Closing overlay:', overlayId);
     
-    if (this.currentContext.overlayId !== overlayId) {
-      console.warn('[KNM] Attempted to close overlay that is not current:', overlayId);
+    // Find the overlay frame in the stack
+    const overlayFrameIndex = this.navStack.findFrameIndex(
+      f => f.type === 'overlay' && f.overlayId === overlayId
+    );
+    
+    if (overlayFrameIndex === -1) {
+      console.warn('[KNM] Attempted to close overlay not in stack:', overlayId);
       return;
     }
     
-    if (!this.currentContext.parentContext) {
-      console.warn('[KNM] Cannot close root context');
-      return;
-    }
-    
-    if (this.currentContext._pendingClose) {
-      console.log('[KNM] Overlay close already pending, ignoring duplicate call');
-      return;
-    }
-    
-    const triggerId = this.currentContext.triggerId;
-    
+    // Emit before-close event
     if (this.uiTree?._events) {
       console.log('[KNM] Emitting overlay:before-close event for:', overlayId);
       this.uiTree._events.emit('overlay:before-close', { 
         id: overlayId, 
-        triggerId: triggerId 
+        triggerId: this.navStack.peekAt(overlayFrameIndex)?.triggerId || null
       });
     }
     
-    this.currentContext._pendingClose = true;
-    this.currentContext._restoreTriggerId = triggerId;
+    // Pop all frames above and including the overlay
+    const poppedFrames: NavigationFrame[] = [];
+    while (this.navStack.depth() > overlayFrameIndex) {
+      const frame = this.navStack.pop();
+      if (frame) {
+        poppedFrames.push(frame);
+        // Hide overlay when we pop its frame
+        if (frame.overlayId) {
+          this.stackRenderer.hideOverlay(frame.overlayId);
+        }
+      }
+    }
+    
+    // Find the trigger or parent frame to restore focus to
+    const overlayFrame = poppedFrames.find(f => f.overlayId === overlayId);
+    const restoreId = overlayFrame?.triggerId || this.currentFrame?.cellId;
+    
+    if (restoreId) {
+      this._setFocus(restoreId);
+    }
+    
+    console.log('[KNM] Closed overlay:', overlayId, '- restored focus to:', restoreId);
   }
 
   completeOverlayClose(overlayId: string): void {
-    console.log('[KNM] Completing overlay close:', overlayId);
-    
-    if (this.currentContext.overlayId !== overlayId) {
-      console.warn('[KNM] Cannot complete close - not current overlay:', overlayId);
-      return;
+    console.log('[KNM] completeOverlayClose called for:', overlayId);
+    // This is now a no-op since closing is handled immediately in closeOverlay()
+    // Kept for backward compatibility
+  }
+  
+  /**
+   * Helper to resolve entry coordinates for a grid
+   */
+  private _resolveEntryCoords(gridId: string, policy: string): [number, number] {
+    const grid = this.uiTree.getNode(gridId);
+    if (!grid || grid.kind !== 'grid') {
+      return [0, 0];
     }
     
-    if (!this.currentContext.parentContext) {
-      console.warn('[KNM] Cannot complete close - no parent context');
-      return;
+    if (policy === 'remembered' && this.gridMemory.has(gridId)) {
+      return this.gridMemory.get(gridId)!;
     }
     
-    const triggerId = this.currentContext._restoreTriggerId;
-    
-    this.currentContext = this.currentContext.parentContext;
-    
-    if (triggerId) {
-      this._setFocus(triggerId);
-    } else {
-      const scope = this.getCurrentScope();
-      if (scope) {
-        this._setFocus(scope.cellId);
+    if (policy === 'primary') {
+      const primaryChild = grid.children?.find((childId: string) => {
+        const child = this.uiTree.getNode(childId);
+        return child?.primary === true;
+      });
+      
+      if (primaryChild) {
+        const coords = this.uiTree.getCellCoords(gridId, primaryChild);
+        if (coords) {
+          return coords;
+        }
       }
     }
+    
+    if (grid.entryCell !== undefined) {
+      const row = Math.floor(grid.entryCell / grid.cols);
+      const col = grid.entryCell % grid.cols;
+      return [row, col];
+    }
+    
+    const firstVisible = this.uiTree.getFirstVisibleCell(gridId);
+    return firstVisible || [0, 0];
   }
   
   // ── Focus Management ───────────────────────────────────────────────────────
@@ -1262,18 +1338,18 @@ export class KeyboardNavigationManager {
     if (node.parentId && (node.focusMode === 'leaf' || node.kind !== 'grid')) {
       const parentNode = this.uiTree.getNode(node.parentId);
       if (parentNode && parentNode.kind === 'grid') {
-        const currentScope = this.getCurrentScope();
-        if (!currentScope || currentScope.gridId !== node.parentId) {
-          console.log('[KNM] Not in parent grid scope, entering:', node.parentId);
+        const currentFrame = this.currentFrame;
+        if (!currentFrame || currentFrame.gridId !== node.parentId) {
+          console.log('[KNM] Not in parent grid frame, entering:', node.parentId);
           // Get the coordinates of this cell in the parent grid
           const coords = this.uiTree.getCellCoords(node.parentId, nodeId);
           if (coords) {
             this.enterGrid(node.parentId, 'first');
-            const scope = this.getCurrentScope();
-            if (scope) {
-              scope.coords = coords;
-              scope.cellId = nodeId;
-              console.log('[KNM] Set scope coordinates to [', coords[0], coords[1], '] for cell:', nodeId);
+            const frame = this.currentFrame;
+            if (frame) {
+              frame.coords = coords;
+              frame.cellId = nodeId;
+              console.log('[KNM] Set frame coordinates to [', coords[0], coords[1], '] for cell:', nodeId);
             }
           }
         }
@@ -1298,7 +1374,7 @@ export class KeyboardNavigationManager {
     
     if (this.sessionState.active && this.visualizer) {
       const isEnterable = node.focusMode === 'entry-node' || node.kind === 'grid';
-      const isInteracting = this.sessionState.interactingNodeId === nodeId;
+      const isInteracting = this.isInteracting;
       
       this.visualizer.render({
         element,
@@ -1309,28 +1385,33 @@ export class KeyboardNavigationManager {
   }
   
   private _enterInteractionMode(nodeId: string): void {
-    this.sessionState.interactingNodeId = nodeId;
-    console.log('[KNM] Entered interaction mode:', nodeId);
-    
-    if (this.visualizer) {
-      const element = this.uiTree.getElement(nodeId);
-      if (element) {
-        this.visualizer.render({
-          element,
-          isEnterable: false,
-          isInteracting: true
-        });
-      }
+    const currentFrame = this.currentFrame;
+    if (!currentFrame) {
+      console.warn('[KNM] Cannot enter interaction mode - no current frame');
+      return;
     }
+    
+    console.log('[KNM] Entering interaction mode:', nodeId);
+    
+    // Push interaction frame onto stack
+    this.navStack.push({
+      type: 'interaction',
+      gridId: currentFrame.gridId,
+      cellId: nodeId,
+      coords: currentFrame.coords,
+      interactingNodeId: nodeId,
+      readonly: false
+    });
   }
   
   private _exitInteractionMode(): void {
-    console.log('[KNM] Exited interaction mode');
+    console.log('[KNM] Exiting interaction mode');
     
     this.repeatManager.stopAll();
     
-    if (this.sessionState.interactingNodeId) {
-      const node = this.uiTree.getNode(this.sessionState.interactingNodeId);
+    const interactingId = this.interactingNodeId;
+    if (interactingId) {
+      const node = this.uiTree.getNode(interactingId);
       if (node) {
         const behavior = this._getBehavior(node);
         if (behavior?.onEscape) {
@@ -1340,10 +1421,16 @@ export class KeyboardNavigationManager {
       }
     }
     
-    this.sessionState.interactingNodeId = null;
+    // Pop interaction frame from stack
+    const frame = this.currentFrame;
+    if (frame?.type === 'interaction') {
+      this.navStack.pop();
+    }
     
-    if (this.sessionState.currentFocusId) {
-      this._setFocus(this.sessionState.currentFocusId);
+    // Update focus to the cell in the parent frame (not the old currentFocusId)
+    const parentFrame = this.currentFrame;
+    if (parentFrame) {
+      this._setFocus(parentFrame.cellId);
     }
   }
   
@@ -1425,10 +1512,8 @@ export class KeyboardNavigationManager {
       this.repeatManager.destroy();
     }
     
-    while (this.currentContext.parentContext) {
-      this.currentContext = this.currentContext.parentContext;
-    }
-    this.currentContext.scopeStack = [];
+    // Clear navigation stack
+    this.navStack.clear();
     
     this.gridMemory.clear();
     

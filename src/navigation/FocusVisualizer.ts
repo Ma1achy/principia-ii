@@ -3,10 +3,16 @@
  * Orange for focus, cyan for interaction
  */
 
+import { ZIndex } from '../ui/core/z-index.js';
+
 interface FocusVisualizerState {
   element: HTMLElement | null;
   isEnterable: boolean;
   isInteracting: boolean;
+}
+
+interface FocusVisualizerConfig {
+  getStackDepth?: () => number;
 }
 
 interface RenderState {
@@ -29,8 +35,10 @@ export class FocusVisualizer {
   animationFrameId: number | null;
   currentState: FocusVisualizerState;
   resizeObserver: ResizeObserver | null;
+  getStackDepth: (() => number) | null;
 
-  constructor(container: HTMLElement = document.body) {
+  constructor(container: HTMLElement = document.body, config?: FocusVisualizerConfig) {
+    this.getStackDepth = config?.getStackDepth || null;
     this.container = container;
     this.cursor = document.createElement('div');
     this.cursorEdges = { top: document.createElement('div'), right: document.createElement('div'), bottom: document.createElement('div'), left: document.createElement('div') };
@@ -78,7 +86,6 @@ export class FocusVisualizer {
     this.cursor.style.cssText = `
       position: fixed;
       pointer-events: none;
-      z-index: 999999;
       transition: left 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
                   top 0.15s cubic-bezier(0.4, 0, 0.2, 1),
                   width 0.15s cubic-bezier(0.4, 0, 0.2, 1),
@@ -105,6 +112,13 @@ export class FocusVisualizer {
   }
   
   /**
+   * Calculate z-index based on navigation stack depth using global system
+   */
+  private _calculateZIndex(element: HTMLElement): number {
+    return ZIndex.forCursor();
+  }
+
+  /**
    * Create a single cursor edge
    */
   private _createEdge(position: string): HTMLElement {
@@ -128,7 +142,6 @@ export class FocusVisualizer {
         width: 12px;
         height: 12px;
         pointer-events: none;
-        z-index: 999998;
         display: none;
         opacity: 0;
       `;
@@ -196,6 +209,10 @@ export class FocusVisualizer {
     // Update cursor position first
     this._updateCursorPosition(element);
     this._updateCursorStyle(isInteracting);
+    
+    // Set appropriate z-index based on context
+    const zIndex = this._calculateZIndex(element);
+    this.cursor.style.zIndex = String(zIndex);
     
     // Show cursor
     this.cursor.style.display = 'block';

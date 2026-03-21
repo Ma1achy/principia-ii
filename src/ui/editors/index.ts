@@ -8,6 +8,7 @@ export { CodeMirrorEditor } from './CodeMirrorEditor.ts';
 export { JSONEditor, createJSONEditor } from './JSONEditor.ts';
 export { WGSLEditor, createWGSLEditor } from './WGSLEditor.ts';
 export { initStateBoxEditor, getStateBoxEditor, setStateBoxValue, getStateBoxValue } from './stateBoxEditor.ts';
+export { initTooltipZIndexFixer, fixAllTooltips } from './tooltip-z-index-fixer.ts';
 
 export type {
   CodeEditor,
