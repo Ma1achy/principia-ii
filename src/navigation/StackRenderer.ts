@@ -13,6 +13,7 @@ import type { FocusVisualizer } from './FocusVisualizer.js';
 export interface StackRendererConfig {
   uiTree: UITreeStore;
   visualizer?: FocusVisualizer;
+  navManager?: any;  // Reference to check if keyboard nav is active
 }
 
 /**
@@ -22,11 +23,13 @@ export class StackRenderer {
   private uiTree: UITreeStore;
   private visualizer: FocusVisualizer | null;
   private visibleOverlays: Set<string>;
+  private navManager: any;  // Reference to check if keyboard nav is active
   
   constructor(config: StackRendererConfig) {
     this.uiTree = config.uiTree;
     this.visualizer = config.visualizer || null;
     this.visibleOverlays = new Set();
+    this.navManager = config.navManager || null;
   }
   
   /**
@@ -134,6 +137,12 @@ export class StackRenderer {
    */
   private updateVisualizer(frame: NavigationFrame): void {
     if (!this.visualizer) return;
+    
+    // IMPORTANT: Only show visualizer if keyboard nav is active
+    if (this.navManager && !this.navManager.sessionState?.active) {
+      console.log('[StackRenderer] Skipping visualizer - keyboard nav not active');
+      return;
+    }
     
     const element = this.uiTree.getElement(frame.cellId);
     if (!element) {

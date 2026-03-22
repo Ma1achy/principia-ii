@@ -66,7 +66,8 @@ export class KeyboardNavigationManager {
     // Initialize stack with automatic rendering
     this.stackRenderer = new StackRenderer({
       uiTree: this.uiTree,
-      visualizer: this.visualizer
+      visualizer: this.visualizer,
+      navManager: this  // Pass reference so StackRenderer can check active state
     });
     
     // If visualizer exists, give it access to stack depth
@@ -489,12 +490,24 @@ export class KeyboardNavigationManager {
     event.preventDefault();
     
     if (!wasActive) {
-      console.log('[KNM] First Escape - showing cursor and moving to cancel button');
+      console.log('[KNM] First Escape - showing cursor and moving to cancel/close button');
       
       if (this.isInsideOverlay()) {
+        // Activate keyboard nav
+        this.sessionState.active = true;
+        document.body.classList.add('nav-active');
+        
+        // Look for cancel button first (dialogs), then close button (pickers)
         const cancelButton = this._findCancelButton();
         if (cancelButton) {
           this._setFocus(cancelButton);
+          return;
+        }
+        
+        // Look for picker close button
+        const closeButton = this._findPickerCloseButton();
+        if (closeButton) {
+          this._setFocus(closeButton);
           return;
         }
       }
@@ -519,11 +532,20 @@ export class KeyboardNavigationManager {
                                 currentNode.meta?.intent === 'cancel' ||
                                 currentNode.meta?.intent === 'escape');
       
-      if (!isOnCancelButton) {
+      const isOnCloseButton = currentNode?.kind === 'picker-close-button';
+      
+      if (!isOnCancelButton && !isOnCloseButton) {
         const cancelButton = this._findCancelButton();
         if (cancelButton) {
           console.log('[KNM] Escape stage 1 - moving to cancel button');
           this._setFocus(cancelButton);
+          return;
+        }
+        
+        const closeButton = this._findPickerCloseButton();
+        if (closeButton) {
+          console.log('[KNM] Escape stage 1 - moving to close button');
+          this._setFocus(closeButton);
           return;
         }
       }
@@ -1164,6 +1186,34 @@ export class KeyboardNavigationManager {
     return findCancel(overlayFrame.overlayId);
   }
   
+  private _findPickerCloseButton(): string | null {
+    const overlayFrame = this.navStack.getCurrentOverlay();
+    if (!overlayFrame?.overlayId) return null;
+    
+    const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
+    if (!overlayNode) return null;
+    
+    const findCloseButton = (nodeId: string): string | null => {
+      const node = this.uiTree.getNode(nodeId);
+      if (!node) return null;
+      
+      if (node.kind === 'picker-close-button') {
+        return node.id;
+      }
+      
+      if (node.children) {
+        for (const childId of node.children) {
+          const result = findCloseButton(childId);
+          if (result) return result;
+        }
+      }
+      
+      return null;
+    };
+    
+    return findCloseButton(overlayFrame.overlayId);
+  }
+  
   /**
    * Open an overlay (dialog, panel, dropdown, picker)
    */
@@ -1201,15 +1251,18 @@ export class KeyboardNavigationManager {
     
     this.gridMemory.set(overlayId, [row, col]);
     
-    // Set focus
-    this._setFocus(cell.id);
-    
-    // Maintain active state if was active
+    // Only set focus if keyboard nav was already active
+    // Don't activate keyboard nav just because overlay opened
     if (wasActive) {
+      this._setFocus(cell.id);
       console.log('[KNM] Overlay opened while nav active - maintaining active state');
       this.sessionState.active = true;
       this.sessionState.justActivated = false;
       document.body.classList.add('nav-active');
+    } else {
+      // Just update internal state without showing visualizer
+      this.sessionState.currentFocusId = cell.id;
+      console.log('[KNM] Overlay opened while nav inactive - focus set but visualizer hidden');
     }
   }
   
@@ -1222,26 +1275,30 @@ export class KeyboardNavigationManager {
 
   closeOverlay(overlayId: string): void {
     console.log('[KNM] Closing overlay:', overlayId);
-    
+
     // Find the overlay frame in the stack
     const overlayFrameIndex = this.navStack.findFrameIndex(
       f => f.type === 'overlay' && f.overlayId === overlayId
     );
-    
+
     if (overlayFrameIndex === -1) {
       console.warn('[KNM] Attempted to close overlay not in stack:', overlayId);
       return;
     }
-    
+
+    // Get the trigger ID before we pop the frame
+    const overlayFrame = this.navStack.peekAt(overlayFrameIndex);
+    const triggerId = overlayFrame?.triggerId;
+
     // Emit before-close event
     if (this.uiTree?._events) {
       console.log('[KNM] Emitting overlay:before-close event for:', overlayId);
-      this.uiTree._events.emit('overlay:before-close', { 
-        id: overlayId, 
-        triggerId: this.navStack.peekAt(overlayFrameIndex)?.triggerId || null
+      this.uiTree._events.emit('overlay:before-close', {
+        id: overlayId,
+        triggerId: triggerId || null
       });
     }
-    
+
     // Pop all frames above and including the overlay
     const poppedFrames: NavigationFrame[] = [];
     while (this.navStack.depth() > overlayFrameIndex) {
@@ -1254,16 +1311,18 @@ export class KeyboardNavigationManager {
         }
       }
     }
-    
-    // Find the trigger or parent frame to restore focus to
-    const overlayFrame = poppedFrames.find(f => f.overlayId === overlayId);
-    const restoreId = overlayFrame?.triggerId || this.currentFrame?.cellId;
-    
-    if (restoreId) {
-      this._setFocus(restoreId);
+
+    // Restore focus to the trigger button if available
+    const currentFrame = this.currentFrame;
+    if (triggerId) {
+      console.log('[KNM] Restoring focus to trigger button:', triggerId);
+      this._setFocus(triggerId);
+    } else if (currentFrame) {
+      console.log('[KNM] No trigger found, restoring to current frame:', currentFrame.cellId);
+      this._setFocus(currentFrame.cellId);
     }
-    
-    console.log('[KNM] Closed overlay:', overlayId, '- restored focus to:', restoreId);
+
+    console.log('[KNM] Closed overlay:', overlayId, '- restored focus to:', triggerId || currentFrame?.cellId);
   }
 
   completeOverlayClose(overlayId: string): void {
