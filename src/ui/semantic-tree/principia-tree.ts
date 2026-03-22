@@ -533,18 +533,11 @@ export function buildPrincipiaUITree(): UINode[] {
   nodes.push(sidebarGrid);
 
   // ─── Panel Overlays ────────────────────────────────────────────────────────
-  // Info panel: just a close button for now
-  const infoPanelGrid = grid("info-panel-body", {
-    cells: [[cell("info-panel:close")]],
-    wrapCols: false,
-    wrapRows: false,
-    entryPolicy: 'first'
-  });
-  
-  const infoPanel = panel("info-panel", "Controls & Info", [infoPanelGrid], { 
+  // Info panel: just a close button (content is static HTML, not navigable)
+  const infoPanel = panel("info-panel", "Controls & Info", [], { 
     triggerId: "infoBtn" 
   });
-  nodes.push(...infoPanel.nodes, infoPanelGrid);
+  nodes.push(...infoPanel.nodes);
 
   // Settings panel: 3 vertical groups
   const autoRenderCheck = checkbox("autoRender", { 
@@ -566,11 +559,19 @@ export function buildPrincipiaUITree(): UINode[] {
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first'
+    entryPolicy: 'first',
+    escapeDown: 'settings-panel:scroll'  // Allow escaping down to next group
   });
 
+  // Mouse handling controls
   const invertScrollCheck = checkbox("stgInvertScroll", { 
     label: "Invert scroll direction" 
+  });
+  const invertPanXCheck = checkbox("stgInvertPanX", { 
+    label: "Invert pan X" 
+  });
+  const invertPanYCheck = checkbox("stgInvertPanY", { 
+    label: "Invert pan Y" 
   });
   const zoomSpeedSlider = slider("slider-stgZoomSpeed", { 
     label: "Zoom speed", 
@@ -580,24 +581,6 @@ export function buildPrincipiaUITree(): UINode[] {
     value: 1.0, 
     hasParamTrigger: false 
   });
-  
-  // Scroll group: 2×1 grid
-  const scrollGroupGrid = grid("settings-panel:scroll", {
-    cells: [
-      [cell("stgInvertScroll")],
-      [cell("slider-stgZoomSpeed")]
-    ],
-    wrapCols: false,
-    wrapRows: false,
-    entryPolicy: 'first'
-  });
-
-  const invertPanXCheck = checkbox("stgInvertPanX", { 
-    label: "Invert pan X" 
-  });
-  const invertPanYCheck = checkbox("stgInvertPanY", { 
-    label: "Invert pan Y" 
-  });
   const panSpeedSlider = slider("slider-stgPanSpeed", { 
     label: "Pan speed", 
     min: 0.2, 
@@ -606,41 +589,86 @@ export function buildPrincipiaUITree(): UINode[] {
     value: 1.0, 
     hasParamTrigger: false 
   });
+  const resetMouseHandlingBtn = button("stgResetMouse", {
+    ariaLabel: "Reset mouse controls to defaults"
+  });
   
-  // Panning group: 3×1 grid
-  const panningGroupGrid = grid("settings-panel:panning", {
+  // Mouse handling group: 6×1 grid
+  const mouseHandlingGrid = grid("settings-panel:handling:mouse", {
     cells: [
+      [cell("stgInvertScroll")],
       [cell("stgInvertPanX")],
       [cell("stgInvertPanY")],
-      [cell("slider-stgPanSpeed")]
+      [cell("slider-stgZoomSpeed")],
+      [cell("slider-stgPanSpeed")],
+      [cell("stgResetMouse")]
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first'
+    entryPolicy: 'first',
+    escapeDown: 'settings-panel:handling:keyboard'
   });
 
-  // Settings panel body: vertical grid of close button + 3 groups
-  const settingsPanelBodyGrid = grid("settings-panel-body", {
+  // Keyboard handling controls (DAS and ARR sliders)
+  // Keyboard handling controls (DAS and ARR sliders)
+  const navDasSlider = slider("slider-stgNavDAS", {
+    label: "Key delay (DAS)",
+    min: 50,
+    max: 500,
+    step: 10,
+    value: 200,
+    hasParamTrigger: false
+  });
+
+  const navArrSlider = slider("slider-stgNavARR", {
+    label: "Key repeat (ARR)",
+    min: 20,
+    max: 200,
+    step: 10,
+    value: 50,
+    hasParamTrigger: false
+  });
+
+  const resetKeyboardHandlingBtn = button("stgResetHandling", {
+    ariaLabel: "Reset keyboard timing to defaults"
+  });
+
+  // Keyboard handling group: 3×1 grid
+  const keyboardHandlingGrid = grid("settings-panel:handling:keyboard", {
     cells: [
-      [cell("settings-panel:close")],
-      [cell("settings-panel:rendering")],
-      [cell("settings-panel:scroll")],
-      [cell("settings-panel:panning")]
+      [cell("slider-stgNavDAS")],
+      [cell("slider-stgNavARR")],
+      [cell("stgResetHandling")]
     ],
     wrapCols: false,
     wrapRows: false,
-    entryPolicy: 'first'
+    entryPolicy: 'first',
+    escapeUp: 'settings-panel:handling:mouse'
   });
 
+  // Parent handling group: 2×1 grid (Mouse + Keyboard subsections)
+  const handlingGroupGrid = grid("settings-panel:handling", {
+    cells: [
+      [cell("settings-panel:handling:mouse")],
+      [cell("settings-panel:handling:keyboard")]
+    ],
+    wrapCols: false,
+    wrapRows: false,
+    entryPolicy: 'first',
+    escapeUp: 'settings-panel:rendering'
+  });
+
+  // Pass the group grids directly to the panel (no intermediate grid needed)
   const settingsPanel = panel("settings-panel", "Settings", [
-    settingsPanelBodyGrid
+    renderingGroupGrid,
+    handlingGroupGrid
   ], { triggerId: "settingsBtn" });
 
   nodes.push(
     renderingGroupGrid, autoRenderCheck, previewDragCheck, showHudCheck,
-    scrollGroupGrid, invertScrollCheck, ...zoomSpeedSlider,
-    panningGroupGrid, invertPanXCheck, invertPanYCheck, ...panSpeedSlider,
-    settingsPanelBodyGrid,
+    handlingGroupGrid,
+    mouseHandlingGrid, invertScrollCheck, invertPanXCheck, invertPanYCheck, ...zoomSpeedSlider, ...panSpeedSlider, resetMouseHandlingBtn,
+    keyboardHandlingGrid, ...navDasSlider, ...navArrSlider, resetKeyboardHandlingBtn,
     ...settingsPanel.nodes
   );
 

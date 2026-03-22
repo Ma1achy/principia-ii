@@ -115,7 +115,17 @@ export class FocusVisualizer {
    * Calculate z-index based on navigation stack depth using global system
    */
   private _calculateZIndex(element: HTMLElement): number {
-    return ZIndex.forCursor();
+    // Base cursor z-index for current stack depth
+    let zIndex = ZIndex.forCursor();
+    
+    // If cursor is in interaction mode, add extra elevation
+    // to ensure it appears above overlay content
+    const isInteracting = this.cursor.classList.contains('interacting');
+    if (isInteracting) {
+      zIndex += 100;  // Additional elevation for interaction mode
+    }
+    
+    return zIndex;
   }
 
   /**
@@ -125,39 +135,6 @@ export class FocusVisualizer {
     const edge = document.createElement('div');
     edge.className = `nav-cursor-edge nav-cursor-edge--${position}`;
     return edge;
-  }
-
-  /**
-   * Create corner bracket elements
-   */
-  private _createBrackets(): void {
-    const positions: Array<keyof Brackets> = ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
-    
-    positions.forEach(pos => {
-      const bracket = document.createElement('div');
-      bracket.className = `nav-bracket nav-bracket--${pos}`;
-      bracket.setAttribute('aria-hidden', 'true');
-      bracket.style.cssText = `
-        position: fixed;
-        width: 12px;
-        height: 12px;
-        pointer-events: none;
-        display: none;
-        opacity: 0;
-      `;
-      
-      // Set border based on position
-      const borderStyles: Record<string, string> = {
-        topLeft: 'border-left: 2px solid; border-top: 2px solid;',
-        topRight: 'border-right: 2px solid; border-top: 2px solid;',
-        bottomLeft: 'border-left: 2px solid; border-bottom: 2px solid;',
-        bottomRight: 'border-right: 2px solid; border-bottom: 2px solid;'
-      };
-      bracket.style.cssText += borderStyles[pos];
-      
-      this.brackets[pos] = bracket;
-      this.container.appendChild(bracket);
-    });
   }
 
   /**

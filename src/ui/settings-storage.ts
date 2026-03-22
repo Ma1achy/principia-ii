@@ -1,3 +1,5 @@
+import { updateSliderValue } from './utils/sliderUpdater.js';
+
 const SETTINGS_KEY = 'principia_settings';
 
 /**
@@ -12,6 +14,8 @@ export interface Settings {
   invertPanX: boolean;
   invertPanY: boolean;
   panSpeed: number;
+  navDAS: number;
+  navARR: number;
   suppressWelcomeDialog: boolean;
 }
 
@@ -24,6 +28,8 @@ const DEFAULT_SETTINGS: Settings = {
   invertPanX: false,
   invertPanY: false,
   panSpeed: 1.0,
+  navDAS: 200,
+  navARR: 50,
   suppressWelcomeDialog: false
 };
 
@@ -58,17 +64,44 @@ export function applySavedSettings(): Settings {
   const stgInvertPanYEl = document.getElementById('stgInvertPanY') as HTMLInputElement | null;
   const stgPanSpeedEl = document.getElementById('stgPanSpeed') as HTMLInputElement | null;
   const stgPanSpeedValEl = document.getElementById('stgPanSpeedVal') as HTMLInputElement | null;
+  const stgNavDASEl = document.getElementById('stgNavDAS') as HTMLInputElement | null;
+  const stgNavDASValEl = document.getElementById('stgNavDASVal') as HTMLInputElement | null;
+  const stgNavARREl = document.getElementById('stgNavARR') as HTMLInputElement | null;
+  const stgNavARRValEl = document.getElementById('stgNavARRVal') as HTMLInputElement | null;
   
   if (autoRenderEl) autoRenderEl.checked = settings.autoRender;
   if (previewWhileDragEl) previewWhileDragEl.checked = settings.previewWhileDrag;
   if (showHudEl) showHudEl.checked = settings.showHud;
   if (stgInvertScrollEl) stgInvertScrollEl.checked = settings.invertScroll;
-  if (stgZoomSpeedEl) stgZoomSpeedEl.value = String(settings.zoomSpeed);
-  if (stgZoomSpeedValEl) stgZoomSpeedValEl.value = String(settings.zoomSpeed);
+  
+  if (stgZoomSpeedEl) {
+    updateSliderValue("stgZoomSpeed", settings.zoomSpeed, {
+      numberInputId: "stgZoomSpeedVal",
+      decimals: 1
+    });
+  }
+  
   if (stgInvertPanXEl) stgInvertPanXEl.checked = settings.invertPanX;
   if (stgInvertPanYEl) stgInvertPanYEl.checked = settings.invertPanY;
-  if (stgPanSpeedEl) stgPanSpeedEl.value = String(settings.panSpeed);
-  if (stgPanSpeedValEl) stgPanSpeedValEl.value = String(settings.panSpeed);
+  
+  if (stgPanSpeedEl) {
+    updateSliderValue("stgPanSpeed", settings.panSpeed, {
+      numberInputId: "stgPanSpeedVal",
+      decimals: 1
+    });
+  }
+  
+  if (stgNavDASEl) {
+    updateSliderValue("stgNavDAS", settings.navDAS, {
+      numberInputId: "stgNavDASVal"
+    });
+  }
+  
+  if (stgNavARREl) {
+    updateSliderValue("stgNavARR", settings.navARR, {
+      numberInputId: "stgNavARRVal"
+    });
+  }
   
   return settings;
 }
@@ -82,6 +115,8 @@ export function saveCurrentSettings(): void {
   const stgInvertPanXEl = document.getElementById('stgInvertPanX') as HTMLInputElement | null;
   const stgInvertPanYEl = document.getElementById('stgInvertPanY') as HTMLInputElement | null;
   const stgPanSpeedEl = document.getElementById('stgPanSpeed') as HTMLInputElement | null;
+  const stgNavDASEl = document.getElementById('stgNavDAS') as HTMLInputElement | null;
+  const stgNavARREl = document.getElementById('stgNavARR') as HTMLInputElement | null;
   
   const settings: Settings = {
     autoRender: autoRenderEl?.checked ?? false,
@@ -92,6 +127,8 @@ export function saveCurrentSettings(): void {
     invertPanX: stgInvertPanXEl?.checked ?? false,
     invertPanY: stgInvertPanYEl?.checked ?? false,
     panSpeed: stgPanSpeedEl ? parseFloat(stgPanSpeedEl.value) : 1.0,
+    navDAS: stgNavDASEl ? parseInt(stgNavDASEl.value) : 200,
+    navARR: stgNavARREl ? parseInt(stgNavARREl.value) : 50,
     suppressWelcomeDialog: loadSettings().suppressWelcomeDialog
   };
   

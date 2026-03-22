@@ -36,6 +36,7 @@ export { getStateBoxValue } from './ui/editors/stateBoxEditor.js';
 // Main controls - bindUI function
 import { state, navPrefs, canonicalState, applyCanonical, PRESETS, AXIS_NAMES, MODE_INFO } from './state.js';
 import { $ } from './ui/utils.js';
+import { updateSliderValue } from './ui/utils/sliderUpdater.js';
 import { setStatus, setOverlay } from './ui/panels/overlay.js';
 import { setRenderingState } from './ui/core/state.js';
 import { drawOverlayHUD } from './ui/panels/hud.js';
@@ -203,7 +204,8 @@ export function bindUI(
   });
   ($("customMagVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(0.1, Math.min(4.0, +(e.target as HTMLInputElement).value));
-    state.customMag = v; ($("customMag") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(2);
+    state.customMag = v;
+    updateSliderValue("customMag", v, { numberInputId: "customMagVal", decimals: 2 });
     if (state.presetId === "custom") { applyCustomBasis(); scheduleRender("custom-mag"); writeHash(); updateStateBox_(); drawHUD(); }
   });
 
@@ -215,7 +217,8 @@ export function bindUI(
   });
   ($("gammaVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(0, Math.min(360, +(e.target as HTMLInputElement).value));
-    state.gammaDeg = v; ($("gamma") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(2);
+    state.gammaDeg = v;
+    updateSliderValue("gamma", v, { numberInputId: "gammaVal", decimals: 2 });
     scheduleRender("γ"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("tiltDim1") as HTMLSelectElement).addEventListener("change", (e) => {
@@ -236,7 +239,8 @@ export function bindUI(
   });
   ($("tiltAmt1Val") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(-2.0, Math.min(2.0, +(e.target as HTMLInputElement).value));
-    state.tiltAmt1 = v; ($("tiltAmt1") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(2);
+    state.tiltAmt1 = v;
+    updateSliderValue("tiltAmt1", v, { numberInputId: "tiltAmt1Val", decimals: 2 });
     scheduleRender("tilt"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("tiltAmt2") as HTMLInputElement).addEventListener("input", (e) => {
@@ -247,7 +251,8 @@ export function bindUI(
   });
   ($("tiltAmt2Val") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(-2.0, Math.min(2.0, +(e.target as HTMLInputElement).value));
-    state.tiltAmt2 = v; ($("tiltAmt2") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(2);
+    state.tiltAmt2 = v;
+    updateSliderValue("tiltAmt2", v, { numberInputId: "tiltAmt2Val", decimals: 2 });
     scheduleRender("tilt"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("doOrtho") as HTMLInputElement).addEventListener("change", (e) => {
@@ -256,10 +261,11 @@ export function bindUI(
   });
   $("rotReset")!.addEventListener("click", () => {
     state.gammaDeg = 0.0; state.tiltAmt1 = 0.0; state.tiltAmt2 = 0.0;
-    ["gamma","tiltAmt1","tiltAmt2"].forEach(id => { ($(id) as HTMLInputElement)!.value = "0"; });
-    ($("gammaVal") as HTMLInputElement).value = "0.00";
-    ($("tiltAmt1Val") as HTMLInputElement).value = "0.00";
-    ($("tiltAmt2Val") as HTMLInputElement).value = "0.00";
+    
+    updateSliderValue("gamma", 0, { numberInputId: "gammaVal", decimals: 2 });
+    updateSliderValue("tiltAmt1", 0, { numberInputId: "tiltAmt1Val", decimals: 2 });
+    updateSliderValue("tiltAmt2", 0, { numberInputId: "tiltAmt2Val", decimals: 2 });
+    
     scheduleRender("rot reset"); writeHash(); updateStateBox_(); drawHUD();
   });
 
@@ -280,7 +286,8 @@ export function bindUI(
   });
   ($("horizonVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(10, Math.min(200, Math.round(+(e.target as HTMLInputElement).value / 10) * 10));
-    state.horizon = v; ($("horizon") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = String(v);
+    state.horizon = v;
+    updateSliderValue("horizon", v, { numberInputId: "horizonVal" });
     scheduleRender("horizon"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("maxSteps") as HTMLInputElement).addEventListener("input", (e) => {
@@ -291,7 +298,8 @@ export function bindUI(
   });
   ($("maxStepsVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(1000, Math.min(40000, Math.round(+(e.target as HTMLInputElement).value / 1000) * 1000));
-    state.maxSteps = v; ($("maxSteps") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = String(v);
+    state.maxSteps = v;
+    updateSliderValue("maxSteps", v, { numberInputId: "maxStepsVal" });
     scheduleRender("steps"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("dtMacro") as HTMLInputElement).addEventListener("input", (e) => {
@@ -302,7 +310,8 @@ export function bindUI(
   });
   ($("dtMacroVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(0.0005, Math.min(0.01, +(e.target as HTMLInputElement).value));
-    state.dtMacro = v; ($("dtMacro") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(4);
+    state.dtMacro = v;
+    updateSliderValue("dtMacro", v, { numberInputId: "dtMacroVal", decimals: 4 });
     scheduleRender("dt"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("rColl") as HTMLInputElement).addEventListener("input", (e) => {
@@ -313,7 +322,8 @@ export function bindUI(
   });
   ($("rCollVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(0.005, Math.min(0.06, +(e.target as HTMLInputElement).value));
-    state.rColl = v; ($("rColl") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(3);
+    state.rColl = v;
+    updateSliderValue("rColl", v, { numberInputId: "rCollVal", decimals: 3 });
     scheduleRender("rColl"); writeHash(); updateStateBox_(); drawHUD();
   });
   ($("rEsc") as HTMLInputElement).addEventListener("input", (e) => {
@@ -324,14 +334,15 @@ export function bindUI(
   });
   ($("rEscVal") as HTMLInputElement).addEventListener("change", (e) => {
     const v = Math.max(1.0, Math.min(12.0, +(e.target as HTMLInputElement).value));
-    state.rEsc = v; ($("rEsc") as HTMLInputElement).value = String(v); (e.target as HTMLInputElement).value = v.toFixed(2);
+    state.rEsc = v;
+    updateSliderValue("rEsc", v, { numberInputId: "rEscVal", decimals: 2 });
     scheduleRender("rEsc"); writeHash(); updateStateBox_(); drawHUD();
   });
 
   function openSettingsPanel() {
     // Use KNM to open overlay with stack-based rendering
     if ((window as any).navManager) {
-      (window as any).navManager.openOverlay('settingsPanelOverlay', 'settingsBtn', 'panel');
+      (window as any).navManager.openOverlay('settings-panel', 'settingsBtn', 'panel');
     } else {
       // Fallback to old method if navManager not available
       $("settingsPanelOverlay")!.classList.add("open");
@@ -341,7 +352,7 @@ export function bindUI(
   function closeSettingsPanel() {
     // Use KNM to close overlay with stack-based rendering
     if ((window as any).navManager) {
-      (window as any).navManager.closeOverlay('settingsPanelOverlay');
+      (window as any).navManager.closeOverlay('settings-panel');
     } else {
       // Fallback to old method
       $("settingsPanelOverlay")!.classList.remove("open");
@@ -349,8 +360,8 @@ export function bindUI(
   }
   
   $("settingsBtn")!.addEventListener("click", openSettingsPanel);
-  $("settingsPanelClose")!.addEventListener("click", closeSettingsPanel);
-  $("settingsPanelOverlay")!.addEventListener("click", (e) => { if (e.target === $("settingsPanelOverlay")) closeSettingsPanel(); });
+  // Close button handler now managed by keyboard navigation system
+  // Backdrop click handler now managed by keyboard navigation system
   document.addEventListener("keydown", (e) => { 
     if (e.key === "Escape" && $("settingsPanelOverlay")!.classList.contains("open")) {
       closeSettingsPanel();
@@ -361,10 +372,24 @@ export function bindUI(
     ($("stgInvertScroll") as HTMLInputElement).checked = navPrefs.invertScroll;
     ($("stgInvertPanX") as HTMLInputElement).checked   = navPrefs.invertPanX;
     ($("stgInvertPanY") as HTMLInputElement).checked   = navPrefs.invertPanY;
-    ($("stgZoomSpeed") as HTMLInputElement).value      = String(navPrefs.zoomSpeed);
-    ($("stgZoomSpeedVal") as HTMLInputElement).value   = navPrefs.zoomSpeed.toFixed(1);
-    ($("stgPanSpeed") as HTMLInputElement).value       = String(navPrefs.panSpeed);
-    ($("stgPanSpeedVal") as HTMLInputElement).value    = navPrefs.panSpeed.toFixed(1);
+    
+    updateSliderValue("stgZoomSpeed", navPrefs.zoomSpeed, {
+      numberInputId: "stgZoomSpeedVal",
+      decimals: 1
+    });
+    
+    updateSliderValue("stgPanSpeed", navPrefs.panSpeed, {
+      numberInputId: "stgPanSpeedVal",
+      decimals: 1
+    });
+    
+    updateSliderValue("stgNavDAS", navPrefs.navDAS, {
+      numberInputId: "stgNavDASVal"
+    });
+    
+    updateSliderValue("stgNavARR", navPrefs.navARR, {
+      numberInputId: "stgNavARRVal"
+    });
   }
   syncSettingsUI();
 
@@ -372,14 +397,86 @@ export function bindUI(
   ($("stgInvertPanX") as HTMLInputElement).addEventListener("change",   (e) => { navPrefs.invertPanX   = (e.target as HTMLInputElement).checked; });
   ($("stgInvertPanY") as HTMLInputElement).addEventListener("change",   (e) => { navPrefs.invertPanY   = (e.target as HTMLInputElement).checked; });
   ($("stgZoomSpeed") as HTMLInputElement).addEventListener("input",     (e) => { navPrefs.zoomSpeed    = +(e.target as HTMLInputElement).value; ($("stgZoomSpeedVal") as HTMLInputElement).value = navPrefs.zoomSpeed.toFixed(1); });
-  ($("stgZoomSpeedVal") as HTMLInputElement).addEventListener("change", (e) => { navPrefs.zoomSpeed    = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0)); ($("stgZoomSpeed") as HTMLInputElement).value = String(navPrefs.zoomSpeed); ($("stgZoomSpeedVal") as HTMLInputElement).value = navPrefs.zoomSpeed.toFixed(1); });
+  ($("stgZoomSpeedVal") as HTMLInputElement).addEventListener("change", (e) => {
+    navPrefs.zoomSpeed = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0));
+    updateSliderValue("stgZoomSpeed", navPrefs.zoomSpeed, {
+      numberInputId: "stgZoomSpeedVal",
+      decimals: 1
+    });
+  });
   ($("stgPanSpeed") as HTMLInputElement).addEventListener("input",      (e) => { navPrefs.panSpeed     = +(e.target as HTMLInputElement).value; ($("stgPanSpeedVal") as HTMLInputElement).value  = navPrefs.panSpeed.toFixed(1); });
-  ($("stgPanSpeedVal") as HTMLInputElement).addEventListener("change",  (e) => { navPrefs.panSpeed     = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0)); ($("stgPanSpeed") as HTMLInputElement).value  = String(navPrefs.panSpeed);  ($("stgPanSpeedVal") as HTMLInputElement).value  = navPrefs.panSpeed.toFixed(1); });
+  ($("stgPanSpeedVal") as HTMLInputElement).addEventListener("change",  (e) => {
+    navPrefs.panSpeed = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0));
+    updateSliderValue("stgPanSpeed", navPrefs.panSpeed, {
+      numberInputId: "stgPanSpeedVal",
+      decimals: 1
+    });
+  });
+
+  // DAS/ARR handlers - update KeyRepeatManager profiles
+  ($("stgNavDAS") as HTMLInputElement).addEventListener("input", (e) => {
+    navPrefs.navDAS = +(e.target as HTMLInputElement).value;
+    ($("stgNavDASVal") as HTMLInputElement).value = String(navPrefs.navDAS);
+    if ((window as any).navManager?.repeatManager) {
+      (window as any).navManager.repeatManager.profiles.navigation.das = navPrefs.navDAS;
+    }
+  });
+  ($("stgNavDASVal") as HTMLInputElement).addEventListener("change", (e) => {
+    navPrefs.navDAS = Math.min(500, Math.max(50, +(e.target as HTMLInputElement).value || 200));
+    updateSliderValue("stgNavDAS", navPrefs.navDAS, { numberInputId: "stgNavDASVal" });
+    if ((window as any).navManager?.repeatManager) {
+      (window as any).navManager.repeatManager.profiles.navigation.das = navPrefs.navDAS;
+    }
+  });
+
+  ($("stgNavARR") as HTMLInputElement).addEventListener("input", (e) => {
+    navPrefs.navARR = +(e.target as HTMLInputElement).value;
+    ($("stgNavARRVal") as HTMLInputElement).value = String(navPrefs.navARR);
+    if ((window as any).navManager?.repeatManager) {
+      (window as any).navManager.repeatManager.profiles.navigation.arr = navPrefs.navARR;
+    }
+  });
+  ($("stgNavARRVal") as HTMLInputElement).addEventListener("change", (e) => {
+    navPrefs.navARR = Math.min(200, Math.max(20, +(e.target as HTMLInputElement).value || 50));
+    updateSliderValue("stgNavARR", navPrefs.navARR, { numberInputId: "stgNavARRVal" });
+    if ((window as any).navManager?.repeatManager) {
+      (window as any).navManager.repeatManager.profiles.navigation.arr = navPrefs.navARR;
+    }
+  });
+
+  // Reset handling button - resets DAS and ARR to defaults
+  ($("stgResetHandling") as HTMLButtonElement).addEventListener("click", () => {
+    const defaultDAS = 200;
+    const defaultARR = 50;
+
+    navPrefs.navDAS = defaultDAS;
+    navPrefs.navARR = defaultARR;
+
+    updateSliderValue("stgNavDAS", defaultDAS, { numberInputId: "stgNavDASVal" });
+    updateSliderValue("stgNavARR", defaultARR, { numberInputId: "stgNavARRVal" });
+
+    if ((window as any).navManager?.repeatManager) {
+      (window as any).navManager.repeatManager.profiles.navigation.das = defaultDAS;
+      (window as any).navManager.repeatManager.profiles.navigation.arr = defaultARR;
+    }
+  });
+
+  // Reset mouse handling controls (zoom/pan speed)
+  ($("stgResetMouse") as HTMLButtonElement).addEventListener("click", () => {
+    const defaultZoom = 1.0;
+    const defaultPan = 1.0;
+
+    navPrefs.zoomSpeed = defaultZoom;
+    navPrefs.panSpeed = defaultPan;
+
+    updateSliderValue("stgZoomSpeed", defaultZoom, { numberInputId: "stgZoomSpeedVal", decimals: 1 });
+    updateSliderValue("stgPanSpeed", defaultPan, { numberInputId: "stgPanSpeedVal", decimals: 1 });
+  });
 
   function openInfoPanel() {
     // Use KNM to open overlay with stack-based rendering
     if ((window as any).navManager) {
-      (window as any).navManager.openOverlay('infoPanelOverlay', 'infoBtn', 'panel');
+      (window as any).navManager.openOverlay('info-panel', 'infoBtn', 'panel');
     } else {
       // Fallback to old method if navManager not available
       $("infoPanelOverlay")!.classList.add("open");
@@ -389,7 +486,7 @@ export function bindUI(
   function closeInfoPanel() {
     // Use KNM to close overlay with stack-based rendering
     if ((window as any).navManager) {
-      (window as any).navManager.closeOverlay('infoPanelOverlay');
+      (window as any).navManager.closeOverlay('info-panel');
     } else {
       // Fallback to old method
       $("infoPanelOverlay")!.classList.remove("open");
@@ -397,8 +494,8 @@ export function bindUI(
   }
   
   $("infoBtn")!.addEventListener("click", openInfoPanel);
-  $("infoPanelClose")!.addEventListener("click", closeInfoPanel);
-  $("infoPanelOverlay")!.addEventListener("click", (e) => { if (e.target === $("infoPanelOverlay")) closeInfoPanel(); });
+  // Close button handler now managed by keyboard navigation system
+  // Backdrop click handler now managed by keyboard navigation system
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {

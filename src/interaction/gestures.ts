@@ -1,5 +1,6 @@
 import { state, navPrefs } from '../state.js';
 import { clamp } from '../ui/utils.js';
+import { updateSliderValue } from '../ui/utils/sliderUpdater.js';
 
 // ─── Gestures ────────────────────────────────────────────────────────────────
 
@@ -81,22 +82,22 @@ export function attachGestures(
     } else if (dragMode === "gamma") {
       state.gammaDeg = (state.gammaDeg + dx * 0.25) % 360;
       if (state.gammaDeg < 0) state.gammaDeg += 360;
-      const gammaInput = $("gamma");
-      const gammaVal = $("gammaVal");
-      if (gammaInput) gammaInput.value = String(state.gammaDeg);
-      if (gammaVal) gammaVal.value = state.gammaDeg.toFixed(2);
+      updateSliderValue("gamma", state.gammaDeg, {
+        numberInputId: "gammaVal",
+        decimals: 2
+      });
       scheduleRender("γ drag");
     } else if (dragMode === "tilt") {
       state.tiltAmt1 = Math.max(-2.0, Math.min(2.0, state.tiltAmt1 + dx * 0.01));
       state.tiltAmt2 = Math.max(-2.0, Math.min(2.0, state.tiltAmt2 - dy * 0.01));
-      const tiltAmt1 = $("tiltAmt1");
-      const tiltAmt2 = $("tiltAmt2");
-      const tiltAmt1Val = $("tiltAmt1Val");
-      const tiltAmt2Val = $("tiltAmt2Val");
-      if (tiltAmt1) tiltAmt1.value = String(state.tiltAmt1);
-      if (tiltAmt2) tiltAmt2.value = String(state.tiltAmt2);
-      if (tiltAmt1Val) tiltAmt1Val.value = state.tiltAmt1.toFixed(2);
-      if (tiltAmt2Val) tiltAmt2Val.value = state.tiltAmt2.toFixed(2);
+      updateSliderValue("tiltAmt1", state.tiltAmt1, {
+        numberInputId: "tiltAmt1Val",
+        decimals: 2
+      });
+      updateSliderValue("tiltAmt2", state.tiltAmt2, {
+        numberInputId: "tiltAmt2Val",
+        decimals: 2
+      });
       scheduleRender("tilt drag");
     }
     writeHash(); updateStateBox(); drawOverlayHUD();

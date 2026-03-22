@@ -21,3 +21,9 @@ That avoids “I told it not to warn me and now it froze my laptop” moments.
 > chazy needs to react to interactions with gui elements via keyboard.
 
 >dragging and dropping in state jsons to load them?
+
+
+>chazy needs to be calmer, still gets too fast when typing/deleting, think part of this is emotions and tone stacking. also doesn't display text for long enough when excited.
+>overall needs to be slower/calmer and display text for longer. 
+>also chazy sometimes deletes a line as its being typed, never finishes it which looks weird. this is fine behaviour if its an interruption caused by a user event, but it happens with abient lines
+where the ambient lines interrupt each other which looks weird. we need to fix this but still allow for user events to interrupt the ambient lines.

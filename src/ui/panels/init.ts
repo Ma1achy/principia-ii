@@ -25,8 +25,11 @@ function createSettingsContent(): string {
       <div class="stg-row"><span>Show probe</span><input type="checkbox" id="showHud" checked /></div>
     </div>
     <div class="stg-group">
-      <div class="stg-group-title">Scroll / Zoom</div>
+      <div class="stg-group-title">Handling</div>
+      <div class="stg-group-subtitle">Mouse</div>
       <div class="stg-row"><span>Invert scroll direction</span><input type="checkbox" id="stgInvertScroll" /></div>
+      <div class="stg-row"><span>Invert pan X</span><input type="checkbox" id="stgInvertPanX" /></div>
+      <div class="stg-row"><span>Invert pan Y</span><input type="checkbox" id="stgInvertPanY" /></div>
       <div class="sl-row">
         <label>Zoom speed</label>
         <div class="sl-track-row">
@@ -36,11 +39,6 @@ function createSettingsContent(): string {
           </div>
         </div>
       </div>
-    </div>
-    <div class="stg-group">
-      <div class="stg-group-title">Panning</div>
-      <div class="stg-row"><span>Invert pan X</span><input type="checkbox" id="stgInvertPanX" /></div>
-      <div class="stg-row"><span>Invert pan Y</span><input type="checkbox" id="stgInvertPanY" /></div>
       <div class="sl-row">
         <label>Pan speed</label>
         <div class="sl-track-row">
@@ -49,6 +47,31 @@ function createSettingsContent(): string {
             <input type="number" class="slider-num" id="stgPanSpeedVal" value="1.0" step="0.1" min="0.2" max="4.0" />
           </div>
         </div>
+      </div>
+      <div class="stg-row">
+        <button id="stgResetMouse" class="btn secondary">RESET</button>
+      </div>
+      <div class="stg-group-subtitle">Keyboard</div>
+      <div class="sl-row">
+        <label>Key delay (DAS)</label>
+        <div class="sl-track-row">
+          <input type="range" id="stgNavDAS" min="50" max="500" step="10" value="200" />
+          <div class="sl-val-wrap">
+            <input type="number" class="slider-num" id="stgNavDASVal" value="200" step="10" min="50" max="500" />
+          </div>
+        </div>
+      </div>
+      <div class="sl-row">
+        <label>Key repeat (ARR)</label>
+        <div class="sl-track-row">
+          <input type="range" id="stgNavARR" min="20" max="200" step="10" value="50" />
+          <div class="sl-val-wrap">
+            <input type="number" class="slider-num" id="stgNavARRVal" value="50" step="10" min="20" max="200" />
+          </div>
+        </div>
+      </div>
+      <div class="stg-row">
+        <button id="stgResetHandling" class="btn secondary">RESET</button>
       </div>
     </div>
   `.trim();

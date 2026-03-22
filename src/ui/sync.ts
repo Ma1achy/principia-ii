@@ -1,5 +1,6 @@
 import { state, canonicalState, MODE_INFO, PRESETS, AXIS_NAMES } from '../state.ts';
 import { $ } from './utils.ts';
+import { updateSliderValue, updateAllSliderTrackFills } from './utils/sliderUpdater.ts';
 import { setStatus } from './panels/overlay.ts';
 import { updateCustomPanelVisibility } from './builders/presets.ts';
 import { syncTiltDimLabels } from './pickers/tilt.ts';
@@ -32,10 +33,16 @@ export function syncUIFromState(
   $("doOrtho").checked = state.doOrtho;
   $("horizon").value = String(state.horizon);
   $("horizonVal").value = String(state.horizon);
-  $("maxSteps").value = String(state.maxSteps);
-  $("maxStepsVal").value = String(state.maxSteps);
-  $("dtMacro").value = String(state.dtMacro);
-  $("dtMacroVal").value = state.dtMacro.toFixed(4);
+  
+  updateSliderValue("maxSteps", state.maxSteps, {
+    numberInputId: "maxStepsVal"
+  });
+  
+  updateSliderValue("dtMacro", state.dtMacro, {
+    numberInputId: "dtMacroVal",
+    decimals: 4
+  });
+  
   $("rColl").value = String(state.rColl);
   $("rCollVal").value = state.rColl.toFixed(3);
   $("rEsc").value = String(state.rEsc);
@@ -61,18 +68,7 @@ export function syncUIFromState(
   if (cM) { cM.value = String(state.customMag); $("customMagVal").value = state.customMag.toFixed(2); }
   syncTiltDimLabels();
   
-  updateAllSliderTrackFills();
-  
   updateStateBox();
   setStatus("Ready.");
   drawOverlayHUD();
-}
-
-function updateAllSliderTrackFills(): void {
-  document.querySelectorAll('input[type="range"]').forEach((inp) => {
-    const input = inp as HTMLInputElement & { _updateTrackFill?: () => void };
-    if (input._updateTrackFill) {
-      input._updateTrackFill();
-    }
-  });
 }

@@ -699,7 +699,10 @@ async function boot(): Promise<void> {
   const triggerDeps = { uiTree, navManager };
   behaviorRegistry.register('picker-close-button', (n: any, el: HTMLElement, deps: any) =>
     behaviors.pickerCloseButtonBehavior(n, el, { ...deps, navManager }));
-  
+
+  behaviorRegistry.register('panel-close-button', (n: any, el: HTMLElement, deps: any) =>
+    behaviors.panelCloseButtonBehavior(n, el, { ...deps, navManager }));
+
   behaviorRegistry.register('menu-item', (n: any, el: HTMLElement, deps: any) =>
     behaviors.menuItemBehavior(n, el, { ...deps, navManager, uiTree }));
   

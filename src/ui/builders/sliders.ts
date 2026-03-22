@@ -1,5 +1,6 @@
 import { state, AXIS_NAMES, QUALITY_PRESETS } from '../../state.js';
 import { $ } from '../utils.js';
+import { updateSliderValue } from '../utils/sliderUpdater.js';
 import type { UITreeStore } from '../semantic-tree/store.js';
 
 // ─── Slider enhancement utility ──────────────────────────────────────────────
@@ -477,13 +478,15 @@ export function applyQualityPreset(
   const q = QUALITY_PRESETS[name] || QUALITY_PRESETS.balanced;
   state.dtMacro = q.dtMacro;
   state.maxSteps = q.maxSteps;
-  const dtMacroInput = $("dtMacro") as HTMLInputElement | null;
-  const dtMacroVal = $("dtMacroVal") as HTMLInputElement | null;
-  const maxStepsInput = $("maxSteps") as HTMLInputElement | null;
-  const maxStepsVal = $("maxStepsVal") as HTMLInputElement | null;
-  if (dtMacroInput) dtMacroInput.value = String(state.dtMacro);
-  if (dtMacroVal) dtMacroVal.value = state.dtMacro.toFixed(4);
-  if (maxStepsInput) maxStepsInput.value = String(state.maxSteps);
-  if (maxStepsVal) maxStepsVal.value = String(state.maxSteps);
+  
+  updateSliderValue("dtMacro", state.dtMacro, {
+    numberInputId: "dtMacroVal",
+    decimals: 4
+  });
+  
+  updateSliderValue("maxSteps", state.maxSteps, {
+    numberInputId: "maxStepsVal"
+  });
+  
   scheduleRender("quality"); writeHash(); updateStateBox(); drawOverlayHUD();
 }

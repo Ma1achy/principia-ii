@@ -129,6 +129,9 @@ export class KeyboardNavigationManager {
     this._boundMouseHandler = this._handleMouseInteraction.bind(this);
     document.addEventListener('pointerdown', this._boundMouseHandler, true);
     
+    // Set up backdrop click handler for overlays
+    this._setupBackdropClickHandler();
+
     this._setupTreeListeners();
     
     const cellId = this.enterGrid(rootId, 'explicit');
@@ -497,61 +500,28 @@ export class KeyboardNavigationManager {
         this.sessionState.active = true;
         document.body.classList.add('nav-active');
         
-        // Look for cancel button first (dialogs), then close button (pickers)
+        // Look for cancel button first (dialogs), then close button (panels/pickers)
         const cancelButton = this._findCancelButton();
         if (cancelButton) {
           this._setFocus(cancelButton);
+          return;
+        }
+        
+        // Look for panel close button
+        const panelCloseButton = this._findPanelCloseButton();
+        if (panelCloseButton) {
+          this._setFocus(panelCloseButton);
           return;
         }
         
         // Look for picker close button
-        const closeButton = this._findPickerCloseButton();
-        if (closeButton) {
-          this._setFocus(closeButton);
+        const pickerCloseButton = this._findPickerCloseButton();
+        if (pickerCloseButton) {
+          this._setFocus(pickerCloseButton);
           return;
         }
       }
       
-      return;
-    }
-    
-    // Check if we're in an overlay
-    const overlayFrame = this.navStack.getCurrentOverlay();
-    if (overlayFrame && overlayFrame.overlayId) {
-      const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
-      
-      if (overlayNode?.closeOnEscape === false) {
-        console.log('[KNM] Escape pressed - overlay does not allow escape:', overlayFrame.overlayId);
-        return;
-      }
-      
-      const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
-      const isOnCancelButton = currentNode?.kind === 'button' && 
-                               (currentNode.meta?.buttonRole === 'danger' ||
-                                currentNode.meta?.buttonRole === 'secondary' ||
-                                currentNode.meta?.intent === 'cancel' ||
-                                currentNode.meta?.intent === 'escape');
-      
-      const isOnCloseButton = currentNode?.kind === 'picker-close-button';
-      
-      if (!isOnCancelButton && !isOnCloseButton) {
-        const cancelButton = this._findCancelButton();
-        if (cancelButton) {
-          console.log('[KNM] Escape stage 1 - moving to cancel button');
-          this._setFocus(cancelButton);
-          return;
-        }
-        
-        const closeButton = this._findPickerCloseButton();
-        if (closeButton) {
-          console.log('[KNM] Escape stage 1 - moving to close button');
-          this._setFocus(closeButton);
-          return;
-        }
-      }
-      
-      console.log('[KNM] Escape stage 2 - closing overlay:', overlayFrame.overlayId);
-      this.closeOverlay(overlayFrame.overlayId);
       return;
     }
     
@@ -578,6 +548,66 @@ export class KeyboardNavigationManager {
       }
       
       this._exitInteractionMode();
+      return;
+    }
+    
+    // Check if we're in an overlay
+    const overlayFrame = this.navStack.getCurrentOverlay();
+    if (overlayFrame && overlayFrame.overlayId) {
+      const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
+      
+      if (overlayNode?.closeOnEscape === false) {
+        console.log('[KNM] Escape pressed - overlay does not allow escape:', overlayFrame.overlayId);
+        return;
+      }
+      
+      // Check if we're in a nested scope within the overlay
+      // If stack depth > overlay depth + 1, we're in a nested scope and should exit it first
+      const overlayDepth = this.navStack.findFrameIndex(f => f.type === 'overlay' && f.overlayId === overlayFrame.overlayId);
+      const currentDepth = this.navStack.depth();
+      
+      if (currentDepth > overlayDepth + 1) {
+        // We're in a nested scope (e.g., inside a slider within the panel)
+        // Exit the nested scope first
+        console.log('[KNM] In nested scope within overlay, exiting scope first');
+        const parentCellId = this.exitScope();
+        if (parentCellId) {
+          this._setFocus(parentCellId);
+        }
+        return;
+      }
+      
+      // We're at the top level of the overlay
+      // Check if we're on a close button (any kind)
+      const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
+      const isOnCloseButton = currentNode?.kind === 'picker-close-button' ||
+                             currentNode?.role === 'picker-close-button' ||
+                             currentNode?.role === 'panel-close-button';
+      
+      if (isOnCloseButton) {
+        // Already on close button - close the overlay
+        console.log('[KNM] On close button, closing overlay:', overlayFrame.overlayId);
+        this.closeOverlay(overlayFrame.overlayId);
+        return;
+      }
+      
+      // Not on close button - try to find and move to it
+      // Try panel close button first
+      let closeButton = this._findPanelCloseButton();
+      if (!closeButton) {
+        // Try picker close button
+        closeButton = this._findPickerCloseButton();
+      }
+      
+      if (closeButton) {
+        console.log('[KNM] Moving to close button');
+        this._setFocus(closeButton);
+        return;
+      }
+      
+      // No close button found - just close the overlay
+      console.log('[KNM] No close button found, closing overlay');
+      this.closeOverlay(overlayFrame.overlayId);
       return;
     }
     
@@ -1213,6 +1243,48 @@ export class KeyboardNavigationManager {
     
     return findCloseButton(overlayFrame.overlayId);
   }
+
+  private _findPanelCloseButton(): string | null {
+    const overlayFrame = this.navStack.getCurrentOverlay();
+    if (!overlayFrame?.overlayId) {
+      console.log('[KNM] _findPanelCloseButton: No overlay frame');
+      return null;
+    }
+    
+    const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
+    if (!overlayNode) {
+      console.log('[KNM] _findPanelCloseButton: No overlay node found for:', overlayFrame.overlayId);
+      return null;
+    }
+    
+    console.log('[KNM] _findPanelCloseButton: Searching in overlay:', overlayFrame.overlayId);
+    console.log('[KNM] _findPanelCloseButton: Overlay has children:', overlayNode.children);
+    
+    const findCloseButton = (nodeId: string): string | null => {
+      const node = this.uiTree.getNode(nodeId);
+      if (!node) return null;
+      
+      console.log('[KNM] _findPanelCloseButton: Checking node:', nodeId, 'role:', node.role, 'kind:', node.kind);
+      
+      if (node.role === 'panel-close-button') {
+        console.log('[KNM] _findPanelCloseButton: FOUND panel close button:', nodeId);
+        return node.id;
+      }
+      
+      if (node.children) {
+        for (const childId of node.children) {
+          const result = findCloseButton(childId);
+          if (result) return result;
+        }
+      }
+      
+      return null;
+    };
+    
+    const result = findCloseButton(overlayFrame.overlayId);
+    console.log('[KNM] _findPanelCloseButton: Final result:', result);
+    return result;
+  }
   
   /**
    * Open an overlay (dialog, panel, dropdown, picker)
@@ -1230,7 +1302,14 @@ export class KeyboardNavigationManager {
     }
     
     // Determine entry coordinates
-    const [row, col] = this._resolveEntryCoords(overlayId, 'explicit');
+    // 'explicit' means use entryCell or first visible (fallthrough in _resolveEntryCoords)
+    // 'remembered' means use memory if available, otherwise fallthrough
+    // 'primary' means find primary child
+    let policy = grid.entryPolicy || 'first';
+    if (policy === 'explicit') {
+      policy = 'first';  // explicit just means use default behavior (entryCell or first visible)
+    }
+    const [row, col] = this._resolveEntryCoords(overlayId, policy);
     const cell = this.uiTree.getGridCell(overlayId, row, col);
     if (!cell) {
       console.error('[KNM] No cell found in overlay:', overlayId);
@@ -1495,6 +1574,34 @@ export class KeyboardNavigationManager {
   
   // ── UITree Event Listeners ─────────────────────────────────────────────────
   
+  /**
+   * Set up backdrop click handler for all overlays (panels, pickers, dialogs)
+   * Closes overlay when clicking on backdrop if closeOnEscape is enabled
+   */
+  private _setupBackdropClickHandler(): void {
+    document.addEventListener('click', (e: MouseEvent) => {
+      // Get current overlay if any
+      const overlayFrame = this.navStack.getCurrentOverlay();
+      if (!overlayFrame) return;
+      
+      const overlayNode = this.uiTree.getNode(overlayFrame.overlayId);
+      if (!overlayNode) return;
+      
+      // Check if overlay allows closing (respects closeOnEscape setting)
+      if (overlayNode.closeOnEscape === false) return;
+      
+      // Get the overlay element
+      const overlayElement = this.uiTree.getElement(overlayFrame.overlayId);
+      if (!overlayElement) return;
+      
+      // Check if click was on the backdrop (overlay element itself, not its children)
+      if (e.target === overlayElement) {
+        console.log('[KNM] Backdrop click detected, closing overlay:', overlayFrame.overlayId);
+        this.closeOverlay(overlayFrame.overlayId);
+      }
+    });
+  }
+
   private _setupTreeListeners(): void {
     if (!this.uiTree?._events) {
       console.warn('[KNM] UITree events not available');

@@ -4,8 +4,9 @@
  */
 
 import { UINode, GridCell } from './store.js';
+import { cell, grid } from './GridBuilder.js';
 
-// Re-export grid builders
+// Re-export grid builders for external use
 export { grid, cell, getCellAt, getCellCoords, indexToCoords, coordsToIndex, hasCellAt, getAllCellsWithCoords } from './GridBuilder.js';
 
 // ── Utility ────────────────────────────────────────────────────────────────
@@ -546,32 +547,40 @@ export interface PanelResult {
 /**
  * Create a panel overlay node
  * Returns { overlayNode, closeNode, nodes: [overlayNode, closeNode] }
+ * 
+ * Note: Panels are implemented as grids (not a separate 'panel' kind) so they work
+ * with the navigation system's openOverlay() method which expects grids.
  */
 export function panel(id: string, title: string, children: UINode[], config: PanelConfig = {}): PanelResult {
   const closeId = `${id}:close`;
   const closeNode = button(closeId, {
     ariaLabel: `Close ${title}`,
-    role: 'button'
+    role: 'panel-close-button'  // Custom role so we can register specific behavior
   });
 
-  const overlayNode: UINode = {
-    id,
-    kind: 'panel',
-    parentId: null, // Overlays have no structural parent
-    children: [closeId, ...buildChildren(children)],
-    focusMode: 'container',
-    overlay: true,
+  // Build a vertical 1-column grid with close button at top, then children
+  const childIds = buildChildren(children);
+  const gridCells = [[cell(closeId)], ...childIds.map(childId => [cell(childId)])];
+
+  // Use the grid() builder to create properly structured grid node
+  // Use 'remembered' policy to maintain last position, but skip close button on first entry
+  const overlayNode = grid(id, {
+    cells: gridCells,
+    wrapCols: false,
+    wrapRows: false,
+    entryPolicy: 'remembered',
+    entryCell: children.length > 0 ? 1 : 0,  // Start at first content item (row 1), not close button (row 0)
+    isOverlay: true,
+    modal: true,
+    closeOnEscape: true,
+    parent: null,
     meta: {
-      modal: true,
-      strategy: 'linear',
-      entryPolicy: 'first',
-      wrap: false,
       ariaRole: 'dialog',
       ariaLabel: title,
       title,
       triggerId: config.triggerId || null
     }
-  };
+  });
 
   return {
     overlayNode,

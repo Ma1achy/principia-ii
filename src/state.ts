@@ -23,6 +23,8 @@ export interface NavPrefs {
   invertPanY: boolean;
   zoomSpeed: number;
   panSpeed: number;
+  navDAS: number;
+  navARR: number;
 }
 
 export interface State {
@@ -103,6 +105,8 @@ export const navPrefs: NavPrefs = {
   invertPanY: false,
   zoomSpeed: 1.0,
   panSpeed: 1.0,
+  navDAS: 200,
+  navARR: 50,
 };
 
 export const state: State = {

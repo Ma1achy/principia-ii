@@ -178,6 +178,46 @@ export function pickerCloseButtonBehavior(node: UINode, element: HTMLElement | n
   };
 }
 
+// ── Panel Close Button Behavior ───────────────────────────────────────────
+// Panel close buttons work identically to picker close buttons
+
+export function panelCloseButtonBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {
+  const { navManager } = deps;
+  
+  return {
+    onActivate() {
+      // Find the panel overlay ID from the node's parent
+      const panelId = node.parentId;
+      
+      console.log('[panelCloseButtonBehavior] onActivate called');
+      console.log('[panelCloseButtonBehavior]   node.id:', node.id);
+      console.log('[panelCloseButtonBehavior]   node.parentId (panelId):', panelId);
+      console.log('[panelCloseButtonBehavior]   has navManager:', !!navManager);
+      
+      if (navManager && panelId) {
+        console.log('[panelCloseButtonBehavior] Closing overlay via KNM:', panelId);
+        navManager.closeOverlay(panelId);
+      } else {
+        console.warn('[panelCloseButtonBehavior] No navManager or panelId');
+      }
+      
+      return BEHAVIOR_RESULT.HANDLED;
+    },
+
+    onArrowKey(direction: string) {
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onInteract() {
+      return BEHAVIOR_RESULT.IGNORED;
+    },
+
+    onEscape() {
+      return BEHAVIOR_RESULT.IGNORED;
+    }
+  };
+}
+
 // ── Checkbox Behavior ──────────────────────────────────────────────────────
 
 export function checkboxBehavior(node: UINode, element: HTMLElement | null, deps: BaseDeps = {}): Behavior {

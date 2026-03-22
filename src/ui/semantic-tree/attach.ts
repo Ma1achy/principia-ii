@@ -142,7 +142,14 @@ export function attachPrincipiaElements(uiTree: UITreeStore): void {
   // Sidebar is a transparent navigation container - no DOM element
   // Navigation goes directly to section bodies
   
+  // ── Info Panel ─────────────────────────────────────────────────────────────
+  uiTree.attachElement('info-panel', document.getElementById('infoPanelOverlay'));
+  uiTree.attachElement('info-panel:close', document.getElementById('infoPanelClose'));
+  
   // ── Settings Panel ─────────────────────────────────────────────────────────
+  uiTree.attachElement('settings-panel', document.getElementById('settingsPanelOverlay'));
+  uiTree.attachElement('settings-panel:close', document.getElementById('settingsPanelClose'));
+  
   uiTree.attachElement('autoRender', document.getElementById('autoRender'));
   uiTree.attachElement('previewWhileDrag', document.getElementById('previewWhileDrag'));
   uiTree.attachElement('showHud', document.getElementById('showHud'));
@@ -151,6 +158,10 @@ export function attachPrincipiaElements(uiTree: UITreeStore): void {
   uiTree.attachElement('stgInvertPanX', document.getElementById('stgInvertPanX'));
   uiTree.attachElement('stgInvertPanY', document.getElementById('stgInvertPanY'));
   attachSlider(uiTree, 'slider-stgPanSpeed', 'stgPanSpeed');
+  attachSlider(uiTree, 'slider-stgNavDAS', 'stgNavDAS');
+  attachSlider(uiTree, 'slider-stgNavARR', 'stgNavARR');
+  uiTree.attachElement('stgResetHandling', document.getElementById('stgResetHandling'));
+  uiTree.attachElement('stgResetMouse', document.getElementById('stgResetMouse'));
   
   console.log('[attach] Element attachment complete');
 }
