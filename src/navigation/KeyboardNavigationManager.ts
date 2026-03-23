@@ -380,16 +380,38 @@ export class KeyboardNavigationManager {
         }
       }, 5000);
       
-      // Special case: Enter and Escape work on first press
-      if (navEvent === 'nav-enter' || navEvent === 'nav-escape') {
-        this._transitionToActivated();
-        // Fall through to process
-      } else {
-        // For other keys, consume first press
-        console.log('[KNM] First press consumed - only showing cursor');
-        event.preventDefault();
-        return;
+      // Special positioning for Enter/Escape on first press
+      if (navEvent === 'nav-enter' && this.isInsideOverlay()) {
+        console.log('[KNM] First Enter - positioning cursor to primary button');
+        const primaryButton = this._findPrimaryButton();
+        if (primaryButton) {
+          this._setFocus(primaryButton);
+        }
+      } else if (navEvent === 'nav-escape' && this.isInsideOverlay()) {
+        console.log('[KNM] First Escape - positioning cursor to cancel/close button');
+        // Look for cancel button first (dialogs), then close button (panels/pickers)
+        const cancelButton = this._findCancelButton();
+        if (cancelButton) {
+          this._setFocus(cancelButton);
+        } else {
+          // Look for panel close button
+          const panelCloseButton = this._findPanelCloseButton();
+          if (panelCloseButton) {
+            this._setFocus(panelCloseButton);
+          } else {
+            // Look for picker close button
+            const pickerCloseButton = this._findPickerCloseButton();
+            if (pickerCloseButton) {
+              this._setFocus(pickerCloseButton);
+            }
+          }
+        }
       }
+      
+      // Consume first press - only show cursor (don't execute)
+      console.log('[KNM] First press consumed - only showing cursor');
+      event.preventDefault();
+      return;
     }
     
     // ── Normal Event Handling (ACTIVATED state) ─────────────────────────────
@@ -555,17 +577,22 @@ export class KeyboardNavigationManager {
   private _handleEnter(event: KeyboardEvent, wasActive: boolean): void {
     event.preventDefault();
     
-    if (!wasActive) {
-      console.log('[KNM] First Enter - showing cursor and moving to primary');
+    // Special behavior for AWAKENED state (first Enter after activation)
+    if (this.sessionState.activationState === 'awakened') {
+      console.log('[KNM] First Enter in AWAKENED - showing cursor and moving to primary');
       
       if (this.isInsideOverlay()) {
         const primaryButton = this._findPrimaryButton();
         if (primaryButton) {
           this._setFocus(primaryButton);
+          // Transition to ACTIVATED for next press
+          this._transitionToActivated();
           return;
         }
       }
       
+      // Transition to ACTIVATED
+      this._transitionToActivated();
       return;
     }
     
@@ -625,18 +652,17 @@ export class KeyboardNavigationManager {
     
     event.preventDefault();
     
-    if (!wasActive) {
-      console.log('[KNM] First Escape - showing cursor and moving to cancel/close button');
+    // Special behavior for AWAKENED state (first Escape after activation)
+    if (this.sessionState.activationState === 'awakened') {
+      console.log('[KNM] First Escape in AWAKENED - showing cursor and moving to cancel/close button');
       
       if (this.isInsideOverlay()) {
-        // Activate keyboard nav
-        this.sessionState.active = true;
-        document.body.classList.add('nav-active');
-        
         // Look for cancel button first (dialogs), then close button (panels/pickers)
         const cancelButton = this._findCancelButton();
         if (cancelButton) {
           this._setFocus(cancelButton);
+          // Transition to ACTIVATED for next press
+          this._transitionToActivated();
           return;
         }
         
@@ -644,6 +670,8 @@ export class KeyboardNavigationManager {
         const panelCloseButton = this._findPanelCloseButton();
         if (panelCloseButton) {
           this._setFocus(panelCloseButton);
+          // Transition to ACTIVATED for next press
+          this._transitionToActivated();
           return;
         }
         
@@ -651,10 +679,14 @@ export class KeyboardNavigationManager {
         const pickerCloseButton = this._findPickerCloseButton();
         if (pickerCloseButton) {
           this._setFocus(pickerCloseButton);
+          // Transition to ACTIVATED for next press
+          this._transitionToActivated();
           return;
         }
       }
       
+      // Transition to ACTIVATED
+      this._transitionToActivated();
       return;
     }
     
