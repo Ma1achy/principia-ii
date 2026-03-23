@@ -3,10 +3,11 @@
  * Dynamic HTML generation for picker overlays
  */
 
+import { createCloseButton } from '../components/button/CloseButton.js';
+
 // SVG icon constants
 const ICON_ARROW_UP = '<svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,2 7,6"/></svg>';
 const ICON_ARROW_DOWN = '<svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,2 4,6 7,2"/></svg>';
-const ICON_CLOSE = '&#x2715;';
 
 /**
  * Picker scrollbar components
@@ -55,9 +56,10 @@ export function createPicker(id: string, title: string): PickerResult {
   titleSpan.id = `${id}Title`;
   titleSpan.textContent = title;
   
-  const closeBtn = document.createElement('button');
-  closeBtn.id = `${id}Close`;
-  closeBtn.innerHTML = ICON_CLOSE;
+  const closeBtn = createCloseButton({
+    id: `${id}Close`,
+    label: '✕'
+  });
   
   header.appendChild(titleSpan);
   header.appendChild(closeBtn);

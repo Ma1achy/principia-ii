@@ -119,6 +119,79 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Picker item button (used in all picker lists) */
+.picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 9px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s ease, color 0.12s ease;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.picker-item:last-child {
+  border-bottom: none;
+}
+
+.picker-item:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.picker-item.active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.picker-item.active:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* When hovering a non-active sibling, dim the active item to signal it will deselect */
+#modePickerList:hover .picker-item.active:not(:hover),
+#customDimPickerList:hover .picker-item.active:not(:hover),
+#resPickerList:hover .picker-item.active:not(:hover),
+#tiltPickerList:hover .picker-item.active:not(:hover),
+#qualityPickerList:hover .picker-item.active:not(:hover) {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Index indicator in picker buttons */
+.picker-item-idx {
+  font-size: 9px;
+  color: var(--faint);
+  min-width: 16px;
+  flex-shrink: 0;
+}
+
+.picker-item.active .picker-item-idx {
+  color: var(--bg);
+  opacity: 0.6;
+}
+
+/* Dim active .picker-item-idx when active is being de-emphasised */
+#modePickerList:hover .picker-item.active:not(:hover) .picker-item-idx,
+#customDimPickerList:hover .picker-item.active:not(:hover) .picker-item-idx,
+#resPickerList:hover .picker-item.active:not(:hover) .picker-item-idx,
+#tiltPickerList:hover .picker-item.active:not(:hover) .picker-item-idx,
+#qualityPickerList:hover .picker-item.active:not(:hover) .picker-item-idx {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* Legacy class name support (for gradual migration) */
 .tilt-pick-btn {
   display: flex;
   align-items: center;
@@ -218,6 +291,7 @@
 #modePickerClose,
 #customDimPickerClose,
 #resPickerClose,
-#tiltPickerClose {
-  font-weight: 600;
+#tiltPickerClose,
+#qualityPickerClose {
+  /* Inherits from .close-btn in button.css */
 }

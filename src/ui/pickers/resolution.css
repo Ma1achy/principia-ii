@@ -56,23 +56,6 @@
   color: var(--muted);
 }
 
-#resPickerClose {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
-  color: var(--muted);
-  line-height: 1;
-  padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-#resPickerClose:hover {
-  background: var(--text);
-  color: var(--bg);
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    List
    ═══════════════════════════════════════════════════════════════════════════ */

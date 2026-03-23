@@ -266,6 +266,16 @@ export class KeyboardNavigationManager {
   private _handleKeyDown(event: KeyboardEvent): void {
     const { key } = event;
     
+    // Early prevention: If we're in an overlay and this is a navigation key, prevent default immediately
+    // to stop background scrolling before any other logic runs
+    const isNavigationKey = key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight' ||
+                           key === 'w' || key === 'W' || key === 's' || key === 'S' ||
+                           key === 'a' || key === 'A' || key === 'd' || key === 'D';
+    if (isNavigationKey && this.isInsideOverlay()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     // If interacting with a text input element (textarea, value-editor, code-editor), 
     // let ALL keys through except Escape (and Enter for value-editor)
     const interactingId = this.interactingNodeId;
@@ -486,10 +496,12 @@ export class KeyboardNavigationManager {
     
     // Check with behavior first before preventing default
     // If behavior returns 'ignored', we should let browser handle it (e.g., cursor movement in inputs)
+    // Note: preventDefault is already called early in _handleKeyDown for overlay cases
     const result = this._executeNavigationAction(navEvent);
     
-    // Only prevent default if behavior didn't ignore the event
-    if (result !== 'ignored') {
+    // Only prevent default if behavior didn't ignore the event and we're not in an overlay
+    // (overlay case is handled early in _handleKeyDown)
+    if (!this.isInsideOverlay() && result !== 'ignored') {
       event.preventDefault();
     }
     

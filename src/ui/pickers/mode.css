@@ -56,25 +56,6 @@
   color: var(--muted);
 }
 
-#modePickerClose {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
-  color: var(--muted);
-  line-height: 1;
-  padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-  border-radius: 0;
-}
-
-#modePickerClose:hover {
-  background: var(--text);
-  color: var(--bg);
-  padding: 2px 4px;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    List
    ═══════════════════════════════════════════════════════════════════════════ */

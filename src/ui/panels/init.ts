@@ -4,6 +4,7 @@
  */
 
 import { createSidePanel, SidePanelResult } from './PanelFactory.js';
+import { createCheckbox } from '../components/checkbox/CheckboxFactory.js';
 
 /**
  * Panel map structure
@@ -40,11 +41,40 @@ function createSettingsContent(): HTMLElement {
   const handlingBody = document.createElement('div');
   handlingBody.className = 'section-body open';
   handlingBody.id = 'settings-panel-handling';
-  handlingBody.innerHTML = `
-    <div class="stg-group-subtitle">Mouse</div>
-    <div class="stg-row"><span>Invert scroll direction</span><input type="checkbox" id="stgInvertScroll" /></div>
-    <div class="stg-row"><span>Invert pan X</span><input type="checkbox" id="stgInvertPanX" /></div>
-    <div class="stg-row"><span>Invert pan Y</span><input type="checkbox" id="stgInvertPanY" /></div>
+  
+  // Mouse subtitle
+  const mouseSubtitle = document.createElement('div');
+  mouseSubtitle.className = 'stg-group-subtitle';
+  mouseSubtitle.textContent = 'Mouse';
+  handlingBody.appendChild(mouseSubtitle);
+  
+  // Mouse checkboxes
+  const invertScroll = createCheckbox({
+    id: 'stgInvertScroll',
+    label: 'Invert scroll direction',
+    checked: false
+  });
+  invertScroll.className = 'stg-row check';
+  handlingBody.appendChild(invertScroll);
+  
+  const invertPanX = createCheckbox({
+    id: 'stgInvertPanX',
+    label: 'Invert pan X',
+    checked: false
+  });
+  invertPanX.className = 'stg-row check';
+  handlingBody.appendChild(invertPanX);
+  
+  const invertPanY = createCheckbox({
+    id: 'stgInvertPanY',
+    label: 'Invert pan Y',
+    checked: false
+  });
+  invertPanY.className = 'stg-row check';
+  handlingBody.appendChild(invertPanY);
+  
+  // Zoom speed slider (keep as HTML for now)
+  const zoomSliderHTML = `
     <div class="sl-row">
       <label>Zoom speed</label>
       <div class="sl-track-row">
@@ -84,6 +114,12 @@ function createSettingsContent(): HTMLElement {
     </div>
   `;
   
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = zoomSliderHTML;
+  while (tempDiv.firstChild) {
+    handlingBody.appendChild(tempDiv.firstChild);
+  }
+  
   handlingSection.appendChild(handlingHead);
   handlingSection.appendChild(handlingBody);
   container.appendChild(handlingSection);
@@ -109,11 +145,31 @@ function createSettingsContent(): HTMLElement {
   const renderingBody = document.createElement('div');
   renderingBody.className = 'section-body open';
   renderingBody.id = 'settings-panel-rendering';
-  renderingBody.innerHTML = `
-    <div class="stg-row"><span>Auto-render</span><input type="checkbox" id="autoRender" checked /></div>
-    <div class="stg-row"><span>Preview while moving</span><input type="checkbox" id="previewWhileDrag" checked /></div>
-    <div class="stg-row"><span>Show probe</span><input type="checkbox" id="showHud" checked /></div>
-  `;
+  
+  // Rendering checkboxes
+  const autoRender = createCheckbox({
+    id: 'autoRender',
+    label: 'Auto-render',
+    checked: true
+  });
+  autoRender.className = 'stg-row check';
+  renderingBody.appendChild(autoRender);
+  
+  const previewWhileDrag = createCheckbox({
+    id: 'previewWhileDrag',
+    label: 'Preview while moving',
+    checked: true
+  });
+  previewWhileDrag.className = 'stg-row check';
+  renderingBody.appendChild(previewWhileDrag);
+  
+  const showHud = createCheckbox({
+    id: 'showHud',
+    label: 'Show probe',
+    checked: true
+  });
+  showHud.className = 'stg-row check';
+  renderingBody.appendChild(showHud);
   
   renderingSection.appendChild(renderingHead);
   renderingSection.appendChild(renderingBody);

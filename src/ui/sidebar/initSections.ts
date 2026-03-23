@@ -6,6 +6,7 @@
 import { createSection } from '../components/section/SectionFactory.js';
 import { createSlider } from '../components/slider/SliderFactory.js';
 import { createScrollbar } from '../components/scrollbar/ScrollbarFactory.js';
+import { createCheckbox } from '../components/checkbox/CheckboxFactory.js';
 
 /**
  * Creates all sidebar sections and inserts them into the sidebar-scroll container
@@ -218,12 +219,13 @@ function createOrientationSection(): HTMLElement {
   content.appendChild(hiddenSelects);
   
   // Ortho checkbox
-  const checkbox = document.createElement('div');
-  checkbox.className = 'check';
-  checkbox.innerHTML = `
-    <input id="doOrtho" data-tip="Orthonormalise q1 and q2 so the slice axes are perpendicular." type="checkbox" checked />
-    <label for="doOrtho">Orthonormalise q&#8321;, q&#8322;</label>
-  `;
+  const checkbox = createCheckbox({
+    id: 'doOrtho',
+    label: 'Orthonormalise q&#8321;, q&#8322;',
+    checked: true,
+    tip: 'Orthonormalise q1 and q2 so the slice axes are perpendicular.'
+  });
+  checkbox.style.marginTop = '12px';
   content.appendChild(checkbox);
   
   // Reset button

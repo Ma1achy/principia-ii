@@ -17,6 +17,7 @@
  */
 
 import { attachDynamicBehaviorBatch } from '../components/button/DynamicButton.js';
+import { createCheckbox } from '../components/checkbox/CheckboxFactory.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Type Definitions
@@ -524,28 +525,17 @@ function renderDialog(rootElement: HTMLElement, options: NormalizedOptions, init
   // Checkboxes
   if (options.checkboxes.length > 0) {
     options.checkboxes.forEach(checkbox => {
-      const checkWrap = document.createElement('div');
+      const checkWrap = createCheckbox({
+        id: 'dialog-check-' + checkbox.id,
+        label: checkbox.label,
+        checked: !!initialState.checks[checkbox.id],
+        helpText: checkbox.helpText
+      });
       checkWrap.className = 'dialog-checkbox check';
       
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.id = 'dialog-check-' + checkbox.id;
-      input.dataset.checkId = checkbox.id;
-      input.checked = !!initialState.checks[checkbox.id];
-      
-      const label = document.createElement('label');
-      label.setAttribute('for', input.id);
-      label.textContent = checkbox.label;
-      
-      checkWrap.appendChild(input);
-      checkWrap.appendChild(label);
-      
-      if (checkbox.helpText) {
-        const help = document.createElement('div');
-        help.className = 'dialog-checkbox-help';
-        help.textContent = checkbox.helpText;
-        checkWrap.appendChild(help);
-      }
+      // Add dataset for checkbox ID
+      const input = checkWrap.querySelector('input') as HTMLInputElement;
+      if (input) input.dataset.checkId = checkbox.id;
       
       box.appendChild(checkWrap);
     });

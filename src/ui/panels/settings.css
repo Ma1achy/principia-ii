@@ -61,24 +61,6 @@
   color: var(--text);
 }
 
-#settingsPanelClose {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  line-height: 1;
-  padding: 2px 4px;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-#settingsPanelClose:hover {
-  background: var(--text);
-  color: var(--bg);
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    Content & Scrollbar
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -191,4 +173,10 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--text);
+}
+
+/* Checkbox rows - checkbox on left, label follows naturally */
+.stg-row.check {
+  justify-content: flex-start;
+  margin-top: 0; /* Override default .check margin */
 }

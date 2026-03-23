@@ -1,6 +1,7 @@
 import { state, PRESETS } from '../../state.js';
 import { $ } from '../utils.js';
 import type { UITreeStore } from '../semantic-tree/store.js';
+import { createPresetButton } from '../components/presets/PresetButtonFactory.js';
 
 // ─── Preset builder ──────────────────────────────────────────────────────────
 
@@ -79,27 +80,28 @@ export async function buildPresets(
   
   for (const p of PRESETS) {
     console.log('[buildPresets] Creating preset:', p.id, p.name);
-    const b = document.createElement("button");
-    b.className = "btn preset" + (p.id === state.presetId ? " active" : "");
-    if (p.id === "custom") b.style.gridColumn = "span 2";
-    b.textContent = p.name;
-    b.addEventListener("click", () => {
-      state.presetId = p.id;
-      if (p.id === "custom") {
-        applyCustomBasis();
-      } else {
-        state.dir1Base = p.q1.slice();
-        state.dir2Base = p.q2.slice();
+    const b = createPresetButton({
+      label: p.name,
+      active: p.id === state.presetId,
+      spanColumns: p.id === "custom",
+      onClick: () => {
+        state.presetId = p.id;
+        if (p.id === "custom") {
+          applyCustomBasis();
+        } else {
+          state.dir1Base = p.q1.slice();
+          state.dir2Base = p.q2.slice();
+        }
+        [...grid.children].forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        
+        // Pass the button ID so focus returns to the clicked button
+        const btnId = `preset-${p.id}`;
+        updateCustomPanelVisibility(uiTree, navManager, btnId);
+        
+        scheduleRender("preset");
+        writeHash(); updateStateBox(); drawOverlayHUD();
       }
-      [...grid.children].forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      
-      // Pass the button ID so focus returns to the clicked button
-      const btnId = `preset-${p.id}`;
-      updateCustomPanelVisibility(uiTree, navManager, btnId);
-      
-      scheduleRender("preset");
-      writeHash(); updateStateBox(); drawOverlayHUD();
     });
     grid.appendChild(b);
     

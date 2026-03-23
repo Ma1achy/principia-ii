@@ -3,7 +3,7 @@
  * Dynamic HTML generation for side panel overlays (Settings & Info)
  */
 
-const ICON_CLOSE = '&#x2715;';
+import { createCloseButton } from '../components/button/CloseButton.js';
 
 /**
  * Side panel result structure
@@ -47,9 +47,10 @@ export function createSidePanel(
   titleSpan.id = `${id}Title`;
   titleSpan.textContent = title;
   
-  const closeBtn = document.createElement('button');
-  closeBtn.id = `${id}Close`;
-  closeBtn.innerHTML = ICON_CLOSE;
+  const closeBtn = createCloseButton({
+    id: `${id}Close`,
+    label: '✕'
+  });
   
   header.appendChild(titleSpan);
   header.appendChild(closeBtn);

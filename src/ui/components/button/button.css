@@ -109,3 +109,25 @@
   flex-shrink: 0;
   display: block;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Close Button (Pickers, Panels, Dialogs)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1;
+  padding: 2px 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.close-btn:hover {
+  background: var(--text);
+  color: var(--bg);
+}
