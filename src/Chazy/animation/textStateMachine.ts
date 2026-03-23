@@ -81,6 +81,7 @@ export class TextStateMachine {
   pendingLine: string | null;
   isFirstText: boolean;
   isWelcomeText: boolean;
+  private pendingOnComplete: (() => void) | null;
   pendingInterrupts: PendingInterrupt[];
   currentLinePriority: number;
   currentEmotion: string;
@@ -112,6 +113,7 @@ export class TextStateMachine {
     this.pendingLine = null;
     this.isFirstText = true;
     this.isWelcomeText = false;
+    this.pendingOnComplete = null;
     
     // Enhanced interrupt system
     this.pendingInterrupts = [];
@@ -194,6 +196,9 @@ export class TextStateMachine {
       clearTimeout(this.currentTimer);
       this.currentTimer = null;
     }
+    
+    // Clear pending callback
+    this.pendingOnComplete = null;
     
     if (this._cleanupInterval) {
       clearInterval(this._cleanupInterval);
@@ -438,6 +443,14 @@ export class TextStateMachine {
         if (this.currentTimer) {
           clearTimeout(this.currentTimer);
           this.currentTimer = null;
+          
+          // Preserve callback before clearing timer
+          if (this.pendingOnComplete) {
+            const callback = this.pendingOnComplete;
+            this.pendingOnComplete = null;
+            console.log('[FSM clearStrategy] Executing pending onComplete');
+            setTimeout(callback, 0);
+          }
         }
         
         const element = this.element;
@@ -619,15 +632,29 @@ export class TextStateMachine {
       if (this.currentTimer) {
         clearTimeout(this.currentTimer);
         this.currentTimer = null;
+        
+        // Call pending callback before clearing timer
+        if (this.pendingOnComplete) {
+          const callback = this.pendingOnComplete;
+          this.pendingOnComplete = null;
+          console.log('[FSM processLine] Executing pending onComplete before new line');
+          setTimeout(callback, 0);
+        }
       }
       
       if (this.isFirstText) {
         this.isFirstText = false;
         const initialDelay = 3000 + Math.random() * 2000;
-        this.currentTimer = setTimeout(() => {
+        
+        // Wrap and store the first text callback
+        const firstTextCallback = () => {
           this.currentTimer = null;
+          this.pendingOnComplete = null;
           this.startTyping(line, config);
-        }, initialDelay);
+        };
+        this.pendingOnComplete = firstTextCallback;
+        
+        this.currentTimer = setTimeout(firstTextCallback, initialDelay);
         return;
       }
       
@@ -689,10 +716,16 @@ export class TextStateMachine {
         this.currentState = 'DISPLAY';
         
         const displayTime = config.displayTime || 3000;
-        this.currentTimer = setTimeout(() => {
+        
+        // Wrap and store the display callback
+        const displayCallback = () => {
           this.currentTimer = null;
+          this.pendingOnComplete = null;
           this.startDeleting(config);
-        }, displayTime);
+        };
+        this.pendingOnComplete = displayCallback;
+        
+        this.currentTimer = setTimeout(displayCallback, displayTime);
       }, {
         emotion,
         intensity,
@@ -730,6 +763,9 @@ export class TextStateMachine {
     try {
       this.currentState = 'DELETING';
       
+      // Store callback for interrupt preservation
+      this.pendingOnComplete = config.onComplete;
+      
       const emotion = config.emotion || 'NEUTRAL';
       const intensity = Math.max(0, Math.min(1, config.intensity || 0.5));
       const themes = config.themes || [];
@@ -751,7 +787,9 @@ export class TextStateMachine {
         const idleTime = config.idleTime || 2000;
         this.currentTimer = setTimeout(() => {
           this.currentTimer = null;
-          config.onComplete();
+          const callback = this.pendingOnComplete;
+          this.pendingOnComplete = null;
+          if (callback) callback();
         }, idleTime);
       }, {
         emotion,
@@ -782,6 +820,14 @@ export class TextStateMachine {
       if (this.currentTimer) {
         clearTimeout(this.currentTimer);
         this.currentTimer = null;
+        
+        // Call pending callback (token system validates)
+        if (this.pendingOnComplete) {
+          const callback = this.pendingOnComplete;
+          this.pendingOnComplete = null;
+          console.log('[FSM Interrupt] Executing pending onComplete (token system validates)');
+          setTimeout(callback, 0);
+        }
       }
       this._enterIdle();
       return true;

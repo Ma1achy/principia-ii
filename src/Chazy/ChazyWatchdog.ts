@@ -147,17 +147,9 @@ export class ChazyWatchdog {
     // Log progress check
     console.log(`[Watchdog] Progress check: ${(timeSinceLastChange / 1000).toFixed(1)}s since change (lock: ${latest.lockHeld}, FSM: ${latest.fsmState})`);
     
-    // Only trigger if lock is held (multi-line sequence stuck)
-    if (!latest.lockHeld) {
-      if (this._isDebugEnabled()) {
-        console.log('[Watchdog] Check: no lock held, skipping');
-      }
-      return;
-    }
-    
-    // Check if stuck
-    if (timeSinceLastChange > this.stuckThreshold) {
-      console.error(`[Watchdog] STUCK DETECTED - no progress for ${(timeSinceLastChange / 1000).toFixed(1)}s`);
+    // ORIGINAL: Check for stuck multi-line sequence (lock held)
+    if (latest.lockHeld && timeSinceLastChange > this.stuckThreshold) {
+      console.error(`[Watchdog] STUCK DETECTED (multi-line lock) - no progress for ${(timeSinceLastChange / 1000).toFixed(1)}s`);
       console.error('[Watchdog] Stuck state:', {
         fsmState: latest.fsmState,
         textContent: latest.textContent.substring(0, 50),
@@ -166,6 +158,28 @@ export class ChazyWatchdog {
       });
       
       this._forceRecovery();
+      return;
+    }
+    
+    // NEW: Check for stuck in IDLE (lifecycle broken)
+    const idleThreshold = 60000; // 60 seconds in IDLE is abnormal
+    if (!latest.lockHeld && 
+        latest.fsmState === 'IDLE' && 
+        timeSinceLastChange > idleThreshold &&
+        this.orchestrator.running) {
+      
+      console.error(`[Watchdog] STUCK DETECTED (idle timeout) - FSM idle for ${(timeSinceLastChange / 1000).toFixed(1)}s`);
+      console.error('[Watchdog] Likely cause: interrupt cleared timer without calling onComplete');
+      console.error('[Watchdog] State:', {
+        fsmState: latest.fsmState,
+        lockHeld: latest.lockHeld,
+        running: this.orchestrator.running,
+        textContent: latest.textContent.substring(0, 50),
+        historySize: this.history.length
+      });
+      
+      this._forceRecovery();
+      return;
     }
   }
   

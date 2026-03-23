@@ -190,6 +190,14 @@ export class Chazy {
       return;
     }
     
+    // Detect long gaps (suggests lifecycle bug)
+    const timeSinceLastSchedule = Date.now() - this.lastScheduledAmbient;
+    if (this.lastScheduledAmbient > 0 && timeSinceLastSchedule > 120000) { // 2 minutes
+      console.warn(`[Chazy] ⚠️ LONG GAP: ${(timeSinceLastSchedule/1000).toFixed(1)}s since last schedule (${reason})`);
+      console.warn('[Chazy] This suggests a lifecycle bug was recovered from');
+      console.warn('[Chazy] Previous schedule was at:', new Date(this.lastScheduledAmbient).toISOString());
+    }
+    
     this.lastScheduledAmbient = Date.now();
     console.log(`[Chazy] Scheduled ambient in ${ms}ms (${reason})`);
     
