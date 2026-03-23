@@ -445,6 +445,9 @@ function renderDialog(rootElement: HTMLElement, options: NormalizedOptions, init
   
   box.innerHTML = '';
   
+  // Set the overlay ID so it can be attached to the UI tree
+  const dialogId = 'dialog-' + options.id;
+  rootElement.id = dialogId;
   rootElement.setAttribute('aria-labelledby', 'dialog-title-' + options.id);
   
   // Title
@@ -624,7 +627,7 @@ function renderDialog(rootElement: HTMLElement, options: NormalizedOptions, init
       cells: buttonIds.map((id, col) => ({ id, row: 0, col, rowSpan: 1, colSpan: 1 })),
       children: buttonIds,
       wrapRows: false,
-      wrapCols: true,
+      wrapCols: false,
       entryPolicy: 'remembered',
       escapeUp: contentIds.length > 0 ? contentIds[contentIds.length - 1] : null,
       role: 'button-group',
@@ -673,7 +676,7 @@ function renderDialog(rootElement: HTMLElement, options: NormalizedOptions, init
       cols: 1,
       cells: dialogChildIds.map((id, row) => ({ id, row, col: 0, rowSpan: 1, colSpan: 1 })),
       children: dialogChildIds,
-      wrapRows: true,
+      wrapRows: false,
       wrapCols: false,
       entryPolicy: 'first',
       focusMode: 'entry-node',
@@ -697,6 +700,14 @@ function renderDialog(rootElement: HTMLElement, options: NormalizedOptions, init
     try {
       console.log('[Dialog] Registering overlay with', childNodes.length, 'children');
       (window as any).uiTree.addNodes([dialogNode, ...childNodes]);
+      
+      // Attach the dialog overlay element itself
+      const overlayElement = document.getElementById(dialogId);
+      if (overlayElement) {
+        (window as any).uiTree.attachElement(dialogId, overlayElement);
+      } else {
+        console.warn('[Dialog] Could not find overlay element:', dialogId);
+      }
       
       childNodes.forEach((node: any) => {
         if (node.element) {

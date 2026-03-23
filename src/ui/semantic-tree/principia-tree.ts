@@ -539,19 +539,51 @@ export function buildPrincipiaUITree(): UINode[] {
   });
   nodes.push(...infoPanel.nodes);
 
-  // Settings panel: 3 vertical groups
-  const autoRenderCheck = checkbox("autoRender", { 
-    label: "Auto-render" 
-  });
-  const previewDragCheck = checkbox("previewWhileDrag", { 
-    label: "Preview while moving" 
-  });
-  const showHudCheck = checkbox("showHud", { 
-    label: "Show probe" 
+  // Settings panel: 2 collapsible sections (Handling, Rendering)
+  // Structure matches sidebar: [handling:header] [handling-body] [rendering:header] [rendering-body]
+  
+  // HANDLING SECTION
+  const handlingControls = [
+    checkbox("stgInvertScroll", { label: "Invert scroll direction" }),
+    checkbox("stgInvertPanX", { label: "Invert pan X" }),
+    checkbox("stgInvertPanY", { label: "Invert pan Y" }),
+    slider("slider-stgZoomSpeed", { label: "Zoom speed", min: 20, max: 400, step: 10, value: 100, unit: "%", hasParamTrigger: false }),
+    button("stgResetMouse", { ariaLabel: "Reset mouse controls to defaults" }),
+    slider("slider-stgNavDAS", { label: "Key delay (DAS)", min: 50, max: 500, step: 10, value: 200, unit: "MS", hasParamTrigger: false }),
+    slider("slider-stgNavARR", { label: "Key repeat (ARR)", min: 20, max: 200, step: 10, value: 50, unit: "MS", hasParamTrigger: false }),
+    button("stgResetHandling", { ariaLabel: "Reset keyboard timing to defaults" })
+  ];
+  
+  const handlingBodyGrid = grid("settings-panel-handling", {
+    cells: [
+      [cell("stgInvertScroll")],
+      [cell("stgInvertPanX")],
+      [cell("stgInvertPanY")],
+      [cell("slider-stgZoomSpeed")],
+      [cell("stgResetMouse")],
+      [cell("slider-stgNavDAS")],
+      [cell("slider-stgNavARR")],
+      [cell("stgResetHandling")]
+    ],
+    wrapCols: false,
+    wrapRows: false,
+    entryPolicy: 'first',
+    escapeUp: 'settings-panel-handling',
+    escapeDown: 'settings-panel-handling'
   });
   
-  // Rendering group: 3×1 grid
-  const renderingGroupGrid = grid("settings-panel:rendering", {
+  const { header: handlingHeader, section: handlingSection } = section("settings-panel:handling", "Handling", [
+    handlingBodyGrid
+  ], { collapsed: false });
+  
+  // RENDERING SECTION
+  const renderingControls = [
+    checkbox("autoRender", { label: "Auto-render" }),
+    checkbox("previewWhileDrag", { label: "Preview while moving" }),
+    checkbox("showHud", { label: "Show probe" })
+  ];
+  
+  const renderingBodyGrid = grid("settings-panel-rendering", {
     cells: [
       [cell("autoRender")],
       [cell("previewWhileDrag")],
@@ -560,115 +592,31 @@ export function buildPrincipiaUITree(): UINode[] {
     wrapCols: false,
     wrapRows: false,
     entryPolicy: 'first',
-    escapeDown: 'settings-panel:scroll'  // Allow escaping down to next group
-  });
-
-  // Mouse handling controls
-  const invertScrollCheck = checkbox("stgInvertScroll", { 
-    label: "Invert scroll direction" 
-  });
-  const invertPanXCheck = checkbox("stgInvertPanX", { 
-    label: "Invert pan X" 
-  });
-  const invertPanYCheck = checkbox("stgInvertPanY", { 
-    label: "Invert pan Y" 
-  });
-  const zoomSpeedSlider = slider("slider-stgZoomSpeed", { 
-    label: "Zoom speed", 
-    min: 0.2, 
-    max: 4.0, 
-    step: 0.1, 
-    value: 1.0, 
-    hasParamTrigger: false 
-  });
-  const panSpeedSlider = slider("slider-stgPanSpeed", { 
-    label: "Pan speed", 
-    min: 0.2, 
-    max: 4.0, 
-    step: 0.1, 
-    value: 1.0, 
-    hasParamTrigger: false 
-  });
-  const resetMouseHandlingBtn = button("stgResetMouse", {
-    ariaLabel: "Reset mouse controls to defaults"
+    escapeUp: 'settings-panel-rendering',
+    escapeDown: 'settings-panel-rendering'
   });
   
-  // Mouse handling group: 6×1 grid
-  const mouseHandlingGrid = grid("settings-panel:handling:mouse", {
-    cells: [
-      [cell("stgInvertScroll")],
-      [cell("stgInvertPanX")],
-      [cell("stgInvertPanY")],
-      [cell("slider-stgZoomSpeed")],
-      [cell("slider-stgPanSpeed")],
-      [cell("stgResetMouse")]
-    ],
-    wrapCols: false,
-    wrapRows: false,
-    entryPolicy: 'first',
-    escapeDown: 'settings-panel:handling:keyboard'
-  });
-
-  // Keyboard handling controls (DAS and ARR sliders)
-  // Keyboard handling controls (DAS and ARR sliders)
-  const navDasSlider = slider("slider-stgNavDAS", {
-    label: "Key delay (DAS)",
-    min: 50,
-    max: 500,
-    step: 10,
-    value: 200,
-    hasParamTrigger: false
-  });
-
-  const navArrSlider = slider("slider-stgNavARR", {
-    label: "Key repeat (ARR)",
-    min: 20,
-    max: 200,
-    step: 10,
-    value: 50,
-    hasParamTrigger: false
-  });
-
-  const resetKeyboardHandlingBtn = button("stgResetHandling", {
-    ariaLabel: "Reset keyboard timing to defaults"
-  });
-
-  // Keyboard handling group: 3×1 grid
-  const keyboardHandlingGrid = grid("settings-panel:handling:keyboard", {
-    cells: [
-      [cell("slider-stgNavDAS")],
-      [cell("slider-stgNavARR")],
-      [cell("stgResetHandling")]
-    ],
-    wrapCols: false,
-    wrapRows: false,
-    entryPolicy: 'first',
-    escapeUp: 'settings-panel:handling:mouse'
-  });
-
-  // Parent handling group: 2×1 grid (Mouse + Keyboard subsections)
-  const handlingGroupGrid = grid("settings-panel:handling", {
-    cells: [
-      [cell("settings-panel:handling:mouse")],
-      [cell("settings-panel:handling:keyboard")]
-    ],
-    wrapCols: false,
-    wrapRows: false,
-    entryPolicy: 'first',
-    escapeUp: 'settings-panel:rendering'
-  });
-
-  // Pass the group grids directly to the panel (no intermediate grid needed)
+  const { header: renderingHeader, section: renderingSection } = section("settings-panel:rendering", "Rendering", [
+    renderingBodyGrid
+  ], { collapsed: false });
+  
+  // Settings panel overlay - directly contains headers and body grids (not section wrappers)
   const settingsPanel = panel("settings-panel", "Settings", [
-    renderingGroupGrid,
-    handlingGroupGrid
+    handlingHeader,
+    handlingBodyGrid,  // Use the actual grid, not the section wrapper
+    renderingHeader,
+    renderingBodyGrid  // Use the actual grid, not the section wrapper
   ], { triggerId: "settingsBtn" });
-
+  
   nodes.push(
-    renderingGroupGrid, autoRenderCheck, previewDragCheck, showHudCheck,
-    handlingGroupGrid,
-    mouseHandlingGrid, invertScrollCheck, invertPanXCheck, invertPanYCheck, ...zoomSpeedSlider, ...panSpeedSlider, resetMouseHandlingBtn,
-    keyboardHandlingGrid, ...navDasSlider, ...navArrSlider, resetKeyboardHandlingBtn,
+    handlingHeader,
+    handlingSection,
+    handlingBodyGrid,
+    ...handlingControls.flatMap(c => Array.isArray(c) ? c : [c]),
+    renderingHeader,
+    renderingSection,
+    renderingBodyGrid,
+    ...renderingControls,
     ...settingsPanel.nodes
   );
 

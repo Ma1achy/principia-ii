@@ -36,6 +36,11 @@ export class FocusVisualizer {
   currentState: FocusVisualizerState;
   resizeObserver: ResizeObserver | null;
   getStackDepth: (() => number) | null;
+  
+  // Fade animation state
+  private fadeAnimationId: number | null;
+  private fadeStartTime: number | null;
+  private fadeDuration: number;
 
   constructor(container: HTMLElement = document.body, config?: FocusVisualizerConfig) {
     this.getStackDepth = config?.getStackDepth || null;
@@ -43,6 +48,9 @@ export class FocusVisualizer {
     this.cursor = document.createElement('div');
     this.cursorEdges = { top: document.createElement('div'), right: document.createElement('div'), bottom: document.createElement('div'), left: document.createElement('div') };
     this.animationFrameId = null;
+    this.fadeAnimationId = null;
+    this.fadeStartTime = null;
+    this.fadeDuration = 0;
     this.currentState = {
       element: null,
       isEnterable: false,
@@ -114,16 +122,12 @@ export class FocusVisualizer {
   /**
    * Calculate z-index based on navigation stack depth using global system
    */
-  private _calculateZIndex(element: HTMLElement): number {
-    // Base cursor z-index for current stack depth
-    let zIndex = ZIndex.forCursor();
+  private _calculateZIndex(element: HTMLElement, isInteracting: boolean): number {
+    // Get current stack depth
+    const stackDepth = this.getStackDepth ? this.getStackDepth() : ZIndex.getStackDepth();
     
-    // If cursor is in interaction mode, add extra elevation
-    // to ensure it appears above overlay content
-    const isInteracting = this.cursor.classList.contains('interacting');
-    if (isInteracting) {
-      zIndex += 100;  // Additional elevation for interaction mode
-    }
+    // Get cursor z-index for current stack depth (MUST pass stackDepth!)
+    const zIndex = ZIndex.forCursor(stackDepth);
     
     return zIndex;
   }
@@ -188,7 +192,7 @@ export class FocusVisualizer {
     this._updateCursorStyle(isInteracting);
     
     // Set appropriate z-index based on context
-    const zIndex = this._calculateZIndex(element);
+    const zIndex = this._calculateZIndex(element, isInteracting);
     this.cursor.style.zIndex = String(zIndex);
     
     // Show cursor
@@ -374,9 +378,59 @@ export class FocusVisualizer {
   }
 
   /**
+   * Start fade-out animation
+   */
+  startFadeOut(durationMs: number): void {
+    console.log('[FocusVisualizer] Starting fade out animation');
+    this.fadeDuration = durationMs;
+    this.fadeStartTime = performance.now();
+    
+    if (this.fadeAnimationId !== null) {
+      cancelAnimationFrame(this.fadeAnimationId);
+    }
+    
+    this._animateFade();
+  }
+  
+  /**
+   * Animate fade-out effect
+   */
+  private _animateFade(): void {
+    const now = performance.now();
+    const elapsed = now - (this.fadeStartTime || now);
+    const progress = Math.min(elapsed / this.fadeDuration, 1.0);
+    
+    // Smooth linear fade from 100% to 0%
+    const opacity = 1.0 - progress;
+    
+    this.cursor.style.opacity = String(opacity);
+    
+    if (progress < 1.0) {
+      this.fadeAnimationId = requestAnimationFrame(() => this._animateFade());
+    } else {
+      this.fadeAnimationId = null;
+    }
+  }
+  
+  /**
+   * Cancel fade-out animation
+   */
+  cancelFade(): void {
+    console.log('[FocusVisualizer] Canceling fade animation');
+    if (this.fadeAnimationId !== null) {
+      cancelAnimationFrame(this.fadeAnimationId);
+      this.fadeAnimationId = null;
+    }
+    this.cursor.style.opacity = '1.0';
+  }
+
+  /**
    * Hide cursor
    */
   hide(): void {
+    // Cancel any active fade animation
+    this.cancelFade();
+    
     // Stop continuous tracking
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);

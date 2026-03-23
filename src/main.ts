@@ -1,5 +1,5 @@
 import { createThreeBodyRenderer } from './renderer.js';
-import { state, encodeStateHash, decodeStateHash, applyPackedHash, MODE_INFO, canonicalState } from './state.js';
+import { state, navPrefs, encodeStateHash, decodeStateHash, applyPackedHash, MODE_INFO, canonicalState } from './state.js';
 import { GlTooltip } from './ui/components/tooltip.js';
 import {
   buildResolutions, buildPresets, buildAxisSelects, buildZ0Sliders,
@@ -20,6 +20,7 @@ import { applySavedSettings, saveCurrentSettings } from './ui/settings-storage.j
 import { initAllScrollbars } from './ui/components/scrollbar/init.js';
 import { initAllPickers } from './ui/pickers/init.js';
 import { initAllPanels } from './ui/panels/init.js';
+import { initSettingsPanelScrollbar } from './ui/panels/initScrollbar.js';
 import { createCanvasControls } from './ui/components/canvas-controls/init.js';
 import { createControlSection } from './ui/sidebar/initControlSection.js';
 import { initSidebarSections } from './ui/sidebar/initSections.js';
@@ -460,16 +461,23 @@ async function boot(): Promise<void> {
   initAllPanels();
   console.log('[Boot] ✓ Panels created');
   
+  // Create settings panel scrollbar
+  console.log('[Boot] Creating settings panel scrollbar...');
+  initSettingsPanelScrollbar();
+  console.log('[Boot] ✓ Settings panel scrollbar created');
+
   // NOW apply saved settings (after DOM elements exist)
   console.log('[Boot] Loading saved settings...');
-  applySavedSettings();
+  const loadedSettings = applySavedSettings();
+  (window as any).principiaSettings = loadedSettings; // Store for later access
   console.log('[Boot] ✓ Settings loaded');
   
   // Setup settings change listeners to auto-save
   const settingsInputs = [
-    'autoRender', 'previewWhileDrag', 'showHud', 
-    'stgInvertScroll', 'stgZoomSpeed', 
-    'stgInvertPanX', 'stgInvertPanY', 'stgPanSpeed'
+    'autoRender', 'previewWhileDrag', 'showHud',
+    'stgInvertScroll', 'stgZoomSpeed',
+    'stgInvertPanX', 'stgInvertPanY',
+    'stgNavDAS', 'stgNavARR'
   ];
   
   settingsInputs.forEach(id => {
@@ -601,6 +609,12 @@ async function boot(): Promise<void> {
   
   const navManager = new KeyboardNavigationManager({ effects, visualizer, uiTree, behaviorRegistry, behaviorDeps });
   console.log('[Boot] ✓ Keyboard navigation initialized');
+  
+  // Apply loaded settings to navPrefs and KeyRepeatManager
+  navPrefs.navDAS = (window as any).principiaSettings?.navDAS ?? 200;
+  navPrefs.navARR = (window as any).principiaSettings?.navARR ?? 50;
+  navManager.repeatManager.updateFromNavPrefs(navPrefs.navDAS, navPrefs.navARR);
+  console.log('[Boot] ✓ DAS/ARR initialized:', navPrefs.navDAS, '/', navPrefs.navARR);
   
   buildResolutions(renderer);
   await buildPresets(scheduleRender, writeHash, updateStateBox, drawHUD, uiTree, navManager);

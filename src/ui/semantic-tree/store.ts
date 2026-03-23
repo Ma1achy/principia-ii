@@ -486,6 +486,24 @@ export class UITreeStore {
   }
   
   /**
+   * Find which grid contains this node as a cell (navigation parent).
+   * This is different from parentId (semantic parent) - it's the grid you navigate through to reach this node.
+   */
+  getContainingGrid(nodeId: string): string | null {
+    // Search all grids to see if any contain this node as a cell
+    for (const [gridId, grid] of this._nodes.entries()) {
+      if (grid.kind !== 'grid' || !grid.cells) continue;
+      
+      for (const cell of grid.cells) {
+        if (cell.id === nodeId) {
+          return gridId;
+        }
+      }
+    }
+    return null;
+  }
+  
+  /**
    * Check if node is hidden (directly or in collapsed parent)
    */
   isNodeHidden(nodeId: string): boolean {

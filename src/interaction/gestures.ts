@@ -18,8 +18,8 @@ export function panByPixels(dx: number, dy: number, glCanvas: HTMLCanvasElement,
   const rect = getActiveCanvas(glCanvas, outCanvas).getBoundingClientRect();
   const sx = navPrefs.invertPanX ? -1 : 1;
   const sy = navPrefs.invertPanY ? -1 : 1;
-  state.viewPanX -= sx * (dx / rect.width)  * state.viewZoom * navPrefs.panSpeed;
-  state.viewPanY += sy * (dy / rect.height) * state.viewZoom * navPrefs.panSpeed;
+  state.viewPanX -= sx * (dx / rect.width)  * state.viewZoom;
+  state.viewPanY += sy * (dy / rect.height) * state.viewZoom;
 }
 
 export function zoomAt(px: number, py: number, zoomFactor: number, glCanvas: HTMLCanvasElement, outCanvas: HTMLCanvasElement): void {

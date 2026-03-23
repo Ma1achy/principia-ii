@@ -84,7 +84,7 @@ export function registerPickerOverlay(config: PickerIntegrationConfig): void {
     isOverlay: true,
     overlay: true,
     closeOnEscape: true,
-    wrapRows: true,
+    wrapRows: false,
     meta: {
       modal: true,
       ariaRole: 'dialog',
@@ -107,21 +107,25 @@ export function registerPickerOverlay(config: PickerIntegrationConfig): void {
   if (onClose) {
     const closeHandler = (event: any) => {
       if (event.id === pickerId) {
-        console.log('[PickerKN] overlay:before-close received, calling onClose');
+        console.log('[PickerKN] overlay:before-close received, calling onClose and cleanup');
+        
+        // Remove this listener FIRST to prevent re-entry
+        uiTree._events.off('overlay:before-close', closeHandler);
+        
+        // Call onClose
         onClose();
         
-        // Important: Complete the overlay close in KNM after picker is closed
+        // Clean up the picker nodes from the tree
+        unregisterPickerOverlay(uiTree, pickerId);
+        
+        // completeOverlayClose is now a no-op, but keep for compatibility
         const navManager = (window as any).navManager;
         if (navManager) {
           console.log('[PickerKN] Calling completeOverlayClose on navManager');
-          // Use setTimeout to ensure picker DOM updates complete first
           setTimeout(() => {
             navManager.completeOverlayClose(pickerId);
           }, 0);
         }
-        
-        // Remove this listener after it fires once
-        uiTree._events.off('overlay:before-close', closeHandler);
       }
     };
     uiTree._events.on('overlay:before-close', closeHandler);
@@ -140,17 +144,14 @@ export function registerPickerOverlay(config: PickerIntegrationConfig): void {
 
 /**
  * Unregister a picker overlay when it closes
+ * NOTE: This should only be called when the picker is already closed (DOM removed)
+ * Do NOT call navManager.closeOverlay here as it would create an infinite loop
  */
 export function unregisterPickerOverlay(uiTree: UITreeStore, pickerId: string): void {
   console.log('[PickerKN] Unregistering picker overlay:', pickerId);
   
-  // Use new closeOverlay method
-  if ((window as any).navManager) {
-    console.log('[PickerKN] Closing overlay via navManager:', pickerId);
-    (window as any).navManager.closeOverlay(pickerId);
-  }
-  
   // Remove nodes from tree
+  // The picker DOM should already be closed at this point
   try {
     uiTree.removeSubtree(pickerId);
   } catch (err) {

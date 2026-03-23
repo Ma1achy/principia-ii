@@ -8,7 +8,7 @@
 .nav-cursor {
   position: fixed;
   pointer-events: none;
-  z-index: 10000;
+  /* z-index is set dynamically by JavaScript based on navigation stack depth */
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   display: none;
 }

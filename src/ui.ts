@@ -52,6 +52,7 @@ import { buildPresets } from './ui/builders/presets.js';
 import { setZ0Range, zeroZ0, smallRandomZ0, enhanceAllSliders } from './ui/components/slider/slider.js';
 import { buildCustomDimSelects } from './ui/builders/selects.js';
 import { initializePickerLabels, attachDynamicBehaviorBatch as refitPickerLabel } from './ui/components/picker/PickerLabel.js';
+import { saveCurrentSettings } from './ui/settings-storage.js';
 
 export function bindUI(
   renderer: any,
@@ -360,27 +361,32 @@ export function bindUI(
   }
   
   $("settingsBtn")!.addEventListener("click", openSettingsPanel);
-  // Close button handler now managed by keyboard navigation system
+  
+  // Close button handler
+  const settingsCloseBtn = $("settingsPanelClose");
+  if (settingsCloseBtn) {
+    settingsCloseBtn.addEventListener("click", () => {
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('settings-panel');
+      } else {
+        closeSettingsPanel();
+      }
+    });
+  }
+  
   // Backdrop click handler now managed by keyboard navigation system
-  document.addEventListener("keydown", (e) => { 
-    if (e.key === "Escape" && $("settingsPanelOverlay")!.classList.contains("open")) {
-      closeSettingsPanel();
-    }
-  });
+  // ESC key handler now managed by keyboard navigation system
 
   function syncSettingsUI() {
     ($("stgInvertScroll") as HTMLInputElement).checked = navPrefs.invertScroll;
     ($("stgInvertPanX") as HTMLInputElement).checked   = navPrefs.invertPanX;
     ($("stgInvertPanY") as HTMLInputElement).checked   = navPrefs.invertPanY;
     
-    updateSliderValue("stgZoomSpeed", navPrefs.zoomSpeed, {
+    // Convert zoom speed from decimal (0.2-4.0) to percentage (20-400%)
+    updateSliderValue("stgZoomSpeed", navPrefs.zoomSpeed * 100, {
       numberInputId: "stgZoomSpeedVal",
-      decimals: 1
-    });
-    
-    updateSliderValue("stgPanSpeed", navPrefs.panSpeed, {
-      numberInputId: "stgPanSpeedVal",
-      decimals: 1
+      decimals: 0
     });
     
     updateSliderValue("stgNavDAS", navPrefs.navDAS, {
@@ -396,36 +402,34 @@ export function bindUI(
   ($("stgInvertScroll") as HTMLInputElement).addEventListener("change", (e) => { navPrefs.invertScroll = (e.target as HTMLInputElement).checked; });
   ($("stgInvertPanX") as HTMLInputElement).addEventListener("change",   (e) => { navPrefs.invertPanX   = (e.target as HTMLInputElement).checked; });
   ($("stgInvertPanY") as HTMLInputElement).addEventListener("change",   (e) => { navPrefs.invertPanY   = (e.target as HTMLInputElement).checked; });
-  ($("stgZoomSpeed") as HTMLInputElement).addEventListener("input",     (e) => { navPrefs.zoomSpeed    = +(e.target as HTMLInputElement).value; ($("stgZoomSpeedVal") as HTMLInputElement).value = navPrefs.zoomSpeed.toFixed(1); });
-  ($("stgZoomSpeedVal") as HTMLInputElement).addEventListener("change", (e) => {
-    navPrefs.zoomSpeed = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0));
-    updateSliderValue("stgZoomSpeed", navPrefs.zoomSpeed, {
-      numberInputId: "stgZoomSpeedVal",
-      decimals: 1
-    });
+  // Zoom speed: convert between percentage (UI: 20-400%) and decimal (state: 0.2-4.0)
+  ($("stgZoomSpeed") as HTMLInputElement).addEventListener("input",     (e) => { 
+    const percentage = Math.round(+(e.target as HTMLInputElement).value);
+    navPrefs.zoomSpeed = percentage / 100;
+    ($("stgZoomSpeedVal") as HTMLInputElement).value = String(percentage);
   });
-  ($("stgPanSpeed") as HTMLInputElement).addEventListener("input",      (e) => { navPrefs.panSpeed     = +(e.target as HTMLInputElement).value; ($("stgPanSpeedVal") as HTMLInputElement).value  = navPrefs.panSpeed.toFixed(1); });
-  ($("stgPanSpeedVal") as HTMLInputElement).addEventListener("change",  (e) => {
-    navPrefs.panSpeed = Math.min(4.0, Math.max(0.2, +(e.target as HTMLInputElement).value || 1.0));
-    updateSliderValue("stgPanSpeed", navPrefs.panSpeed, {
-      numberInputId: "stgPanSpeedVal",
-      decimals: 1
+  ($("stgZoomSpeedVal") as HTMLInputElement).addEventListener("change", (e) => {
+    const percentage = Math.round(Math.min(400, Math.max(20, +(e.target as HTMLInputElement).value || 100)));
+    navPrefs.zoomSpeed = percentage / 100;
+    updateSliderValue("stgZoomSpeed", percentage, {
+      numberInputId: "stgZoomSpeedVal",
+      decimals: 0
     });
   });
 
-  // DAS/ARR handlers - update KeyRepeatManager profiles
+  // DAS/ARR handlers - update KeyRepeatManager with unified profile
   ($("stgNavDAS") as HTMLInputElement).addEventListener("input", (e) => {
     navPrefs.navDAS = +(e.target as HTMLInputElement).value;
     ($("stgNavDASVal") as HTMLInputElement).value = String(navPrefs.navDAS);
     if ((window as any).navManager?.repeatManager) {
-      (window as any).navManager.repeatManager.profiles.navigation.das = navPrefs.navDAS;
+      (window as any).navManager.repeatManager.updateFromNavPrefs(navPrefs.navDAS, navPrefs.navARR);
     }
   });
   ($("stgNavDASVal") as HTMLInputElement).addEventListener("change", (e) => {
     navPrefs.navDAS = Math.min(500, Math.max(50, +(e.target as HTMLInputElement).value || 200));
     updateSliderValue("stgNavDAS", navPrefs.navDAS, { numberInputId: "stgNavDASVal" });
     if ((window as any).navManager?.repeatManager) {
-      (window as any).navManager.repeatManager.profiles.navigation.das = navPrefs.navDAS;
+      (window as any).navManager.repeatManager.updateFromNavPrefs(navPrefs.navDAS, navPrefs.navARR);
     }
   });
 
@@ -433,14 +437,14 @@ export function bindUI(
     navPrefs.navARR = +(e.target as HTMLInputElement).value;
     ($("stgNavARRVal") as HTMLInputElement).value = String(navPrefs.navARR);
     if ((window as any).navManager?.repeatManager) {
-      (window as any).navManager.repeatManager.profiles.navigation.arr = navPrefs.navARR;
+      (window as any).navManager.repeatManager.updateFromNavPrefs(navPrefs.navDAS, navPrefs.navARR);
     }
   });
   ($("stgNavARRVal") as HTMLInputElement).addEventListener("change", (e) => {
     navPrefs.navARR = Math.min(200, Math.max(20, +(e.target as HTMLInputElement).value || 50));
     updateSliderValue("stgNavARR", navPrefs.navARR, { numberInputId: "stgNavARRVal" });
     if ((window as any).navManager?.repeatManager) {
-      (window as any).navManager.repeatManager.profiles.navigation.arr = navPrefs.navARR;
+      (window as any).navManager.repeatManager.updateFromNavPrefs(navPrefs.navDAS, navPrefs.navARR);
     }
   });
 
@@ -456,21 +460,24 @@ export function bindUI(
     updateSliderValue("stgNavARR", defaultARR, { numberInputId: "stgNavARRVal" });
 
     if ((window as any).navManager?.repeatManager) {
-      (window as any).navManager.repeatManager.profiles.navigation.das = defaultDAS;
-      (window as any).navManager.repeatManager.profiles.navigation.arr = defaultARR;
+      (window as any).navManager.repeatManager.updateFromNavPrefs(defaultDAS, defaultARR);
     }
+    
+    // Persist the reset values
+    saveCurrentSettings();
   });
 
-  // Reset mouse handling controls (zoom/pan speed)
+  // Reset mouse handling controls (zoom speed)
   ($("stgResetMouse") as HTMLButtonElement).addEventListener("click", () => {
-    const defaultZoom = 1.0;
-    const defaultPan = 1.0;
+    const defaultZoom = 1.0; // Internal value (1.0 = 100%)
 
     navPrefs.zoomSpeed = defaultZoom;
-    navPrefs.panSpeed = defaultPan;
 
-    updateSliderValue("stgZoomSpeed", defaultZoom, { numberInputId: "stgZoomSpeedVal", decimals: 1 });
-    updateSliderValue("stgPanSpeed", defaultPan, { numberInputId: "stgPanSpeedVal", decimals: 1 });
+    // Convert to percentage for UI
+    updateSliderValue("stgZoomSpeed", defaultZoom * 100, { numberInputId: "stgZoomSpeedVal", decimals: 0 });
+    
+    // Persist the reset value
+    saveCurrentSettings();
   });
 
   function openInfoPanel() {
@@ -494,15 +501,22 @@ export function bindUI(
   }
   
   $("infoBtn")!.addEventListener("click", openInfoPanel);
-  // Close button handler now managed by keyboard navigation system
+  
+  // Close button handler
+  const infoCloseBtn = $("infoPanelClose");
+  if (infoCloseBtn) {
+    infoCloseBtn.addEventListener("click", () => {
+      const navManager = (window as any).navManager;
+      if (navManager) {
+        navManager.closeOverlay('info-panel');
+      } else {
+        closeInfoPanel();
+      }
+    });
+  }
+  
   // Backdrop click handler now managed by keyboard navigation system
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeInfoPanel();
-      closeSettingsPanel();
-    }
-  });
+  // ESC key handler now managed by keyboard navigation system
 
   document.querySelectorAll('.section-head').forEach(head => {
     head.addEventListener('click', async () => {

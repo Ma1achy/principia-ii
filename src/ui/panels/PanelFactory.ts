@@ -22,12 +22,14 @@ export interface SidePanelResult {
  * @param id - Base ID (e.g., 'settingsPanel')
  * @param title - Display title (e.g., 'Settings')
  * @param content - Content to place inside panel (element or HTML string)
+ * @param options - Optional configuration
  * @returns Object containing overlay element and key child references
  */
 export function createSidePanel(
   id: string,
   title: string,
-  content: HTMLElement | string
+  content: HTMLElement | string,
+  options?: { withScrollbar?: boolean }
 ): SidePanelResult {
   // Main overlay
   const overlay = document.createElement('div');
@@ -65,7 +67,17 @@ export function createSidePanel(
   
   // Assemble panel
   panel.appendChild(header);
-  panel.appendChild(contentDiv);
+  
+  // If scrollbar support is requested, wrap content in scroll container
+  if (options?.withScrollbar) {
+    const scrollWrap = document.createElement('div');
+    scrollWrap.id = `${id}ScrollWrap`;
+    scrollWrap.className = 'panel-scroll-wrap';
+    scrollWrap.appendChild(contentDiv);
+    panel.appendChild(scrollWrap);
+  } else {
+    panel.appendChild(contentDiv);
+  }
   
   // Assemble overlay
   overlay.appendChild(panel);

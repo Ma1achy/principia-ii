@@ -25,6 +25,8 @@ export interface SliderConfig {
   numberTitle?: string | null;
   /** CSS margin-top value (e.g., '8px') */
   marginTop?: string | null;
+  /** Unit to display after value (e.g., '%', 'ms', 'px') */
+  unit?: string;
 }
 
 /**
@@ -39,7 +41,8 @@ export function createSlider({
   value,
   tip = '',
   numberTitle = null,
-  marginTop = null
+  marginTop = null,
+  unit
 }: SliderConfig): HTMLElement {
   const row = document.createElement('div');
   row.className = 'sl-row';
@@ -77,8 +80,17 @@ export function createSlider({
   numberInput.max = String(max);
   numberInput.setAttribute('data-title', numberTitle || label);
   if (tip) numberInput.setAttribute('data-tip', tip);
+  if (unit) numberInput.setAttribute('data-unit', unit);
   
   valWrap.appendChild(numberInput);
+  
+  // Add unit label if provided
+  if (unit) {
+    const unitLabel = document.createElement('span');
+    unitLabel.className = 'slider-unit';
+    unitLabel.textContent = unit;
+    valWrap.appendChild(unitLabel);
+  }
   
   // Assemble track row
   trackRow.appendChild(rangeInput);

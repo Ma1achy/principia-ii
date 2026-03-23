@@ -6,6 +6,7 @@ import { registerPickerOverlay, unregisterPickerOverlay } from './keyboard-nav-i
 // ─── Resolution picker overlay ───────────────────────────────────────────────
 
 let _resPickerCallback: ((res: number) => void) | null = null;
+let _resPickerIsClosing = false; // Guard to prevent recursive closes
 
 export function bindResPicker(onPick: (res: number) => void): void {
   const overlay  = $("resPickerOverlay");
@@ -49,14 +50,42 @@ export function bindResPicker(onPick: (res: number) => void): void {
   }
 
   function closeResPicker(): void {
+    // Guard against recursive closes
+    if (_resPickerIsClosing) {
+      console.log('[ResPicker] Already closing, skipping');
+      return;
+    }
+    _resPickerIsClosing = true;
+    
+    console.log('[ResPicker] closeResPicker called');
     if (overlay) overlay.classList.remove("open");
     _resPickerCallback = null;
     
-    // Unregister from keyboard navigation
+    // Close overlay in navigation manager first (if it's open)
+    const navManager = (window as any).navManager;
     const uiTree = (window as any).uiTree;
-    if (uiTree) {
+    
+    if (navManager && uiTree) {
+      // Check if the overlay is actually in the stack before closing
+      const node = uiTree.getNode('resPickerOverlay');
+      if (node) {
+        console.log('[ResPicker] Closing overlay via navManager');
+        // Close the overlay in the navigation stack
+        // This will emit overlay:before-close which triggers the cleanup
+        navManager.closeOverlay('resPickerOverlay');
+      } else {
+        console.log('[ResPicker] Overlay node not found in tree');
+      }
+    } else if (uiTree) {
+      // Fallback: just remove nodes if navManager isn't available
+      console.log('[ResPicker] navManager not available, unregistering directly');
       unregisterPickerOverlay(uiTree, 'resPickerOverlay');
     }
+    
+    // Reset the guard after a short delay to allow for the next open/close cycle
+    setTimeout(() => {
+      _resPickerIsClosing = false;
+    }, 100);
   }
 
   overlay.addEventListener("click", (e) => { 

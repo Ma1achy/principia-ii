@@ -233,6 +233,31 @@ input.slider-num:focus {
   box-shadow: none;
 }
 
+/* Unit label next to slider value input */
+.slider-unit {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--bg);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  transition: color 0.1s ease;
+}
+
+.sl-val-wrap:has(input.slider-num:hover) .slider-unit,
+.sl-val-wrap:has(input.slider-num:focus) .slider-unit {
+  color: var(--text);
+}
+
+/* Adjust input padding when unit is present */
+input.slider-num[data-unit] {
+  padding-right: 24px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Slider Row Layout
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -281,6 +306,7 @@ input.slider-num:focus {
 }
 
 .sl-row .sl-val-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 3px;

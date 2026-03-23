@@ -13,8 +13,12 @@ import { ZIndex } from '../ui/core/z-index.js';
 
 interface SessionState {
   active: boolean;
+  activationState: 'off' | 'awakened' | 'fading' | 'activated';
   currentFocusId: string | null;
-  justActivated?: boolean;
+  confirmationTimer: ReturnType<typeof setTimeout> | null;
+  fadeTimer: ReturnType<typeof setTimeout> | null;
+  heldKeyDuringAwakening: string | null;
+  inactivityTimer: ReturnType<typeof setTimeout> | null;
 }
 
 interface KeyboardNavigationOptions {
@@ -88,8 +92,12 @@ export class KeyboardNavigationManager {
     
     this.sessionState = {
       active: false,
+      activationState: 'off',
       currentFocusId: null,
-      justActivated: false
+      confirmationTimer: null,
+      fadeTimer: null,
+      heldKeyDuringAwakening: null,
+      inactivityTimer: null
     };
     
     this._boundKeyHandler = null;
@@ -178,6 +186,83 @@ export class KeyboardNavigationManager {
     return keyMap[key] || null;
   }
   
+  // ── FSM State Transitions ──────────────────────────────────────────────────
+  
+  private _transitionToActivated(): void {
+    console.log('[KNM] Transitioning to ACTIVATED');
+    this.sessionState.activationState = 'activated';
+    this._clearActivationTimers();
+    
+    // Cancel any fade animation
+    if (this.visualizer) {
+      this.visualizer.cancelFade?.();
+    }
+    
+    // Start inactivity timer
+    this._startInactivityTimer();
+  }
+  
+  private _transitionToFading(): void {
+    console.log('[KNM] Transitioning to FADING');
+    this.sessionState.activationState = 'fading';
+    this._clearActivationTimers();
+    
+    // Start fade animation
+    if (this.visualizer && this.visualizer.startFadeOut) {
+      this.visualizer.startFadeOut(1000); // 1 second fade
+    }
+    
+    this.sessionState.fadeTimer = setTimeout(() => {
+      if (this.sessionState.activationState === 'fading') {
+        this._transitionToOff();
+      }
+    }, 1000);
+  }
+  
+  private _transitionToOff(): void {
+    console.log('[KNM] Transitioning to OFF');
+    this.sessionState.activationState = 'off';
+    this.sessionState.active = false;
+    this.sessionState.heldKeyDuringAwakening = null;
+    this._clearActivationTimers();
+    document.body.classList.remove('nav-active');
+    if (this.visualizer) {
+      this.visualizer.hide();
+    }
+  }
+  
+  private _clearActivationTimers(): void {
+    if (this.sessionState.confirmationTimer) {
+      clearTimeout(this.sessionState.confirmationTimer);
+      this.sessionState.confirmationTimer = null;
+    }
+    if (this.sessionState.fadeTimer) {
+      clearTimeout(this.sessionState.fadeTimer);
+      this.sessionState.fadeTimer = null;
+    }
+    if (this.sessionState.inactivityTimer) {
+      clearTimeout(this.sessionState.inactivityTimer);
+      this.sessionState.inactivityTimer = null;
+    }
+  }
+  
+  private _startInactivityTimer(): void {
+    // Clear existing timer
+    if (this.sessionState.inactivityTimer) {
+      clearTimeout(this.sessionState.inactivityTimer);
+    }
+    
+    // Only start inactivity timer if activated and not in interaction mode
+    if (this.sessionState.activationState === 'activated' && !this.interactingNodeId) {
+      this.sessionState.inactivityTimer = setTimeout(() => {
+        console.log('[KNM] Inactivity timeout (30s) - starting fade');
+        this._transitionToFading();
+      }, 30000);
+    }
+  }
+  
+  // ── Key Event Handlers ──────────────────────────────────────────────────────
+
   private _handleKeyDown(event: KeyboardEvent): void {
     const { key } = event;
     
@@ -226,14 +311,28 @@ export class KeyboardNavigationManager {
     const navEvent = this._mapKeyToNavEvent(key);
     if (!navEvent) return;
     
-    const wasActive = this.sessionState.active;
+    // Track if nav was active before this keydown for Enter/Escape handling
+    const wasActive = this.sessionState.activationState === 'activated';
     
-    if (!this.sessionState.active) {
-      console.log('[KNM] Activating navigation on first nav event:', navEvent);
+    // ── FSM State Handling ──────────────────────────────────────────────────
+    
+    // If in AWAKENED or FADING, any input activates
+    if (this.sessionState.activationState === 'awakened' || 
+        this.sessionState.activationState === 'fading') {
+      console.log('[KNM] Input during', this.sessionState.activationState, '- transitioning to ACTIVATED');
+      this._transitionToActivated();
+      // Fall through to process this input normally
+    }
+    
+    // If OFF, enter AWAKENED state
+    if (this.sessionState.activationState === 'off') {
+      console.log('[KNM] Entering AWAKENED state on first nav event:', navEvent);
+      this.sessionState.activationState = 'awakened';
       this.sessionState.active = true;
-      this.sessionState.justActivated = true;
+      this.sessionState.heldKeyDuringAwakening = event.key;
       document.body.classList.add('nav-active');
       
+      // Show cursor immediately
       const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
       if (currentNode && this.visualizer) {
         const element = this.uiTree.getElement(this.sessionState.currentFocusId);
@@ -249,31 +348,67 @@ export class KeyboardNavigationManager {
         }
       }
       
+      // Start hold detection timer (0.5 seconds) - if key held, activate and execute
+      this.sessionState.confirmationTimer = setTimeout(() => {
+        if (this.sessionState.activationState === 'awakened') {
+          // Key held for 0.5s - activate and execute the held direction
+          console.log('[KNM] Key held for 0.5s - activating and executing');
+          this._transitionToActivated();
+          // Execute the navigation action for the held key and start DAS/ARR
+          if (navEvent === 'nav-up' || navEvent === 'nav-down' || navEvent === 'nav-left' || navEvent === 'nav-right') {
+            this._executeNavigationAction(navEvent);
+            // Start repeat for continued holding
+            this.repeatManager.startRepeat(event.key, () => {
+              this._executeNavigationAction(navEvent);
+            });
+          } else if (navEvent === 'increment' || navEvent === 'decrement') {
+            this._executeIncrementAction(navEvent);
+            // Start repeat for continued holding
+            this.repeatManager.startRepeat(event.key, () => {
+              this._executeIncrementAction(navEvent);
+            });
+          }
+        }
+      }, 500);
+      
+      // Start automatic fade timer (5 seconds) - if no activity, start fading
+      this.sessionState.fadeTimer = setTimeout(() => {
+        if (this.sessionState.activationState === 'awakened') {
+          // No activity for 5s - start fading
+          console.log('[KNM] No activity for 5s - starting fade');
+          this._transitionToFading();
+        }
+      }, 5000);
+      
+      // Special case: Enter and Escape work on first press
       if (navEvent === 'nav-enter' || navEvent === 'nav-escape') {
-        // Let these through
+        this._transitionToActivated();
+        // Fall through to process
       } else {
+        // For other keys, consume first press
         console.log('[KNM] First press consumed - only showing cursor');
-        this.sessionState.justActivated = false;
         event.preventDefault();
         return;
       }
     }
     
-    if (wasActive && this.sessionState.justActivated) {
-      console.log('[KNM] Clearing justActivated flag from previous activation');
-      this.sessionState.justActivated = false;
-    }
-    
-    if (navEvent === 'increment' || navEvent === 'decrement') {
-      this._handleIncrement(event, navEvent);
-    } else if (navEvent === 'nav-up' || navEvent === 'nav-down' || navEvent === 'nav-left' || navEvent === 'nav-right') {
-      this._handleNavigation(event, navEvent);
-    } else if (navEvent === 'nav-enter') {
-      this._handleEnter(event, wasActive);
-    } else if (navEvent === 'nav-escape') {
-      this._handleEscape(event, wasActive);
-    } else if (navEvent === 'nav-tab') {
-      // Tab - ignore for now (browser default)
+    // ── Normal Event Handling (ACTIVATED state) ─────────────────────────────
+    // Only start DAS/ARR when in ACTIVATED state
+    if (this.sessionState.activationState === 'activated') {
+      // Restart inactivity timer on any input
+      this._startInactivityTimer();
+      
+      if (navEvent === 'increment' || navEvent === 'decrement') {
+        this._handleIncrement(event, navEvent);
+      } else if (navEvent === 'nav-up' || navEvent === 'nav-down' || navEvent === 'nav-left' || navEvent === 'nav-right') {
+        this._handleNavigation(event, navEvent);
+      } else if (navEvent === 'nav-enter') {
+        this._handleEnter(event, wasActive);
+      } else if (navEvent === 'nav-escape') {
+        this._handleEscape(event, wasActive);
+      } else if (navEvent === 'nav-tab') {
+        // Tab - ignore for now (browser default)
+      }
     }
   }
   
@@ -286,10 +421,9 @@ export class KeyboardNavigationManager {
     
     this._executeIncrementAction(navEvent);
     
-    const profile = this._getRepeatProfile();
     this.repeatManager.startRepeat(event.key, () => {
       this._executeIncrementAction(navEvent);
-    }, profile);
+    });
   }
   
   private _executeIncrementAction(navEvent: 'increment' | 'decrement'): void {
@@ -338,10 +472,9 @@ export class KeyboardNavigationManager {
     }
     
     if (result !== 'escape_scope' && result !== 'ignored') {
-      const profile = this._getRepeatProfile();
       this.repeatManager.startRepeat(event.key, () => {
         this._executeNavigationAction(navEvent);
-      }, profile);
+      });
     }
   }
   
@@ -561,8 +694,43 @@ export class KeyboardNavigationManager {
         return;
       }
       
-      // Check if we're in a nested scope within the overlay
+      // FIRST: Check if we're on a close button (any kind) or cancel button
+      // This check must come BEFORE the nested scope check, so that if we're on a close button
+      // (even if it's in a nested grid like a button grid), we can close the overlay
+      const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
+      
+      console.log('[KNM] ESC in overlay - checking if on close button');
+      console.log('[KNM]   Current focus:', this.sessionState.currentFocusId);
+      console.log('[KNM]   Current node:', {
+        id: currentNode?.id,
+        kind: currentNode?.kind,
+        role: currentNode?.role,
+        buttonRole: currentNode?.meta?.buttonRole,
+        intent: currentNode?.meta?.intent
+      });
+      
+      const isOnCloseButton = currentNode?.kind === 'picker-close-button' ||
+                             currentNode?.role === 'picker-close-button' ||
+                             currentNode?.role === 'panel-close-button' ||
+                             currentNode?.kind === 'button' && (
+                               currentNode?.meta?.buttonRole === 'danger' ||
+                               currentNode?.meta?.buttonRole === 'secondary' ||
+                               currentNode?.meta?.intent === 'cancel' ||
+                               currentNode?.meta?.intent === 'escape'
+                             );
+      
+      console.log('[KNM]   Is on close button?', isOnCloseButton);
+      
+      if (isOnCloseButton) {
+        // Already on close button - close the overlay
+        console.log('[KNM] On close button, closing overlay:', overlayFrame.overlayId);
+        this.closeOverlay(overlayFrame.overlayId);
+        return;
+      }
+      
+      // SECOND: Check if we're in a nested scope within the overlay
       // If stack depth > overlay depth + 1, we're in a nested scope and should exit it first
+      // (unless we were on a close button, which we already handled above)
       const overlayDepth = this.navStack.findFrameIndex(f => f.type === 'overlay' && f.overlayId === overlayFrame.overlayId);
       const currentDepth = this.navStack.depth();
       
@@ -577,36 +745,33 @@ export class KeyboardNavigationManager {
         return;
       }
       
-      // We're at the top level of the overlay
-      // Check if we're on a close button (any kind)
-      const currentNode = this.uiTree.getNode(this.sessionState.currentFocusId);
-      const isOnCloseButton = currentNode?.kind === 'picker-close-button' ||
-                             currentNode?.role === 'picker-close-button' ||
-                             currentNode?.role === 'panel-close-button';
+      // We're at the top level of the overlay (not on close button, not in nested scope)
       
-      if (isOnCloseButton) {
-        // Already on close button - close the overlay
-        console.log('[KNM] On close button, closing overlay:', overlayFrame.overlayId);
-        this.closeOverlay(overlayFrame.overlayId);
-        return;
+      // THIRD: Try to find and move to a close button
+      // Try cancel button first (for dialogs), then panel/picker close buttons
+      console.log('[KNM] Searching for close button to move to...');
+      
+      let closeButton = this._findCancelButton();
+      console.log('[KNM]   _findCancelButton() returned:', closeButton);
+      
+      if (!closeButton) {
+        closeButton = this._findPanelCloseButton();
+        console.log('[KNM]   _findPanelCloseButton() returned:', closeButton);
       }
-      
-      // Not on close button - try to find and move to it
-      // Try panel close button first
-      let closeButton = this._findPanelCloseButton();
       if (!closeButton) {
         // Try picker close button
         closeButton = this._findPickerCloseButton();
+        console.log('[KNM]   _findPickerCloseButton() returned:', closeButton);
       }
       
       if (closeButton) {
-        console.log('[KNM] Moving to close button');
+        console.log('[KNM] Moving to close button:', closeButton);
         this._setFocus(closeButton);
         return;
       }
       
       // No close button found - just close the overlay
-      console.log('[KNM] No close button found, closing overlay');
+      console.log('[KNM] No close button found, closing overlay directly');
       this.closeOverlay(overlayFrame.overlayId);
       return;
     }
@@ -620,28 +785,17 @@ export class KeyboardNavigationManager {
   
   private _handleKeyUp(event: KeyboardEvent): void {
     this.repeatManager.stopRepeat(event.key);
-  }
-  
-  private _getRepeatProfile(): string {
-    const interactingId = this.interactingNodeId;
-    if (!interactingId) {
-      return 'navigation';
-    }
     
-    const node = this.uiTree.getNode(interactingId);
-    if (!node) {
-      return 'navigation';
+    // If we're in AWAKENED and the held key is released, cancel the hold detection timer
+    if (this.sessionState.activationState === 'awakened' && 
+        this.sessionState.heldKeyDuringAwakening === event.key) {
+      console.log('[KNM] Key released during AWAKENED - canceling hold detection');
+      if (this.sessionState.confirmationTimer) {
+        clearTimeout(this.sessionState.confirmationTimer);
+        this.sessionState.confirmationTimer = null;
+      }
+      this.sessionState.heldKeyDuringAwakening = null;
     }
-    
-    if (node.kind === 'canvas' || node.role === 'canvas') {
-      return 'canvas';
-    }
-    
-    if (node.kind === 'analog-control' || node.role === 'slider') {
-      return 'slider';
-    }
-    
-    return 'navigation';
   }
   
   private _getBehavior(node: any): any {
@@ -787,7 +941,7 @@ export class KeyboardNavigationManager {
       return;
     }
     
-    // Clicking elsewhere: deactivate keyboard nav if active
+    // Clicking elsewhere: deactivate keyboard nav if active (instant off, no fade)
     if (this.sessionState.active) {
       console.log('[KNM] Deactivating keyboard navigation due to mouse click elsewhere');
       
@@ -797,11 +951,8 @@ export class KeyboardNavigationManager {
         this._exitInteractionMode();
       }
       
-      this.sessionState.active = false;
-      document.body.classList.remove('nav-active');
-      if (this.visualizer) {
-        this.visualizer.hide();
-      }
+      // Use instant off transition (no fade for mouse clicks)
+      this._transitionToOff();
       
       console.log('[KNM] ✓ Keyboard nav deactivated');
     }
@@ -1336,7 +1487,7 @@ export class KeyboardNavigationManager {
       this._setFocus(cell.id);
       console.log('[KNM] Overlay opened while nav active - maintaining active state');
       this.sessionState.active = true;
-      this.sessionState.justActivated = false;
+      // Keep current activation state (don't reset to off)
       document.body.classList.add('nav-active');
     } else {
       // Just update internal state without showing visualizer
@@ -1449,20 +1600,46 @@ export class KeyboardNavigationManager {
   
   // ── Focus Management ───────────────────────────────────────────────────────
   
+  private _ensureNavigationPath(gridId: string): void {
+    const grid = this.uiTree.getNode(gridId);
+    if (!grid || grid.kind !== 'grid') return;
+
+    // Find which grid contains this grid as a cell (navigation parent, not semantic parent)
+    const containingGridId = this.uiTree.getContainingGrid(gridId);
+    if (containingGridId) {
+      const currentFrame = this.currentFrame;
+      if (!currentFrame || currentFrame.gridId !== containingGridId) {
+        // Recursively ensure the containing grid's path is built first
+        this._ensureNavigationPath(containingGridId);
+
+        // Enter the containing grid and navigate to this grid as a cell
+        const coords = this.uiTree.getCellCoords(containingGridId, gridId);
+        if (coords) {
+          this.enterGrid(containingGridId, 'first');
+          const frame = this.currentFrame;
+          if (frame) {
+            frame.coords = coords;
+            frame.cellId = gridId;
+          }
+        }
+      }
+    }
+  }
+
   private _setFocus(nodeId: string): void {
     if (!nodeId) return;
-    
+
     const node = this.uiTree.getNode(nodeId);
     if (!node) {
       console.warn('[KNM] Node not found:', nodeId);
       return;
     }
-    
+
     console.log('[KNM] Focus:', nodeId, 'kind:', node.kind);
-    
+
     const element = this.uiTree.getElement(nodeId);
-    
-    if (node.kind === 'grid' && !element && 
+
+    if (node.kind === 'grid' && !element &&
         node.focusMode !== 'leaf' &&
         node.children && node.children.length > 0) {
       console.log('[KNM] Auto-entering transparent grid:', nodeId);
@@ -1472,17 +1649,23 @@ export class KeyboardNavigationManager {
         return;
       }
     }
-    
-    if (node.parentId && (node.focusMode === 'leaf' || node.kind !== 'grid')) {
-      const parentNode = this.uiTree.getNode(node.parentId);
-      if (parentNode && parentNode.kind === 'grid') {
+
+    // Build the full navigation path from root to this node
+    // Use getContainingGrid instead of parentId to find the actual navigation parent
+    if (node.focusMode === 'leaf' || node.kind !== 'grid') {
+      const containingGridId = this.uiTree.getContainingGrid(nodeId);
+      if (containingGridId) {
         const currentFrame = this.currentFrame;
-        if (!currentFrame || currentFrame.gridId !== node.parentId) {
-          console.log('[KNM] Not in parent grid frame, entering:', node.parentId);
-          // Get the coordinates of this cell in the parent grid
-          const coords = this.uiTree.getCellCoords(node.parentId, nodeId);
+        if (!currentFrame || currentFrame.gridId !== containingGridId) {
+          console.log('[KNM] Not in containing grid frame, entering:', containingGridId);
+          
+          // Recursively ensure all ancestor grids are entered first
+          this._ensureNavigationPath(containingGridId);
+          
+          // Now enter the immediate containing grid with this cell
+          const coords = this.uiTree.getCellCoords(containingGridId, nodeId);
           if (coords) {
-            this.enterGrid(node.parentId, 'first');
+            this.enterGrid(containingGridId, 'first');
             const frame = this.currentFrame;
             if (frame) {
               frame.coords = coords;
@@ -1493,9 +1676,9 @@ export class KeyboardNavigationManager {
         }
       }
     }
-    
+
     this.sessionState.currentFocusId = nodeId;
-    
+
     if (!element) {
       if (node.kind !== 'grid') {
         console.warn('[KNM] No element for:', nodeId);
@@ -1531,6 +1714,12 @@ export class KeyboardNavigationManager {
     
     console.log('[KNM] Entering interaction mode:', nodeId);
     
+    // Clear inactivity timer when entering interaction mode
+    if (this.sessionState.inactivityTimer) {
+      clearTimeout(this.sessionState.inactivityTimer);
+      this.sessionState.inactivityTimer = null;
+    }
+    
     // Push interaction frame onto stack
     this.navStack.push({
       type: 'interaction',
@@ -1563,12 +1752,30 @@ export class KeyboardNavigationManager {
     const frame = this.currentFrame;
     if (frame?.type === 'interaction') {
       this.navStack.pop();
-    }
-    
-    // Update focus to the cell in the parent frame (not the old currentFocusId)
-    const parentFrame = this.currentFrame;
-    if (parentFrame) {
-      this._setFocus(parentFrame.cellId);
+      
+      // Don't call _setFocus - the parent frame already has the correct cellId
+      // Just update the visualizer for the current state
+      const parentFrame = this.currentFrame;
+      if (parentFrame && this.visualizer && this.sessionState.active) {
+        const cellNode = this.uiTree.getNode(parentFrame.cellId);
+        const element = this.uiTree.getElement(parentFrame.cellId);
+        
+        if (cellNode && element) {
+          const isEnterable = cellNode.focusMode === 'entry-node' || cellNode.kind === 'grid';
+          
+          this.visualizer.render({
+            element,
+            isEnterable,
+            isInteracting: false
+          });
+        }
+      }
+      
+      // Update session state to reflect we're no longer interacting
+      this.sessionState.currentFocusId = parentFrame?.cellId || this.sessionState.currentFocusId;
+      
+      // Restart inactivity timer now that we're out of interaction mode
+      this._startInactivityTimer();
     }
   }
   
@@ -1648,7 +1855,14 @@ export class KeyboardNavigationManager {
     this.uiTree._events.on('overlay:removed', (event: any) => {
       const { id } = event;
       console.log('[KNM] Overlay removed:', id);
-      this.closeOverlay(id);
+      // Only close if it's still in the stack
+      // (it may have already been closed via closeOverlay)
+      const overlayFrame = this.navStack.findFrame(f => f.type === 'overlay' && f.overlayId === id);
+      if (overlayFrame) {
+        this.closeOverlay(id);
+      } else {
+        console.log('[KNM] Overlay already closed, skipping closeOverlay');
+      }
     });
   }
   

@@ -150,6 +150,16 @@ export function attachPrincipiaElements(uiTree: UITreeStore): void {
   uiTree.attachElement('settings-panel', document.getElementById('settingsPanelOverlay'));
   uiTree.attachElement('settings-panel:close', document.getElementById('settingsPanelClose'));
   
+  // NOTE: Don't attach 'settings-panel:content' - it's a structural grid like sidebar,
+  // and should not have a DOM element (avoids unwanted focus highlighting)
+  
+  // Attach section headers and bodies
+  uiTree.attachElement('settings-panel:handling:header', document.querySelector('[data-target="settings-panel-handling"]'));
+  uiTree.attachElement('settings-panel-handling', document.getElementById('settings-panel-handling'));
+  uiTree.attachElement('settings-panel:rendering:header', document.querySelector('[data-target="settings-panel-rendering"]'));
+  uiTree.attachElement('settings-panel-rendering', document.getElementById('settings-panel-rendering'));
+  
+  // Attach controls
   uiTree.attachElement('autoRender', document.getElementById('autoRender'));
   uiTree.attachElement('previewWhileDrag', document.getElementById('previewWhileDrag'));
   uiTree.attachElement('showHud', document.getElementById('showHud'));
@@ -157,7 +167,6 @@ export function attachPrincipiaElements(uiTree: UITreeStore): void {
   attachSlider(uiTree, 'slider-stgZoomSpeed', 'stgZoomSpeed');
   uiTree.attachElement('stgInvertPanX', document.getElementById('stgInvertPanX'));
   uiTree.attachElement('stgInvertPanY', document.getElementById('stgInvertPanY'));
-  attachSlider(uiTree, 'slider-stgPanSpeed', 'stgPanSpeed');
   attachSlider(uiTree, 'slider-stgNavDAS', 'stgNavDAS');
   attachSlider(uiTree, 'slider-stgNavARR', 'stgNavARR');
   uiTree.attachElement('stgResetHandling', document.getElementById('stgResetHandling'));

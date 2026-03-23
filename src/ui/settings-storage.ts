@@ -13,7 +13,6 @@ export interface Settings {
   zoomSpeed: number;
   invertPanX: boolean;
   invertPanY: boolean;
-  panSpeed: number;
   navDAS: number;
   navARR: number;
   suppressWelcomeDialog: boolean;
@@ -27,7 +26,6 @@ const DEFAULT_SETTINGS: Settings = {
   zoomSpeed: 1.0,
   invertPanX: false,
   invertPanY: false,
-  panSpeed: 1.0,
   navDAS: 200,
   navARR: 50,
   suppressWelcomeDialog: false
@@ -62,8 +60,6 @@ export function applySavedSettings(): Settings {
   const stgZoomSpeedValEl = document.getElementById('stgZoomSpeedVal') as HTMLInputElement | null;
   const stgInvertPanXEl = document.getElementById('stgInvertPanX') as HTMLInputElement | null;
   const stgInvertPanYEl = document.getElementById('stgInvertPanY') as HTMLInputElement | null;
-  const stgPanSpeedEl = document.getElementById('stgPanSpeed') as HTMLInputElement | null;
-  const stgPanSpeedValEl = document.getElementById('stgPanSpeedVal') as HTMLInputElement | null;
   const stgNavDASEl = document.getElementById('stgNavDAS') as HTMLInputElement | null;
   const stgNavDASValEl = document.getElementById('stgNavDASVal') as HTMLInputElement | null;
   const stgNavARREl = document.getElementById('stgNavARR') as HTMLInputElement | null;
@@ -75,21 +71,15 @@ export function applySavedSettings(): Settings {
   if (stgInvertScrollEl) stgInvertScrollEl.checked = settings.invertScroll;
   
   if (stgZoomSpeedEl) {
-    updateSliderValue("stgZoomSpeed", settings.zoomSpeed, {
+    // Convert zoom speed from decimal (0.2-4.0) to percentage (20-400%)
+    updateSliderValue("stgZoomSpeed", settings.zoomSpeed * 100, {
       numberInputId: "stgZoomSpeedVal",
-      decimals: 1
+      decimals: 0
     });
   }
   
   if (stgInvertPanXEl) stgInvertPanXEl.checked = settings.invertPanX;
   if (stgInvertPanYEl) stgInvertPanYEl.checked = settings.invertPanY;
-  
-  if (stgPanSpeedEl) {
-    updateSliderValue("stgPanSpeed", settings.panSpeed, {
-      numberInputId: "stgPanSpeedVal",
-      decimals: 1
-    });
-  }
   
   if (stgNavDASEl) {
     updateSliderValue("stgNavDAS", settings.navDAS, {
@@ -114,7 +104,6 @@ export function saveCurrentSettings(): void {
   const stgZoomSpeedEl = document.getElementById('stgZoomSpeed') as HTMLInputElement | null;
   const stgInvertPanXEl = document.getElementById('stgInvertPanX') as HTMLInputElement | null;
   const stgInvertPanYEl = document.getElementById('stgInvertPanY') as HTMLInputElement | null;
-  const stgPanSpeedEl = document.getElementById('stgPanSpeed') as HTMLInputElement | null;
   const stgNavDASEl = document.getElementById('stgNavDAS') as HTMLInputElement | null;
   const stgNavARREl = document.getElementById('stgNavARR') as HTMLInputElement | null;
   
@@ -123,10 +112,9 @@ export function saveCurrentSettings(): void {
     previewWhileDrag: previewWhileDragEl?.checked ?? false,
     showHud: showHudEl?.checked ?? true,
     invertScroll: stgInvertScrollEl?.checked ?? false,
-    zoomSpeed: stgZoomSpeedEl ? parseFloat(stgZoomSpeedEl.value) : 1.0,
+    zoomSpeed: stgZoomSpeedEl ? parseFloat(stgZoomSpeedEl.value) / 100 : 1.0, // Convert from percentage to decimal
     invertPanX: stgInvertPanXEl?.checked ?? false,
     invertPanY: stgInvertPanYEl?.checked ?? false,
-    panSpeed: stgPanSpeedEl ? parseFloat(stgPanSpeedEl.value) : 1.0,
     navDAS: stgNavDASEl ? parseInt(stgNavDASEl.value) : 200,
     navARR: stgNavARREl ? parseInt(stgNavARREl.value) : 50,
     suppressWelcomeDialog: loadSettings().suppressWelcomeDialog

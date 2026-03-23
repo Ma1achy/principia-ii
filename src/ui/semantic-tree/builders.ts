@@ -287,6 +287,7 @@ export interface SliderConfig {
   disabled?: boolean;
   hidden?: boolean;
   fastActions?: Record<string, any>;
+  unit?: string; // Optional unit to display after value (e.g., '%', 'ms', 'px')
   meta?: {
     tip?: string;
     preferredPrimaryRole?: string;
@@ -355,7 +356,8 @@ export function slider(id: string, config: SliderConfig): UINode[] {
     disabled: config.disabled || false,
     hidden: config.hidden || false,
     meta: {
-      ariaLabel: `${config.label} value`
+      ariaLabel: `${config.label} value`,
+      unit: config.unit
     }
   });
 

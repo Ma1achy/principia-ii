@@ -226,6 +226,9 @@ export function buildZ0Sliders(
     numInput.dataset.title = AXIS_NAMES[i];
     numInput.dataset.tip = `z${i} offset component.`;
     valWrap.appendChild(numInput);
+    
+    // No unit for z0 sliders (unitless)
+    
     trackRow.appendChild(valWrap);
     row.appendChild(trackRow);
 

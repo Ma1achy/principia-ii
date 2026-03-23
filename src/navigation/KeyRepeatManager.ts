@@ -26,11 +26,10 @@ export class KeyRepeatManager {
   private _boundBlurHandler: () => void;
 
   constructor(options: KeyRepeatManagerOptions = {}) {
-    // Timing profiles for different contexts
+    // Single unified profile - all keyboard repeat uses the same timing
+    // Profile values are updated dynamically from navPrefs (see updateFromNavPrefs method)
     this.profiles = options.profiles || {
-      canvas: { das: 400, arr: 80 },      // Slower for precision control (~12.5 actions/sec)
-      slider: { das: 300, arr: 60 },      // Medium speed for value adjustment (~16.7 actions/sec)
-      navigation: { das: 200, arr: 50 }   // Fast for UI traversal (20 actions/sec)
+      navigation: { das: 200, arr: 50 }
     };
     
     // Track currently held keys
@@ -45,14 +44,14 @@ export class KeyRepeatManager {
       window.addEventListener('blur', this._boundBlurHandler);
     }
     
-    console.log('[KeyRepeatManager] Initialized with profiles:', this.profiles);
+    console.log('[KeyRepeatManager] Initialized with profile:', this.profiles.navigation);
   }
   
   /**
    * Start repeat for a key press
    * @param key - The key being pressed
    * @param action - Action to execute on repeat
-   * @param profileName - Profile to use ('canvas', 'slider', 'navigation')
+   * @param profileName - Profile to use (always 'navigation' now)
    */
   startRepeat(key: string, action: () => void, profileName: string = 'navigation'): void {
     // If key is already being held, ignore (browser repeat already filtered)
@@ -60,9 +59,10 @@ export class KeyRepeatManager {
       return;
     }
     
-    const profile = this.profiles[profileName] || this.profiles.navigation;
+    // Use single unified profile for all keyboard repeat
+    const profile = this.profiles.navigation;
     
-    console.log('[KeyRepeatManager] Starting repeat for key:', key, 'profile:', profileName, profile);
+    console.log('[KeyRepeatManager] Starting repeat for key:', key, profile);
     
     // Start DAS timer (initial delay before repeat starts)
     const dasTimer = setTimeout(() => {
@@ -75,7 +75,7 @@ export class KeyRepeatManager {
       arrInterval: null,
       action,
       profile,
-      profileName
+      profileName: 'navigation'
     });
   }
   
@@ -136,34 +136,25 @@ export class KeyRepeatManager {
   }
   
   /**
-   * Update profile for a held key (e.g., when context changes mid-hold)
-   * @param key - The key to update
-   * @param profileName - New profile name
+   * Update profile timing from user preferences (called when settings change)
+   * @param das - Delayed Auto Shift in milliseconds
+   * @param arr - Auto Repeat Rate in milliseconds
    */
-  updateProfile(key: string, profileName: string): void {
-    const keyState = this.heldKeys.get(key);
-    if (!keyState) {
-      return;
-    }
+  updateFromNavPrefs(das: number, arr: number): void {
+    this.profiles.navigation.das = das;
+    this.profiles.navigation.arr = arr;
     
-    const newProfile = this.profiles[profileName] || this.profiles.navigation;
+    console.log('[KeyRepeatManager] Updated profile from navPrefs:', this.profiles.navigation);
     
-    // Only update if profile actually changed
-    if (keyState.profileName === profileName) {
-      return;
-    }
-    
-    console.log('[KeyRepeatManager] Updating profile for key:', key, 'from', keyState.profileName, 'to', profileName);
-    
-    keyState.profile = newProfile;
-    keyState.profileName = profileName;
-    
-    // If ARR is active, restart interval with new rate
-    if (keyState.arrInterval) {
-      clearInterval(keyState.arrInterval);
-      keyState.arrInterval = setInterval(() => {
-        this._executeRepeat(key);
-      }, newProfile.arr);
+    // Update any currently active ARR intervals with new rate
+    for (const [key, keyState] of this.heldKeys.entries()) {
+      if (keyState.arrInterval) {
+        clearInterval(keyState.arrInterval);
+        keyState.arrInterval = setInterval(() => {
+          this._executeRepeat(key);
+        }, arr);
+        console.log('[KeyRepeatManager] Updated active ARR for key:', key);
+      }
     }
   }
   
