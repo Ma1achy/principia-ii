@@ -488,8 +488,9 @@ export function canvasBehavior(node: UINode, element: HTMLElement | null, deps: 
         return BEHAVIOR_RESULT.IGNORED;
       }
       
-      dispatchCanvasAction('zoom', { delta: ZOOM_STEP });
-      console.log('[canvasBehavior] Zoom in:', ZOOM_STEP);
+      // + key zooms IN (positive delta)
+      dispatchCanvasAction('zoom', { delta: -ZOOM_STEP });
+      console.log('[canvasBehavior] Zoom in:', -ZOOM_STEP);
       return BEHAVIOR_RESULT.HANDLED;
     },
     
@@ -499,8 +500,9 @@ export function canvasBehavior(node: UINode, element: HTMLElement | null, deps: 
         return BEHAVIOR_RESULT.IGNORED;
       }
       
-      dispatchCanvasAction('zoom', { delta: -ZOOM_STEP });
-      console.log('[canvasBehavior] Zoom out:', -ZOOM_STEP);
+      // - key zooms OUT (negative delta)
+      dispatchCanvasAction('zoom', { delta: ZOOM_STEP });
+      console.log('[canvasBehavior] Zoom out:', ZOOM_STEP);
       return BEHAVIOR_RESULT.HANDLED;
     },
 
