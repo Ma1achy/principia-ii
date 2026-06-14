@@ -1,0 +1,34 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}The Three-Body Problem: Fundamentals and History}{2}{section.2}%
+\contentsline {section}{\numberline {3}The Pythagorean Three-Body Problem}{3}{section.3}%
+\contentsline {section}{\numberline {4}Mapping the Initial-Condition Manifold}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The Agekian--Anosova map}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}The Lehto et al.\ pixel map and the Maasai shield}{3}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Trani et al.\ and isles of regularity}{4}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Fractal basin boundaries}{4}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Shape Space and Symmetry Reduction}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Jacobi coordinates}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Shape space and the shape sphere}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Symmetry reduction}{5}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Symbolic Dynamics of Triple Encounters}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Classical symbolic dynamics}{5}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Regional coding of the three-body encounter}{6}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Tanikawa--Mikkola symbolic dynamics}{6}{subsection.6.3}%
+\contentsline {paragraph}{Proposed contribution.}{6}{section*.2}%
+\contentsline {subsection}{\numberline {6.4}Heggie's encounter classification}{6}{subsection.6.4}%
+\contentsline {section}{\numberline {7}Chaos Diagnostics}{6}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Lyapunov exponents and FTLE}{6}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Frequency diffusion and spectral chaos indicators}{7}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Kolmogorov--Sinai entropy in the three-body problem}{7}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Statistical Theory of Three-Body Outcomes}{7}{section.8}%
+\contentsline {section}{\numberline {9}Symplectic Numerical Integration}{8}{section.9}%
+\contentsline {section}{\numberline {10}GPU-Accelerated Parallel Computation}{8}{section.10}%
+\contentsline {section}{\numberline {11}The Burrau--Pythagorean Family and Number Theory}{8}{section.11}%
+\contentsline {section}{\numberline {12}Summary of Gaps}{9}{section.12}%
+\contentsline {paragraph}{Coverage of the IC manifold.}{9}{section*.3}%
+\contentsline {paragraph}{Interactivity and zoom.}{9}{section*.4}%
+\contentsline {paragraph}{Simultaneous multi-diagnostic output.}{9}{section*.5}%
+\contentsline {paragraph}{Symbolic encounter invariants.}{9}{section*.6}%
+\contentsline {paragraph}{Variable-mass IC maps.}{9}{section*.7}%
+\contentsline {paragraph}{Structured family surveys.}{10}{section*.8}%
+\contentsline {paragraph}{Scope of the review.}{10}{section*.9}%

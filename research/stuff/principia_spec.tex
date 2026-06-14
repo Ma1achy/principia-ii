@@ -1,0 +1,3006 @@
+\documentclass[11pt]{report}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,bm,mathtools}
+\usepackage[expansion=false]{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+
+\pdfstringdefDisableCommands{%
+  \def\boldsymbol#1{#1}%
+  \def\bm#1{#1}%
+}
+
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\atanTwo}{atan2}
+\DeclareMathOperator{\clamp}{clamp}
+\DeclareMathOperator{\smoothstep}{smoothstep}
+
+\newcommand{\expldom}{U}
+\newcommand{\explcoord}{\mathbf s}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.7em}
+
+\title{%
+  \textbf{Principia}\\[0.35em]
+  \large Implementation Specification\\[0.25em]
+  \normalsize Browser-based three-body IC manifold explorer%
+}
+\author{Malachy Doherty}
+\date{March 2026 --- Living Document}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The planar three-body problem has an 8-dimensional symmetry-reduced initial-condition manifold whose structure---fractal basin boundaries, symbolic encounter dynamics, topological persistence across parameter families---remains largely unexplored because no tool exists to navigate it interactively at the resolution the dynamics demand.
+
+\emph{Principia} is a browser-based WebGPU instrument built to fill that gap: a real-time visualiser that treats the IC manifold as a zoomable map, allocating simulation budget adaptively where the dynamics are complex and leaving smooth regions coarse.
+
+This document is the canonical implementation specification. It defines: the chart-based IC parameterisation and decoder pipeline; the Burrau--Pythagorean family as a structured traversal of the manifold; symplectic integration with COM projection and invariant monitoring; stability metrics from frequency diffusion through FTLE to free-group symbolic dynamics; a composable render graph with 20+ physics visualisation modes; the projective microscope interaction model; and a tiled quadtree architecture built in three layers---flat grid, cached slippy map, adaptive refinement---with explicit data flow contracts between GPU simulation, GPU rendering, and CPU scheduling.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+% PART I: THE IC MANIFOLD
+% ============================================================
+\part{The IC Manifold}
+\label{part:manifold}
+
+\begin{center}
+\fbox{\parbox{0.9\textwidth}{
+\textbf{Chart contract.} Every view in Principia must define:
+\begin{enumerate}[nosep]
+\item \textbf{Chart coordinates}: a map $\Phi:[0,1]^2\to Y$ producing decode-ready parameters.
+\item \textbf{Decoder}: $D:Y\to(\mathbf r_i,\mathbf p_i,m_i)$ via the canonical pipeline.
+\item \textbf{Canonicaliser}: $C$ enforcing gauge, scale, and no-holes guarantees.
+\end{enumerate}
+Lookup must either invert into the current chart or fall back to latent $\mathbf z$. Lock and tilt operate on chart coordinates, not raw physical coordinates. The GPU shader is chart-agnostic: it reads $(m_i,\mathbf r_i,\mathbf p_i)$ and never knows which chart produced them.
+}}
+\end{center}
+
+% ============================================================
+\section{Goal}
+\label{sec:goal}
+
+We want a deterministic map from an exploration domain $\expldom=[0,1]^d$ to planar three-body initial conditions (ICs), together with a terminal label that is always defined. For every exploration coordinate $\explcoord\in\expldom$ (rendering alias: UV/UVW), we produce
+\[
+\explcoord \;\longmapsto\; (m_i,\mathbf r_i,\mathbf p_i)_{i=0}^2
+\]
+in a fixed, dimensionless unit system, and we attach a label describing what happens under simulation (collision/escape/bounded/etc.) \emph{or} why the sample is terminal at decode time.
+
+\textbf{Totality:} the pipeline must never reject a parameter point. The output texture is a total function of UV/UVW.
+
+Two practical constraints shape the design:
+(i) quotient translation, rotation, reflection, and similarity scaling (default $I=1$);
+(ii) ensure continuity of charts/decoders away from unavoidable seams and measure-zero degeneracies.
+
+Momentum is handled in two complementary ways:
+\emph{free-momentum} decodes full COM-frame momentum (4~DOF),
+\emph{invariant-momentum} constructs momenta from coordinates like $(L_z,E)$ or $(L_z,K)$, enforcing feasibility by domain warps.
+
+\paragraph{No holes.}
+Totality is enforced in two layers. Most numerical pathologies are avoided by choosing a stable configuration chart (recommended: hyperspherical mass-weighted Jacobi, \S\ref{sec:hyperspherical_jacobi}). Remaining issues are explicit: decode-time failures emit \texttt{DEGENERATE(reason)}, and $t=0$ near-collisions emit \texttt{COLLISION\_T0}.
+
+\paragraph{Views are charts, not branches.}
+A view mode is a coordinate choice plus deterministic decode/canonicalise. Downstream simulation and rendering are shared (\S\ref{sec:general_map}).
+
+% ============================================================
+\section{Problem setup: symmetries and gauges}
+\label{sec:problem_setup}
+
+An initial condition is $(m_i,\mathbf r_i,\mathbf p_i)_{i=0}^2$ with $m_i>0$, evolving under Newton's law with pairwise $1/r$ potential. We quotient the following symmetries.
+
+\textbf{Translation.} Work in the COM frame: $\sum_i m_i\mathbf r_i = \mathbf 0$ and $\sum_i \mathbf p_i = \mathbf 0$.
+
+\textbf{Rotation and reflection.} Decode configurations directly in a canonical frame (recommended), or rotate so $\boldsymbol\rho$ lies on $+x$ and enforce $\lambda_y\ge 0$ with a deadbanded mirror rule (\S\ref{sec:canon_config}).
+
+\textbf{Scale.} Fix the mass-weighted moment of inertia: $I = \sum_i m_i\|\mathbf r_i\|^2 = 1$, exploiting the similarity symmetry $\mathbf r\to\lambda\mathbf r$, $t\to\lambda^{3/2}t$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{symmetry_cascade.png}
+\caption{Symmetry reduction cascade for the planar three-body problem. Each step quotients a symmetry and removes degrees of freedom: translation (COM frame), rotation ($\tilde\rho$ to $+x$), reflection ($\tilde\lambda_y\ge 0$), and scale ($I=1$). The final 5-DOF reduced space (2 mass + 2 shape + 1 momentum orientation) is what the decoder parameterises.}
+\label{fig:symmetry_cascade}
+\end{figure}
+
+\subsection{Injectivity caveats}
+\label{sec:injectivity_caveats}
+
+Global injectivity is impossible with a single smooth chart. The main caveats are: \emph{seams} (discrete symmetry boundaries, stabilised by deadbanding); \emph{degenerate configurations} (tagged explicitly, not rejected); \emph{redundant gauge directions} (avoided by canonical-frame decode); and \emph{permutation symmetry} ($S_3$ for equal masses, not quotiented by default).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{injectivity.png}
+\caption{Injectivity caveats. Left: the canonical frame seam where $\tilde\lambda_y=0$, with the deadband $\delta_\lambda$ stabilising the mirror rule. Centre: degenerate and collision-at-$t=0$ configurations are tagged with terminal labels, not rejected---every pixel gets a well-defined output. Right: the no-holes guarantee as a branching flow: every UV pixel either produces a valid IC for simulation or receives a labelled terminal tag.}
+\label{fig:injectivity}
+\end{figure}
+
+% ============================================================
+\section{General chart-based construction}
+\label{sec:general_map}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{chart_atlas.png}
+\caption{The chart atlas. Four different coordinate frames drawn on the same manifold $\mathcal{M}$ (shown inside a perspective wireframe cube representing the ambient space). Each pair of basis vectors---red $(q_1, q_2)$ for affine slicing, blue $(L_z, E)$ for invariant momentum, green $(\theta, \varphi)$ for the shape sphere, orange $(\nu, K)$ for the Burrau family---defines a 2D chart through $\mathcal{M}$ at a different orientation. All charts feed the same shared decoder $D\circ C$; the GPU shader is chart-agnostic.}
+\label{fig:chart_atlas}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{manifold_projections.png}
+\caption{Slicing the manifold. Left: a 2D viewing plane (blue parallelogram) defined by basis vectors $q_1$ (red) and $q_2$ (blue) cuts through the manifold $\mathcal{M}$ at the lock point $z_0$. The dashed arrow indicates hidden dimensions that the tilt gesture rotates into. Right: the resulting $[0,1]^2$ cross-section as rendered---each pixel is one simulated trajectory, coloured by outcome (blue: escape 1--2, red: escape 2--3, green: bounded). The fractal basin boundary is visible where the basins meet. Changing the slice orientation (tilt) reveals different cross-sections of the same high-dimensional structure.}
+\label{fig:manifold_projections}
+\end{figure}
+
+\subsection{View = coordinates + decoder + canonicaliser}
+
+Let $\expldom=[0,1]^d$. A \emph{view} is specified by a coordinate space $Y$ and a map $\Phi:\expldom\to Y$. A decoder $D:Y\to\mathcal S$ produces a raw state; a canonicaliser $C:\mathcal S\to\mathcal S_{\mathrm{can}}\times\mathcal T$ fixes remaining gauges and emits terminal tags. The complete map is
+\[
+\boxed{F(\explcoord) = C\big(D(\Phi(\explcoord))\big).}
+\]
+Adding a new view means defining a new $(Y,\Phi)$ while leaving canonicalisation, simulation, and rendering unchanged.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{decode_pipeline.png}
+\caption{The decode pipeline. Chart coordinates in $[0,1]^2$ are mapped through the chart map $\Phi$, decoder $D$ (factorised as mass $\times$ configuration $\times$ momentum), and canonicaliser $C$ to produce a physical IC. Degenerate configurations are tagged rather than rejected.}
+\label{fig:decode_pipeline}
+\end{figure}
+
+\subsection{Factorisation: masses $\times$ configuration $\times$ momentum}
+\label{sec:factorisation}
+
+$Y \cong Y_{\mathrm{mass}} \times Y_{\mathrm{cfg}} \times Y_{\mathrm{mom}}$. Mass decode produces $m_i>0$ with $\sum m_i=1$; configuration decode produces a COM-frame shape via Jacobi variables; momentum decode produces COM-frame momenta either freely (4~DOF) or subject to invariants. The join assembles $(m_i,\mathbf r_i,\mathbf p_i)$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{factorisation.png}
+\caption{The IC manifold factorisation. The decode parameter space $Y$ decomposes as mass (2~DOF) $\times$ configuration (2~DOF, after rotation and scale gauges are fixed) $\times$ momentum (4~DOF) = 8~DOF total. Each subspace has its own decode stage; the join assembles the physical IC.}
+\label{fig:factorisation}
+\end{figure}
+
+% ============================================================
+\section{The 8D latent chart}
+\label{sec:z8}
+
+After COM constraints, planar three-body ICs have 2 mass + 4 configuration + 4 momentum degrees of freedom before gauge fixing. The canonical-frame decode (\S\ref{sec:hyperspherical_jacobi}) fixes rotation (pinning $\tilde\rho$ to $+x$) and scale ($\tilde R=1$), consuming 2 of the 4 configuration DOF. The true symmetry-reduced manifold is therefore 8-dimensional: 2 configuration $(\alpha,\beta)$ + 4 momentum + 2 mass. We define
+\[
+\mathbf z = (\underbrace{z_{\alpha},z_{\beta}}_{\text{config}},\; \underbrace{z_{q0},z_{q1},z_{q2},z_{q3}}_{\text{momentum}},\; \underbrace{z_{\mu1},z_{\mu2}}_{\text{mass}}) \in\mathbb R^{8}.
+\]
+Components are \emph{controls} passed through smooth decoders (sigmoid, softmax, chart warps) to produce physical quantities. The role of $\mathbf z$ is to provide a single coordinate system easy to slice and interpolate in. No latent coordinate is wasted on gauge directions.
+
+% ============================================================
+\section{Chart maps $\Phi$}
+\label{sec:charts}
+
+\subsection{Affine slicing}
+\label{sec:slicing}
+
+For the latent view, $Y=\mathbb R^{8}$. Choose a slice centre $\mathbf z_0$ and $d$ direction vectors $\mathbf q_a$:
+\[
+\boxed{\Phi_{\mathrm{slice}}(\explcoord)=\mathbf z_0+\sum_{a=1}^{d}(2s_a-1)\,\mathbf q_a.}
+\]
+For 2D textures: $\mathbf z(s,t) = \mathbf z_0 + (2s-1)\mathbf q_1 + (2t-1)\mathbf q_2$. For 3D volumes, add $(2r-1)\mathbf q_3$.
+
+\paragraph{Avoid gauge directions.} Decode in a symmetry-reduced chart so that affine slice directions correspond to meaningful physical variations rather than wasted gauge motion.
+
+% ============================================================
+\section{Decoder and canonicaliser}
+\label{sec:decoder}
+
+\subsection{Masses}
+\label{sec:mass_decode}
+
+$(m_0,m_1,m_2)=\softmax(0,\mu_1,\mu_2)$ with logit saturation $\mu_k \leftarrow \mu_{\max}\tanh(z_{\mu k})$. Define $M_{01}=m_0+m_1$; if $M_{01}<\varepsilon$, emit \texttt{DEGENERATE(M01\_TINY)}.
+
+\subsection{Configuration: hyperspherical mass-weighted Jacobi}
+\label{sec:hyperspherical_jacobi}
+
+Mass-weighted Jacobi vectors:
+\[
+\tilde{\boldsymbol\rho}=\sqrt{\mu_\rho}\,(\mathbf r_1-\mathbf r_0),\quad \tilde{\boldsymbol\lambda}=\sqrt{\mu_\lambda}\left(\mathbf r_2-\frac{m_0\mathbf r_0+m_1\mathbf r_1}{M_{01}}\right),
+\]
+with $\mu_\rho=m_0 m_1/M_{01}$, $\mu_\lambda=m_2 M_{01}$, giving $I=\|\tilde{\boldsymbol\rho}\|^2+\|\tilde{\boldsymbol\lambda}\|^2$.
+
+\paragraph{Canonical-frame decode (recommended).}
+\[
+\boxed{\tilde{\boldsymbol\rho}=\tilde R\cos\alpha\,(1,0),\qquad \tilde{\boldsymbol\lambda}=\tilde R\sin\alpha\,(\cos\beta,\sin\beta),}
+\]
+with $\beta\in[0,\pi]$ (mirror fixed by construction), $\tilde R=1$ (scale gauge), and $\alpha_{\min}$ buffer to keep $\|\boldsymbol\rho\|$ bounded away from zero. Decode controls:
+\[
+\alpha = \alpha_{\min}+\big(\tfrac{\pi}{2}-2\alpha_{\min}\big)\sigma(z_{\alpha}),\qquad \beta = \pi\,\sigma(z_{\beta}).
+\]
+
+\paragraph{Unweight and reconstruct.}
+$\boldsymbol\rho=\tilde{\boldsymbol\rho}/\sqrt{\mu_\rho}$, $\boldsymbol\lambda=\tilde{\boldsymbol\lambda}/\sqrt{\mu_\lambda}$. Particle positions via Jacobi reconstruction:
+\[
+\mathbf r_{01}=-m_2\boldsymbol\lambda,\quad \mathbf r_2=M_{01}\boldsymbol\lambda,\quad \mathbf r_0=\mathbf r_{01}-\frac{m_1}{M_{01}}\boldsymbol\rho,\quad \mathbf r_1=\mathbf r_{01}+\frac{m_0}{M_{01}}\boldsymbol\rho.
+\]
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{hyperspherical_jacobi.png}
+\caption{Hyperspherical mass-weighted Jacobi coordinates. Left: the physical Jacobi vectors $\boldsymbol\rho$ (inner pair, red) and $\boldsymbol\lambda$ (outer body relative to inner COM, blue) drawn on an actual three-body triangle. Centre: the canonical-frame parameterisation with $\alpha$ controlling the $|\tilde\rho|/|\tilde\lambda|$ ratio, $\beta\in[0,\pi]$ the angle between them, and $I=1$ as the scale gauge. Right: how increasing $\alpha$ transforms the triangle from a tight inner pair (hierarchical) to comparable scales (compact).}
+\label{fig:hyperspherical_jacobi}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{alpha_sphere.png}
+\caption{The shape sphere $S^2$ coloured by the Jacobi angle $\alpha$. Red (north pole): $\alpha\approx 0$, tight inner pair. Blue (south pole): $\alpha\approx\pi/2$, comparable scales. White equator: $\alpha=\pi/4$, equal $|\tilde\rho|$ and $|\tilde\lambda|$. Right panel: example triangles at six $\alpha$ values, colour-matched to their position on the sphere. The parameterisation continuously interpolates between hierarchical and compact configurations.}
+\label{fig:alpha_sphere}
+\end{figure}
+
+\subsection{Canonicalise configuration}
+\label{sec:canon_config}
+
+If not using the canonical-frame decode: rotate all $\mathbf r_i$ by $R(-\phi)$ with $\phi=\atanTwo(\rho_y,\rho_x)$; apply deadbanded mirror rule ($\delta_\lambda=10^{-12}$) if $\lambda_y<0$. With canonical-frame decode, both are no-ops away from the seam.
+
+\subsection{Momentum decode}
+\label{sec:jacobi_mom}
+
+\paragraph{Free Jacobi momenta.} $q_k = q_{\max}(2\sigma(z_{qk})-1)$. Jacobi-to-particle map:
+\[
+\mathbf p_0=-\mathbf p_\rho - \frac{m_0}{M_{01}}\mathbf p_\lambda,\quad \mathbf p_1=\mathbf p_\rho - \frac{m_1}{M_{01}}\mathbf p_\lambda,\quad \mathbf p_2=\mathbf p_\lambda.
+\]
+Apply same rotation/mirror as positions. Optional per-body cap with COM re-enforcement.
+
+\subsection{Scale gauge}
+\label{sec:scale_gauge}
+
+$\mathbf r_i \leftarrow \mathbf r_i/\ell$, $\mathbf p_i \leftarrow \sqrt\ell\,\mathbf p_i$ with $\ell=\sqrt{I}$. No-op if $\tilde R=1$ was enforced.
+
+\subsection{Energy normalisation (optional)}
+\label{sec:energy_norm}
+
+To enforce target energy $E^*$: compute $K_0$, check feasibility ($E^*\ge U$), rescale $\mathbf p_i \leftarrow \eta_E\,\mathbf p_i$ with $\eta_E = \sqrt{(E^*-U)/K_0}$.
+
+\subsection{No-holes: degeneracy and $t=0$ collision}
+\label{sec:no_holes_impl}
+
+\texttt{DEGENERATE(reason)} for rare numerical failures. \texttt{COLLISION\_T0(pair)} if $r_{\min}(0)<r_{\text{coll}}$, with $t_{\text{event}}=0$. Every pixel receives a well-defined label.
+
+% ============================================================
+\section{Generic chart instantiations}
+\label{sec:views}
+
+\subsection{Geometry + momentum in a fundamental domain}
+\label{sec:geom_mom_view}
+
+Pin $\boldsymbol\rho=(\rho_0,0)$, sweep $\beta(s)=\pi s$, fix $\boldsymbol\lambda=\lambda_0(\cos\beta,\sin\beta)$. Momentum: vary direction of $\mathbf p_\lambda$, fix $\mathbf p_\rho$.
+
+\subsection{Invariant coordinates $(L_z,E)$}
+\label{sec:LE_view}
+
+\paragraph{Feasibility.} For any COM-frame momenta, $E=U+K$ with $K\ge 0$, so $E\ge U$. For fixed $K$ the angular momentum satisfies
+\[
+\boxed{|L_z|\le\sqrt{2IK}=\sqrt{2I(E-U)}.}
+\]
+
+\paragraph{Domain warp (always-feasible).} Choose $K_{\max}>0$, exponent $\gamma_K\ge 1$:
+\[
+\boxed{K(t)=K_{\max}\,t^{\gamma_K},\quad E(t)=U+K(t),\quad L_{\max}(t)=\sqrt{2IK(t)},\quad L_z(s,t)=(2s-1)L_{\max}(t).}
+\]
+
+\paragraph{Deterministic momentum construction.} We construct momenta satisfying $\sum\mathbf p_i=0$, $K=E-U$, and $L_z=\sum(\mathbf r_i\times\mathbf p_i)_z$. Work with velocities $\mathbf v_i=\mathbf p_i/m_i$ and the mass-weighted inner product $\langle\mathbf a,\mathbf b\rangle_m=\sum_i m_i\mathbf a_i\cdot\mathbf b_i$. Let $J(x,y)=(-y,x)$ be the $90^\circ$ rotation.
+
+\emph{(i) Minimal-energy rigid rotation realising $L_z$.}
+\[
+\boxed{\mathbf v_i^{(L)}=\omega\,J\mathbf r_i,\qquad \omega=\frac{L_z}{I},\qquad K_{\min}=\frac{L_z^2}{2I}.}
+\]
+
+\emph{(ii) Projected direction field adding energy without changing $L_z$.} Use a deterministic fallback family of seeds. Primary: $\dot{\boldsymbol\rho}^{(A)}=\boldsymbol\rho$, $\dot{\boldsymbol\lambda}^{(A)}=\mathbf 0$. Fallbacks: $(\mathbf 0,\boldsymbol\lambda)$; $(J\boldsymbol\rho,\mathbf 0)$; $(\mathbf 0,J\boldsymbol\lambda)$. For each, convert to particle velocities:
+\[
+\boxed{\mathbf v_0=-\frac{m_2}{M}\dot{\boldsymbol\lambda}-\frac{m_1}{M_{01}}\dot{\boldsymbol\rho},\quad \mathbf v_1=-\frac{m_2}{M}\dot{\boldsymbol\lambda}+\frac{m_0}{M_{01}}\dot{\boldsymbol\rho},\quad \mathbf v_2=\frac{M_{01}}{M}\dot{\boldsymbol\lambda}.}
+\]
+Set $\mathbf w_i^{(0)}:=\mathbf v_i$. Remove COM drift:
+\[
+\mathbf c=\sum_i m_i\mathbf w_i^{(0)},\qquad \boxed{\mathbf w_i^{(1)}=\mathbf w_i^{(0)}-\frac{\mathbf c}{M}.}
+\]
+Remove angular momentum component (writing $\mathcal L(\mathbf w)=\sum_i m_i(\mathbf r_i\times\mathbf w_i)_z$):
+\[
+\beta_{\mathcal L}=\frac{\mathcal L(\mathbf w^{(1)})}{I},\qquad \mathbf w_i^{(2)}=\mathbf w_i^{(1)}-\beta_{\mathcal L}\,J\mathbf r_i.
+\]
+Normalise: $\mathbf w_i=\mathbf w_i^{(2)}/\sqrt{\|\mathbf w^{(2)}\|_m^2}$. Select the first seed satisfying $\|\mathbf w^{(2)}\|_m^2>\varepsilon_w$ (default $\varepsilon_w=10^{-10}$); if multiple are valid, choose the one with largest $\|\mathbf w^{(2)}\|_m$ for best conditioning. Only emit \texttt{DEGENERATE} if all seeds fail.
+
+\emph{(iii) Mix to hit target kinetic energy.} Let $K^*=E-U$. If $K^*<K_{\min}$, emit terminal. Otherwise:
+\[
+\boxed{a=\sqrt{2\left(K^*-\frac{L_z^2}{2I}\right)},\qquad \mathbf v_i=\mathbf v_i^{(L)}+a\,\mathbf w_i,\qquad \mathbf p_i=m_i\mathbf v_i.}
+\]
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\textwidth]{feasibility_parabola.png}
+\caption{The $(L_z,E)$ feasibility region. The parabolic boundary $|L_z|\le\sqrt{2I(E-U)}$ separates the feasible region (green, $K\ge 0$) from the infeasible region (red, $K<0$). The rest-start point $(0,U)$ sits at the parabola's apex. The domain warp maps the $[0,1]^2$ UV square into the feasible interior, guaranteeing every pixel produces a valid IC.}
+\label{fig:feasibility_parabola}
+\end{figure}
+
+\subsection{Invariant coordinates $(L_z,K)$}
+\label{sec:LK_view}
+
+Identical construction with $K^*=K(t)$ directly. Simpler warp since $K\ge 0$ is the natural constraint.
+
+\subsection{Shape-sphere projection $(\theta,\varphi)$}
+\label{sec:shape_sphere_view}
+
+The shape sphere $S^2$ is the quotient of three-body configuration space by translations, rotations, and scale. Its coordinates $(\theta,\varphi)$ parameterise the \emph{shape} of the triangle formed by the three bodies, independent of its size, orientation, and centre of mass. Rendering this directly gives a flat map of shape space with all physics overlay landmarks (collision singularities, Euler configurations, Lagrange poles, BC octant boundaries) at known fixed coordinates.
+
+\paragraph{Chart map.}
+\[
+\boxed{\Phi_{S^2}(u,v)=\big(\mathbf n(\theta(u),\varphi(v)),\;\mathbf m_{\mathrm{fixed}},\;\mathbf p_{\mathrm{fixed}}\big),}
+\]
+with $\theta(u)=\varepsilon+(\pi-2\varepsilon)u$, $\varphi(v)=2\pi v$, and buffer $\varepsilon>0$ to avoid the collision-singularity poles. Masses and momenta are held fixed; only the triangle shape varies. Each pixel is a different three-body shape at the same mass ratio and the same momentum.
+
+\paragraph{Projection choice.} The default is equirectangular ($\theta$ and $\varphi$ are linearly mapped to the rendering axes), which distorts area near the poles but keeps coordinates directly readable. For quantitative area comparisons, an equal-area alternative (Mollweide or Hammer--Aitoff) can be offered, which is important because the Lagrange equilateral-triangle configurations sit at the poles and may be compressed to invisibility in equirectangular.
+
+\paragraph{What lives on this map.}
+\begin{itemize}[nosep]
+\item Collision singularities $\hat{\mathbf b}_1,\hat{\mathbf b}_2,\hat{\mathbf b}_3$: fixed $(\theta,\varphi)$ points, depending on masses.
+\item Euler collinear configurations: on the equator.
+\item Lagrange equilateral triangles: at the poles $\hat{\mathbf l}^+,\hat{\mathbf l}^-$.
+\item BC octant boundaries, Voronoi cells: fixed curves, rendered as overlay annotations.
+\item Free-group branch cuts: great-circle arcs from collision points to poles.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.45\textwidth]{labelled_shape_sphere.png}
+\caption{The shape sphere $S^2$ with all distinguished configurations labelled (equal-mass conventions). Red circles: binary collision singularities BC$_{12}$, BC$_{23}$, BC$_{31}$ on the equator at $120^\circ$ intervals. Orange diamonds: Euler collinear configurations $E_1$, $E_2$, $E_3$ (antipodal to BCs). Green triangles: Lagrange equilateral poles $L^+$ (north), $L^-$ (south). Dashed purple arcs: branch cuts $C_a$, $C_b$ for the free-group word encoding.}
+\label{fig:labelled_sphere}
+\end{figure}
+
+\paragraph{Burrau application.} Fix Burrau masses and rest start, sweep $(\theta,\varphi)$ over the full sphere. The right-triangle Burrau configurations appear as a 1D curve on the 2D map (the locus where one interior angle is $\pi/2$). The rest of the map shows what happens to non-right-triangle shapes at the same masses---directly answering whether the right-angle constraint is dynamically special or just geometrically convenient.
+
+\paragraph{The shape sphere as phase portrait.} This chart is fundamentally different from all others because the rendering surface and the dynamical state space are the same object. Each pixel is a starting shape $\mathbf n(0)\in S^2$; the trajectory $\mathbf n(t)$ from that IC traces a path \emph{across the very surface being rendered}. The collision singularities $\hat{\mathbf b}_j$ are singular points of the flow. The Euler collinear configurations are equilibria on the equator. The Lagrange equilateral triangles are the poles. The free-group word records which singularities the trajectory wound around---and those windings are visible as loops on the map.
+
+This is the three-body analogue of a Lorenz attractor plot: state space = display space, trajectories are visible curves in the rendered coordinates, and the fractal basin boundaries painted onto the map \emph{are} the separatrices of the flow. When a locked pixel's trajectory is animated in the inspector overlay, it draws on top of the map it came from: the starting point is the locked pixel, and the trajectory wanders across the same $(\theta,\varphi)$ surface, threading between the collision points.
+
+Formally, the full reduced phase space is $T^*S^2$ (shape sphere plus shape momenta), so $S^2$ is the configuration-space projection. Different momenta at the same starting shape produce crossing trajectories on the map---same pixel, different velocity, different fate. This is visible as outcome class changing when momentum is varied at a fixed shape: the pixel colour changes, but the trajectory paths through the same region of $S^2$ diverge. A mixed-axis chart pairing $\theta$ or $\varphi$ with a momentum coordinate (as in \S\ref{sec:mixed_axis}) lifts this degeneracy by showing the full phase-space cross-section.
+
+\paragraph{Hover-streamline interaction.} Because rendering surface = state space, a unique interaction is possible in this chart: as the cursor moves across the map, a trajectory streamline is drawn in real time from the hovered pixel. The implementation is lightweight:
+\begin{enumerate}[nosep]
+\item Decode the IC from the hovered $(u,v)$ via the chart map.
+\item Integrate one trajectory on the CPU at \texttt{f64} with fine time resolution (microseconds for a single trajectory---well within frame budget even on every mouse-move event).
+\item Project the resulting $\mathbf n(t)$ path back to $(\theta,\varphi)$ and draw as a smooth curve on a canvas overlay.
+\end{enumerate}
+No GPU dispatch, no tile computation, no readback from the \texttt{SimResult} buffer. The streamline is a CPU-side overlay that composites on top of the GPU-rendered basin map.
+
+\paragraph{What the user sees.} Move the cursor across the shape sphere: a smooth trajectory streams out from the cursor position, threading between the collision singularities $\hat{\mathbf b}_j$, visibly changing topology as the cursor crosses basin boundaries. Each loop around a collision point corresponds to a symbol in the free-group word. The word \texttt{abBA} is visible as: loop around $\hat{\mathbf b}_1$ anticlockwise, loop around $\hat{\mathbf b}_2$ anticlockwise, loop around $\hat{\mathbf b}_2$ clockwise, loop around $\hat{\mathbf b}_1$ clockwise. The symbolic dynamics become directly visible as physical motion on the map.
+
+\paragraph{Relationship to the locked-pixel inspector.} The hover streamline is a lightweight preview; the locked-pixel inspector (\S\ref{sec:inspector}) is the full analysis. The hover streamline uses the same CPU integration path but draws only the shape-sphere trajectory. The inspector adds real-space animation, diagnostics, the full free-group word, and energy conservation checks. On lock (click), the hover streamline freezes and the inspector overlay opens on top of it.
+
+\subsection{Mixed-axis charts}
+\label{sec:mixed_axis}
+
+The two rendering axes need not come from the same subspace of the 8D IC manifold. Any pair of coordinates can be the horizontal and vertical axes, with the remaining degrees of freedom frozen at specified values. This enables direct visualisation of phase-space cross-sections that are impossible in any single-subspace chart.
+
+\paragraph{Examples.}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Horizontal axis & Vertical axis & What it shows \\
+\midrule
+Shape $\theta$ & $L_z$ & how basin structure varies with shape and angular momentum \\
+Shape $\varphi$ & $K$ & azimuthal orientation vs kinetic energy \\
+$\nu$ (Burrau) & $K$ & triangle shape vs energy (bifurcation strip) \\
+Mass $m_1$ & Shape $\theta$ & mass--shape coupling at fixed momentum \\
+$L_z$ & $\theta$ (shape) & angular momentum vs triangle elongation \\
+$\alpha$ (Jacobi) & $p_\rho$ (radial momentum) & classical phase-space portrait \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Implementation.} Each axis specifies: which latent coordinate or derived quantity it maps, and what warp function maps $[0,1]$ to the physical range. The remaining 6 coordinates are set by the chart convention (e.g.\ ``Burrau masses, rest start'' fixes 6 of 8). The chart map is then:
+\[
+\Phi_{\mathrm{mixed}}(u,v)=D\big(\mathbf z(u,v)\big),
+\]
+where $\mathbf z(u,v)$ fills coordinate $i$ from $u$, coordinate $j$ from $v$, and the rest from the frozen values. This composes with the existing decoder $D$ and requires no new GPU logic---the shader reads $(m_i,\mathbf r_i,\mathbf p_i)$ as always.
+
+\paragraph{Phase-space plots.} When one axis is a configuration coordinate and the other is its conjugate momentum, the rendering is literally a Poincar\'e section of the three-body phase space. The basin structure in this view shows how configuration-space and momentum-space features interact---information invisible in any configuration-only or momentum-only chart.
+
+% ============================================================
+\section{Measure and sampling density}
+\label{sec:measure}
+
+The decoding transforms (sigmoid, softmax, domain warps) induce a non-uniform sampling density in physically meaningful spaces (mass fractions, triangle shapes, energy, angular momentum). This is acceptable for exploratory rendering, but must be documented when quantitative statements are intended.
+
+\paragraph{Examples of non-uniformity.} Softmax with saturated logits is smooth but not uniform over the simplex. Uniform in internal angles is not the same as uniform over triangle shapes (the shape sphere has its own area element). Power-law warps $K(t)=K_{\max}t^{\gamma_K}$ deliberately bias density toward low $K$.
+
+\paragraph{Energy drift as a quality diagnostic.} For bounded trajectories, the relative energy drift $|\Delta E/E|$ over the integration horizon serves as a per-pixel integration quality indicator. This can be stored as an additional diagnostic channel and used to flag pixels where numerical accuracy is suspect.
+
+Unless otherwise stated, the default goal is smooth, controllable exploration, not strict uniform sampling.
+
+\paragraph{Three distinct notions of density.} \emph{Exploration density:} what makes interaction smooth and useful. \emph{Refinement density:} where the renderer spends compute because the image/dynamics are complicated. \emph{Physical/statistical density:} what would matter for statements like ``fraction of IC space showing X.'' These are not the same thing. In particular: \textbf{refinement density is not physical probability density.} The quadtree concentrates compute at basin boundaries because they are visually and dynamically interesting, not because those ICs are more probable.
+
+\newpage
+% ============================================================
+% PART II: THE BURRAU-PYTHAGOREAN FAMILY
+% ============================================================
+\part{The Burrau--Pythagorean Family}
+\label{part:burrau}
+
+% ============================================================
+\section{Motivation}
+\label{sec:burrau_motivation}
+
+Burrau's problem (1913): three bodies at the vertices of a 3--4--5 right triangle, each mass equal to its opposite side. This is the simplest member of an infinite family. Every primitive Pythagorean triple $(a,b,c)$ defines a distinct right-triangle Burrau configuration.
+
+% ============================================================
+\section{The discrete family}
+\label{sec:discrete}
+
+\subsection{Euclid's parametrisation}
+
+For coprime $m>n>0$ with $m-n$ odd:
+\begin{equation}
+a=m^2-n^2,\quad b=2mn,\quad c=m^2+n^2.
+\label{eq:euclid}
+\end{equation}
+Every primitive Pythagorean triple arises exactly once (up to leg swap). Non-primitive triples $(ka,kb,kc)$ are dynamically equivalent under the similarity symmetry.
+
+\subsection{Distinct shapes}
+
+Different primitive triples give genuinely non-similar triangles:
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$(m,n)$ & Triple & Angles & $a/b$ \\
+\midrule
+$(2,1)$ & $(3,4,5)$ & $36.9^\circ,\;53.1^\circ$ & $0.75$ \\
+$(3,2)$ & $(5,12,13)$ & $22.6^\circ,\;67.4^\circ$ & $0.42$ \\
+$(4,1)$ & $(15,8,17)$ & $61.9^\circ,\;28.1^\circ$ & $1.88$ \\
+$(4,3)$ & $(7,24,25)$ & $16.3^\circ,\;73.7^\circ$ & $0.29$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Jacobi coordinates for Burrau configurations}
+\label{sec:burrau_jacobi}
+
+Place right angle at origin, normalise by hypotenuse, assign Burrau masses:
+\begin{equation}
+\mathbf r_1=(0,0),\; m_1=\frac{c}{a+b+c},\quad \mathbf r_2=\left(\frac{a}{c},0\right),\; m_2=\frac{b}{a+b+c},\quad \mathbf r_3=\left(0,\frac{b}{c}\right),\; m_3=\frac{a}{a+b+c}.
+\label{eq:burrau_positions}
+\end{equation}
+Jacobi vectors (inner pair 1--2):
+\begin{equation}
+\boldsymbol\rho = \left(\frac{a}{c},0\right),\qquad \boldsymbol\lambda = \left(-\frac{ab}{c(b+c)},\;\frac{b}{c}\right).
+\label{eq:burrau_jacobi}
+\end{equation}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{burrau_triangles.png}
+\caption{Four primitive Pythagorean triples at unit hypotenuse. Mass at each vertex is proportional to the opposite side (Burrau convention). Red arrows: inner Jacobi vector $\boldsymbol\rho_1$. Blue arrows: outer Jacobi vector $\boldsymbol\rho_2$. Different $\nu=n/m$ values produce genuinely distinct triangle shapes with different Jacobi geometry.}
+\label{fig:burrau_triangles}
+\end{figure}
+
+\subsection{Continuous interpolation}
+\label{sec:continuous_euclid}
+
+The Euclid formulae hold for all real $m>n>0$. The single ratio $\nu:=n/m\in(0,1)$ determines the triangle shape; the acute angle is $\theta(\nu)=\arctan\!\big((1-\nu^2)/(2\nu)\big)$. Primitive triples sit at a countable set of $\nu$ values. Everything---positions, Jacobi vectors, Burrau masses---varies smoothly with $\nu$, feeding directly into the Principia decode pipeline.
+
+% ============================================================
+\section{Relaxing constraints}
+\label{sec:burrau_relaxation}
+
+\subsection{Mass simplex}
+
+Decouple masses from geometry: for a fixed triangle, sweep the 2-simplex $\Delta_2=\{(m_1,m_2,m_3)\in\mathbb R^3_{>0}:\sum m_i=1\}$. The Burrau point $(c,b,a)/(a+b+c)$ is one distinguished location.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.42\textwidth]{mass_simplex.png}
+\caption{The mass simplex $\Delta_2$. The Burrau point for the $(3,4,5)$ triple and the equal-mass barycentre $(\tfrac{1}{3},\tfrac{1}{3},\tfrac{1}{3})$ are marked. The dashed inner triangle shows the $\varepsilon_m$ buffer that keeps masses bounded away from zero. Edge labels indicate which mass vanishes along each boundary.}
+\label{fig:mass_simplex}
+\end{figure}
+
+\subsection{Momentum}
+\label{sec:burrau_momentum}
+
+The classical Burrau problem starts from rest. The rest start in the $(L_z,E)$ chart sits at $(0,U)$---the apex of the feasibility parabola. Sweeping away from it reveals how basins nucleate as the energy budget grows. Alternatively, use free Jacobi momenta (4D) or geometry--momentum mixed slices.
+
+\subsection{Progressive escalation}
+
+\textbf{Stage 1a} (discrete survey): strict Burrau family at rest across primitive triples.
+
+\textbf{Stage 1b} (continuous geometry, 1D): sweep $\nu\in(0,1)$ continuously; Pythagorean triples as landmarks.
+
+\textbf{Stage 2a} (continuous masses, 2D): fix triangle, sweep $\Delta_2$ at zero momentum.
+
+\textbf{Stage 2b} (continuous momentum, 2D): fix triangle and Burrau masses, sweep $(L_z,E)$ or $(L_z,K)$.
+
+\textbf{Stage 3} (combined, 4D+): masses and momenta vary simultaneously.
+
+\textbf{Stage 4} (full, 8D): remove all constraints; Burrau family becomes cross-sections of the full manifold.
+
+% ============================================================
+\section{Burrau-specific charts}
+\label{sec:burrau_charts}
+
+All Burrau-family views are standard chart maps $\Phi:[0,1]^2\to Y_{\mathrm{Burrau}}$ feeding the existing decoder. Use the factorisation $Y_{\mathrm{Burrau}}\cong Y_{\mathrm{shape}}\times Y_{\mathrm{mass}}\times Y_{\mathrm{mom}}$. The shape coordinate is $\nu:=n/m\in(0,1)$, with normalised Euclid formulae (divided by $m^2$):
+\[
+a(\nu)=1-\nu^2,\quad b(\nu)=2\nu,\quad c(\nu)=1+\nu^2.
+\]
+
+\paragraph{Decoder contract.} Each Burrau chart produces $(\nu,\mathbf m,\mathrm{mom})\mapsto(\boldsymbol\rho,\boldsymbol\lambda,\mathbf m,\mathrm{mom})\mapsto(\mathbf r_i,\mathbf p_i,m_i)$ via the standard downstream canonicaliser. There is no Burrau-specific integrator or renderer.
+
+\subsection{The Euclid plane}
+
+Let $(u,v)\in[0,1]^2$. Choose $m\in[m_{\min},m_{\max}]$ (defaults $1,32$), $\nu\in[\nu_{\min},\nu_{\max}]$ (defaults $1/32,31/32$):
+\[
+m(u)=m_{\min}\left(\frac{m_{\max}}{m_{\min}}\right)^u,\quad \nu(v)=\nu_{\min}+(\nu_{\max}-\nu_{\min})v.
+\]
+\[
+\boxed{\Phi_{\mathrm{Euclid}}(u,v)=\big(\nu(v),\;\mathbf m_{\mathrm{Burrau}}(\nu(v)),\;\mathrm{rest}\big).}
+\]
+The decoder uses only $\nu$; $m$ is a display/landmark coordinate for highlighting integer lattice points and primitive-triple overlays. Primitive triples occur where $m,n\in\mathbb Z$, $m>n$, $\gcd(m,n)=1$, $m-n$ odd.
+
+\subsection{The acute-angle axis}
+
+The acute angle $\theta\in(0,\pi/4]$ parameterises right-triangle shape directly. Inversion from $\theta$:
+\[
+\nu(\theta) = \sec\theta-\tan\theta.
+\]
+For $(\theta,K)$: $\theta(u)=\theta_{\min}+(\theta_{\max}-\theta_{\min})u$, $K(v)=K_{\max}v^{\gamma_K}$:
+\[
+\boxed{\Phi_{\theta,K}(u,v)=\big(\nu(\theta(u)),\;\mathbf m_{\mathrm{Burrau}}(\nu(\theta(u))),\;(L_z{=}0,K(v))\big).}
+\]
+Variants: $\Phi_{\theta,L_z}$ (fix $K$, sweep $L_z$); $\Phi_{\theta,\delta m}$ (sweep mass perturbation, see below).
+
+\subsection{Ternary mass plot}
+
+Fix geometry via $\nu_0$. Map $(u,v)\in[0,1]^2$ to the simplex interior: $x=u$, $y=(1-u)v$, $m_1=1-x-y$, $m_2=x$, $m_3=y$. Apply interior buffer $\varepsilon_m=10^{-4}$ by shrinking toward barycentre: $\mathbf m\leftarrow(1-3\varepsilon_m)\mathbf m+\varepsilon_m(1,1,1)$.
+\[
+\boxed{\Phi_{\mathrm{mass}}(u,v)=\big(\nu_0,\;(m_1,m_2,m_3),\;\mathrm{rest}\big).}
+\]
+The Burrau point $(c,b,a)/(a+b+c)$ is an overlay marker.
+
+\subsection{Bifurcation strips}
+
+Publication-oriented: shape horizontal, one parameter vertical. For $(\theta,K)$:
+\[
+\boxed{\Phi_{\mathrm{strip},K}(u,v)=\big(\nu(\theta(u)),\;\mathbf m_{\mathrm{Burrau}}(\nu(\theta(u))),\;(L_z{=}0,K(v))\big).}
+\]
+For $(\theta,\delta m)$, let $\mathbf m(u,v)=(1-v)\,\mathbf m_{\mathrm{Burrau}}(\nu(\theta(u)))+v\,\mathbf m_{\mathrm{target}}$ where $\mathbf m_{\mathrm{target}}=(1/3,1/3,1/3)$ by default:
+\[
+\boxed{\Phi_{\mathrm{strip},\delta m}(u,v)=\big(\nu(\theta(u)),\;\mathbf m(u,v),\;\mathrm{rest}\big).}
+\]
+
+% ============================================================
+\section{Central hypothesis}
+\label{sec:hypothesis}
+
+\textbf{Hypothesis.} Fractal basin structures observed in the Burrau--Pythagorean family are cross-sections of codimension-$k$ structures ($k<6$) in the full 8D IC manifold, rather than artefacts of the constrained submanifold.
+
+\textbf{Test.} Lock onto a basin boundary in a Burrau slice. Continuously rotate the slice basis into unconstrained dimensions. Observe whether the boundary persists, deforms, or dissolves.
+
+\newpage
+% ============================================================
+% PART III: INTERACTION MODEL
+% ============================================================
+\part{Interaction Model}
+\label{part:interaction}
+
+% ============================================================
+\section{The projective microscope}
+\label{sec:microscope}
+
+Fix a point $\mathbf z_0\in\mathbb R^{8}$. All existing controls---sliders, tilt, chart mode, zoom---orbit around it. Changing the slicing orientation $(\mathbf q_1,\mathbf q_2)$ rotates the 2D viewing plane through the fixed point.
+
+\subsection{Existing controls (unchanged)}
+
+\textbf{Per-dimension sliders:} set individual components of $\mathbf z_0$.
+
+\textbf{Tilt:} continuously rotate individual basis vectors into chosen latent dimensions. See \S\ref{sec:tilt_math} below.
+
+\textbf{Zoom:} scalar multiplier on $\mathbf q_1,\mathbf q_2$ (log-stepping recommended).
+
+\textbf{Chart mode switching:} changes $\Phi$ while keeping $\mathbf z_0$ as centre.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{slice_tilt.png}
+\caption{Tilt: rotating the 2D viewing plane through new dimensions. The lock point $\mathbf z_0$ (red) stays fixed while the tilt parameter $\tau$ continuously rotates the basis vector $\mathbf q_2$ out of its original direction ($z_4$) and into a new dimension ($z_5$). At $\tau=0$ the slice shows the base view; increasing $\tau$ reveals cross-sections through previously hidden dimensions. This is the central tool for testing the persistence hypothesis (\S\ref{sec:hypothesis}).}
+\label{fig:slice_tilt}
+\end{figure}
+
+\subsection{Tilt: Givens rotation into hidden dimensions}
+\label{sec:tilt_math}
+
+Two independent tilt controls, one per basis vector. Each is parameterised by a target latent dimension $k$ and an angle $\tau\in[-90^\circ,+90^\circ]$.
+
+\paragraph{Givens rotation.} Given a base basis vector $\mathbf q$ (either $\mathbf q_1$ or $\mathbf q_2$) and a target dimension index $k$, let $\mathbf e_k\in\mathbb R^8$ be the $k$-th standard basis vector. The tilted vector is:
+\[
+\boxed{\mathbf q'=\cos\tau\;\mathbf q+\sin\tau\;\mathbf e_k.}
+\]
+At $\tau=0$: no tilt, $\mathbf q'=\mathbf q$. At $\tau=\pm 90^\circ$: fully committed to the target dimension, $\mathbf q'=\pm\mathbf e_k$. The sign of $\tau$ matters---the IC manifold is not generally symmetric under sign flips in latent coordinates, so $+30^\circ$ and $-30^\circ$ reveal genuinely different cross-sections.
+
+\paragraph{Target dimension selection.} The 8D latent space has 6 dimensions orthogonal to the current viewing plane. The target selector for each tilt slider offers these 6 directions. The two sliders should default to different targets. Selecting which hidden dimension to tilt into is the core hypothesis-testing gesture: ``does this fractal boundary persist when I rotate $\mathbf q_2$ toward the angular-momentum axis?''
+
+\paragraph{Orthonormalisation.} Apply Gram--Schmidt after every tilt change, \emph{before} deriving tile dispatch uniforms. Anchor on $\mathbf q_1$ (the horizontal/primary axis stays exact):
+\begin{enumerate}[nosep]
+\item Compute tilted vectors: $\mathbf q_1'$ from slider~1, $\mathbf q_2'$ from slider~2.
+\item Normalise $\mathbf q_1'$: $\;\hat{\mathbf q}_1 = \mathbf q_1'/\|\mathbf q_1'\|$.
+\item Orthogonalise $\mathbf q_2'$ against $\hat{\mathbf q}_1$: $\;\mathbf q_2^\perp = \mathbf q_2' - (\mathbf q_2'\cdot\hat{\mathbf q}_1)\,\hat{\mathbf q}_1$.
+\item Normalise: $\;\hat{\mathbf q}_2 = \mathbf q_2^\perp / \|\mathbf q_2^\perp\|$.
+\end{enumerate}
+Cost: two dot products, two scalar multiplies, two normalisations on 8-vectors. Unmeasurable.
+
+\paragraph{When is correction needed?} If the two tilt targets are different dimensions $j\neq k$, the tilted vectors are already orthogonal: $\mathbf q_1'\cdot\mathbf q_2' = \cos\tau_1\cos\tau_2(\mathbf q_1\cdot\mathbf q_2)+\sin\tau_1\sin\tau_2(\mathbf e_j\cdot\mathbf e_k)=0$, since $\mathbf q_1\perp\mathbf q_2$ and $\mathbf e_j\perp\mathbf e_k$. Gram--Schmidt is a no-op. If both sliders target the \emph{same} dimension $j=k$, the cross-term $\sin\tau_1\sin\tau_2\neq 0$ and correction is required. Always running Gram--Schmidt handles both cases identically.
+
+\paragraph{Degenerate case.} If $\|\mathbf q_2^\perp\|<\varepsilon$ (the two tilted vectors have become nearly parallel), the second axis is ill-defined. This happens when both sliders target the same dimension at similar angles. Clamp $\tau_2$ to prevent $\|\mathbf q_2^\perp\|$ from dropping below $\varepsilon=10^{-6}$, or fall back to replacing $\mathbf q_2$ with the next available orthogonal complement direction.
+
+\paragraph{UI conventions.}
+\begin{itemize}[nosep]
+\item Display in degrees, store internally in radians.
+\item Range $[-90^\circ, +90^\circ]$, centred at $0^\circ$.
+\item Tilt~1 ($\mathbf q_1$) is the primary slider; tilt~2 ($\mathbf q_2$) is secondary/collapsed by default.
+\item Label format: ``Tilt $\mathbf q_1$ into $z_5$: $23.4^\circ$''.
+\item If both sliders target the same dimension, show a subtle overlap indicator.
+\end{itemize}
+
+% ============================================================
+\section{Lock gesture}
+\label{sec:lock}
+
+Select pixel at $(s,t)$; snap slice centre to that IC.
+
+\paragraph{Affine charts.} $\mathbf z_{\mathrm{locked}} = \mathbf z_0 + (2s-1)\mathbf q_1 + (2t-1)\mathbf q_2$. CPU-side arithmetic, no GPU readback.
+
+\paragraph{Nonlinear charts.} CPU-side replay of $\Phi$ and $D$, or GPU buffer readback.
+
+\paragraph{Locked mode.} Sliders frozen at $\mathbf z_{\mathrm{locked}}$. Tilt, zoom, chart mode work unchanged but orbit around the locked point. On unlock, current view state preserved as new free-mode starting point.
+
+% ============================================================
+\section{Locked-pixel inspector}
+\label{sec:inspector}
+
+When a pixel is locked, the user can open an overlay (e.g.\ via Tab) displaying a full single-trajectory analysis of that IC. This is a fundamentally different compute path from the tiled GPU pipeline.
+
+\subsection{Compute model}
+
+The tiled pipeline gives you the \emph{map}: millions of samples at \texttt{f32}, optimised for throughput. The inspector gives you the \emph{microscope}: one sample at arbitrary fidelity, optimised for depth.
+
+The locked pixel provides chart coordinates $(u,v)$. Decode the IC through the same $\Phi\to D\to C$ pipeline, then run a single high-fidelity integration---on the CPU, in \texttt{f64} or arbitrary precision if desired. Because it is a single trajectory, there is no parallelism requirement and no struct-size constraint. The output can be as rich as needed:
+
+\begin{itemize}[nosep]
+\item full position/velocity history at every integration step (not just $M$ checkpoints)
+\item real-space trajectories $\mathbf r_i(t)$ for animation
+\item shape-sphere trajectory $\mathbf n(t)$ at full time resolution
+\item energy conservation $\Delta E/E$ as a continuous function of $t$
+\item symbolic sequence / free-group word for the encounter history
+\item frequency analysis over the full trajectory
+\item all scalar diagnostics ($d_{\min}$, $t_{\mathrm{end}}$, $L_n$, diffusion, FTLE if desired)
+\item full IC metadata (masses, positions, momenta, chart coordinates, latent $\mathbf z$)
+\end{itemize}
+
+\subsection{Why CPU and why high precision}
+
+One trajectory, no parallelism needed, so \texttt{f64} is free. This matters for:
+
+\begin{itemize}[nosep]
+\item chasing trajectories deep into near-collision singularities where \texttt{f32} loses significant digits
+\item extending the integration horizon far beyond what the GPU pipeline uses
+\item validating the GPU pipeline: lock an interesting pixel, recompute at \texttt{f64}, and check whether the \texttt{f32} tiled result was qualitatively correct or a numerical artefact
+\end{itemize}
+
+This is a built-in validation tool. Any time a user sees something unexpected on the map, they can lock it and verify independently.
+
+\subsection{Inspector overlay contents}
+
+The overlay should display at minimum:
+
+\begin{itemize}[nosep]
+\item \textbf{Shape-sphere panel}: animated $\mathbf n(t)$ trajectory on $S^2$ with physics overlay (BC/Euler/Lagrange markers)
+\item \textbf{Real-space panel}: animated particle trajectories $\mathbf r_i(t)$ with trails
+\item \textbf{IC summary}: masses, positions, momenta, chart coordinates, outcome classification
+\item \textbf{Diagnostics}: energy drift, frequency diffusion, FTLE estimate, encounter sequence
+\item \textbf{Free-group word}: symbolic encoding of the encounter history (which body is closest to which, in what order)
+\end{itemize}
+
+\subsection{Relationship to the tiled pipeline}
+
+The inspector does not read from the tile \texttt{SimResult} buffer or tile summaries. It is a completely independent recompute from the IC. This means:
+
+\begin{itemize}[nosep]
+\item changing palette or render mode on the map does not affect the inspector
+\item the inspector can use a different integrator, time step, or horizon than the tiled pipeline
+\item the inspector result can be compared against the tiled \texttt{f32} result as a consistency check
+\item the map continues to render and refine while the inspector is open
+\end{itemize}
+
+% ============================================================
+\section{Lookup: entering ICs directly}
+\label{sec:lookup}
+
+\paragraph{Exact IC (full lock).} User provides $(m,n)$, a Pythagorean triple, raw $\mathbf z$, or physical coordinates $(m_i,\mathbf r_i,\mathbf p_i)$. System encodes into the latent chart via the inverse paths below, then locks.
+
+\paragraph{Partial specification (constrained slice).} User provides fewer coordinates than needed. System fills unspecified coordinates by canonical defaults: unspecified masses $\to$ equal masses (unless chart implies Burrau); unspecified geometry in Burrau charts $\to$ current locked $\nu$ or $\nu=1/2$; unspecified momentum $\to$ rest start; unspecified latent coordinates $\to$ 0. Then auto-configure the slice basis to span the unspecified degrees of freedom.
+
+\subsection{Inverse encode paths}
+\label{sec:inverse_encode}
+
+Lookup requires a deterministic partial inverse of the decode map. Three cases arise:
+\begin{enumerate}[nosep]
+\item \textbf{Exact inverse available}: latent chart, mass-simplex, Burrau geometry, free Jacobi momenta. The formulae below apply.
+\item \textbf{Constrained inverse available}: invariant charts $(L_z,E)$, $(L_z,K)$ where chart coordinates can be recovered but the global latent point is not unique. Choose the canonical representative with smallest latent-space norm.
+\item \textbf{No canonical inverse}: charts requiring projection or optimisation (e.g.\ arbitrary physical coordinates that do not align with any active chart). Fall back to latent $\mathbf z$ via the general inversion below.
+\end{enumerate}
+
+\paragraph{Mass inverse.} Given $(m_0,m_1,m_2)$ with $\sum m_i=1$:
+\[
+\mu_1=\log\frac{m_1}{m_0},\quad \mu_2=\log\frac{m_2}{m_0},\quad z_{\mu k}=\mathrm{artanh}\!\left(\frac{\mu_k}{\mu_{\max}}\right).
+\]
+Clamp $|\mu_k|$ to $(1-\varepsilon_\mu)\mu_{\max}$ before artanh if at saturation, with $\varepsilon_\mu=10^{-6}$. For a Burrau shape $\nu$: $\mu_1=\log(b/c)$, $\mu_2=\log(a/c)$.
+
+\paragraph{Configuration inverse.} From physical positions, translate to COM, reconstruct Jacobi vectors $\boldsymbol\rho=\mathbf r_1-\mathbf r_0$, $\boldsymbol\lambda=\mathbf r_2-(m_0\mathbf r_0+m_1\mathbf r_1)/M_{01}$. Mass-weight, canonicalise (rotate $\tilde{\boldsymbol\rho}$ to $+x$, mirror so $\tilde\lambda_y\ge 0$), then:
+\[
+\alpha=\atanTwo(\|\tilde{\boldsymbol\lambda}\|,\|\tilde{\boldsymbol\rho}\|),\quad \beta=\atanTwo(\tilde\lambda_y,\tilde\lambda_x)\in[0,\pi].
+\]
+Invert the sigmoid decode:
+\[
+s_\alpha=\frac{\alpha-\alpha_{\min}}{\pi/2-2\alpha_{\min}},\quad s_\beta=\frac{\beta}{\pi},\quad z_{\alpha}=\mathrm{logit}(s_\alpha),\quad z_{\beta}=\mathrm{logit}(s_\beta),
+\]
+with $s$ clamped into $[\varepsilon_z,1-\varepsilon_z]$, $\varepsilon_z=10^{-6}$.
+
+\paragraph{Free-momentum inverse.} From COM-frame momenta, invert the Jacobi map: $\mathbf p_\lambda=\mathbf p_2$, $\mathbf p_\rho=\mathbf p_1+(m_1/M_{01})\mathbf p_\lambda$. Pack components and invert sigmoid:
+\[
+s_k=\tfrac{1}{2}(q_k/q_{\max}+1),\quad z_{qk}=\mathrm{logit}(\clamp(s_k,\varepsilon_q,1-\varepsilon_q)).
+\]
+If $|q_k|>q_{\max}$, clamp and set a \texttt{lookup\_clamped} flag.
+
+\paragraph{Canonical inverse policy.} (1) Translate to COM. (2) Canonicalise by same rotation/mirror as forward decode. (3) Invert into current chart where possible, otherwise into latent $\mathbf z$. (4) If multiple valid inverses remain, choose smallest Euclidean norm in latent space. (5) Surface any clamping in the UI.
+
+\subsection{Chart-aware validation}
+\label{sec:chart_validation}
+
+Not every point in the 8D latent hypercube $[0,1]^{8}$ is valid in every chart, and not every user-entered IC maps to a point inside the hypercube at all. Lookup and lock must validate against the \emph{active chart's} constraints before committing.
+
+\paragraph{Validation layers (applied in order).}
+\begin{enumerate}[nosep]
+\item \textbf{Hypercube bounds.} After inverse encoding, check $z_k\in[0,1]$ for all $k$. If any $z_k$ lies outside, either clamp (setting \texttt{lookup\_clamped}) or reject. This catches physical coordinates that exceed the decoder's representable range (e.g.\ momenta larger than $q_{\max}$, extreme mass ratios beyond $\mu_{\max}$).
+\item \textbf{Chart feasibility.} Each chart may impose additional constraints beyond the hypercube:
+\begin{itemize}[nosep]
+\item $(L_z,E)$: the point must lie inside the feasibility parabola $|L_z|\le\sqrt{2I(E-U)}$. A user-entered $(L_z,E)$ pair outside this region has no physical realisation at the current configuration.
+\item $(L_z,K)$: $K\ge 0$ and $K\ge L_z^2/2I$.
+\item Mass simplex: all $m_i>0$ and $\sum m_i=1$; the interior buffer $\varepsilon_m$ further restricts the valid region.
+\item Shape sphere: $\theta\in[\varepsilon,\pi-\varepsilon]$ (pole exclusion), $\varphi\in[0,2\pi)$.
+\item Burrau charts: $\nu\in(0,1)$; specific $\nu$ values may correspond to degenerate triangles as $\nu\to 0$ or $\nu\to 1$.
+\item Mixed-axis charts: inherit constraints from both axes.
+\end{itemize}
+\item \textbf{Decode sanity.} After decoding, verify: all masses positive; no two bodies coincident ($r_{ij}>r_{\mathrm{coll}}$); COM is at origin (within tolerance); total momentum is zero (within tolerance). These catch edge cases where individually valid coordinates combine to produce a degenerate configuration.
+\end{enumerate}
+
+\paragraph{Response to validation failure.} Three options, in order of preference:
+\begin{itemize}[nosep]
+\item \textbf{Project}: find the nearest valid point in the chart's feasible region (e.g.\ project onto the feasibility parabola for $(L_z,E)$). Lock to the projected point and notify the user.
+\item \textbf{Clamp}: snap each out-of-range coordinate to the nearest boundary, set \texttt{lookup\_clamped}, and proceed. The UI should indicate that clamping occurred and which coordinates were affected.
+\item \textbf{Reject}: refuse the lookup with a specific error message identifying which constraint failed. Use this only when projection/clamping would produce a qualitatively different IC from what the user intended.
+\end{itemize}
+
+\paragraph{Lock validation.} When locking by clicking a pixel, the chart coordinates are by construction valid (the pixel was rendered from a decoded IC). But tilt can move the locked point's neighbourhood into an infeasible region of the chart. The system must detect this and either re-centre to the nearest feasible point or switch to a chart where the current lock is valid.
+
+\paragraph{Implementation note.} Each chart type registers a \texttt{validate(u,v) -> ValidationResult} function that the lookup/lock system calls. This is a CPU-side check; the GPU shader never sees invalid ICs because they are caught before dispatch. The validation function is also used by the quadtree to skip tiles that fall entirely outside the feasible region (e.g.\ tiles above the feasibility parabola in the $(L_z,E)$ chart).
+
+% ============================================================
+\section{Named compound directions}
+\label{sec:named_directions}
+
+Pre-defined $\mathbf q$ vectors for physically meaningful slice orientations, composing with the existing tilt mechanism:
+
+\textbf{Mass perturbation away from Burrau:} direction in mass subspace from Burrau logits toward equal masses.
+
+\textbf{Energy increase at fixed $L_z$:} configuration-dependent direction in momentum subspace.
+
+\textbf{Burrau-to-unconstrained morph:} tilt one basis vector from a configuration direction into a mass or momentum direction, directly testing the hypothesis of \S\ref{sec:hypothesis}.
+
+% ============================================================
+\section{Implementation summary}
+\label{sec:interaction_summary}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Component & Status & New work \\
+\midrule
+Affine slice uniforms & Existing & None \\
+Per-dimension sliders & Existing & Freeze/unfreeze in locked mode \\
+Tilt mechanism & Existing & None \\
+Chart mode switching & Existing & None \\
+Zoom & Existing & None \\
+Lock gesture & \textbf{New} & Pixel $\to$ $\mathbf z$ readback, pin $\mathbf z_0$ \\
+Lookup (exact IC) & \textbf{New} & Input parsing, encode paths \\
+Lookup (partial spec) & \textbf{New} & Encode + auto-configure basis \\
+Named direction library & \textbf{New} & Precomputed $\mathbf q$ vectors \\
+GPU shader & Existing & \textbf{No changes} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newpage
+% ============================================================
+% PART IV: SIMULATION AND ANALYSIS
+% ============================================================
+\part{Simulation and Analysis}
+\label{part:sim}
+
+\begin{center}
+\fbox{\parbox{0.9\textwidth}{
+\textbf{Core architectural principle: one canonical trajectory object.}
+For each sample, the primary geometric object is the checkpointed shape-sphere path
+$Z_n = \big(\mathbf n(t_1),\ldots,\mathbf n(t_M)\big)$, $\mathbf n(t_m)\in S^2\subset\mathbb R^3$.
+This is the shared representation for: stability analysis, adaptive refinement, tile summarisation, animation playback, representative-tile rendering, caching and invalidation, and similarity/coherence comparisons across nearby ICs. No separate refinement-only feature pass and no separate rendering-only trajectory representation should exist. All angle-like or phase-like observables (frequency diffusion phase, render-time hue, arc length) are \emph{derived} from $\mathbf n(t)$ or from auxiliary scalars computed during integration, never stored as primary trajectory state.
+}}
+\end{center}
+
+% ============================================================
+\section{Equations of motion and integrators}
+\label{sec:sim}
+
+\[
+\dot{\mathbf r}_i = \frac{\mathbf p_i}{m_i},\qquad \dot{\mathbf p}_i = \sum_{j\neq i}G\,m_im_j\frac{\mathbf r_j-\mathbf r_i}{\|\mathbf r_j-\mathbf r_i\|^3}.
+\]
+
+\subsection{KDK leapfrog (default, 2nd order)}
+
+For a time step $\Delta t$, with $\mathbf F_i(\mathbf r)=\sum_{j\neq i}Gm_im_j(\mathbf r_j-\mathbf r_i)/\|\mathbf r_j-\mathbf r_i\|^3$:
+\begin{enumerate}[nosep]
+\item Kick half-step: $\mathbf p_i \leftarrow \mathbf p_i + \frac{\Delta t}{2}\mathbf F_i(\mathbf r)$.
+\item Drift full-step: $\mathbf r_i \leftarrow \mathbf r_i + \Delta t\,\mathbf p_i/m_i$.
+\item Kick half-step: $\mathbf p_i \leftarrow \mathbf p_i + \frac{\Delta t}{2}\mathbf F_i(\mathbf r)$.
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{kdk_leapfrog.png}
+\caption{KDK leapfrog structure. Two half-kicks bracket a full drift. The COM projection and invariant accumulation run as post-step operations after the second kick completes. The method is symplectic: phase-space volume is preserved exactly per step.}
+\label{fig:kdk_leapfrog}
+\end{figure}
+
+\paragraph{Adaptive substepping.} $\Delta t_{\text{sub}}=\Delta t_{\text{macro}}/N_{\text{sub}}$ where
+\[
+N_{\text{sub}}=\min\!\left(N_{\max},\;\max\!\left(1,\;\left\lceil\left(\frac{r_{\text{sub}}}{r_{\min}}\right)^{\gamma_{\text{sub}}}\right\rceil\right)\right),\qquad r_{\min}=\min_{i<j}\|\mathbf r_i-\mathbf r_j\|.
+\]
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{adaptive_substepping.png}
+\caption{Adaptive substepping near a close encounter. Top: the minimum pairwise separation $r_{\min}(t)$ dips sharply during a close approach. Bottom: the substep count $N_{\text{sub}}$ ramps up in response, capped at $N_{\max}$. Away from encounters, $N_{\text{sub}}=1$ and the integrator runs at full macro-step size.}
+\label{fig:adaptive_substepping}
+\end{figure}
+
+\subsection{Yoshida composition (4th and 6th order)}
+\label{sec:yoshida}
+
+Yoshida's method composes multiple KDK steps with specific weights to cancel lower-order error terms. The code path is identical to KDK---just called multiple times per macro-step with different sub-step sizes. Symplecticity is preserved.
+
+\paragraph{Yoshida 4th order (3 stages).} One macro-step of size $h$ is replaced by three KDK steps with sizes $w_1h$, $w_2h$, $w_3h$ where:
+\[
+\boxed{w_1=w_3=\frac{1}{2-2^{1/3}}\approx 1.3512,\qquad w_2=-\frac{2^{1/3}}{2-2^{1/3}}\approx -1.7024.}
+\]
+Note $w_2<0$: the middle step goes backward in time. This is a mathematical requirement for explicit high-order symplectic methods. Cost: $3\times$ force evaluations per step. Recommended default for Balanced/Research tiers.
+
+\paragraph{Yoshida 6th order (7 stages).} Seven KDK steps per macro-step, using three independent coefficients $w_1,\ldots,w_7$ derived from the same composition principle applied twice. The coefficients are:
+\begin{align*}
+w_1=w_7 &= 0.78451361047755726382,\\
+w_2=w_6 &= 0.23557321335935813368,\\
+w_3=w_5 &= -1.17767998417887100695,\\
+w_4 &= 1.31518632068391121888.
+\end{align*}
+Cost: $7\times$ force evaluations. Research tier only.
+
+\paragraph{GPU performance note.} Higher-order methods add uniform work per thread (more stages per step). On a GPU running millions of trajectories, this is \emph{good} for utilisation: threads in smooth regions that would otherwise idle while waiting for close-encounter threads to finish their substeps are now doing useful higher-order work. Yoshida~4th is nearly free in wall-clock terms on GPU for this reason.
+
+\paragraph{Integrator selection by quality tier.}
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Tier & Integrator & Force evals/step & When \\
+\midrule
+Preview & KDK (2nd) & $1\times$ & dragging, zooming, first paint \\
+Balanced & Yoshida 4th & $3\times$ & default interactive \\
+Research & Yoshida 4th or 6th & $3\times$ or $7\times$ & publication-grade, deep zoom \\
+Validation & RK4 & $4\times$ & short-horizon cross-check \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{RK4 (validation reference)}
+
+Classical 4th-order Runge--Kutta. Higher local accuracy than KDK but not symplectic: energy drifts over long horizons. Use for short-horizon validation against KDK/Yoshida on selected tiles or in the locked-pixel inspector (\S\ref{sec:inspector}). Not for production rendering.
+
+\subsection{Future direction: KS regularisation}
+
+Close encounters dominate the error budget because the $1/r$ gravitational singularity produces arbitrarily large accelerations. Adaptive substepping handles this by brute force (more steps near singularities), but the fundamental issue remains: the equations of motion are singular in Cartesian coordinates.
+
+Kustaanheimo--Stiefel (KS) regularisation transforms the integration variable so the $1/r$ singularity is removed analytically. This allows fixed-step integration through close encounters with bounded error. However, KS regularisation changes the state representation from Cartesian to regularised coordinates, which would ripple through the decoder, canonicaliser, and observable extraction pipeline. It is therefore a v2 architectural change, not a drop-in integrator swap. Named here so the pipeline design does not accidentally preclude it.
+
+\subsection{Failure handling}
+
+NaN/Inf $\to$ \texttt{SIM\_FAILED}. Persistent $N_{\text{sub}}=N_{\max}$ $\to$ \texttt{TIMEOUT/MAX\_SUBSTEPS}.
+
+\subsection{COM projection and invariant monitoring}
+\label{sec:com_projection}
+
+\paragraph{Motivation.} The atlas decodes trajectories into a COM-consistent representation. Runtime COM projection is numerical housekeeping that keeps floating-point drift from reintroducing the redundant modes the atlas removed. Without projection, coordinates drift as $r_i = r_i^{\text{internal}} + R_{\text{drift}}$, wasting \texttt{f32} dynamic range on physically irrelevant bulk motion.
+
+\paragraph{Projection rule.} After each complete integration step (after the final half-kick in KDK, or after all Yoshida stages), compute
+\[
+R_{\text{com}} = \frac{1}{M}\sum_{i=1}^{3} m_i r_i, \qquad V_{\text{com}} = \frac{1}{M}\sum_{i=1}^{3} m_i v_i,
+\]
+and project:
+\[
+r_i \leftarrow r_i - R_{\text{com}}, \qquad v_i \leftarrow v_i - V_{\text{com}}.
+\]
+$M_{\text{total}}$ is constant; compute once and cache. Cost: $\sim 20$ FLOPs per step, negligible relative to the force evaluation.
+
+\paragraph{Why COM is special.} COM position and total linear momentum are linear constraints generated by exact translation symmetry, dynamically decoupled from internal motion, and removable by a canonical projection with no ambiguity. This is not true for energy or angular momentum---restoring those after drift requires choosing a non-unique state modification. The simulator shall \emph{not} explicitly project energy or angular momentum.
+
+\paragraph{Invariant monitoring.} Energy and angular momentum should be tracked as diagnostics. Before the integration loop begins, evaluate and store:
+\[
+E_0 = \sum_i \frac{\|\mathbf p_i\|^2}{2m_i} - G\sum_{i<j}\frac{m_i m_j}{\|r_i - r_j\|}, \qquad L_{z,0} = \sum_i m_i(x_i v_{y,i} - y_i v_{x,i}).
+\]
+After each step (post-projection), evaluate $E(t)$ and $L_z(t)$ and update running accumulators:
+\[
+\Delta E_{\max} \leftarrow \max(\Delta E_{\max},\; |E(t) - E_0|), \qquad \Delta L_{z,\max} \leftarrow \max(\Delta L_{z,\max},\; |L_z(t) - L_{z,0}|).
+\]
+The energy evaluation reuses cached pairwise distances from the force computation; the marginal cost is the kinetic term (three dot products) plus two comparisons per step.
+
+\paragraph{Per-step vs start-and-end.} Accumulating the transient worst-case drift per step (not just evaluating at termination) catches close-encounter spikes where energy conservation temporarily degrades but recovers by the time the escaper is ejected. This is the regime where the Burrau dynamics are most interesting.
+
+% ============================================================
+\section{Event detection}
+\label{sec:events}
+
+\subsection{Collision}
+
+$\min_{i<j}\|\mathbf r_i-\mathbf r_j\| < r_{\text{coll}}$. Record pair.
+
+\subsection{Escape}
+\label{sec:escape}
+
+For each candidate escaping body $k$ relative to the other pair $(ij)$, define the outer Jacobi separation and velocity:
+\[
+\boldsymbol\lambda_{(ij),k}=\mathbf r_k-\frac{m_i\mathbf r_i+m_j\mathbf r_j}{m_i+m_j},\qquad \mathbf v_\lambda:=\dot{\boldsymbol\lambda}_{(ij),k}.
+\]
+Define the outer Jacobi reduced mass and momentum:
+\[
+\mu_{\mathrm{out}}=\frac{m_k(m_i+m_j)}{m_i+m_j+m_k}=m_k(m_i+m_j)\quad(\text{since }M=1),\qquad \boxed{\mathbf p_{\mathrm{out}}=\mu_{\mathrm{out}}\,\mathbf v_\lambda,}
+\]
+and the effective two-body outer energy:
+\[
+\boxed{E_{\mathrm{out}}=\frac{\|\mathbf p_{\mathrm{out}}\|^2}{2\mu_{\mathrm{out}}}-\frac{G\,m_k(m_i+m_j)}{\|\boldsymbol\lambda\|}.}
+\]
+Require three gates persistently:
+\begin{enumerate}[nosep]
+\item Distance gate: $\|\boldsymbol\lambda\|>R_{\text{esc}}$.
+\item Outward gate: $\boldsymbol\lambda\cdot\mathbf v_\lambda>0$.
+\item Energy gate: $E_{\mathrm{out}}>0$.
+\end{enumerate}
+Maintain a counter $c_{\text{esc}}$ per sample. When all three gates hold: $c_{\text{esc}}\leftarrow\min(c_{\text{esc}}+1,k_{\mathrm{esc}})$. Otherwise: $c_{\text{esc}}\leftarrow\max(c_{\text{esc}}-1,0)$. Declare escape when $c_{\text{esc}}\ge k_{\mathrm{esc}}$. Record which body escaped. This linear persistence/decay suppresses single-step glitches without making the detector sticky over long resonant excursions.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{escape_persistence.png}
+\caption{Escape detection persistence counter. Top: the three gates (distance, outward velocity, outer energy) shown as binary signals. Bottom: the counter $c_{\text{esc}}$ increments when all three gates hold and decrements when any fails. Escape is declared when the counter reaches $k_{\text{esc}}$.}
+\label{fig:escape_persistence}
+\end{figure}
+
+\paragraph{Diffusion window validity.} Frequency diffusion is meaningful mainly for the \texttt{BOUNDED} class. If a sample terminates before the second window, set diffusion to \texttt{NaN} or a sentinel and exclude from diffusion-based coherence statistics.
+
+% ============================================================
+\section{Stability metrics}
+\label{sec:stability}
+
+\subsection{Shape-sphere observable}
+\label{sec:shape_sphere_obs}
+
+From Jacobi vectors (mass-weighted for unequal masses), define
+\[
+\mathbf n(t)=\frac{1}{\|\tilde{\boldsymbol\rho}\|^2+\|\tilde{\boldsymbol\lambda}\|^2}\begin{pmatrix}2\tilde{\boldsymbol\rho}\cdot\tilde{\boldsymbol\lambda}\\2(\tilde{\boldsymbol\rho}\times\tilde{\boldsymbol\lambda})_z\\\|\tilde{\boldsymbol\rho}\|^2-\|\tilde{\boldsymbol\lambda}\|^2\end{pmatrix}\in S^2.
+\]
+
+\paragraph{Canonical geometric representation.}
+The canonical stored geometric state is the Cartesian unit vector $\mathbf n(t)\in S^2$; angle-like quantities (unwrapped phase, frequency diffusion, render-time hue) are \emph{derived observables}, not the primary representation. Storing $\mathbf n(t)$ rather than $(\theta,\varphi)$ provides: stable interpolation and averaging with no singular behaviour at the poles; no angle-wrap ambiguity at the antimeridian; cheap comparison via Euclidean distance or dot products ($\|\mathbf n_i-\mathbf n_j\|^2=2(1-\mathbf n_i\cdot\mathbf n_j)$); and direct reuse for both adaptive refinement and animated rendering without coordinate conversion.
+
+Given fixed checkpoints $t_1,\ldots,t_M$, the canonical sampled path descriptor is $Z_n=(\mathbf n(t_1),\ldots,\mathbf n(t_M))\in\mathbb R^{3M}$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\textwidth]{shape_trajectories.png}
+\caption{Shape-sphere trajectories for two contrasting initial conditions. Left: a regular/quasiperiodic orbit traces a smooth loop on $S^2$ (short free-group word). Right: a chaotic scattering trajectory tangles around the collision singularities (long word, many encounters). Red dots: BC collision points. Green triangles: Lagrange poles.}
+\label{fig:shape_trajectories}
+\end{figure}
+
+\subsection{Frequency diffusion}
+\label{sec:freq_diffusion}
+
+\paragraph{Phase.} $\theta(t)=\atanTwo(n_y,n_x)\in(-\pi,\pi]$.
+
+\paragraph{Unwrapping.} Given sampled phases $\theta_k=\theta(t_k)$:
+\[
+\Delta=\theta_k-\theta_{k-1},\quad \Delta\leftarrow\Delta-2\pi\text{ if }\Delta>\pi,\quad \Delta\leftarrow\Delta+2\pi\text{ if }\Delta<-\pi,\quad \boxed{\tilde\theta_k=\tilde\theta_{k-1}+\Delta.}
+\]
+
+\paragraph{Windowed frequency estimate.} Over window $W$, fit $\tilde\theta(t)\approx\omega t+\theta_0$ by least squares:
+\[
+\boxed{\omega=\frac{\sum_{k\in W}(t_k-\bar t)(\tilde\theta_k-\overline{\tilde\theta})}{\sum_{k\in W}(t_k-\bar t)^2}.}
+\]
+
+\paragraph{Diffusion.} Two windows $W_1,W_2$ give $\omega_1,\omega_2$:
+\[
+\boxed{D=|\omega_2-\omega_1|,\qquad D_{\mathrm{rel}}=\frac{|\omega_2-\omega_1|}{|\omega_1|+\varepsilon_\omega}.}
+\]
+
+\paragraph{Secondary observable.} The complex Jacobi ratio $\zeta(t)=(\lambda_x+i\lambda_y)/(\rho_x+i\rho_y)$ provides an independent phase proxy $\theta_\zeta=\arg\zeta$. Large diffusion in one but not the other indicates numerical/branch artefacts rather than genuine chaos.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\textwidth]{freq_diffusion.png}
+\caption{Frequency diffusion two-window scheme. The unwrapped phase $\tilde\theta(t)$ is fit by least-squares linear regression in two consecutive windows $W_1$ and $W_2$, yielding frequency estimates $\omega_1$ and $\omega_2$. The diffusion $D=|\omega_2-\omega_1|$ measures how much the dominant frequency changed between windows---large $D$ indicates chaotic or transient dynamics.}
+\label{fig:freq_diffusion}
+\end{figure}
+
+\subsection{Finite-time Lyapunov exponent (FTLE)}
+\label{sec:ftle}
+
+\paragraph{What FTLE answers.} ``If I perturb this trajectory by an infinitesimal amount, how fast does that perturbation grow over a finite time?'' This is a property of the flow near that trajectory, not of the rendering resolution. It does not depend on screen zoom. It is the dynamical-systems quantity.
+
+\paragraph{Definition.} Let $x(t)$ be the base trajectory from $x_0$, and let $\delta x(0)$ be an infinitesimal perturbation. The finite-time Lyapunov exponent over horizon $T$ is
+\[
+\lambda_T(x_0)=\frac{1}{T}\log\frac{\|\delta x(T)\|}{\|\delta x(0)\|}.
+\]
+
+\paragraph{Mass-weighted phase-space norm.}
+\[
+\delta^2=\sum_i m_i\|\mathbf r_i'-\mathbf r_i\|^2+\alpha\sum_i\frac{1}{m_i}\|\mathbf p_i'-\mathbf p_i\|^2,
+\]
+where $\alpha$ is a nondimensionalisation constant (default $\alpha=1$ when $G=M=I=1$). The norm choice must be documented; different norms yield different FTLE values.
+
+\paragraph{Benettin renormalisation loop.} Without renormalisation, the shadow trajectory leaves the linear regime and you measure nonlinear final separation, not local stretching. The renormalisation loop keeps the perturbation tiny and in the tangent/linearised regime. Every $M_{\mathrm{renorm}}$ macro-steps (indexed $j=1,\ldots,J$):
+\begin{enumerate}[nosep]
+\item Evolve base and shadow trajectories over interval $\Delta t_j$.
+\item Measure current separation $\delta_j$.
+\item Accumulate: $S\leftarrow S+\log(\delta_j/\delta_0)$.
+\item Rescale shadow back to distance $\delta_0$ along the current perturbation direction.
+\end{enumerate}
+The FTLE estimate is $\lambda_T\approx S/T$ where $T=\sum_j\Delta t_j$.
+
+\paragraph{Perturbation hierarchy.} For the three-body problem there are three levels of FTLE-like measurement, from most to least faithful:
+\begin{enumerate}[nosep]
+\item \textbf{Full phase-space FTLE}: perturbation in positions \emph{and} momenta. Measures the canonical FTLE of the physical flow.
+\item \textbf{Reduced IC-manifold FTLE}: perturbation in the 2D chart coordinates only. Measures stretching of the parametrised flow map; useful but not the same dynamical object.
+\item \textbf{Finite-cloud spread}: no renormalisation, finite neighbourhood. This is ensemble spread (\S\ref{sec:ensemble}), not FTLE.
+\end{enumerate}
+All three are useful, but they are not the same object and should not be conflated.
+
+\paragraph{Implementation caveats.}
+\begin{itemize}[nosep]
+\item The renormalisation interval $M_{\mathrm{renorm}}$ should be short enough that $\delta_j/\delta_0$ stays numerically comfortable ($10^{-2}$--$10^{4}$) but long enough for the perturbation to align with the locally fastest-growing direction.
+\item Position-only perturbations are useful diagnostics but should not be labelled as canonical full-state FTLE.
+\item Nondimensionalisation is strongly recommended.
+\end{itemize}
+
+\paragraph{Compute shader integration.} When FTLE is enabled (Tier~C / Research mode), each invocation maintains a shadow state alongside the base trajectory: 4 extra position floats $+$ 4 extra momentum floats $=$ 32 bytes per sample in thread-local registers. The Benettin accumulator $S$ and renormalisation counter are thread-local scalars. On completion, $\lambda_T=S/T$ is written into the \texttt{stretch} field of \texttt{SimResult}. When FTLE is disabled (Preview/Balanced), \texttt{stretch} holds a cheaper proxy (e.g.\ max local deformation or arc-length-based estimate). The quality tier is a dispatch-time uniform, not a per-sample decision.
+
+\paragraph{Interpretation.} Low FTLE: nearby trajectories stay close; locally regular or weakly stretching. High FTLE: strong local exponential separation; chaos, transient instability, or proximity to invariant manifolds / basin boundaries. FTLE can still depend on the finite time horizon $T$, the norm, and transient behaviour.
+
+% ============================================================
+\subsection{Finite-resolution ensemble spread}
+\label{sec:ensemble}
+
+\paragraph{What ensemble spread answers.} ``If I take a finite patch of nearby ICs at the scale I care about visually, how mixed are their outcomes?'' This is about the fate of a finite neighbourhood at the scale you are actually rendering. It is not about the infinitesimal dynamics of the flow in the formal chaos-theory sense.
+
+\paragraph{Why this is useful for Principia.} Principia is not only doing dynamics research---it is also rendering a map. For a rendered map, the key practical question is often not ``what is the asymptotic local stretching exponent?'' but ``at this zoom level, is this region visually resolved or not?'' A boundary may be mathematically sharp in the continuum, but if the current pixel footprint spans several filaments, then visually that pixel is genuinely mixed. Ensemble spread tells you that directly.
+
+\paragraph{Definition.} For a base point $(u,v)$ with lifted state $x_0=\chi((u,v))$, sample a finite neighbourhood
+\[
+x_0^{(k)}\in B_r(x_0),\quad k=1,\ldots,N,
+\]
+where $r$ is the local pixel/subpixel footprint radius in the rendered chart. Integrate each sample and compute an observable $F(x_0^{(k)})$.
+
+\paragraph{Continuous spread.}
+\[
+\sigma_F^2(x_0)=\frac{1}{N}\sum_{k=1}^N\left\|F(x_0^{(k)})-\bar F(x_0)\right\|^2,\qquad \bar F(x_0)=\frac{1}{N}\sum_{k=1}^N F(x_0^{(k)}).
+\]
+
+\paragraph{Categorical impurity.} If the observable is a discrete outcome class with empirical probabilities $p_i$:
+\[
+H(x_0)=-\sum_i p_i\log p_i\quad\text{(entropy)},\qquad D(x_0)=1-\max_i p_i\quad\text{(majority disagreement)}.
+\]
+For basin rendering, outcome entropy is often especially useful.
+
+\paragraph{Why resolution-dependent.} The neighbourhood probed has a finite size. Zoom in and the effective perturbation radius shrinks; a region that looked mixed before may separate cleanly into distinct subregions. This is not a bug---it is the whole point. The quantity answers ``how stable is this picture at this scale?'' rather than ``what is the intrinsic local stretching rate?''
+
+\paragraph{Interpretation.} Low ensemble spread: the neighbourhood behaves coherently, the pixel is visually stable, probably inside a regular basin interior. High ensemble spread: nearby ICs diverge into distinct outcomes, the pixel straddles a boundary or chaotic mixing structure, the rendered colour is not trustworthy from one sample alone.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\textwidth]{ensemble_sampling.png}
+\caption{Ensemble spread schematic. The base point $x_0$ and $E$ jittered copies are scattered within the pixel's IC-space footprint. Their trajectories diverge to different outcomes (blue: escape 1--2; red: escape 2--3). The ensemble agreement (4/6 here) measures whether the pixel straddles a basin boundary at the current rendering resolution.}
+\label{fig:ensemble_sampling}
+\end{figure}
+
+\paragraph{Dispatch model.} When ensemble is enabled, dispatch $E$ jittered copies per grid position, each producing an identical \texttt{SimResult}. Jitter offsets are deterministic (stratified or quasi-random within the pixel footprint). The reduction pass computes spread from all $N^2\times E$ samples into one \texttt{TileReduction}. The \texttt{SimResult} struct does not change---you just have more of them. Ensemble size depends on quality tier: $E=0$ (preview), $E=2$--$4$ on suspicious tiles (balanced), $E=4$--$16$ broadly (research).
+
+% ============================================================
+\subsection{Why FTLE and ensemble spread correlate but are not equivalent}
+\label{sec:ftle_vs_ensemble}
+
+Both become large near sensitive regions. At a fractal basin boundary, infinitesimal perturbations separate fast \emph{and} finite neighbourhoods contain multiple outcomes. So visually they often highlight similar structures, which is why they are easy to conflate.
+
+But they can differ:
+\begin{itemize}[nosep]
+\item A region may have modest local stretching yet look visually mixed because the pixel footprint crosses many thin filaments.
+\item A region may have strong local stretching yet not produce mixed final outcomes over the chosen finite integration/classification rule.
+\end{itemize}
+
+If Principia exposes both, users can distinguish:
+\begin{itemize}[nosep]
+\item ``This looks mixed because the rendering footprint crosses multiple basins'' (ensemble).
+\item ``This is dynamically unstable in the Lyapunov sense'' (FTLE).
+\end{itemize}
+Those are different kinds of meaning.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+& FTLE & Ensemble spread \\
+\midrule
+Perturbation scale & infinitesimal & finite (pixel footprint) \\
+Renormalisation & required & not used \\
+Resolution-dependent & no & yes (intentionally) \\
+Depends on zoom & no & yes \\
+Primary use & dynamical interpretation & rendering \& adaptive sampling \\
+Measures & local exponential stretching rate & fate-mixing of a finite neighbourhood \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Pixel-footprint ensembles are simultaneously an anti-aliasing device, an uncertainty estimator, and a refinement signal. This triple role is one of the strongest conceptual unifications in the design.
+
+\subsection{Trajectory coherence on the shape sphere}
+\label{sec:trajectory_coherence}
+
+The mode-independent refinement basis. Store checkpointed paths $\gamma_i=\{\mathbf n_i(t_m)\}_{m=1}^M$. Average chordal mismatch:
+\[
+d_n(\gamma_i,\gamma_j) = \frac{1}{M}\sum_{m=1}^M \|\mathbf n_i(t_m)-\mathbf n_j(t_m)\|^2 = \frac{2}{M}\sum_{m=1}^M(1-\mathbf n_i(t_m)\cdot\mathbf n_j(t_m)).
+\]
+Tile spread: $S_n(C) = \frac{2}{N(N-1)}\sum_{i<j}d_n(\gamma_i,\gamma_j)$.
+
+\paragraph{Compressed descriptor.} For GPU efficiency, compare a compact per-sample descriptor:
+\[
+Z_k = \big(\mathbf n(t_1),\ldots,\mathbf n(t_M),\;L_n,\;t_{\mathrm{end}},\;d_{\min},\;s_{\mathrm{stretch}}\big),
+\]
+where $L_n$ is total path length on $S^2$, $t_{\mathrm{end}}$ is termination/escape/collision time, $d_{\min}$ is minimum pair separation, and $s_{\mathrm{stretch}}$ is an optional FTLE-like accumulator. Tile spread via weighted variance:
+\[
+S_Z(C)=\frac{1}{N}\sum_{k=1}^N\|Z_k-\bar Z_C\|_W^2,\qquad \bar Z_C=\frac{1}{N}\sum_{k=1}^N Z_k,
+\]
+where $\|v\|_W^2=v^\top W v$ with $W$ diagonal or block-diagonal.
+
+\paragraph{Interpretation.} A tile may remain coarse only if nearby initial conditions produce sufficiently similar shape-sphere histories and event statistics that one summary can stand in for the whole tile.
+
+% ============================================================
+\subsection{Free-group word of the encounter sequence}
+\label{sec:free_group}
+
+\paragraph{What the free-group word is.} The planar three-body configuration space, after removing the three binary-collision singularities from the shape sphere $S^2$, has fundamental group isomorphic to the \emph{free group on two generators} $F_2=\langle a,b\rangle$. As the shape-sphere trajectory $\mathbf n(t)$ evolves, it traces a path in $S^2\setminus\{\hat{\mathbf b}_1,\hat{\mathbf b}_2,\hat{\mathbf b}_3\}$. The homotopy class of this path is a word in $F_2$: a compressed topological fingerprint of the encounter history.
+
+Two trajectories with the same free-group word have the same encounter topology regardless of their metric details. The word records \emph{which collision singularities the trajectory wound around, in what order, and in which direction}.
+
+\paragraph{Generators.} Choose two of the three binary collision points as generators. For equal masses with $\hat{\mathbf b}_1=(1,0,0)$, $\hat{\mathbf b}_2=(-\tfrac{1}{2},\tfrac{\sqrt3}{2},0)$, $\hat{\mathbf b}_3=(-\tfrac{1}{2},-\tfrac{\sqrt3}{2},0)$:
+
+\begin{center}
+\begin{tabular}{ccl}
+\toprule
+Symbol & Code & Meaning \\
+\midrule
+$a$ & \texttt{0b00} & Positive loop around $\hat{\mathbf b}_1$ (pair 01 close encounter, anticlockwise) \\
+$A=a^{-1}$ & \texttt{0b01} & Negative loop around $\hat{\mathbf b}_1$ (pair 01, clockwise) \\
+$b$ & \texttt{0b10} & Positive loop around $\hat{\mathbf b}_2$ (pair 02 close encounter, anticlockwise) \\
+$B=b^{-1}$ & \texttt{0b11} & Negative loop around $\hat{\mathbf b}_2$ (pair 02, clockwise) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The third collision point $\hat{\mathbf b}_3$ does not need a separate generator: in the free group, a loop around $\hat{\mathbf b}_3$ is expressible in terms of $a$ and $b$ via the punctured-sphere relation. This is the topological reason why two generators suffice for three punctures.
+
+\paragraph{Branch-cut construction.} Place two branch cuts on the shape sphere:
+\begin{itemize}[nosep]
+\item Cut $C_a$: a great-circle arc from $\hat{\mathbf b}_1$ to the north pole $\hat{\mathbf l}^+=(0,0,1)$.
+\item Cut $C_b$: a great-circle arc from $\hat{\mathbf b}_2$ to $\hat{\mathbf l}^+$.
+\end{itemize}
+At each integration step, check whether $\mathbf n(t)$ crossed either cut. Crossing detection: for a cut defined by two endpoints $\hat{\mathbf p}$ and $\hat{\mathbf q}$, compute the signed distance of $\mathbf n$ from the great-circle plane containing $\hat{\mathbf p}$ and $\hat{\mathbf q}$:
+\[
+d(t) = \mathbf n(t)\cdot(\hat{\mathbf p}\times\hat{\mathbf q}).
+\]
+A sign change in $d$ between consecutive steps indicates a crossing. The sign of $d$ at the previous step determines direction (positive $\to$ negative $=$ symbol $a$ or $b$; negative $\to$ positive $=$ symbol $A$ or $B$).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{freegroup_word.png}
+\caption{Free-group word encoding. Left: a trajectory on $S^2$ crossing the branch cuts $C_a$ (from $\hat{b}_1$ to $\hat{l}^+$) and $C_b$ (from $\hat{b}_2$ to $\hat{l}^+$). Each crossing appends a 2-bit symbol. Right: the symbol table, free reduction rule, and \texttt{uint4} bit-packing layout (58 symbol slots).}
+\label{fig:freegroup_word}
+\end{figure}
+
+\paragraph{Free reduction.} After appending a symbol, check for cancellation with the previous symbol: if the last two symbols are $aA$, $Aa$, $bB$, or $Bb$, delete both (free reduction). This keeps the stored word in reduced form throughout integration at negligible cost (one comparison per append).
+
+\paragraph{Unequal masses.} For unequal masses, the collision points $\hat{\mathbf b}_j$ shift from their equal-mass positions on the equator. The branch cuts must be adjusted accordingly: connect each generator's collision point to a reference point (e.g.\ the Lagrange pole $\hat{\mathbf l}^+$) via a great-circle arc that avoids the other collision points. The encoding scheme and crossing detection are otherwise identical.
+
+\paragraph{Compute shader implementation.} During integration, maintain a bit-packed word in a \texttt{uint4} register (thread-local). Two bits per symbol, packed from the LSB of \texttt{.x} upward through \texttt{.y}, \texttt{.z}, \texttt{.w}: this gives 64 symbol slots. Store the current word length $\ell$ in the top 6 bits of \texttt{.w} (leaving 58 usable symbol slots in practice). At each macro-step:
+\begin{enumerate}[nosep]
+\item Evaluate $d_a(t)$ and $d_b(t)$ for both branch cuts.
+\item If sign changed from previous step: determine symbol from cut identity and crossing direction.
+\item Append 2-bit code at position $2\ell$ in the \texttt{uint4}.
+\item Free-reduce against previous symbol if cancellation occurs (decrement $\ell$).
+\item Increment $\ell$ (clamped to max capacity; set overflow flag if exceeded).
+\end{enumerate}
+
+\paragraph{Cost.} One dot product per cut per macro-step (two dot products total), one comparison, and one conditional bit-write. Negligible relative to the integration itself.
+
+\paragraph{Bit-packing layout.}
+\begin{verbatim}
+uint4 free_word;
+// .x: symbols 0-15  (bits 0-31,  2 bits each)
+// .y: symbols 16-31 (bits 0-31,  2 bits each)
+// .z: symbols 32-47 (bits 0-31,  2 bits each)
+// .w: symbols 48-57 (bits 0-19), length in bits 26-31
+//     bits 20-25 reserved
+\end{verbatim}
+
+\paragraph{Why this matters.} The free-group word is a topological invariant of the encounter sequence. It enables:
+\begin{itemize}[nosep]
+\item \textbf{Symbolic classification}: two trajectories with the same word have the same encounter topology, regardless of metric details.
+\item \textbf{Render mode}: colour pixels by word length, first symbol, periodic structure, or full lexicographic hash.
+\item \textbf{Boundary detection}: word changes between adjacent pixels indicate topological basin boundaries (sharper than metric-based spread).
+\item \textbf{ML applications}: the (word, outcome) pair is the most compressed representation of ``what happened and how it ended.'' Training on these pairs learns the relationship between encounter topology and final fate---the central scientific question of the three-body problem in its most compact form.
+\item \textbf{Search and clustering}: find all ICs producing a given word; cluster by edit distance on words; identify periodic orbits (words that are powers of a shorter word).
+\item \textbf{Conjugacy and symmetry}: words related by cyclic permutation or generator relabelling correspond to symmetry-related orbits.
+\end{itemize}
+
+\subsection{Alternative indicators}
+
+\textbf{SALI:} tracks alignment of two deviation vectors; chaotic motion drives SALI $\to 0$ exponentially.
+
+\textbf{0--1 test:} from observable $\phi(t)$, compute $p_{k+1}=p_k+\phi_k\cos(ck)$, $q_{k+1}=q_k+\phi_k\sin(ck)$; linear growth of MSD indicates chaos.
+
+\textbf{Future indicators (not yet implemented):} event-time sensitivity $S_{t,\nabla}\approx\|\nabla t_{\mathrm{end}}\|$ (bifurcation detector); mean resultant length $R_m=\|(1/N)\sum_k\mathbf n_k(t_m)\|$ at each checkpoint (spread on $S^2$); recurrence compactness $R_\tau=\min_{t'}\|\mathbf n(t')-\mathbf n(t'+\tau)\|$ (periodic-island detection); time-occupancy entropy on a coarse spherical partition (morphology proxy).
+
+\subsection{Stability metric hierarchy}
+\label{sec:metric_hierarchy}
+
+Implementation should be guided by cost tier, not by which metric is ``best.''
+
+\paragraph{Tier A --- default / cheap / always-on.}
+Available in every render mode and tile summary.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Metric & Formula & Use \\
+\midrule
+Shape-path arc length & $L_n=\sum_{m=1}^{M-1}\arccos(\clamp(\mathbf n(t_m)\cdot\mathbf n(t_{m+1}),-1,1))$ & Activity proxy, tile spread \\
+Min pair separation & $d_{\min}$ & Singularity proximity \\
+Event time & $t_{\mathrm{end}}$ & Boundary signal \\
+Frequency diffusion & $D$ or $D_{\mathrm{rel}}$ & Cheap chaos scalar \\
+Energy drift & $\epsilon_E=|E(t_{\mathrm{end}})-E(0)|/(|E(0)|+\epsilon)$ & Numerical reliability \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Tier B --- medium-cost / selective.} Use in balanced mode or for suspicious tiles: tile-local trajectory coherence (main refinement signal); outcome impurity / local entropy; event-time spread $S_t=\mathrm{Var}(t_{\mathrm{end}})$; arc-length spread $S_L=\mathrm{Var}(L_n)$; local direction-spread of $\mathbf n(t_m)$ (mean resultant length, worst-checkpoint angular dispersion).
+
+\paragraph{Tier C --- expensive / research / spot-check.} FTLE with Benettin renormalisation; pixel-footprint ensemble sampling (off in preview, adaptive in balanced, broadly on in research); SALI; 0--1 test; long-horizon recurrence diagnostics.
+
+\paragraph{Key conceptual point.} Ensemble spread is not a compromise because FTLE is hard. It measures something genuinely different and more relevant to the renderer: anti-aliasing need, finite-resolution uncertainty, boundary width at the current scale, and whether a tile summary can stand in for its footprint. Pixel-footprint ensembles are simultaneously an anti-aliasing device, an uncertainty estimator, and a refinement signal.
+
+\paragraph{Implementation consequence.} FTLE is not used as the primary adaptive-refinement signal in Preview or Balanced modes. Trajectory coherence and ensemble spread drive refinement; FTLE is a Research-tier scientific overlay.
+
+\subsection{Canonical per-sample summary}
+
+The GPU emits one payload per sample serving both rendering and refinement:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Field & Type & Notes \\
+\midrule
+$\mathbf n(t_1),\ldots,\mathbf n(t_M)$ & \texttt{float4}$\times M$ & \texttt{.xyz} $= \mathbf n(t_m)$, \texttt{.w} $= \tilde\theta(t_m)$ (unwrapped phase) \\
+free-group word & \texttt{uint4} & 2 bits/symbol, 58 slots, length in top 6 bits of \texttt{.w} \\
+arc length $L_n$ on $S^2$ & \texttt{float} & accumulated during integration \\
+$t_{\mathrm{end}}$ & \texttt{float} & \\
+$d_{\min}$ (min pair separation) & \texttt{float} & \\
+stretch proxy & \texttt{float} & \\
+energy drift $\epsilon_E$ & \texttt{float} & \\
+outcome class & \texttt{uint} & broad category (bounded/escape/collision/\ldots) \\
+event code & \texttt{uint} & sub-detail (which body/pair, degenerate reason) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Why \texttt{.w} = unwrapped phase.} The \texttt{.xyz} channels carry the canonical geometric descriptor $\mathbf n(t_m)\in S^2$; this is the primary representation and is never compromised. The \texttt{.w} channel occupies the fourth lane already present in the aligned \texttt{float4} checkpoint record. The unwrapped phase $\tilde\theta(t_m)=\atanTwo(n_y,n_x)$ (accumulated during integration) enables the fragment shader to compute frequency diffusion via a cheap windowed linear regression without recomputing atan2 + unwrapping per pixel per frame. Zero additional memory cost. \textbf{Contract:} any downstream routine that needs only geometry must ignore \texttt{.w}.
+
+\subsection{Time-coherent shape representation and animation policy}
+\label{sec:animation_policy}
+
+For animation without re-integration, two representations:
+
+\paragraph{Knot samples (preferred for chaotic trajectories).} Store $M$ samples $\mathbf n(t_j)$; interpolate and renormalise during rendering. Use when: trajectory is chaotic, event times are sharp, phase is nonuniform or branchy, representative playback must preserve abrupt turns.
+
+\paragraph{Truncated Fourier.} $n_\alpha(t)\approx a_0^\alpha+\sum_{k=1}^K a_k^\alpha e^{ik\omega t}$. Store $e^{i\theta}$ not $\theta$ to avoid branch cuts. Use when: motion is quasiperiodic/smooth, compact preview is more important than exact faithfulness, tile is being shown as a coarse representative.
+
+\subsection{Representative sample choice for coarse tiles}
+\label{sec:representative}
+
+When a tile is rendered at coarse resolution, the displayed trajectory must be chosen carefully.
+
+\paragraph{Mean path.} Good when the tile is genuinely coherent. Arithmetic mean of $\mathbf n$ checkpoints, renormalised back to $S^2$.
+
+\paragraph{Medoid path.} Choose the sample with minimum average weighted distance to all others:
+\[
+k^*=\arg\min_k\sum_j\|Z_k-Z_j\|_W^2.
+\]
+Better when the tile contains mild multimodality but is still being kept coarse. Avoids nonsense ``average trajectories'' near actual boundaries.
+
+\paragraph{Dominant-outcome representative.} If the tile is mixed, use a medoid restricted to the dominant class for classification rendering, and expose impurity separately.
+
+\paragraph{Playback guard.} If tile outcome impurity or checkpoint angular dispersion exceeds threshold, representative playback should be disabled or visually marked as non-representative. Showing one sample's trajectory in a genuinely mixed tile is misleading.
+
+\newpage
+% ============================================================
+% PART V: RENDERING PIPELINE
+% ============================================================
+\part{Rendering Pipeline}
+\label{part:rendering}
+
+% ============================================================
+\section{Render graph architecture}
+\label{sec:render_graph}
+
+The renderer is structured as a fixed four-stage pipeline rather than a monolithic mode switch. Each stage has a clear contract. Palette changes and overlay toggles never trigger recomputation of the simulation.
+
+\paragraph{Pipeline.}
+\[
+\texttt{SimResult} \;\xrightarrow{\text{colour node}}\; \text{vec3 RGB} \;\xrightarrow[\text{brightness node}]{\text{float}}\; \text{combiner} \;\to\; \text{postprocess} \;\to\; \text{screen}
+\]
+
+\paragraph{Stage contracts.}
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Stage & Input & Output & Role \\
+\midrule
+Colour & \texttt{SimResult}, \texttt{ICDescriptor}, \texttt{FragmentInfo} & \texttt{vec3f} (linear RGB) & What hue/colour \\
+Brightness & \texttt{SimResult}, \texttt{ICDescriptor}, \texttt{FragmentInfo} & \texttt{f32} $\in [0,1]$ & How light/dark \\
+Combiner & \texttt{vec3f} + \texttt{f32} & \texttt{vec3f} (linear RGB) & Merge colour + brightness \\
+Post & \texttt{vec3f} + debug overlay & \texttt{vec3f} (final) & CVD, overlays, screen \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Fragment context.} The fragment shader receives spatial and temporal context alongside the simulation data:
+\begin{verbatim}
+struct FragmentInfo {
+    tile_uv:    vec2f,  // [0,1]^2 within the tile
+    world_uv:   vec2f,  // position in IC-space
+    screen_uv:  vec2f,  // position on screen
+    time:        f32,   // wall-clock for animations
+    playback_tau: f32,  // simulation time for playback
+};
+\end{verbatim}
+The sample data comes from a storage buffer read indexed by the tile-local pixel coordinate. No indirection layer or wrapper struct.
+
+\paragraph{Combiner.} The combiner is a fixed stage with a mode parameter, not a swappable shader node. Three modes:
+\begin{enumerate}[nosep]
+\item \textbf{Replace lightness} (default): convert colour to OKLAB, replace $L$ with brightness scalar, convert back. Principled and perceptually correct.
+\item \textbf{Modulate lightness}: $L \leftarrow L \cdot b$.
+\item \textbf{Multiply RGB}: $\text{rgb} \leftarrow \text{rgb} \cdot b$. Simple but perceptually nonuniform.
+\end{enumerate}
+
+\paragraph{Two shader types.} Sim shaders read \texttt{SimResult} (and optionally \texttt{ICDescriptor}) per pixel, producing the actual visualisation. Tile debug shaders read tile-level data (\texttt{TileReduction} fields forwarded via a small CPU$\to$GPU buffer) and produce debug overlays composited in the postprocess stage. Both use the same compilation pipeline and shader helper library.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{render_pipeline.png}
+\caption{The four-stage render pipeline. \texttt{SimResult} and \texttt{ICDescriptor} feed into swappable colour and brightness nodes; the combiner merges them in OKLAB space; postprocess handles CVD simulation and debug overlays. Changing palette or render mode never triggers recomputation.}
+\label{fig:render_pipeline}
+\end{figure}
+
+% ============================================================
+\section{Shader helper library}
+\label{sec:shader_helpers}
+
+A shared WGSL library imported by both built-in and custom shaders.
+
+\paragraph{Colour-space helpers.}
+\texttt{srgb\_to\_linear}, \texttt{linear\_to\_srgb}, \texttt{linear\_rgb\_to\_oklab}, \texttt{oklab\_to\_linear\_rgb}, \texttt{oklab\_to\_oklch}, \texttt{oklch\_to\_oklab}.
+
+\paragraph{Scalar and transfer-function helpers.}
+\texttt{remap}, \texttt{smooth\_remap}, \texttt{log\_remap}, \texttt{symlog} (linear near zero, logarithmic outside), \texttt{percentile\_curve}, \texttt{transfer\_viridis}, \texttt{transfer\_cubehelix}.
+
+\paragraph{Shape-sphere helpers.}
+\texttt{n\_at(sim, i)}, \texttt{phase\_at(sim, i)}, \texttt{final\_n(sim)}, \texttt{binary\_collision\_proximity(n)}, \texttt{lagrange\_proximity(n)}.
+
+\paragraph{VMF colour helpers.}
+\texttt{vmf\_oklab\_6pole}, \texttt{vmf\_okabe\_ito}, \texttt{lut\_sphere}, \texttt{direction\_cosines\_rgb}.
+
+\paragraph{Namespace convention.} All library functions are prefixed \texttt{principia\_} to avoid collisions with custom shader code. The shader compiler detects name collisions before they reach the WGSL compiler.
+
+% ============================================================
+\section{Physics visualisation modes}
+\label{sec:physics_vis}
+
+Twenty colour modes organised into four groups, each mapping a per-sample scalar from \texttt{SimResult} or \texttt{ICDescriptor} to colour via a 1D palette lookup. These slot into the colour node list alongside the existing event classification, shape sphere, and stability modes.
+
+\subsection{Group 1: Conserved quantities and invariants}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Mode & Source & Palette & Notes \\
+\midrule
+\texttt{ENERGY} & \texttt{E\_0} & Diverging (centred $E=0$) & Symmetric log scale. $E<0$ bound, $E>0$ unbound. \\
+\texttt{ANG\_MOMENTUM} & \texttt{Lz\_0} & Diverging (centred $L_z=0$) & Sign distinguishes prograde/retrograde. \\
+\texttt{KINETIC} & \texttt{K\_0} & Sequential & Always $\geq 0$. \\
+\texttt{POTENTIAL} & \texttt{V\_0} & Sequential (inverted) & Always $\leq 0$. More negative = deeper well. \\
+\texttt{VIRIAL} & \texttt{virial\_ratio} & Diverging (centred at 1) & $=1$ at virial equilibrium. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Energy colour scale.} The energy range across a typical Burrau-family slice spans several orders of magnitude. A symmetric log scale (\texttt{symlog}) is recommended: linear within $[-\varepsilon,+\varepsilon]$, logarithmic outside. The zero-energy contour should be visually distinct as it separates bound and unbound configurations.
+
+\subsection{Group 2: Mass and configuration geometry}
+
+Most informative on charts that vary mass or geometry across the slice.
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Mode & Source & Palette & Notes \\
+\midrule
+\texttt{MASS\_RATIO\_12} & $m_1/m_2$ & Diverging (centred 1) & Equal mass pair at centre. \\
+\texttt{MASS\_RATIO\_13} & $m_1/m_3$ & Diverging (centred 1) & \\
+\texttt{MASS\_FRACTION} & \texttt{q\_mass} & Sequential & 0 = test particle, $1/3$ = equal. \\
+\texttt{JACOBI\_RHO1} & \texttt{rho1\_mag} & Sequential & Inner pair separation. \\
+\texttt{JACOBI\_RHO2} & \texttt{rho2\_mag} & Sequential & Outer body distance. \\
+\texttt{JACOBI\_RATIO} & \texttt{rho\_ratio} & Log diverging (centred 1) & $>1$: hierarchical. $<1$: compact. \\
+\texttt{JACOBI\_ANGLE} & \texttt{rho\_angle} & Cyclic & $[-\pi,\pi]$. Uses cyclic OKLAB palette. \\
+\texttt{MIN\_PAIR\_DIST} & \texttt{r\_min\_pair\_0} & Sequential (log) & Small = near-collision IC. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Jacobi ratio.} The ratio $|\rho_2|/|\rho_1|$ is a scale-free measure of hierarchical structure. Values $\gg 1$ indicate a tight inner pair with a distant third body (perturbation theory regime). Values $\sim 1$ indicate a compact configuration where all three bodies interact comparably (chaotic regime). This is arguably the most physically informative scalar extractable from the geometry.
+
+\paragraph{Cyclic palette.} Since \texttt{rho\_angle} wraps at $\pm\pi$, the palette must be cyclic. Standard cyclic palettes (twilight, HSL hue) work; a cyclic VMF-OKLAB mode is the natural implementation.
+
+\subsection{Group 3: Trajectory-derived quantities}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Mode & Source & Palette & Notes \\
+\midrule
+\texttt{ESCAPE\_TIME} & \texttt{t\_end} & Sequential (log) & Long-lived = fractal boundary. \\
+\texttt{CLOSE\_ENCOUNTERS} & encounter count & Sequential (integer) & High = chaotic scattering. \\
+\texttt{MIN\_APPROACH} & \texttt{d\_min} & Sequential (log) & Closest approach over trajectory. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Escape time and fractal dimension.} Pixels with long escape times cluster on basin boundaries---the orbits that take longest to ``decide'' their outcome. Rendering escape time in log scale with a perceptually uniform palette produces images where the fractal structure is visible as luminance variation.
+
+\subsection{Group 4: Numerical diagnostics}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Mode & Source & Palette & Notes \\
+\midrule
+\texttt{ENERGY\_DRIFT\_ABS} & \texttt{delta\_E\_max\_abs} & Sequential (log) & Worst transient energy drift. \\
+\texttt{ENERGY\_DRIFT\_REL} & \texttt{energy\_drift} & Sequential (log) & Final relative energy drift. \\
+\texttt{LZ\_DRIFT\_ABS} & \texttt{delta\_Lz\_max\_abs} & Sequential (log) & Worst transient $L_z$ drift. \\
+\texttt{LZ\_DRIFT\_REL} & \texttt{Lz\_drift} & Sequential (log) & Final relative $L_z$ drift. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Diagnostic colour scale.} Floor at $\sim 10^{-7}$ (\texttt{f32} machine epsilon regime). Ceiling at $\sim 10^{0}$. Regions with drift $>10^{-2}$ should be visually distinct (warm/hot colours) as numerically suspect trajectories.
+
+\subsection{Compositing model}
+
+All physics visualisation modes operate in two regimes:
+
+\paragraph{Primary mode.} The mode replaces the basin colouring entirely. Useful when the physics quantity itself is the object of study.
+
+\paragraph{Overlay mode.} The mode is composited over the existing primary render as a semi-transparent layer in the postprocess stage. Alpha derived from scalar magnitude. Compositing uses premultiplied alpha in linear OKLAB space.
+
+The ``Diagnostics'' group (Group~4) can overlay any primary mode simultaneously. Groups~1--3 are mutually exclusive with the existing primary modes (basin, shape sphere, angular velocity).
+
+\subsection{GUI colour mode selector}
+
+The mode selector organises all colour modes into named groups:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Group & Modes \\
+\midrule
+Basin (existing) & Event classification, Shape sphere, Stability$\times$hue \\
+Invariants & \texttt{ENERGY}, \texttt{ANG\_MOMENTUM}, \texttt{KINETIC}, \texttt{POTENTIAL}, \texttt{VIRIAL} \\
+Geometry & \texttt{MASS\_RATIO\_*}, \texttt{MASS\_FRACTION}, \texttt{JACOBI\_*}, \texttt{MIN\_PAIR\_DIST} \\
+Trajectory & \texttt{ESCAPE\_TIME}, \texttt{CLOSE\_ENCOUNTERS}, \texttt{MIN\_APPROACH} \\
+Diagnostics & \texttt{ENERGY\_DRIFT\_*}, \texttt{LZ\_DRIFT\_*} \\
+\bottomrule
+\end{tabular}
+\end{center}
+Each group is collapsible in the UI. The ``Diagnostics'' group is independently toggleable as an overlay.
+
+% ============================================================
+\section{Spherical colour map system}
+\label{sec:colour_system}
+
+The goal is to assign a colour to every point on $S^2$ satisfying: continuity (no seams), perceptual uniformity, reserved lightness dimension (for stability scalar), and full 2D encoding.
+
+\subsection{Colour spaces}
+
+All work in OKLAB/OKLCH. Conversion from OKLAB $(L,a,b)$ to linear sRGB via the standard $M_1,M_2$ matrices with cube-root nonlinearity. Polar form: $a=C\cos\theta_h$, $b=C\sin\theta_h$.
+
+\subsection{Von Mises--Fisher blending engine}
+
+The vMF distribution $f(\hat{\mathbf n};\hat{\mathbf p},\kappa)\propto\exp(\kappa\,\hat{\mathbf n}\cdot\hat{\mathbf p})$. Place $N=6$ colour poles at axis intersections $\{\pm\hat x,\pm\hat y,\pm\hat z\}$ with complementary hues. The $(a,b)$ coordinates at query point $\hat{\mathbf n}$ are a vMF-weighted mean in OKLAB:
+\[
+a(\hat{\mathbf n})=C\cdot\frac{\sum_i w_i\cos\theta_i}{\sum_i w_i},\quad b(\hat{\mathbf n})=C\cdot\frac{\sum_i w_i\sin\theta_i}{\sum_i w_i},\quad w_i=\exp(\kappa\,\hat{\mathbf n}\cdot\hat{\mathbf p}_i).
+\]
+Key properties: seamless (no $\atanTwo$); opposing poles cancel to neutral grey; linear in OKLAB; parameterised by $L,C,\kappa$.
+
+Two hue schemes: full OKLAB (red/cyan/green/magenta/blue/yellow) and Okabe--Ito CB-safe (blue/orange/vermillion/sky-blue/bluish-green/reddish-purple).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.22\textwidth]{vmf_oklab.png}\hfill
+\includegraphics[width=0.22\textwidth]{vmf_okabeito.png}\hfill
+\includegraphics[width=0.22\textwidth]{vmf_oi_lowk.png}\hfill
+\includegraphics[width=0.22\textwidth]{vmf_oi_highk.png}
+\caption{VMF colour maps. Left to right: full OKLAB ($\kappa=3$); Okabe--Ito ($\kappa=3$); Okabe--Ito low $\kappa$ (wide blobs); Okabe--Ito high $\kappa$ (crisp poles). Opposing poles cancel to neutral grey at midpoints.}
+\label{fig:vmf_maps}
+\end{figure}
+
+\subsection{Seamless LUT sphere}
+
+$N_e=16$ LUT samples placed as equatorial vMF poles; endpoints at poles. Supports Viridis, Cividis, Plasma, Magma, Inferno, Twilight (cyclic), Cool-warm, Principia palette, Cubehelix.
+
+\subsection{CVD simulation}
+
+Post-process in linear sRGB. Matrix $M_{\text{cvd}}$ multiplies the linear $(R_\ell,G_\ell,B_\ell)$ triplet:
+\[
+M_{\text{deutan}}=\begin{pmatrix}0.625&0.375&0\\0.700&0.300&0\\0&0.300&0.700\end{pmatrix},\quad M_{\text{protan}}=\begin{pmatrix}0.567&0.433&0\\0.558&0.442&0\\0&0.242&0.758\end{pmatrix},
+\]
+\[
+M_{\text{tritan}}=\begin{pmatrix}0.950&0.050&0\\0&0.433&0.567\\0&0.475&0.525\end{pmatrix},\quad M_{\text{achrom}}=\begin{pmatrix}0.299&0.587&0.114\\0.299&0.587&0.114\\0.299&0.587&0.114\end{pmatrix}.
+\]
+
+Pipeline order: pixel function $\to$ physics overlay $\to$ CVD simulation $\to$ canvas write.
+
+\paragraph{Pole hue angle table.} The 6-pole vMF colour map uses the following hue angles $\theta_i$ (OKLCH):
+
+\begin{center}
+\begin{tabular}{ccccc}
+\toprule
+Pole & Direction & Full OKLAB $\theta_i$ & Okabe--Ito $\theta_i$ \\
+\midrule
+$\hat{\mathbf p}_1$ & $+\hat x$ & $0^\circ$ (Red) & $250^\circ$ (Blue) \\
+$\hat{\mathbf p}_2$ & $-\hat x$ & $180^\circ$ (Cyan) & $70^\circ$ (Orange) \\
+$\hat{\mathbf p}_3$ & $+\hat y$ & $120^\circ$ (Green) & $30^\circ$ (Vermillion) \\
+$\hat{\mathbf p}_4$ & $-\hat y$ & $300^\circ$ (Magenta) & $210^\circ$ (Sky Blue) \\
+$\hat{\mathbf p}_5$ & $+\hat z$ & $240^\circ$ (Blue) & $170^\circ$ (Bluish Green) \\
+$\hat{\mathbf p}_6$ & $-\hat z$ & $60^\circ$ (Yellow) & $350^\circ$ (Reddish Purple) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Cubehelix analytical generation.} For $t\in[0,1]$ with start $s=0.5$, rotations $\lambda=1.5$, hue $h=1$:
+\[
+\phi=2\pi(s/3-\lambda t),\quad a=h\cdot t(1-t)/2,
+\]
+\[
+R=t+a(-0.14861\cos\phi+1.78277\sin\phi),\quad G=t+a(-0.29227\cos\phi-0.90649\sin\phi),
+\]
+\[
+B=t+a(1.97294\cos\phi).
+\]
+
+\paragraph{Seam-free guarantee.} The following modes are continuous on $S^2$ (no seams): all vMF modes ($\exp(\kappa\hat{\mathbf n}\cdot\hat{\mathbf p})$ is smooth everywhere); seamless LUT sphere; latitude stripes ($\cos(f\arccos n_z)$ is smooth); longitude stripes ($\sin(f\,\atanTwo(n_y,n_x))$ is continuous for integer $f$); Perlin noise (3D Cartesian, no seam by construction). Intentionally discontinuous: octant, Voronoi-6, hemispheres, icosahedral, Fibonacci (hard), checkerboard, Truchet.
+
+% ============================================================
+\section{Render modes}
+\label{sec:render_modes}
+
+\subsection{State taxonomy}
+
+Every pixel has a well-defined state (never dropped):
+\texttt{DEGENERATE} $|$ \texttt{COLLISION\_T0} $|$ \texttt{SIM\_FAILED} $|$ \texttt{TIMEOUT} $|$ \texttt{COLLISION(pair,t)} $|$ \texttt{ESCAPE(body,t)} $|$ \texttt{BOUNDED(T)}.
+
+\subsection{Event classification mode}
+
+Colour by outcome class (pair/body identity), brightness by time-to-event: $b=\clamp(1-t_{\text{event}}/T,0,1)$.
+
+\subsection{Stability evolution mode (OKLab/OKLCH)}
+
+Hue from shape-sphere position $\mathbf n$ via vMF blending with pole-safe colouring (poles $\to$ dedicated hues, equatorial palette via 1D LUT over longitude $\varphi$). Lightness modulated by diffusion: $L=L_{\min}+(L_{\max}-L_{\min})s(D)$ with $s(D)=\clamp(\log(1+D/D_0)/\log(1+D_{\max}/D_0),0,1)$, chroma $C=C_0$ (hue-stable). Gamut handling via precomputed in-gamut LUT with chroma bisection.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.28\textwidth]{stab_hue.png}\hfill
+\includegraphics[width=0.28\textwidth]{dir_cosines.png}\hfill
+\includegraphics[width=0.28\textwidth]{harmonics.png}
+\caption{Special colour modes. Left: stability$\times$hue (the principal Principia encoding---hue identifies basin identity, darkness marks proximity to binary collision singularities). Centre: direction cosines (each Cartesian component mapped to an RGB channel). Right: spherical harmonic $Y_3^3$ (3-fold symmetry of the equal-mass problem).}
+\label{fig:special_modes}
+\end{figure}
+
+\subsection{Shape sphere physics overlay}
+
+\paragraph{Special configurations (equal-mass).} Three classes of distinguished points on $S^2$:
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Symbol & Configuration & Location & Count \\
+\midrule
+BC$_{12}$, BC$_{23}$, BC$_{31}$ & Binary collisions & Equator, $120^\circ$ apart & 3 \\
+E$_1$, E$_2$, E$_3$ & Euler collinear & Equator, between BCs & 3 \\
+L$^+$, L$^-$ & Lagrange equilateral & North \& south poles & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Explicit coordinates (equal-mass conventions):
+\[
+\hat{\mathbf b}_1=(1,0,0),\quad \hat{\mathbf b}_2=(-\tfrac{1}{2},\tfrac{\sqrt3}{2},0),\quad \hat{\mathbf b}_3=(-\tfrac{1}{2},-\tfrac{\sqrt3}{2},0),
+\]
+\[
+\hat{\mathbf e}_j=-\hat{\mathbf b}_j,\qquad \hat{\mathbf l}^\pm=(0,0,\pm 1).
+\]
+
+\paragraph{Stability $\times$ hue (principal Principia encoding).} Hue encodes shape-sphere position; lightness encodes proximity to the binary collision singularities:
+\[
+\boxed{L = 0.25 + 0.55\cdot\tfrac{1}{2}\!\left(1-\max_j \hat{\mathbf n}\cdot\hat{\mathbf b}_j\right).}
+\]
+Points near a collision are dark; antipodal regions are light. This is the principal rendering mode for the Principia fractal: hue identifies basin identity while darkness marks the singularity structure.
+
+\paragraph{Gaussian blob overlay.} Each special configuration blends its colour into the pixel via a vMF blob:
+\[
+\mathbf c_{\text{out}}=\mathbf c_{\text{base}}+\sum_j w_j(\mathbf c_j-\mathbf c_{\text{base}}),\qquad w_j=s\cdot 4\cdot\max\!\big(0,\;\exp(\kappa_j(\hat{\mathbf n}\cdot\hat{\mathbf p}_j-1)+0.01)\big),
+\]
+where $s\in[0,1]$ is user-controlled strength, $\kappa_j=11$ for BCs and $\kappa_j=9$ for Euler/Lagrange configurations.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.35\textwidth]{physics_overlay.png}
+\caption{Shape sphere physics overlay on the Okabe--Ito vMF base map. Binary collision points BC$_{12}$, BC$_{23}$, BC$_{31}$ visible as coloured blobs at the equator at $120^\circ$ intervals; Lagrange equilateral configurations mark the poles.}
+\label{fig:physics_overlay}
+\end{figure}
+
+\paragraph{Unequal-mass interpretation.} For unequal masses, either retain the equal-mass overlay as a pedagogical frame, or provide an optional transformed overlay consistent with the chosen mass-weighted conventions. Otherwise users may overinterpret equal-mass landmarks in unequal-mass slices.
+
+\paragraph{Physics-aware rendering defaults.} Scientific defaults should prioritise: seam-free sphere mapping; monotonic lightness for scalar overlays; colour-blind-safe palette by default; brightness reserved for an independent scalar; stable interpretation of darkness/lightness across zoom levels; no palette change should alter the underlying diagnostic semantics.
+
+\subsection{Pattern and special modes}
+
+Over 30 modes. Key formulae for implementation:
+
+\paragraph{Fibonacci lattice.} $N$ near-uniformly distributed points on $S^2$. For $i=0,\ldots,N-1$:
+\[
+n_{z,i}=1-\frac{2i}{N-1},\qquad r_i=\sqrt{1-n_{z,i}^2},\qquad \phi_i=\pi(\sqrt5-1)\cdot i.
+\]
+Golden-angle palette spacing: $\Delta\theta=2\pi/\varphi_g^{-1}$ where $\varphi_g=(\sqrt5-1)/2$, ensuring adjacent cells always have highly contrasting hues. The dot lattice variant renders points as coloured dots (angular radius $\rho=\cos(1.4/\sqrt N)$) on a dark background.
+
+\paragraph{Turing-like standing waves.} Three plane waves at $120^\circ$ with the 3-fold symmetry of the equal-mass three-body problem:
+\[
+v=\tfrac{1}{3}\!\left[\sin(fn_x)+\sin\!\left(f(\tfrac{1}{2}n_x+\tfrac{\sqrt3}{2}n_y)\right)+\sin\!\left(f(\tfrac{1}{2}n_x-\tfrac{\sqrt3}{2}n_y)\right)\right].
+\]
+
+\paragraph{Custom $N$-pole vMF.} $N$ poles on a tilted great circle at elevation $\psi=\mathrm{tilt}\cdot\pi/2$:
+\[
+\hat{\mathbf p}_i=\big(\cos(\phi_0+2\pi i/N)\cos\psi,\;\sin(\phi_0+2\pi i/N)\cos\psi,\;\sin\psi\big).
+\]
+Set $N=3$, $\psi=0$ to approximate three-body attractor geometry.
+
+\paragraph{Additional modes.} Voronoi-type (octant, Voronoi-6, hemispheres, icosahedral, soft Voronoi), stripe patterns (checkerboard with $\mathrm{even}=\lfloor f\theta/\pi\rfloor+\lfloor f\phi/(2\pi)\rfloor\mod 2$, latitude stripes $\cos(f\arccos n_z)>0$, longitude stripes $\sin(f\,\atanTwo(n_y,n_x))>0$, Truchet mosaic), overlays (grid, iso-hue contours, gradient magnitude, Perlin noise), basin blend ($\mathrm{col}=t\,\mathrm{pal}[i_1]+(1-t)\,\mathrm{pal}[i_2]$ with $t=\sigma(k_s(d_1-d_2-0.04))$), and spherical harmonics $Y_\ell^m$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.22\textwidth]{pat_octant.png}\hfill
+\includegraphics[width=0.22\textwidth]{pat_voronoi6.png}\hfill
+\includegraphics[width=0.22\textwidth]{pat_checker.png}\hfill
+\includegraphics[width=0.22\textwidth]{vmf_oklab.png}
+\caption{Pattern modes. Left to right: octant (8 regions by sign); Voronoi-6 (nearest axis pole); checkerboard ($f=4$, seam-free); vMF OKLAB continuous base map for comparison. All use the Okabe--Ito CB-safe palette where applicable.}
+\label{fig:pattern_modes}
+\end{figure}
+
+\newpage
+% ============================================================
+% PART VI: WEBGPU SYSTEMS LAYER
+% ============================================================
+\part{WebGPU Systems Layer}
+\label{part:webgpu}
+
+\begin{center}
+\fbox{\parbox{0.9\textwidth}{
+\textbf{Top-level architecture requirements.}
+\begin{enumerate}[nosep,label=\textbf{R\arabic*.}]
+\item The same simulated data must support both rendering and adaptive refinement.
+\item Time-evolution modes must be supported without requiring a second feature pass.
+\item The quadtree must remain usable even if the refinement heuristic is imperfect.
+\item FTLE, finite-scale ensemble spread, and tile coherence must be kept conceptually separate.
+\item User-facing complexity must remain low; the main quality knobs are \texttt{SAMPLES\_PER\_TILE\_AXIS} and \texttt{MAX\_DEPTH}.
+\end{enumerate}
+}}
+\end{center}
+
+% ============================================================
+\section{Layered build-up}
+\label{sec:layered_buildup}
+
+The quadtree system is built in three layers. Each layer produces a working, testable system. Later layers add capability without changing the contracts established by earlier layers. This is the implementation order, not just a conceptual aid.
+
+\subsection{Layer 0: flat grid, no cache}
+
+The minimum viable system. The viewport covers a region of $[0,1]^2$ IC space, divided into a fixed grid of tiles. Each tile is $T\times T$ simulations. All tiles are dispatched, each producing $T^2$ \texttt{SimResult} records in a GPU storage buffer. The fragment shader reads the buffer and colours pixels. Panning or zooming recomputes everything.
+
+\paragraph{Data flow.}
+\begin{center}
+\begin{tabular}{ll}
+CPU $\to$ GPU: & tile uniforms derived from grid position + \texttt{SimUniforms} \\
+GPU $\to$ GPU: & \texttt{SimResult[$T^2$]} (fragment shader reads directly) \\
+GPU $\to$ CPU: & nothing \\
+\end{tabular}
+\end{center}
+
+Three contracts must be defined at this layer: \texttt{SimResult} (what the compute shader writes), the decoder (how tile-local UV becomes an IC), and the fragment shader (how \texttt{SimResult} becomes colour).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.78\textwidth]{dataflow_layer0.png}
+\caption{Layer~0 data flow. Tile uniforms flow CPU$\to$GPU; \texttt{SimResult} stays entirely on the GPU. No data crosses the GPU$\to$CPU bus.}
+\label{fig:dataflow_layer0}
+\end{figure}
+
+\subsection{Layer 1: tile cache and ancestor fallback}
+
+The system maintains a cache: a map from $(z, t_x, t_y)$ to a GPU buffer of \texttt{SimResult}s. When the camera moves, compute which tiles at the target zoom level are visible. For each: if cached, draw it; if not, walk up the tree to the nearest cached ancestor, draw that ancestor stretched over the missing region, and queue the missing tile for compute.
+
+\paragraph{Slippy-map behaviour.} Panning never blanks the screen---there is always a cached ancestor to show. Zooming in shows blurry ancestors that sharpen as children finish computing. This is the Google Maps interaction model.
+
+\paragraph{Data flow.} Identical to Layer~0. The CPU tracks cache membership (a boolean per tile identity), but no simulation data flows GPU$\to$CPU. The queue is simple FIFO---no priority, no adaptive refinement.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.78\textwidth]{dataflow_layer1.png}
+\caption{Layer~1 data flow. The tile cache stores \texttt{SimResult} buffers keyed by $(z,t_x,t_y)$. The ancestor fallback walks up the tree to find the nearest cached tile. Still no GPU$\to$CPU data.}
+\label{fig:dataflow_layer1}
+\end{figure}
+
+\subsection{Layer 2: adaptive refinement}
+
+After a tile's simulations finish, a GPU reduction pass aggregates the $T^2$ \texttt{SimResult}s into a \texttt{TileReduction}: outcome histogram, coherence, suspect fraction, worst energy drift, escape time range. The CPU reads this back ($\sim$80 bytes per tile) and uses it to make split/priority decisions.
+
+\paragraph{Data flow.}
+\begin{center}
+\begin{tabular}{ll}
+CPU $\to$ GPU: & tile uniforms + optionally linearised decoder uniforms \\
+GPU $\to$ GPU: & \texttt{SimResult[$T^2$]} + \texttt{ICDescriptor[$T^2$]} \\
+GPU $\to$ CPU: & \texttt{TileReduction} ($\sim$80 bytes per tile) \\
+\end{tabular}
+\end{center}
+
+This is the only layer where data flows GPU$\to$CPU during normal operation. The CPU-side tile object gains state:
+
+\begin{verbatim}
+interface Tile {
+    z: number;  tx: number;  ty: number;  // identity
+    simBuffer: GPUBuffer | null;           // T×T SimResults
+    reduction: TileReduction | null;       // from GPU reduction
+    lifecycle: 'unseen'|'queued'|'computing'|'ready'|'readyRefinable';
+    priority: number;
+    cacheAge: number;
+    computeCostMs: number;
+    children: [Tile, Tile, Tile, Tile] | null;
+    parent: Tile | null;
+}
+\end{verbatim}
+
+World UVs are never stored---derived from $(z, t_x, t_y)$ by arithmetic. The renderer walks the tree to collect visible tiles (with ancestor fallback). The scheduler walks the same tree to decide what to compute next, ordered by priority.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.82\textwidth]{dataflow_layer2.png}
+\caption{Layer~2 data flow. The GPU reduction pass aggregates \texttt{SimResult[T$^2$]} into a \texttt{TileReduction} ($\sim$80 bytes), which is the \emph{only} data crossing the GPU$\to$CPU bus. The CPU scheduler reads it to make split/priority decisions. The rendering path (GPU$\to$GPU) is unchanged from Layers~0--1.}
+\label{fig:dataflow_layer2}
+\end{figure}
+
+\paragraph{Tile debug overlays.} The scheduler's internal state (lifecycle, priority, ancestor gap) is useful for debugging. When the debug overlay is active, the CPU packs per-visible-tile debug data into a small buffer ($\sim$16\,KB for a typical viewport) and the tile debug shader reads it in the postprocess stage. Zero cost when debug overlay is off.
+
+% ============================================================
+\section{Tiled quadtree architecture}
+\label{sec:quadtree}
+
+\subsection{Tile pyramid}
+
+Fix tile resolution $T\times T$ (e.g.\ $T=512$). Zoom levels $z=0,\ldots,Z_{\max}$ with $2^z\times 2^z$ tiles at level $z$. Tile key $(z,t_x,t_y)$ covers:
+\[
+u\in\left[\frac{t_x}{2^z},\frac{t_x+1}{2^z}\right],\quad v\in\left[\frac{t_y}{2^z},\frac{t_y+1}{2^z}\right].
+\]
+
+\subsection{Camera-to-zoom mapping}
+
+$z_{\text{base}}=\clamp(\lfloor\log_2(W/(T\Delta u_{\text{view}}))\rfloor,0,Z_{\max})$.
+
+\subsection{Parent fallback}
+
+If tile not ready, render nearest ancestor $(z-1,\lfloor t_x/2\rfloor,\lfloor t_y/2\rfloor)$ upscaled. Immediate display with progressive sharpening.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.78\textwidth]{quadtree_fallback.png}
+\caption{Ancestor fallback in action. Left: quadtree state showing ready (green), computing (yellow), and queued (grey) tiles. Right: the screen result---ready tiles render sharp; missing children are filled by their nearest ready ancestor drawn upscaled (blurry). No region is ever blank.}
+\label{fig:quadtree_fallback}
+\end{figure}
+
+\subsection{The quadtree as adaptive scientific sampling}
+
+Uniform rendering wastes effort because basin interiors are often visually and dynamically smooth while boundaries are filamentary and information-dense. The quadtree is not just an LOD trick---it is a way to allocate simulation budget according to local dynamical complexity.
+
+Consequences: smooth tiles may remain coarse even at large screen area; boundary tiles may need refinement even when visually small; ``resolution'' means both screen resolution and dynamical complexity resolution.
+
+\paragraph{Important distinction.} This is not a physical spatial tree over bodies in the simulation. It is a \emph{parameter-domain adaptive dispatch tree}. Tiles are patches of IC space, not patches of physical space.
+
+\paragraph{Why CPU-managed.} \emph{Reason 1:} hierarchy logic is irregular---tile existence, priority, cache eviction, promotion, and parent-child fallback are branchy, pointer-like, and global. \emph{Reason 2:} the GPU should do dense arithmetic (decode, integrate, reduce), not orchestration. \emph{Reason 3:} screen-space dispatch, memory budgeting, visibility tests, dependency tracking, and cache invalidation are all CPU-natural operations.
+
+% ============================================================
+\section{Two-stage tile pipeline}
+\label{sec:two_stage}
+
+\textbf{Diagnostics stage (expensive):} decode + canonicalise + integrate + events + stability + time-coherence fit. Output: packed diagnostic payload per pixel.
+
+\textbf{Render stage (cheap):} convert diagnostics to RGBA for chosen render mode.
+
+Decouples palette/compactification changes from integration cost.
+
+\subsection{Per-pixel compute workflow}
+
+For each pixel (IC) within a tile, the diagnostics compute shader executes:
+
+\begin{enumerate}[nosep]
+\item \textbf{Decode IC} from chart coordinates via the current $(\Phi, D, C)$ pipeline.
+\item \textbf{Integrate trajectory} (macro-step loop with adaptive substepping).
+\item \textbf{Update observables} at each macro-step: shape-sphere vector $\mathbf n(t)$, pairwise distances, energy.
+\item \textbf{Update stability accumulators}: unwrapped phase $\tilde\theta_k$ and windowed frequency estimates; optionally FTLE shadow trajectory with Benettin renormalisation.
+\item \textbf{Detect terminal events}: collision ($r_{\min}<r_{\text{coll}}$), escape (three gates persistent), timeout, NaN/Inf.
+\item \textbf{Write packed diagnostic payload}: event code + time, diffusion scalar, shape-sphere checkpoints $\mathbf n(t_m)$, scalar summaries.
+\end{enumerate}
+
+\subsection{Ensemble sampling (optional)}
+
+If ensemble stability is enabled for a tile:
+\begin{enumerate}[nosep]
+\item Generate $N$ jittered ICs inside each pixel footprint.
+\item Integrate each independently through the same workflow.
+\item Accumulate outcome histogram and continuous spread per pixel.
+\end{enumerate}
+Ensemble size may depend on quality tier (preview vs refine).
+
+\subsection{Rendering from the same canonical data}
+
+The same tile summary drives all rendering modes:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Mode & Fields consumed \\
+\midrule
+Static colour / classification & dominant outcome, mean stretch, selected checkpoints \\
+Shape animation & mean or representative $\mathbf n(t_m)$ checkpoints \\
+Stability overlay & mean and spread of stretch or scalar metric \\
+Uncertainty overlay & $S_{\text{tile}}$, impurity, or coherence score \\
+Path-morphology view & sampled $\mathbf n(t_m)$ plus path length and event metrics \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This reuse of a single canonical dataset is the central efficiency win: no separate refinement-only feature pass is required.
+
+\subsection{Quality tiers}
+\label{sec:quality_tiers}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+& Preview & Balanced & Research \\
+\midrule
+When & dragging/zooming/first paint & default interactive & publication-grade \\
+Integrator & KDK (2nd) & Yoshida 4th & Yoshida 4th or 6th \\
+Horizon $T$ & reduced & normal & long \\
+Checkpoints $M$ & small (4--8) & standard (8--16) & large (16--32) \\
+Stability & diffusion only & diffusion + coherence & + FTLE \\
+Ensemble & none or tiny & on suspicious tiles & broadly on \\
+Max depth & lower & medium & deeper \\
+Split threshold & loose & moderate & strict \\
+Payload & minimal & standard & rich \\
+Validation & none & none & optional RK4 cross-check \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Full-retention mode}
+\label{sec:full_retention}
+
+An optional mode that skips the reduction step entirely, keeping every \texttt{SimResult} persistently in GPU memory. The quadtree still manages dispatch scheduling, progressive fill, visibility culling, and priority ordering---it just writes full per-sample results to a persistent region of a large storage buffer instead of reducing to \texttt{TileReduction}.
+
+\paragraph{Memory cost.} For $M=8$: 176 bytes per sample. At one sample per pixel over a $1024\times 1024$ viewport: $\approx$176\,MB. At $M=16$: $\approx$304\,MB. Expensive but feasible on any discrete GPU for a single static frame.
+
+\paragraph{What you gain.} Every pixel is backed by its own full checkpointed trajectory. Palette changes, render-mode swaps, and overlay toggles are instant because the fragment shader reads directly from the retained buffer---no recomputation. This is the correct mode for publication-quality export.
+
+\paragraph{Tiled dispatch.} Full retention does not mean flat-grid dispatch. Tiles remain the dispatch unit because you cannot submit a million-sample compute job in one pass without hitting WebGPU timeout limits. Each tile $(i,j)$ at level $\ell$ owns a persistent slice of the output buffer at a known offset. The fragment shader indexes directly into this buffer by screen position.
+
+\paragraph{Adaptive benefit preserved.} The quadtree can still split a tile and recompute its children at higher spatial resolution, writing denser samples into the buffer. You keep all of them rather than crushing them into one summary.
+
+\paragraph{Hybrid workflow.} The expected usage pattern is: explore interactively using the standard summarised pipeline ($\approx$2\,MB persistent state, 60\,fps), then when you find the view you want, fire a full-retention pass over the current viewport for export. Same compute shader, same fragment shader, same \texttt{SimResult} struct. The only difference is whether the reduction pass runs.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+& Summarised (default) & Full retention \\
+\midrule
+Persistent state & $\approx$2\,MB (tile summaries) & $\approx$176--304\,MB (all samples) \\
+Framerate & interactive (60\,fps) & compute-once, render-many \\
+Palette swap cost & free (render-only cache) & free (read from buffer) \\
+Quadtree role & dispatch + reduce + render & dispatch + render (no reduce) \\
+Use case & exploration & publication / export \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Export modes}
+\label{sec:flat_render}
+
+Non-interactive batch modes for publication output, video generation, and data export. All configuration is done in the interactive mode first; the export mode executes a batch job with no user interaction during computation. No quadtree, no adaptive refinement, no LOD variation.
+
+\paragraph{Three export modes.}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+& Static frame & Animated sweep & Live simulation \\
+\midrule
+Purpose & paper plots & videos, GIFs & time-evolution vis \\
+Integration & full trajectory & full trajectory per frame & one step per frame \\
+Output & \texttt{SimResult[$W \times H$]} & sequence of frames & \texttt{float4} buffer \\
+Parameters & fixed & one or more swept & fixed \\
+Interactive & no (batch) & no (batch) & no (batch, play only) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ---------------------------------------------------------------
+
+\subsubsection{Static frame export}
+
+The user specifies: resolution ($W\times H$, e.g.\ $4096\times 4096$), chart, frozen coordinates, quality tier, integrator, and horizon. The viewport (chart, pan, zoom) is inherited from the interactive mode's current view. The system partitions the viewport into a regular grid of dispatch chunks and processes them sequentially. Every pixel is integrated at identical settings: same $\Delta t$, same horizon, same integrator order, same energy drift threshold. The output is a flat \texttt{SimResult[$W\times H$]} buffer.
+
+\paragraph{Guarantees.} No tile boundary artefacts. No LOD variation. No coherence-driven refinement bias. Identical integration quality everywhere. A reviewer can verify that every pixel was treated equally. This matters for quantitative figures, statistical claims, and reproducibility.
+
+\paragraph{Workflow.} Explore interactively (quadtree mode) $\to$ find the view $\to$ set resolution and quality $\to$ fire export $\to$ wait (progress bar, may take minutes at $4096^2$ Research quality) $\to$ output as PNG, raw data, or both.
+
+% ---------------------------------------------------------------
+
+\subsubsection{Animated sweep export}
+
+Renders a sequence of static frames while varying one or more parameters between frames. Each frame is a complete flat render at the specified resolution. The output is a numbered frame sequence (PNG or raw), convertible to video/GIF.
+
+\paragraph{Sweepable parameters.} Any parameter that can be set in the interactive mode:
+\begin{itemize}[nosep]
+\item \textbf{Slice offset:} sweep any $Z_k$ through a range. Animates how basin structure deforms as a single latent dimension varies. The core 8D exploration animation.
+\item \textbf{Tilt:} sweep tilt angle $\tau$ from 0 to $\tau_{\max}$. Animates the persistence hypothesis---watch basin boundaries persist or dissolve as the slice rotates into a new dimension.
+\item \textbf{Burrau $\nu$:} sweep triangle shape across the Pythagorean family. The bifurcation animation.
+\item \textbf{Energy / angular momentum:} sweep $K$ or $L_z$. Watch basins nucleate as momentum increases from the rest-start case.
+\item \textbf{Time horizon $T$:} sweep integration time. Watch fine structure emerge as trajectories are integrated longer.
+\item \textbf{Render mode:} cycle through render modes at a fixed view. Comparison animation.
+\item \textbf{Zoom:} progressive zoom into a basin boundary. The Mandelbrot-style deep zoom video.
+\end{itemize}
+
+\paragraph{Sweep specification.} A sweep is defined by:
+\begin{verbatim}
+{
+  parameter: "z[3]",           // which parameter to vary
+  start: -1.0,                 // starting value
+  end: 1.0,                    // ending value
+  frames: 120,                 // number of frames
+  easing: "linear",            // linear, ease-in-out, logarithmic
+  resolution: [2048, 2048],    // per-frame resolution
+  quality: "balanced",         // quality tier
+  output: "frames/z3_sweep"    // output path prefix
+}
+\end{verbatim}
+
+Multiple parameters can be swept simultaneously (e.g.\ $\nu$ and $K$ together). The sweep executor iterates: for each frame, set all parameters to their interpolated values, run a flat static render, write the frame, advance to the next.
+
+% ---------------------------------------------------------------
+
+\subsubsection{Live simulation export}
+
+Each frame dispatches one compute pass that advances every pixel by one integration step $\Delta t$. The persistent state is a \texttt{float4} buffer (current $\mathbf n(t)$ plus phase) and a second buffer for positions and momenta. Trajectories that have terminated hold their final state and stop advancing.
+
+\paragraph{Output.} Frame sequence showing a million ICs evolving simultaneously. Close encounters flare as $\mathbf n(t)$ swings rapidly. Escape events cause pixels to freeze while neighbours keep moving. Forward-only; the output is a video, not an interactive session.
+
+% ---------------------------------------------------------------
+
+\subsubsection{Data export API}
+\label{sec:data_api}
+
+For ML training, statistical analysis, and external tooling, the export modes expose the raw \texttt{SimResult} data in structured formats. The API is a set of export functions, not a network service---it runs in the browser and produces downloadable files.
+
+\paragraph{Export formats.}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Format & Contents & Use case \\
+\midrule
+PNG & rendered image at current palette/mode & figures, visual inspection \\
+JSON & per-sample: $(u,v)$, decoded IC, outcome, word, & small datasets, debugging \\
+ & all float fields, all packed fields decoded & \\
+Binary (ArrayBuffer) & raw \texttt{SimResult[$W \times H$]} & large datasets, ML pipelines \\
+CSV & per-sample: selected fields as columns & spreadsheets, quick analysis \\
+NPZ & NumPy-compatible arrays & Python/ML workflows \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Binary format layout.} Header (magic number, version, $W$, $H$, $M$, chart type, frozen $Z_0$ values, quality tier, integrator, horizon) followed by $W\times H$ contiguous \texttt{SimResult} records in row-major order. The header contains all metadata needed to interpret the records and reproduce the computation.
+
+\paragraph{Field decoding.} The packed uint fields (\texttt{sample\_descriptor}, \texttt{trajectory\_stats}) are exported in two modes:
+\begin{itemize}[nosep]
+\item \textbf{Raw:} uint32 values as-is. Consumer is responsible for bit masking. Compact, fast, no information loss.
+\item \textbf{Decoded:} each bit field extracted to its own named column/field. \texttt{outcome\_class}, \texttt{escape\_body}, \texttt{collision\_pair}, \texttt{suspect\_energy}, \texttt{encounter\_count}, \texttt{substep\_log2}, \texttt{benettin\_count}, \texttt{dominant\_pair}, \texttt{t\_dmin\_frac}, \texttt{total\_steps\_log2}, \texttt{orbit\_count}, \texttt{dmin\_pair}, \texttt{retrograde}. Human-readable, directly loadable into pandas/NumPy.
+\end{itemize}
+
+\paragraph{Batch export for ML.} For generating large training corpora (the $(x_{\mathrm{IC}}, w, y, s)$ tuples described in the ML programme), the workflow is:
+\begin{enumerate}[nosep]
+\item Configure chart, quality tier, resolution in the interactive mode.
+\item Optionally define a parameter sweep (e.g.\ sweep $\nu$ across 100 Pythagorean triples).
+\item Fire batch export. Each frame produces a binary \texttt{SimResult} file.
+\item Post-processing script (Python) reads the binary files, extracts the training tuple fields, and writes to the ML pipeline's expected format (HDF5, TFRecord, etc.).
+\end{enumerate}
+At $1024\times 1024$ resolution, one frame produces $\sim$176\,MB of raw data ($\sim$1M samples). A 100-frame sweep produces $\sim$100M training samples in $\sim$17\,GB. Generation is GPU-bound, not I/O-bound.
+
+\paragraph{Reproducibility metadata.} Every export includes the full \texttt{ViewState} (see \S\ref{sec:view_state}) as a JSON sidecar, plus a SHA-256 hash of the binary output data. This is sufficient to reproduce the exact computation.
+
+% ---------------------------------------------------------------
+
+\subsubsection{Unified view state}
+\label{sec:view_state}
+
+The GUI's reactive store, the URL sharing system, the export pipeline, the animated sweep executor, and the reproducibility sidecar all share one serialisation format: the \texttt{ViewState}. This is the single source of truth for every parameter that affects computation or rendering.
+
+\paragraph{Schema.}
+\begin{verbatim}
+ViewState {
+  // Chart
+  chart_type:     string       // "latent", "lz_e", "lz_k",
+                               // "shape_sphere", "mass_simplex",
+                               // "burrau", "mixed_axis"
+  chart_params:   object       // chart-specific (see below)
+
+  // 8D position
+  z0:             float64[8]   // latent offset vector
+
+  // Slice basis
+  h_axis:         int          // which Z_k is horizontal axis
+  v_axis:         int          // which Z_k is vertical axis
+  q1:             float64[8]   // primary basis vector
+  q2:             float64[8]   // secondary basis vector
+  mag:            float64      // +/- half-width in latent space
+
+  // Orientation
+  rotation:       float64      // global slice rotation
+  tilt1:          float64      // tilt into dimension d1
+  tilt2:          float64      // tilt into dimension d2
+  tilt1_target:   int          // which latent dim
+  tilt2_target:   int          // which latent dim
+
+  // Viewport
+  zoom:           float64
+  pan:            float64[2]   // centre offset in UV space
+
+  // Integration
+  integrator:     string       // "kdk", "yoshida4", "yoshida6", "rk4"
+  horizon:        float64      // T_max
+  dt:             float64      // base timestep
+  max_steps:      int
+  checkpoints:    int          // M
+
+  // Quality
+  quality_tier:   string       // "preview", "balanced", "research"
+  samples_per_axis: int        // N
+  max_depth:      int          // quadtree depth limit
+  ensemble_count: int          // E
+
+  // Rendering
+  render_mode:    string       // "diffusion", "outcome", etc.
+  colour_palette: string       // "vmf_oklab", "okabe_ito", etc.
+  cvd_mode:       string       // "none", "protanopia", etc.
+  physics_overlay: bool
+
+  // Resolution (for export)
+  resolution:     int[2]       // [W, H]
+
+  // Metadata
+  principia_version: string
+  timestamp:      string       // ISO 8601
+}
+\end{verbatim}
+
+\paragraph{Chart-specific parameters.} The \texttt{chart\_params} object varies by \texttt{chart\_type}:
+\begin{itemize}[nosep]
+\item \textbf{Shape sphere:} \texttt{projection} (equirectangular/equal-area), \texttt{pole\_buffer} ($\varepsilon$), \texttt{hover\_streamline} (bool).
+\item \textbf{Burrau:} \texttt{nu} ($\nu=n/m$), or equivalently \texttt{m}, \texttt{n} (integers).
+\item \textbf{$(L_z,E)$:} \texttt{k\_max}, \texttt{gamma\_k}.
+\item \textbf{$(L_z,K)$:} \texttt{k\_max}.
+\item \textbf{Mixed axis:} \texttt{axis1\_source}, \texttt{axis2\_source}, \texttt{axis1\_warp}, \texttt{axis2\_warp}.
+\item \textbf{Latent slice:} (no extra parameters).
+\item \textbf{Mass simplex:} (no extra parameters).
+\end{itemize}
+
+\paragraph{Four consumers, one schema.}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Consumer & Input & What it does \\
+\midrule
+URL sharing & \texttt{encode(view\_state)} & compress to URL, reconstruct on load \\
+Single-frame export & \texttt{view\_state} & dispatch one flat render \\
+Animated sweep & \texttt{view\_state} + \texttt{overrides[]} & interpolate fields per frame \\
+Reproducibility sidecar & \texttt{view\_state} + \texttt{sha256} & verify exact reproduction \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Animation timeline.} An animated export is a \texttt{ViewState} plus a \texttt{Timeline}: a set of parameter tracks, each with keyframes that control how that parameter evolves across the output frame sequence.
+\begin{verbatim}
+Timeline {
+  base:            ViewState      // default state for all fields
+  duration_frames: int            // total output frames
+  framerate:       int            // fps for video encoding (default 30)
+  tracks: [
+    {
+      path:      string           // ViewState field path
+      keyframes: [
+        {
+          frame:   int            // frame index (0-based)
+          value:   any            // value at this keyframe
+          easing:  string         // interpolation TO the next keyframe
+        }
+      ]
+    }
+  ]
+  output: {
+    format:          string       // "binary", "png", "both"
+    path:            string       // output directory
+    include_sidecar: bool
+  }
+}
+\end{verbatim}
+
+\paragraph{Track evaluation.} For each frame $f$ and each track: binary-search the keyframe array for the bracketing pair $(k_i, k_{i+1})$ where $k_i.\mathrm{frame}\le f<k_{i+1}.\mathrm{frame}$. Compute the local parameter $t=(f-k_i.\mathrm{frame})/(k_{i+1}.\mathrm{frame}-k_i.\mathrm{frame})$, apply $k_i.\mathrm{easing}$ to $t$, and interpolate between $k_i.\mathrm{value}$ and $k_{i+1}.\mathrm{value}$. Before the first keyframe, use the base \texttt{ViewState} value. After the last keyframe, hold the last keyframe's value.
+
+\paragraph{Easing functions.}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Name & Behaviour \\
+\midrule
+\texttt{linear} & $t' = t$ \\
+\texttt{ease\_in} & $t' = t^2$ \\
+\texttt{ease\_out} & $t' = 1-(1-t)^2$ \\
+\texttt{ease\_in\_out} & smooth hermite: $t' = 3t^2 - 2t^3$ \\
+\texttt{hold} & $t' = 0$ (value stays at $k_i$ until $k_{i+1}$) \\
+\texttt{log} & $t' = \log(1+9t)/\log(10)$ (slow start, fast end) \\
+\texttt{step} & $t' = 0$ for $t<1$, $t' = 1$ at $t=1$ (instant jump) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{What this enables.}
+\begin{itemize}[nosep]
+\item \textbf{Simultaneous sweeps with different easings.} Each track has its own keyframes and easing. $Z_3$ can ease-in while $\nu$ is linear while zoom is ease-in-out.
+\item \textbf{Holds.} Two keyframes at the same value with frames apart = parameter stays constant. Linger at a basin boundary.
+\item \textbf{Sequential actions.} Sweep $Z_3$ over frames 0--60, hold, then sweep $\nu$ over frames 80--140, then zoom in over frames 140--200. Tracks overlap in time but their active intervals can be staggered.
+\item \textbf{Variable pacing.} Keyframes close together in value but far apart in frame count = slow, detailed exploration. The opposite = fast transit through uninteresting regions.
+\item \textbf{Discrete transitions.} Render mode switch: keyframe at frame 100 with \texttt{``outcome''}, easing \texttt{step}, keyframe at frame 101 with \texttt{``diffusion''}. Instant cut.
+\item \textbf{Compound animations.} Slice through $Z_3$, pause, rotate the tilt angle, pause, zoom into a boundary, all in one export. A full video storyboard in one JSON file.
+\end{itemize}
+
+\paragraph{Backwards compatibility.} A simple two-value linear sweep is a degenerate timeline: one track, two keyframes (frame~0 and frame~$N$), linear easing. The old sweep API can be syntactic sugar:
+\begin{verbatim}
+// Simple sweep sugar
+principia.exportSweep("z0[3]", -1.0, 1.0, 100, "linear")
+
+// ...is equivalent to:
+principia.exportTimeline({
+  base: currentViewState,
+  duration_frames: 100,
+  tracks: [{ path: "z0[3]", keyframes: [
+    { frame: 0,   value: -1.0, easing: "linear" },
+    { frame: 100, value:  1.0 }
+  ]}]
+})
+\end{verbatim}
+
+\paragraph{Executor.} The same dispatch loop as before, now with keyframe evaluation:
+\begin{enumerate}[nosep]
+\item Clone the base \texttt{ViewState}.
+\item For each track, evaluate at the current frame index and write the interpolated value to the cloned state.
+\item Run chart validation on the resulting state (\S\ref{sec:chart_validation}).
+\item Dispatch the flat render.
+\item Write the output frame (PNG, binary, or both).
+\item Advance to the next frame.
+\end{enumerate}
+The per-frame overhead of keyframe evaluation is a handful of binary searches and lerps---negligible compared to the GPU dispatch.
+
+\paragraph{Any \texttt{ViewState} field is animatable.} Because the timeline system operates on field paths, it automatically supports: latent dimension sweeps (\texttt{z0[k]}), tilt animation (\texttt{tilt1}), chart parameter variation (\texttt{chart\_params.nu}), zoom animation (\texttt{zoom}), pan animation (\texttt{pan[0]}), horizon sweep (\texttt{horizon}), render mode cycling (\texttt{render\_mode}), and any combination thereof. No special-case code for each parameter type. Numeric fields interpolate; string fields use \texttt{step} easing (instant switch at keyframe); boolean fields use \texttt{step} easing (toggle at keyframe).
+
+\paragraph{Interactive store.} The GUI's reactive store \emph{is} a live \texttt{ViewState}. Every slider writes to it. Every dropdown writes to it. The URL export serialises it. The timeline executor iterates over it. Import deserialises into it. One object, one schema, one source of truth.
+
+% ---------------------------------------------------------------
+
+\paragraph{Implementation.} All export modes share the decoder, integrator, and chart map with the interactive pipeline. The difference is orchestration only.
+
+\paragraph{Dispatch structure.} ``Flat'' means flat hierarchy, not no dispatch structure. A $4096\times 4096$ render cannot be submitted as a single compute dispatch (WebGPU timeout limits). Instead, the viewport is partitioned into a regular grid of \emph{dispatch chunks}---fixed-size sub-regions (e.g.\ $256\times 256$ pixels each) dispatched sequentially in raster order. Each chunk is a self-contained compute pass identical to one tile in the interactive pipeline, but with no parent/child relationship, no adaptive splitting, no coherence scoring. Every chunk is the same size, same level, same settings. The final image is assembled by writing each chunk's results to the correct offset in the output buffer.
+
+\paragraph{Zoom precision in export.} The tile-local precision scheme (\S\ref{sec:tile_local_precision}) and linearised decoder (\S\ref{sec:linearised_decoder}) apply \emph{identically} to dispatch chunks. The CPU computes $(c_u,h_u,c_v,h_v)$ for each chunk in \texttt{f64}. At deep zoom, chunks are small in UV space and the linearised decoder kicks in per-chunk---each chunk gets its own CPU-precomputed reference IC $\mathbf x_0$ and Jacobian $J_D$. At extreme zoom the entire viewport may fit in a single chunk, in which case one Jacobian covers the whole image. There is no precision disadvantage compared to the interactive quadtree mode; the precision machinery is per-dispatch-unit, not per-quadtree-node.
+
+\paragraph{What the export modes do \emph{not} have:}
+\begin{itemize}[nosep]
+\item No \texttt{TileReduction} computed (no reduction pass).
+\item No coherence score, no split/merge/keep decisions.
+\item No priority queue, no progressive refinement.
+\item No user interaction during computation (progress bar only).
+\item No LOD variation (every chunk computed at identical settings).
+\end{itemize}
+
+\paragraph{Comparison of all pipeline modes.}
+
+\begin{center}
+\begin{tabular}{lllll}
+\toprule
+& Interactive & Full retention & Export (static/sweep) & Export (live) \\
+\midrule
+Quadtree & yes & yes (no reduce) & no & no \\
+Adaptive & yes & yes & no & no \\
+LOD variation & yes & yes & no (uniform) & no (uniform) \\
+Output & \texttt{TileReduction} & \texttt{SimResult[]} & \texttt{SimResult[]} & \texttt{float4[]} \\
+Interaction & full & full & none (batch) & none (play) \\
+ViewState & live (reactive) & live (reactive) & frozen (per-frame) & frozen \\
+Use case & exploration & analysis & publication / ML & video \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ============================================================
+\section{WebGPU execution model}
+\label{sec:webgpu_exec}
+
+\subsection{Dispatch}
+
+One compute invocation per simulated sample. Do not make threads cooperate on a single trajectory in v1. For a tile with \texttt{SAMPLES\_PER\_TILE\_AXIS}~$=N$, dispatch a 2D grid of $N\times N$ invocations. Each invocation maps its local sample coordinate to chart-space UV, decodes the IC, integrates the trajectory, computes \texttt{SimResult}, and writes one record to a storage buffer. A second reduction pass per tile produces \texttt{TileReduction}.
+
+\subsection{Deep-zoom precision: tile-local coordinates}
+\label{sec:tile_local_precision}
+
+At extreme quadtree depth, tiles cover a tiny fraction of the $[0,1]^2$ UV range. Na\"ively computing global UV on the GPU as $u=u_{\min}+(u_{\max}-u_{\min})\cdot t$ in \texttt{f32} loses precision: at depth 30 the tile width is $\sim 10^{-9}$, burning most of \texttt{f32}'s 7 significant digits on the offset from the origin.
+
+\paragraph{The fix: CPU-computed tile centre and half-width.} The CPU (in \texttt{f64}) computes per-tile uniforms:
+\[
+c_u=\frac{u_{\min}+u_{\max}}{2},\qquad h_u=\frac{u_{\max}-u_{\min}}{2},
+\]
+and likewise for $v$. These are passed to the GPU as \texttt{f32} uniforms. The shader computes sample positions as:
+\[
+\boxed{u(t)=c_u+h_u\cdot(2t-1),\qquad t\in[0,1],}
+\]
+where $t$ is the tile-local sample coordinate (e.g.\ $(i+0.5)/N$ for sample $i$). The shader only ever does arithmetic relative to the tile centre, so it has full \texttt{f32} precision across the tile width regardless of absolute depth.
+
+\paragraph{Why this works.} $h_u$ is the quantity that matters for \emph{within-tile} resolution. At depth $\ell$, $h_u=2^{-(\ell+1)}$, which is an exact power of two and therefore exactly representable in \texttt{f32} at any depth up to the exponent limit ($\sim 2^{-126}$). The absolute position $c_u$ has finite \texttt{f32} precision, meaning the tile is slightly misplaced in global coordinates---by less than one tile width---which is invisible in the rendered image.
+
+\paragraph{Precision floor.} The ultimate resolution limit is not the coordinate system but the \emph{decoder}. At extreme zoom, two tile-local samples that are adjacent in $t$ may decode to ICs differing by less than \texttt{f32} machine epsilon in physical coordinates (masses, positions, momenta). At that point the energy drift diagnostic will show all samples as numerically identical or suspect. The quadtree should stop splitting when this floor is reached. A practical guard: if all $N^2$ samples in a tile produce bitwise-identical \texttt{SimResult} records, the tile is at the \texttt{f32} resolution floor and should not be split further regardless of coherence score.
+
+\paragraph{Summary of precision responsibilities.}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Component & Precision & Responsibility \\
+\midrule
+CPU (quadtree manager) & \texttt{f64} & tile bounds, centre/half-width computation, scheduling \\
+GPU (per-tile uniforms) & \texttt{f32} & $c_u,h_u,c_v,h_v$; exact for half-widths, slight offset for centres \\
+GPU (shader) & \texttt{f32} & tile-local sample positions, IC decode, integration \\
+Locked-pixel inspector & \texttt{f64} (CPU) & single-trajectory validation at arbitrary precision \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Linearised decoder for deep zoom}
+\label{sec:linearised_decoder}
+
+At shallow zoom the GPU runs the full nonlinear decoder $D(u,v)$ per sample: sigmoid, softmax, trig, canonicalisation. At deep zoom this decoder hits its \texttt{f32} precision floor (adjacent samples decode to indistinguishable ICs). The linearised decoder extends the usable zoom range \emph{and} reduces per-sample cost.
+
+\paragraph{Principle.} Within a deep-zoom tile, the decoder is smooth and the tile width $h$ is tiny. Taylor-expand around the tile centre:
+\[
+\boxed{D(c+\delta)\approx D(c)+J_D(c)\cdot\delta,\qquad \delta=\begin{pmatrix}h_u(2t_u-1)\\h_v(2t_v-1)\end{pmatrix},}
+\]
+with approximation error $O(h^2)$. At depth 30, $h\sim 10^{-9}$, so the error is $\sim 10^{-18}$---far below any representable precision.
+
+\paragraph{CPU precomputation (\texttt{f64}).} For each deep tile:
+\begin{enumerate}[nosep]
+\item Evaluate the full nonlinear decoder at the tile centre: $\mathbf x_0=D(c_u,c_v)$ in \texttt{f64}. This produces the reference IC (masses, positions, momenta) at \texttt{f64} precision.
+\item Compute the Jacobian $J_D=\partial D/\partial(u,v)$ at the tile centre, either analytically or by central differences in \texttt{f64}. This is a matrix mapping UV offsets to physical-coordinate offsets.
+\item Pass $\mathbf x_0$ (cast to \texttt{f32}) and $J_D$ (cast to \texttt{f32}) as per-tile uniforms.
+\end{enumerate}
+$\mathbf x_0$ is the best possible \texttt{f32} representation of the true centre IC because it was computed in \texttt{f64}. $J_D$ represents \emph{rates of change}, which are $O(1)$ and lose no precision in \texttt{f32}.
+
+\paragraph{GPU shader (\texttt{f32}).} Each sample computes:
+\[
+\mathbf x(t_u,t_v)=\mathbf x_0+J_D\cdot\delta.
+\]
+One matrix-vector multiply plus one vector addition. The entire sigmoid/softmax/trig/canonicalisation pipeline is replaced by a few fused multiply-adds. The GPU never calls the nonlinear decoder.
+
+\paragraph{Precision gain.} The nonlinear decoder on GPU hits its floor at depth $\sim$20--23 (\texttt{f32} machine epsilon in the decode chain). The linearised path pushes this to depth $\sim$50+ because the nonlinear precision lives in $\mathbf x_0$ (computed at \texttt{f64}) and the per-sample correction $J_D\cdot\delta$ is small and well within \texttt{f32} range.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{linearised_decoder.png}
+\caption{Linearised decoder for deep zoom. Left: usable within-tile precision (in bits) versus quadtree depth. The full nonlinear decoder (red) loses precision as depth increases, hitting the \texttt{f32} floor around depth 23. The linearised decoder (green) maintains full \texttt{f32} precision at any depth because the reference IC $x_0$ is computed in \texttt{f64} on the CPU and the per-sample correction $J_D\cdot\delta$ is small. Right: the computation split between CPU (\texttt{f64}) and GPU (\texttt{f32}).}
+\label{fig:linearised_decoder}
+\end{figure}
+
+\paragraph{Performance gain.} The linearised decode is also \emph{faster} than the full decoder. At deep zoom the quadtree has the most tiles, the most samples, and the highest compute pressure---exactly where the optimisation has the largest effect. Interior tiles that are already uniform-colour are coarsened early and never reach deep zoom; the linearised path targets the expensive boundary tiles.
+
+\paragraph{Switchover.} The CPU scheduler selects the decode mode per tile:
+\begin{itemize}[nosep]
+\item \textbf{Depth $\le\ell_{\mathrm{switch}}$}: full nonlinear decoder on GPU. The tile is wide enough that the linear approximation may not be accurate and the full decoder has adequate precision.
+\item \textbf{Depth $>\ell_{\mathrm{switch}}$}: linearised decoder. The CPU precomputes $\mathbf x_0$ and $J_D$ and sets a flag in the \texttt{TileRequest}.
+\end{itemize}
+Default $\ell_{\mathrm{switch}}=20$. The transition is seamless: same \texttt{SimResult} output, same reduction pass, same rendering. A \texttt{DECODE\_MODE} flag in \texttt{TileRequest.flags} selects the shader path. Alternatively, the switchover can be triggered when the energy drift diagnostic detects adjacent samples producing identical results (adaptive rather than depth-threshold).
+
+\paragraph{Jacobian cost.} Two decoder evaluations per tile (central differences in each axis), in \texttt{f64} on the CPU. Microseconds per tile. Negligible compared to the GPU integration cost, and amortised over $N^2$ samples.
+
+\subsection{Workgroup shape}
+
+Recommended: \texttt{@workgroup\_size(8, 8, 1)}. One workgroup covers an $8\times 8$ patch of samples. For $N=16$: 4 workgroups per tile. For $N=32$: 16 workgroups per tile. The $8\times 8$ size behaves well across WebGPU implementations, keeps shared-memory pressure low, and maps cleanly to typical tile sample sizes.
+
+\subsection{Reduction strategy}
+
+Pass~1 writes \texttt{SimResult[$N^2$]}. Pass~2 reduces into \texttt{TileReduction} using one workgroup per tile if $N^2$ is modest, otherwise a two-stage block reduction into temporary partials then final reduction.
+
+\subsection{WGSL constraints}
+
+Use \texttt{f32} for integration and reductions in v1; \texttt{f16} is optional and only for compact payload storage. Storage-buffer structs must obey 16-byte alignment. The \texttt{float4} layout for checkpoints is mandatory for alignment and simultaneously carries the unwrapped phase in \texttt{.w} at zero additional memory cost:
+\begin{verbatim}
+// Each checkpoint: .xyz = n(t_m) on S^2, .w = unwrapped phase
+// No separate PackedVec3 needed; float4 is the natural unit
+\end{verbatim}
+Avoid assuming large workgroup shared memory. Keep bind-group counts modest by packing per-tile constants into one uniform/storage record. Treat \texttt{shader-f16} as a capability upgrade, not a requirement.
+
+% ============================================================
+\section{Tile diagnostic payload}
+\label{sec:tile_payload}
+
+\paragraph{Required fields.}
+\texttt{event\_code} (u8), \texttt{event\_t} (f16, normalised), \texttt{diffusion} (f16).
+
+\paragraph{Optional time-coherence.} Truncated Fourier for $u(t)=e^{i\theta(t)}$: store $a_k\in\mathbb C$ as pairs of f16, $\omega$ as f16; typical $K\in[3,8]$.
+
+\paragraph{Packing recommendations.} Use f16 for event time, diffusion, lightweight scalar overlays. Use f32 for accumulators and reductions. Quantise $\mathbf n(t_m)$ only if visual tests show no noticeable damage. Bit-pack status flags: degenerate, collision-at-$t{=}0$, sim-failed, timeout, cache-valid, contains-ensemble, contains-FTLE, numerically-suspect.
+
+\paragraph{Payload versioning.} Every cached payload should carry a compact compatibility signature covering: chart/decode version, integrator config, horizon, checkpoint schedule, enabled metrics, event thresholds, ensemble mode, and payload schema version. This signature is separate from (and stricter than) the tile cache key, because it governs whether a payload can be reused without recomputation.
+
+% ============================================================
+\section{Tile-level summary and coherence score}
+\label{sec:tile_summary}
+
+GPU reduces per-sample summaries to a tile payload. Recommended logical structure:
+
+\paragraph{Per-sample summary (GPU output).}
+\begin{verbatim}
+struct SimResult {
+    float4 n_checkpoints[M];    // .xyz = n(t_m), .w = unwrapped phase
+    uint4  free_group_word;     // 2 bits/symbol, length in .w bits 26-31
+    float  arc_length_n;        // total path length on S^2
+    float  t_end;               // termination time
+    float  d_min;               // minimum pair separation
+    float  ftle;                // Benettin FTLE when enabled, else 0
+    float  energy_drift;        // |dE|/(|E|+eps), final relative
+    float  diffusion;           // |omega_2 - omega_1|
+    // --- Invariant monitoring (new, see COM projection) ---
+    float  delta_E_max_abs;     // max_{tau} |E(tau) - E(0)|
+    float  Lz_drift;            // |dLz|/(|Lz_0|+eps), final relative
+    float  delta_Lz_max_abs;    // max_{tau} |Lz(tau) - Lz(0)|
+    float  E_0;                 // initial total energy
+    float  Lz_0;               // initial angular momentum
+    // --- end new fields ---
+    uint   sample_descriptor;   // outcome + flags + encounter stats
+    uint   trajectory_stats;    // timing + cost + winding + pair + dir
+};
+\end{verbatim}
+
+\paragraph{\texttt{sample\_descriptor} bit layout.}
+\begin{center}
+\begin{tabular}{llp{8.5cm}}
+\toprule
+Bit(s) & Name & Meaning \\
+\midrule
+0--2 & \texttt{class} & outcome class: escape (0), bounded (1), collision (2), degenerate (3), timeout (4). 3 bits, 5 values. \\
+3--4 & \texttt{detail} & union field keyed by class. Escape: which body (0/1/2). Collision: which pair (01/02/12). Bounded/other: 0. \\
+5 & \texttt{SUSPECT\_ENERGY} & $|\epsilon_E|>\tau_E$. \\
+6 & \texttt{SUSPECT\_LZ} & $|L_z\text{ drift}|>\tau_L$. \\
+7 & \texttt{FTLE\_VALID} & \texttt{ftle} field contains true Benettin FTLE. \\
+8 & \texttt{WORD\_TRUNCATED} & free-group word hit 58-symbol limit. \\
+9--15 & \texttt{encounter\_count} & total close encounters ($r_{ij}<r_{\mathrm{threshold}}$), 0--127, clamped. \\
+16--22 & \texttt{substep\_log2} & $\lfloor\log_2(\text{max substep count})\rfloor$. GPU cost proxy. \\
+23--29 & \texttt{benettin\_count} & Benettin renormalisations performed, 0--127. FTLE confidence proxy. \\
+30--31 & \texttt{dominant\_pair} & which body pair had the most encounters (01=0, 02=1, 12=2). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{\texttt{trajectory\_stats} bit layout.}
+\begin{center}
+\begin{tabular}{llp{8.5cm}}
+\toprule
+Bit(s) & Name & Meaning \\
+\midrule
+0--15 & \texttt{t\_dmin\_frac} & $\lfloor 65535\cdot t_{d_{\min}}/t_{\mathrm{end}}\rfloor$. \emph{When} the closest approach occurred, as a fraction of integration time. One extra conditional assignment during the argmin tracking already done for $d_{\min}$. \\
+16--22 & \texttt{total\_steps\_log2} & $\lfloor\log_2(\text{total substeps})\rfloor$. Total integration cost for this sample. \\
+23--28 & \texttt{orbit\_count} & $\lfloor\tilde\theta_M/2\pi\rfloor$. Number of complete phase windings, 0--63. Derived from unwrapped phase already in \texttt{.w}. \\
+29--30 & \texttt{dmin\_pair} & which pair achieved $d_{\min}$ (01=0, 02=1, 12=2). Different from \texttt{dominant\_pair}: dominant is who had the most encounters, dmin is who had the single closest call. \\
+31 & \texttt{retrograde} & sign of $\tilde\theta_M$. 0 = prograde (anticlockwise), 1 = retrograde. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{The \texttt{ftle} field.} When \texttt{FTLE\_VALID} is set in \texttt{sample\_descriptor} (Research tier, \texttt{FTLE\_ENABLED} in dispatch flags), this contains the true Benettin FTLE $\lambda_T=S/T$ from the shadow-state integration (\S\ref{sec:ftle}). When \texttt{FTLE\_VALID} is clear, the field is 0.0. No proxies, no conditional interpretation. Render modes that read \texttt{ftle} check the bit first.
+
+\paragraph{The \texttt{diffusion} field.} $D=|\omega_2-\omega_1|$ computed from the unwrapped phase values in \texttt{n\_checkpoints[m].w} using the two-window frequency fit (\S\ref{sec:freq_diffusion}). When the trajectory terminates before enough checkpoints for two windows, set to NaN. For \texttt{ESCAPE} outcomes, diffusion is typically meaningless and should be excluded from tile coherence statistics.
+
+\paragraph{Memory cost.} For $M=8$: $128$ (checkpoints) $+$ $16$ (free-group word) $+$ $44$ (11 floats) $+$ $8$ (2 uints) $=196$ bytes, padded to $208$ for 16-byte alignment. A $16\times 16$ tile: $256\times 208=52$\,KB.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{simresult_layout.png}
+\caption{\texttt{SimResult} memory layout (208 bytes at $M=8$). Top: field blocks to scale. The checkpoint array dominates. New invariant monitoring fields (purple) add 20 bytes. Bottom: bit-packing layouts for \texttt{sample\_descriptor} (32 bits) and \texttt{trajectory\_stats} (32 bits).}
+\label{fig:simresult_layout}
+\end{figure}
+
+\paragraph{All fields are either free or near-free to compute.} Every field in \texttt{SimResult} is derived from data the integration loop already holds in registers. The float fields require at most one comparison or accumulation per substep. The packed uint fields require at most one conditional assignment per substep on values already being tracked. No extra memory reads, no extra force evaluations, no branching beyond what the integrator already performs.
+
+% ---------------------------------------------------------------
+
+\paragraph{IC descriptor (decode-time physics quantities).}
+
+The \texttt{SimResult} struct captures integration output---what the trajectory \emph{did}. Properties of the initial condition itself (masses, geometry, energetics) are upstream of integration. These are stored in a separate companion struct written once per sample after decode, before integration begins, into a second storage buffer alongside the \texttt{SimResult} buffer. The fragment shader binds both.
+
+\begin{verbatim}
+struct ICDescriptor {
+    float  m1, m2, m3;          // masses
+    float  q_mass;               // m_min / M_total
+    float  rho1_mag;             // |rho_1| (inner Jacobi)
+    float  rho2_mag;             // |rho_2| (outer Jacobi)
+    float  rho_ratio;            // |rho_2| / |rho_1|
+    float  rho_angle;            // signed angle between rho_1, rho_2
+    float  K_0;                  // kinetic energy at t=0
+    float  V_0;                  // gravitational potential at t=0
+    float  virial_ratio;         // 2*K_0 / |V_0|
+    float  r_min_pair_0;         // min_{i<j} |r_i - r_j| at t=0
+};
+\end{verbatim}
+
+52 bytes per sample, padded to 64 for 16-byte alignment. At $M=8$, the \texttt{ICDescriptor} buffer adds $\sim$16\,KB per $16\times 16$ tile. Written once (not updated during integration), so zero per-step cost.
+
+\paragraph{Jacobi vector convention.} The Jacobi decomposition pairs bodies $1$--$2$ as the inner pair and body $3$ as the outer, consistent with the atlas decoder. The Jacobi vectors are reconstructed from Cartesian positions: $\rho_1 = r_1 - r_0$, $\text{com}_{01} = (m_0 r_0 + m_1 r_1)/(m_0 + m_1)$, $\rho_2 = r_2 - \text{com}_{01}$. The virial ratio uses $\max(10^{-30}, |V_0|)$ in the denominator to handle rest configurations where $K_0 = 0$.
+
+% ---------------------------------------------------------------
+
+\paragraph{Global simulation uniforms.}
+
+Parameters that are constant across all tile dispatches within a frame. Bound once per frame (or per quality-tier change), not per tile.
+
+\begin{verbatim}
+struct SimUniforms {
+    float  m[3];                  // masses (from decoder)
+    float  M_total;               // sum of masses
+    float  G;                     // gravitational constant (1.0)
+    float  dt_macro;              // base timestep
+    uint   N_max;                 // max substeps
+    float  r_sub, gamma_sub;      // substep trigger
+    float  T_horizon;             // integration horizon
+    float  r_coll;                // collision radius
+    float  R_esc;                 // escape radius
+    uint   k_esc;                 // escape persistence
+    float  eps_E;                 // energy drift stabilising floor (1e-6)
+    float  eps_L;                 // Lz drift stabilising floor (1e-6)
+    float  r_close;               // close encounter threshold (0.01)
+    uint   quality_tier;          // preview/balanced/research
+    uint   checkpoint_count;      // M
+};
+\end{verbatim}
+
+The \texttt{eps\_E} and \texttt{eps\_L} fields prevent division by near-zero when computing relative drift for parabolic energy or zero angular momentum rest configurations. \texttt{r\_close} is the threshold for close-encounter counting in \texttt{sample\_descriptor} bits~9--15.
+
+% ---------------------------------------------------------------
+
+\paragraph{Data flow architecture.}
+
+Three data paths, with clear directions of travel:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Path & Direction & Content \\
+\midrule
+Tile dispatch & CPU $\to$ GPU & per-tile uniforms from $(z, t_x, t_y)$ + \texttt{SimUniforms} \\
+Simulation output & GPU $\to$ GPU & \texttt{SimResult[$T^2$]} + \texttt{ICDescriptor[$T^2$]} \\
+Tile reduction & GPU $\to$ CPU & \texttt{TileReduction} ($\sim$80 bytes per tile) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\texttt{SimResult} and \texttt{ICDescriptor} never leave the GPU during normal operation. The fragment shader reads them directly from storage buffers. \texttt{TileReduction} is the \emph{only} data that crosses the GPU$\to$CPU bus during normal operation, and only in the adaptive refinement layer. At Layer~0 (flat grid) and Layer~1 (tile cache + ancestor fallback), no data flows GPU$\to$CPU at all.
+
+% ---------------------------------------------------------------
+
+\paragraph{Tile-level reduction (GPU $\to$ CPU).}
+\label{par:tile_reduction}
+
+\begin{verbatim}
+struct TileReduction {
+    TileID id;
+    int    level;
+
+    // Mean checkpoint trajectory (for representative rendering)
+    float4 mean_n_checkpoints[M];
+
+    // Per-float-field means
+    float  mean_arc_length_n;
+    float  mean_t_end;
+    float  mean_d_min;
+    float  mean_ftle;
+    float  mean_energy_drift;
+    float  mean_diffusion;
+
+    // Per-float-field spreads (std dev or max-min)
+    float  spread_n;               // max angular deviation from mean
+    float  spread_arc_length_n;
+    float  spread_t_end;
+    float  spread_d_min;
+    float  spread_ftle;
+    float  spread_energy_drift;
+    float  spread_diffusion;
+
+    // Classification (reduced from sample_descriptor bits)
+    float  outcome_impurity;       // 1 - max(class_fraction)
+    uint   dominant_outcome;       // most common class|detail
+    float  suspect_fraction;       // fraction with SUSPECT_ENERGY
+    float  suspect_lz_fraction;    // fraction with SUSPECT_LZ
+
+    // Invariant drift (reduced from SimResult fields)
+    float  energy_drift_worst;     // max |delta_E_max_abs| over tile
+    float  lz_drift_worst;         // max |delta_Lz_max_abs| over tile
+
+    // Free-group word (reduced)
+    float  mean_word_length;
+    float  spread_word_length;
+    float  word_agreement;         // fraction sharing dominant word
+    uint   dominant_word_hash;
+
+    // Ensemble (valid when ensemble_count > 0)
+    float  ensemble_outcome_agreement;
+    int    ensemble_count;
+
+    // Reduced from trajectory_stats bits
+    float  mean_orbit_count;
+    float  retrograde_fraction;
+
+    // Composite scores
+    float  coherence_score;
+    float  priority_score;
+
+    // Metadata
+    int    sample_count;
+    uint   status_flags;
+};
+\end{verbatim}
+
+\paragraph{Tile-level \texttt{status\_flags}.}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Bit(s) & Name & Meaning \\
+\midrule
+0 & \texttt{HAS\_ENSEMBLE} & ensemble dispatch was used \\
+1 & \texttt{DECODE\_LINEAR} & linearised decoder was used (\S\ref{sec:linearised_decoder}) \\
+2 & \texttt{AT\_F32\_FLOOR} & all samples bitwise-identical (\S\ref{sec:tile_local_precision}) \\
+3 & \texttt{SUSPECT\_MAJORITY} & $>$50\% of samples have \texttt{SUSPECT\_ENERGY} \\
+4 & \texttt{FTLE\_VALID} & all \texttt{ftle} values are true Benettin FTLE \\
+5 & \texttt{PLAYBACK\_VALID} & representative trajectory playback is meaningful \\
+6--7 & reserved & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Reduction of float fields.} The reduction pass iterates over $N^2$ samples (or $N^2\times E$ when ensemble is enabled) to compute means and spreads. Adding \texttt{diffusion} and \texttt{ftle} to the existing mean/spread loop is two extra additions and two extra max-deviation checks per sample. Negligible cost.
+
+\paragraph{Reduction of packed uint fields.} \texttt{suspect\_fraction}: mask bit~5 of each \texttt{sample\_descriptor}, count, divide by $N^2$. \texttt{retrograde\_fraction}: mask bit~31 of each \texttt{trajectory\_stats}, count, divide. \texttt{mean\_orbit\_count}: extract bits~23--28 of each \texttt{trajectory\_stats}, sum, divide. All are mask-and-increment operations with no branching.
+
+\paragraph{Ensemble reduction.} When ensemble is enabled ($E>1$), the dispatch produces $N^2\times E$ \texttt{SimResult} records. The reduction pass groups them by grid position (each group of $E$ records shares the same nominal IC, differing only by sub-pixel jitter). Per group: compute outcome agreement (do all $E$ copies agree on outcome class? --- mask bits~0--4 of \texttt{sample\_descriptor}). These per-group agreement fractions are then averaged across the $N^2$ grid positions to produce the tile-level \texttt{ensemble\_outcome\_agreement}.
+
+% ---------------------------------------------------------------
+
+\paragraph{Composite coherence score.} Concrete first-pass weights:
+\[
+\boxed{S_{\text{tile}} = 1.0\,S_n + 0.20\,S_L + 0.25\,S_t + 0.15\,S_d + 0.20\,S_f + 0.25\,S_D + 0.35\,S_o + 0.30\,S_E + 0.15\,S_{L_z} + 0.25\,S_{\mathrm{ens}},\qquad C_{\text{tile}}=\frac{1}{1+S_{\text{tile}}}.}
+\]
+$S_n$: checkpoint spread. $S_L$: arc-length spread. $S_t$: event-time spread. $S_d$: $d_{\min}$ spread. $S_f$: FTLE spread (zero when \texttt{FTLE\_VALID} is not set). $S_D$: diffusion spread (zero for tiles where most samples are escapes). $S_o$: outcome impurity. $S_E$: numerical unreliability (\texttt{suspect\_fraction}). $S_{L_z}$: angular-momentum unreliability (\texttt{suspect\_lz\_fraction}). $S_{\mathrm{ens}}$: ensemble disagreement ($1-\texttt{ensemble\_outcome\_agreement}$; zero when ensemble is disabled). Shape trajectory remains dominant. These weights are starting values, not final constants; expose them in research mode.
+
+\paragraph{Initial split thresholds.} Split if $S_{\text{tile}}>\tau(\ell)$ with $\tau(\ell)=0.20+0.02\,\ell$. Force split if outcome impurity $>0.10$. Force split if \texttt{suspect\_fraction} $>0.05$, unless at \texttt{MAX\_DEPTH}. Do not split if \texttt{AT\_F32\_FLOOR} is set in \texttt{status\_flags} (overrides all other criteria).
+
+\paragraph{Design principle.} The same tile summary used to decide whether more detail is needed is also sufficient to render the tile at the current level of detail. This eliminates duplicated feature computation and keeps the architecture mode-decoupled.
+
+\subsection{Explicit split / keep / merge criteria}
+\label{sec:split_criteria}
+
+\paragraph{Split a tile if any of:} outcome impurity $>\tau_{\mathrm{imp}}$; trajectory spread $S_n>\tau_n$; event-time spread $S_t>\tau_t$; arc-length spread $S_L>\tau_L$; FTLE spread $S_f>\tau_f$ (when \texttt{FTLE\_VALID}); diffusion spread $S_D>\tau_D$; \texttt{suspect\_fraction} $>\tau_E$ and tile is scientifically important; \texttt{ensemble\_outcome\_agreement} $<\tau_{\mathrm{ens}}$ (sub-pixel sensitivity); tile is visible, below target screen-space resolution, and parent summary is insufficient; parent-child disagreement persists across refreshes.
+
+\paragraph{Priority tiebreakers.} When multiple tiles qualify for splitting, prefer: tiles with \texttt{retrograde\_fraction} near 0.5 (prograde/retrograde boundary); tiles with high \texttt{mean\_orbit\_count} spread (dynamically rich region); tiles near the current locked pixel.
+
+\paragraph{Stop splitting if:} \texttt{AT\_F32\_FLOOR} is set (all samples identical); tile is at \texttt{MAX\_DEPTH}; tile is offscreen.
+
+\paragraph{Keep a tile coarse if all of:} dominant outcome purity high; all spreads below thresholds; representative summary visually stable under current render mode; tile already finer than screen demand; no special high-interest override.
+
+\paragraph{Merge or deprioritise if:} offscreen or nearly offscreen; smoothly varying and overresolved; visually indistinguishable from ancestor summary; cache pressure exceeds budget.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.55\textwidth]{split_flowchart.png}
+\caption{Split/keep/merge decision logic as a flowchart. Guard conditions (AT\_F32\_FLOOR, MAX\_DEPTH, off-screen) are checked first. Then force-split conditions (impurity, suspect fraction). Then the composite score threshold. Finally, overresolved tiles are merged. The default is keep.}
+\label{fig:split_flowchart}
+\end{figure}
+
+% ============================================================
+\section{Scheduling and progressive refinement}
+\label{sec:scheduling}
+
+\subsection{Why CPU-managed}
+
+The natural division of labour: GPU performs tile-local simulation, per-sample feature extraction, and local reduction to tile summaries; CPU owns the hierarchy, priority queue, caching, visibility logic, and dispatch scheduling. This is preferred because the hierarchy is orchestration logic---determining which tiles should exist, which should be refreshed, and which should be dispatched next under a finite budget.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{tile_lifecycle.png}
+\caption{Tile lifecycle state machine. Transitions are labelled by their triggers. The \texttt{ReadyRefinable} state distinguishes ``done enough to display'' from ``done forever''---the scheduler can revisit refinable tiles if budget allows. Eviction is weighted by recomputation cost (expensive tiles resist eviction).}
+\label{fig:tile_lifecycle}
+\end{figure}
+
+\subsection{Tile request}
+
+\begin{verbatim}
+struct TileRequest {
+    TileID id;
+    int    level;
+    float2 uv_min, uv_max;       // legacy bounds (CPU-side reference)
+    float2 uv_centre, uv_half;   // precomputed for deep-zoom precision
+    int    sample_pattern_id;
+    int    time_checkpoint_count;
+    int    max_steps;
+    int    ensemble_count;        // E (0 or 1 = no ensemble)
+    float  t_max;
+    uint   flags;
+};
+\end{verbatim}
+
+\paragraph{\texttt{flags} field.} Bit-packed dispatch options:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Bit(s) & Name & Meaning \\
+\midrule
+0 & \texttt{DECODE\_LINEAR} & use linearised decoder (\S\ref{sec:linearised_decoder}) \\
+1 & \texttt{ENSEMBLE\_ENABLED} & dispatch $E$ jittered copies per grid position \\
+2 & \texttt{FTLE\_ENABLED} & compute full Benettin FTLE (Research tier) \\
+3 & \texttt{PREVIEW\_MODE} & reduced horizon, coarse integration \\
+4 & \texttt{FULL\_RETENTION} & skip reduction, keep all SimResult (\S\ref{sec:full_retention}) \\
+5 & \texttt{COMPUTE\_IC\_DESCRIPTOR} & write \texttt{ICDescriptor} buffer alongside \texttt{SimResult} \\
+6--7 & reserved & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Linearised decoder uniforms.} When \texttt{DECODE\_LINEAR} is set, the GPU needs the CPU-precomputed reference IC $\mathbf x_0$ and Jacobian $J_D$ (\S\ref{sec:linearised_decoder}). These are large ($\sim$15 + 30 floats) and unused at shallow zoom, so they are passed in a \textbf{separate uniform buffer} bound only when \texttt{DECODE\_LINEAR} is set, not embedded in \texttt{TileRequest}. This avoids bloating every tile request at shallow depths.
+
+The \texttt{uv\_centre} and \texttt{uv\_half} fields are computed by the CPU in \texttt{f64} and passed as \texttt{f32} uniforms. The GPU shader computes sample positions as $u=\texttt{uv\_centre.x}+\texttt{uv\_half.x}\cdot(2t-1)$ (see \S\ref{sec:tile_local_precision}), never from \texttt{uv\_min}/\texttt{uv\_max} directly. The legacy bounds are retained for CPU-side scheduling, visibility culling, and debugging.
+
+\subsection{Priority}
+\label{sec:priority}
+
+\[
+P_{\text{tile}}=w_v\, P_{\text{visible}}+w_z\, P_{\text{zoom}}+w_c\, P_{\text{complexity}}+w_f\, P_{\text{focus}}.
+\]
+
+\paragraph{Term definitions.}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Term & Definition & Rationale \\
+\midrule
+$P_{\text{visible}}$ & $1$ if tile intersects viewport, $0$ otherwise & Never compute off-screen. \\
+$P_{\text{zoom}}$ & $\clamp(1-|z-z_{\text{base}}|/z_{\text{base}},\,0,\,1)$ & Tiles near desired zoom score highest. \\
+$P_{\text{complexity}}$ & $1-\text{coherence}$ from \texttt{TileReduction} & Incoherent tiles need splitting. \\
+$P_{\text{focus}}$ & inverse distance from tile centre to viewport centre & Prioritise where user is looking. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Default weights.} $w_v=10$, $w_z=2$, $w_c=3$, $w_f=1$. Visibility dominates (never compute off-screen); complexity drives adaptive refinement; zoom match is a tiebreaker; focus is subtle. Expose all weights in research mode.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{priority_heatmap.png}
+\caption{Refinement priority over a toy $8\times 8$ tile grid. Hot colours: high priority (visible, near viewport centre, on a fractal boundary). Grey crosses: off-screen tiles (priority zero). The dashed rectangle is the viewport boundary. Priority concentrates compute budget at the intersection of visibility, focus, and dynamical complexity.}
+\label{fig:priority_heatmap}
+\end{figure}
+
+\textbf{Preview tiles} during interaction (reduced horizon). \textbf{Refine tiles} on idle (full quality). Limit in-flight jobs (2--4); epoch counter discards stale results.
+
+\subsection{Memory strategy and eviction}
+
+Use full per-sample \texttt{SimResult} buffers persistently in GPU memory for cached tiles. Reduce to \texttt{TileReduction} for CPU readback. Evict tiles under memory pressure using LRU weighted by recomputation cost: a tile that took a long time to compute (high \texttt{computeCostMs}) is expensive to evict because regenerating it hurts. Conversely, a tile with high coherence (uniform basin interior) is cheap to recompute and safe to evict first.
+
+\paragraph{Cancellation.} When the user pans away, tiles that are \texttt{computing} but no longer visible should stop. WebGPU dispatches cannot be cancelled mid-flight, but if a tile requires multiple dispatch passes (multi-pass integration, progressive refinement), the scheduler should skip subsequent passes for tiles that are no longer visible.
+
+\subsection{Per-frame update loop}
+
+\begin{verbatim}
+while (running) {
+    update_camera_and_view();
+    visible_tiles = quadtree.collect_visible_frontier(view);
+    candidate_tiles = ensure_baseline_tiles(visible_tiles, min_lod);
+
+    for (tile in visible_tiles) {
+        if (tile.is_leaf && tile.has_summary)
+            candidate_tiles.push(tile);
+    }
+    for (tile in candidate_tiles)
+        tile.priority_score = compute_priority(tile, view);
+
+    jobs = top_k(candidate_tiles, frame_budget);
+    dispatch_gpu_tile_jobs(jobs);
+
+    completed = collect_completed_gpu_jobs();
+    for (result in completed) {
+        tile = quadtree.get_node(result.id);
+        tile.summary = result.summary;
+        tile.has_summary = true;
+        tile.is_leaf = true;
+        if (should_split(tile)) {
+            quadtree.split(tile);
+            request_children(tile.children);
+        }
+    }
+    render_tiles(quadtree.current_leaf_cover(view));
+}
+\end{verbatim}
+
+\subsection{Split policy}
+
+\[
+\text{split}(C) \iff S_{\text{tile}}>\tau(\ell)\ \wedge\ \ell < \text{MAX\_DEPTH}.
+\]
+Interpreted as ``make children eligible and high priority'' rather than a rigid binary. $\tau(\ell)$ may vary weakly with level.
+
+\subsection{Controls}
+
+Three conceptually distinct quantities:
+
+\texttt{SAMPLES\_PER\_TILE\_AXIS}: number of simulated IC samples per tile axis, so total samples per tile $N_{\mathrm{tile}}=\texttt{SAMPLES\_PER\_TILE\_AXIS}^2$.
+
+\texttt{MAX\_DEPTH}: maximum quadtree subdivision depth.
+
+\texttt{TILE\_PIXEL\_RES} (advanced): raster resolution of each tile texture (e.g.\ 256 or 512). A tile may be rendered at $\texttt{TILE\_PIXEL\_RES}^2$ pixels while only simulating $N_{\mathrm{tile}}$ samples, with interpolation/parent-fallback bridging the gap.
+
+\paragraph{Interpretation.} \texttt{SAMPLES\_PER\_TILE\_AXIS} controls estimator quality and the reliability of tile summaries. A low value risks misclassifying a tile as coherent because it undersampled itself. \texttt{MAX\_DEPTH} controls the smallest representable spatial scale in chart space. \texttt{TILE\_PIXEL\_RES} controls final visual sharpness. These are coupled in practice but conceptually distinct.
+
+\paragraph{Suggested defaults.}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Setting & Interactive & Balanced & Offline \\
+\midrule
+\texttt{SAMPLES\_PER\_TILE\_AXIS} & 8 & 16 & 32 \\
+\texttt{MAX\_DEPTH} & 8 & 10 & 12--14 \\
+\texttt{TILE\_PIXEL\_RES} & 256 & 256--512 & 512 \\
+Checkpoints $M$ & 8 & 16 & 32 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ============================================================
+\section{Validation and failure modes}
+\label{sec:validation}
+
+\paragraph{Integrator validation.} Bounded-orbit energy drift histograms. KDK vs RK4 comparison on selected short horizons. Substep saturation statistics (how often $N_{\mathrm{sub}}=N_{\max}$).
+
+\paragraph{Event validation.} Collision detection against known near-collision cases. Escape-gate persistence sanity checks. Sensitivity of classification to $R_{\mathrm{esc}}$ and $k_{\mathrm{esc}}$.
+
+\paragraph{Metric validation.} FTLE reproducibility against perturbation size and renormalisation interval. Diffusion robustness to checkpoint schedule. Ensemble spread stability under different jitter patterns.
+
+\paragraph{Refinement validation.} Convergence under increasing tree depth. Convergence under increasing ensemble size. Ancestor-fallback visual continuity. Split-threshold sensitivity.
+
+\paragraph{Architectural validation checklist.}
+\begin{enumerate}[nosep]
+\item Verify $\mathbf n(t)$ storage and interpolation are stable near poles and wrap regions.
+\item Verify tiles marked coherent remain visually and dynamically coherent when inspected one level deeper.
+\item Verify coarse baseline coverage remains available while children are pending.
+\item Verify changing render mode does not require changing the compute payload.
+\item Verify FTLE-labelled outputs are only produced when Benettin renormalisation is actually performed.
+\item Verify energy drift $|\Delta E/E|$ stays below a threshold for bounded trajectories.
+\end{enumerate}
+
+\paragraph{Common failure modes.}
+Confusing finite ensemble spread with FTLE. Coupling the compute shader to the active render mode. Using the heuristic as an absolute split oracle rather than a priority signal. Storing only angular coordinates and inheriting branch-cut artefacts. Invalidating parents before children are ready (causing visible holes or flicker).
+
+\paragraph{Numerical failure regions are expected.} Especially near: binary-collision approaches, near-triple-collision configurations, decoder seam boundaries, feasibility boundaries in invariant-momentum charts, near-zero-mass-simplex corners, and persistent maximal substepping regions. These are not ``dropped pixels''---they are valid labelled outputs of a total pipeline. Separate physical terminal states (collision, escape), decode-time terminal states (degenerate geometry), and numerical terminal states (NaN, timeout) to aid analysis and debugging.
+
+% ============================================================
+\section{Cache and invalidation}
+\label{sec:cache}
+
+A tile cache key must include enough information that reusing a cached tile is always correct. At minimum:
+
+\begin{verbatim}
+struct TileCacheKey {
+    // Tile identity
+    int z, tx, ty;                    // tile coordinates
+    int T;                            // tile resolution
+
+    // Chart/view
+    ChartID chart_id;
+    float z0[8], q1[8], q2[8];       // latent slice params
+    // (or invariant-chart knobs for non-affine charts)
+
+    // Decode knobs
+    float mu_max, alpha_min, q_max;
+    float r_coll, delta_lambda;
+
+    // Integrator
+    IntegratorID integrator;          // KDK or RK4
+    float dt_macro;
+    int N_max;
+    float r_sub, gamma_sub, T_horizon;
+
+    // Event logic
+    float R_esc;
+    int k_esc;
+
+    // Payload format
+    uint payload_version;
+};
+\end{verbatim}
+
+If rendering is fused (no stored diagnostics), the key must additionally include render-mode parameters (palette LUT id, compactification mode, etc.).
+
+\paragraph{Invalidation matrix.}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Change & Invalidates \\
+\midrule
+Palette / hue scheme / brightness mapping & Render cache only \\
+Overlay toggles / physics blob strength & Render cache only \\
+Integrator choice / $\Delta t_{\mathrm{macro}}$ / $N_{\max}$ & Diagnostics + render \\
+Event thresholds ($r_{\mathrm{coll}}$, $R_{\mathrm{esc}}$, $k_{\mathrm{esc}}$) & Diagnostics + render \\
+Chart parameters ($\mathbf z_0$, $\mathbf q_a$) & Diagnostics + render \\
+Decode knobs ($\mu_{\max}$, $\alpha_{\min}$) & Diagnostics + render \\
+Horizon $T$ & Diagnostics + render \\
+Enabled metrics set & Diagnostics + render \\
+Quality tier change & Diagnostics + render \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Important separation:} changing the palette or hue scheme should not invalidate diagnostics. Changing the integrator or event thresholds must invalidate diagnostics. This separation is one of the central wins of the two-stage pipeline.
+
+\newpage
+% ============================================================
+% APPENDICES
+% ============================================================
+\appendix
+
+\section{Conventions and numerical defaults}
+\label{app:defaults}
+
+\paragraph{Units.} $M=\sum m_i=1$, $G=1$, $I=1$ (scale gauge).
+
+\paragraph{Sigmoid.} $\sigma(x)=1/(1+e^{-x})$.
+
+\paragraph{Numerical defaults (starting points).}
+Mass logit saturation $\mu_{\max}=5$; Jacobi guard $\varepsilon=10^{-6}$; hyperspherical buffer $\alpha_{\min}=0.05$~rad; momentum cap $q_{\max}=2$, $p^{\max}=5$; invariant charts $K_{\max}=2$, $\gamma_K=2$; escape persistence $k_{\mathrm{esc}}=8$; mirror tie $\delta_\lambda=10^{-12}$; substep trigger $r_{\text{sub}}=0.05$, $\gamma_{\text{sub}}=1.5$; macro-step $\Delta t_{\text{macro}}=10^{-3}$, $N_{\max}=64$, horizon $T\in[50,200]$.
+
+\paragraph{Diffusion windows.} $W_1: t\in[T/4,T/2]$, $W_2: t\in[T/2,3T/4]$.
+
+\paragraph{Shape-sphere checkpoints.} $M\in[8,16]$ for first implementation.
+
+\paragraph{Coherence weights (first-pass concrete values).} $w_n=1.0$, $w_L=0.20$, $w_t=0.25$, $w_d=0.15$, $w_s=0.20$, $w_o=0.35$, $w_E=0.30$ (shape trajectory dominates; see \S\ref{sec:tile_summary} for the full formula).
+
+\paragraph{Acceptance targets.}
+
+\emph{Energy drift:} good $\epsilon_E<10^{-5}$; acceptable interactive $\epsilon_E<10^{-4}$; numerically suspect $\epsilon_E\ge 10^{-4}$. Any tile with a large fraction of suspect samples should refine, lower time step, or be visibly marked.
+
+\emph{Collision and escape:} collision radius $r_{\mathrm{coll}}=10^{-4}$ (exposed in research mode); escape radius $R_{\mathrm{esc}}=10$; escape persistence $k_{\mathrm{esc}}=8$.
+
+\emph{Lookup/inverse tolerances:} mass/simplex boundary clamp $10^{-6}$; latent logit/sigmoid clamp $\varepsilon_z=10^{-6}$; invariant momentum seed norm threshold $\varepsilon_w=10^{-10}$.
+
+All acceptance constants belong in the cache signature.
+
+\paragraph{Split and refinement thresholds (first-pass defaults).}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Threshold & Symbol & Default \\
+\midrule
+Outcome impurity force-split & $\tau_{\mathrm{imp}}$ & 0.10 \\
+Level-dependent split threshold & $\tau(\ell)$ & $0.20+0.02\ell$ \\
+Suspect-sample force-split fraction & $\tau_E$ & 0.05 \\
+Arc-length spread threshold & $\tau_L$ & 0.5 \\
+Event-time spread threshold & $\tau_t$ & 0.3 \\
+Direction dispersion threshold & $\tau_{\mathrm{disp}}$ & 0.4 \\
+Word-agreement minimum (keep coarse) & $\tau_w$ & 0.80 \\
+FTLE research-mode enable & --- & Tier C only \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+These are starting values; expose all in research mode for tuning.
+
+\section{Cartesian Jacobi decode (reference only)}
+\label{app:cartesian_jacobi}
+
+Map $z_k\to s_k=R_{\max}(2\sigma(z_k)-1)$, set $\boldsymbol\rho=(s_{\rho x},s_{\rho y})$, $\boldsymbol\lambda=(s_{\lambda x},s_{\lambda y})$. Not used in main pipeline due to rotation-gauge ill-conditioning when $\|\boldsymbol\rho\|\approx 0$, uncontrolled pre-gauge scale, and wasted resolution on near-degenerate geometry.
+
+\paragraph{Incompatibility with the 8D latent chart.} This decode path requires 4 configuration latent coordinates $(z_{\rho x}, z_{\rho y}, z_{\lambda x}, z_{\lambda y})$ because it works in unreduced Cartesian Jacobi coordinates. The canonical-frame decode (\S\ref{sec:hyperspherical_jacobi}) fixes rotation and scale, reducing configuration to 2~DOF $(\alpha,\beta)$ and eliminating the $z_{\lambda x}$, $z_{\lambda y}$ directions entirely. The Cartesian path is retained here only as a historical reference for validation against the canonical path.
+
+\section{Colour map quick reference}
+\label{app:colour_ref}
+
+\begin{center}
+\begin{tabular}{llcc}
+\toprule
+Mode & Encoding & Perceptually uniform & CB safety \\
+\midrule
+VMF OKLAB & Full 2D & \checkmark & Deutan issues \\
+VMF Okabe--Ito & Full 2D & \checkmark & Safe (all types) \\
+Viridis, Cividis & Full (LUT) & \checkmark & Safe / Optimised \\
+Stability$\times$hue & Full + physics & \checkmark & Safe \\
+Cubehelix & Full (LUT) & Monotone $L$ & Tolerant \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Key parameters.} $L\in[0.35,0.90]$; $C\in[0.05,0.22]$; $\kappa\in[0.5,12]$; stripe frequency $f\in[2,14]$ (integer for seam-free); Fibonacci $N\in[12,96]$.
+
+\end{document}

@@ -1,0 +1,741 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{geometry}
+\usepackage[protrusion=true,expansion=false]{microtype}
+\geometry{margin=2.8cm}
+
+\title{\textbf{Related Work}\\[0.8ex]
+\large Principia: A Real-Time WebGPU Explorer\\
+of the Three-Body Initial-Condition Manifold}
+\author{Malachy Doherty}
+\date{March 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\vspace{1em}
+
+% =========================================================
+\section{Introduction}
+% =========================================================
+
+Principia is a browser-based instrument for exploring the initial-condition (IC) manifold of
+the planar gravitational three-body problem in real time.  It renders a zoomable
+two-dimensional colour map whose every pixel represents one symmetry-reduced IC, and whose
+colour encodes a per-trajectory diagnostic computed on the GPU.  The Burrau--Pythagorean
+research programme uses Principia as a computational platform for a systematic survey of the
+infinite family of configurations indexed by primitive Pythagorean triples, together with a
+continuous extension into mass and momentum space around each member of that family.
+
+This document surveys the research traditions on which Principia draws---IC-manifold mapping,
+shape-space geometry, symbolic dynamics of triple encounters, chaos diagnostics, statistical
+theory of outcomes, symplectic integration, and GPU-accelerated computation---and identifies
+the gaps in the existing literature that motivate the present work.
+
+This document also identifies, in the gaps section and where noted explicitly, several
+constructs proposed as part of the present work rather than as established literature: a
+free-group formulation of encounter sequences (\S\ref{sec:symbolic}), a ``projective
+microscope'' interaction mode for rotating the 2D rendering plane within the 8D manifold
+(\S\ref{sec:number_theory}), and the use of the Pythagorean-triple family as a structured
+indexing scheme for three-body IC space (\S\ref{sec:number_theory}).  These are clearly
+labelled as proposed contributions wherever they appear.
+
+A note on the object of study is useful at the outset.  After fixing the conserved quantities
+of the planar three-body problem (total energy, total angular momentum, total mass) and quotienting
+by Euclidean symmetry, the space of distinct initial conditions is 8-dimensional: two configuration
+coordinates, four momentum coordinates, and two mass-ratio coordinates.  All prior pixel-scale IC
+surveys are restricted to a 2-dimensional slice of this space (equal masses, zero velocities).
+Principia is motivated by the need to navigate \emph{families} of such 2D slices inside the full
+8-dimensional manifold, making the structure of that manifold---not merely one or two cross-sections
+of it---the primary object of study.
+
+% =========================================================
+\section{The Three-Body Problem: Fundamentals and History}
+% =========================================================
+
+The three-body problem---determining the motion of three mutually gravitating point masses---was
+formulated in its modern form by Newton in the \emph{Principia Mathematica} of
+1687~\cite{newton1687}.  Despite the simplicity of the governing equations, two exceptional
+families of closed-form solutions were found by Euler (collinear configurations, 1763) and
+Lagrange (equilateral triangle configurations, 1772), but no general analytic solution is known.
+
+The non-existence of a third independent first integral beyond energy and angular momentum was
+established by Bruns~\cite{bruns1887} and, more penetratingly, by Poincar\'{e}, whose
+\emph{M\'{e}thodes Nouvelles de la M\'{e}canique C\'{e}leste}~\cite{poincare1892} showed that
+the problem is generically non-integrable: small perturbations of stable periodic solutions lead
+to homoclinic tangles and chaotic behaviour, implying that the IC space must contain fractal
+basin boundaries.
+
+A formal power-series solution converging for all time was given by Sundman~\cite{sundman1912},
+but the series converges too slowly for practical computation.  The problem must therefore be
+treated numerically.  Comprehensive introductions from the celestial-mechanics perspective are
+given by Szebehely~\cite{szebehely1967book}, Valtonen et al.~\cite{valtonen2016}, and Heggie
+\& Hut~\cite{heggie2003}.
+
+Generic bound three-body systems almost always dissolve into a stable binary and an escaping
+single body~\cite{heggie2003}; understanding how the outcome depends on initial conditions, and
+charting the fractal structure of that dependence across the full IC manifold, is the central
+problem that the work described here addresses.
+
+% =========================================================
+\section{The Pythagorean Three-Body Problem}
+% =========================================================
+
+The configuration now called the \emph{Pythagorean three-body problem} was introduced by
+Burrau in 1913~\cite{burrau1913}: three bodies with masses $m_1=3$, $m_2=4$, $m_3=5$ placed
+at rest at the vertices of a 3--4--5 right triangle, with each mass equal to the length of the
+opposite side.  Szebehely \& Peters~\cite{szebehely1967} gave the first complete numerical
+solution using regularisation: after a protracted series of close triple approaches, the
+lightest body escapes in a hyperbolic orbit, leaving a bound binary of the two heavier bodies.
+This trajectory has since been a canonical benchmark for three-body codes and a standard
+demonstration of sensitivity to initial conditions in celestial mechanics.
+
+Aarseth, Anosova, Orlov \& Szebehely~\cite{aarseth1994} investigated the chaoticity structure
+near the standard Pythagorean IC, sampling points on concentric circles of radii $5 \times
+10^{-8}$ to $5 \times 10^{-3}$ around each body's position and applying time-reversal accuracy
+tests.  They identified regular regions adjacent to regions where the escape angle and the
+identity of the escaping body vary abruptly with IC---a first map of the IC-space fractal near
+the Pythagorean point.
+
+The (3,4,5) configuration is the simplest member of an infinite family indexed by primitive
+Pythagorean triples: every primitive triple $(a,b,c)$ with $a^2+b^2=c^2$ yields a distinct
+right-triangle geometry, and the Burrau mass convention (mass equal to the opposite side,
+normalised) yields a distinct three-body configuration with rationally related mass ratios.
+The number-theoretic structure of this family and its implications for the research programme
+are discussed in Section~\ref{sec:number_theory}.
+
+% =========================================================
+\section{Mapping the Initial-Condition Manifold}
+% =========================================================
+
+\subsection{The Agekian--Anosova map}
+
+The earliest systematic attempt to classify the IC space of the general three-body problem is
+due to Agekian \& Anosova~\cite{agekian1967}.  They observed that any equal-mass, zero-velocity
+planar three-body configuration is determined (up to overall scale and rotation) by the shape of
+the triangle formed by the three bodies.  By fixing the two most-separated bodies on a
+horizontal axis and allowing the third to vary, all non-equivalent ICs map to a bounded
+``curved triangle'' region in the plane---now called the Agekian--Anosova map.  They divided
+this region into four qualitatively distinct sub-regions (Lagrangian L, Middle M, Aligned A,
+Hierarchical H) and sampled each, establishing a statistical picture of the final-state
+distribution.  This work introduced the paradigm of treating the IC space as a two-dimensional
+map to be surveyed by colour-coding the outcome, and it underpins all subsequent
+IC-manifold mapping work.
+
+A key limitation of the Agekian--Anosova map is that it fixes two degrees of freedom: equal
+masses and zero initial velocities.  These are special conditions; the equal-mass, zero-velocity
+surface is a measure-zero subset---a codimension-6 submanifold---of the full 8-dimensional
+symmetry-reduced IC space for the planar three-body problem.  The dynamics in the remaining six
+dimensions (independent mass variation and non-zero momenta) are not represented.
+
+\subsection{The Lehto et al.\ pixel map and the Maasai shield}
+
+Lehto, Kotiranta, Valtonen, Heinäm\"{a}ki, Mikkola \& Chernin~\cite{lehto2008} carried out a
+pixel-by-pixel computation over the Agekian--Anosova domain using approximately 200,000
+simulations, colour-coding each IC by the lifetime of the triple system before dissolution.
+The resulting image---symmetric about both axes due to the equal-mass, zero-angular-momentum
+constraint---resembles a Maasai warrior's shield: broad bands of short-lived systems flanked by
+intricate swirling structures of longer-lived systems.  Zooming in reveals the same band
+structure repeating at every scale, confirming the fractal character of the basin boundaries.
+In related work, Heinäm\"{a}ki, Lehto, Valtonen \& Chernin~\cite{heinamaki1998} analysed the
+three-body flow using intermittency and found a strange attractor with Hausdorff dimension
+$D \approx 2.1$ in the dynamical flow (not in the 2D IC map, but in the higher-dimensional
+phase-space trajectory).
+
+This study is the closest existing precedent to Principia's rendering task.  It is, however,
+subject to the same restrictions as the Agekian--Anosova map: equal masses, zero velocities,
+and a single diagnostic (lifetime).  The computation was performed in batch over an extended
+period, with no provision for interactive navigation or zoom.  The full momentum space
+orthogonal to the zero-velocity surface remains unexplored by this approach.  For Principia,
+the Lehto et al.\ study both validates the rendering paradigm and defines the narrow 2D subspace
+within which all prior high-resolution work has been done.
+
+\subsection{Trani et al.\ and isles of regularity}
+
+Trani et al.~\cite{trani2024} recently performed a large-scale IC scan using the \emph{Tsunami}
+regularised N-body code, running $\mathcal{O}(10^6)$ scattering encounter simulations over a
+2D parameterisation that varies the phase of a pre-existing binary and the approach angle of a
+third body.  They found that regular (non-chaotic) trajectories occupy between 28\% and 84\% of
+the scanned IC space, forming connected ``isles of regularity'' in the chaotic sea.  This
+confirms the picture of a fractal IC-space boundary interspersed with structured regular
+regions and demonstrates that modern hardware can sustain IC surveys at million-trajectory scale.
+
+The scattering parameterisation used by Trani et al.\ is specifically adapted to hierarchical
+encounter configurations (one body arriving from far away to interact with a pre-existing
+binary) and does not cover the non-hierarchical regime in which all three bodies start with
+comparable separations.  It is also static: results are computed offline and cannot be explored
+interactively.
+
+\subsection{Fractal basin boundaries}
+
+The theoretical framework for fractal basin boundaries in dynamical systems was established by
+McDonald, Grebogi, Ott \& Yorke~\cite{mcdonald1985}, who showed that the boundary between
+basins of attraction of competing attractors is generically fractal when the underlying dynamics
+are chaotic.  Aguirre, Vallejo \& Sanju\'{a}n~\cite{aguirre2001} further showed that in open
+Hamiltonian systems with three or more escape channels---as the three-body problem has---the
+basin boundaries often satisfy the stronger \emph{Wada} property: every boundary point is a
+limit point of three or more distinct basins simultaneously, making the topology of the
+boundary dramatically more complex than a simple fractal curve.  For the three-body problem
+the relevant escape channels are which body escapes and in which direction; the basin
+boundaries inherit this Wada topology from the underlying homoclinic structure.
+
+The KAM theorem (Kolmogorov~\cite{kolmogorov1954}, Arnold~\cite{arnold1963},
+Moser~\cite{moser1962}) guarantees the persistence of regular, non-chaotic islands in
+nearly-integrable systems.  The three-body problem is not nearly integrable, but KAM-like
+regular islands are nonetheless observed in numerical surveys~\cite{trani2024}, consistent with
+the general picture of a fractal boundary between chaotic and regular regions.
+
+% =========================================================
+\section{Shape Space and Symmetry Reduction}
+% =========================================================
+
+\subsection{Jacobi coordinates}
+
+The standard reduction from Cartesian coordinates to a system adapted to the three-body
+structure uses Jacobi coordinates~\cite{jacobi1842}: the relative vector $\boldsymbol{\rho}$
+between an ``inner pair'' of bodies, and the vector $\boldsymbol{\lambda}$ from the inner-pair
+barycentre to the third body.  These four two-dimensional vectors, together with the decoupled
+centre-of-mass motion, fully describe the planar three-body system.  Jacobi coordinates are
+the standard choice in both analytical and numerical three-body work, from classical perturbation
+theory~\cite{poincare1892} to modern N-body codes~\cite{rein2012}.
+
+\subsection{Shape space and the shape sphere}
+
+Fixing the overall scale and orientation of the triangle formed by the three bodies leaves a
+two-dimensional space of triangle \emph{shapes}---the \emph{shape sphere} $S^2$.
+Montgomery~\cite{montgomery2015} gives a particularly elegant exposition: the shape sphere is
+the unit sphere in a natural Euclidean space, with the Lagrange equilateral configurations at
+the north and south poles, collinear configurations on the equator, and the shape-sphere metric
+related to the mass-weighted kinematic metric on configuration space.  The three pairwise
+binary-collision loci correspond to three great circles on the sphere, dividing it into eight
+regions.  Choreographic solutions such as the figure-eight~\cite{chenciner2000} trace closed
+curves on the shape sphere, and their structure is most naturally understood in this
+representation.
+
+The shape sphere provides a natural coordinate system for the zero-velocity IC space: every
+point on $S^2$ corresponds to a triangle shape and, together with a scale and a mass
+assignment, determines a full zero-velocity IC.  The Agekian--Anosova map is, in this language,
+a chart on the shape sphere restricted to equal masses.  For Principia, the shape sphere
+supplies the canonical two-dimensional configuration chart used in the rendering pipeline, and
+its geometric structure (collision loci, symmetry axes, choreography curves) guides the design
+of the chart parameterisations.
+
+\subsection{Symmetry reduction}
+
+Moeckel~\cite{moeckel2023} gives a modern treatment of the natural dynamical reduction of the
+three-body problem, systematically factoring out the Euclidean symmetry group (translations,
+rotations) and the scaling freedom of Newtonian gravity to obtain a reduced system.  For the
+planar problem, after additionally fixing the conserved angular momentum and total mass, the
+symmetry-reduced IC space has 8 degrees of freedom: 2 configuration coordinates (e.g.\ the
+shape-sphere angles), 4 momentum coordinates, and 2 mass-ratio coordinates.  This 8-dimensional
+space is the natural domain for any complete survey of three-body IC-manifold structure.  All
+prior IC maps---including the Agekian--Anosova map and the Lehto et al.\ pixel map---are
+restricted to the 2-dimensional zero-velocity, equal-mass subspace, which is a
+codimension-6 surface within this 8-dimensional manifold.
+
+% =========================================================
+\section{Symbolic Dynamics of Triple Encounters}
+\label{sec:symbolic}
+% =========================================================
+
+\subsection{Classical symbolic dynamics}
+
+Symbolic dynamics assigns a finite alphabet to the regions of phase space and records the
+sequence of symbols as a trajectory crosses region boundaries, reducing the continuous dynamics
+to a discrete combinatorial object.  The approach was introduced to celestial mechanics by
+Alekseev~\cite{alekseev1969}, who applied it to the Sitnikov problem (a massless body
+oscillating through the plane of two equal-mass bodies in circular orbit) and proved the
+existence of quasirandom trajectories: for any symbol sequence over a two-symbol alphabet,
+there exists a trajectory realising that sequence.  This establishes the full topological
+complexity of the symbolic dynamics for a gravitational system.
+
+\subsection{Regional coding of the three-body encounter}
+
+In the context of the general three-body problem, Agekian \& Anosova's HAML decomposition
+provides a coarse four-symbol alphabet for coding trajectories.  Heinäm\"{a}ki, Lehto, Valtonen
+\& Chernin~\cite{chernin2000} used sequences of region visits to define and compute the
+Kolmogorov--Sinai entropy of the IC space (see also Section~\ref{sec:ksentropy}).  This is
+an early example of using a symbolic sequence to produce a per-IC scalar field over the
+Agekian--Anosova map.
+
+\subsection{Tanikawa--Mikkola symbolic dynamics}
+
+Tanikawa \& Mikkola~\cite{tanikawa2015,tanikawa2000} systematically associated symbol sequences
+with orbits in the free-fall (zero-velocity) three-body domain, using the equator of the shape
+sphere as a natural symbol boundary.  Their alphabet records which binary forms at each close
+approach, yielding sequences that characterise periodic and collision orbits.  This work
+establishes symbol sequences over the shape sphere as a productive tool for cataloguing
+three-body orbits, and it provides a concrete foundation for more refined symbolic schemes.
+
+\paragraph{Proposed contribution.}
+In contrast, the present work proposes equipping the encounter alphabet with orientation
+(prograde or retrograde) and the algebraic structure of a free group, so that encounter
+sequences satisfy composition laws under trajectory concatenation.  Such a free-group
+formulation is more sensitive to the signed topology of the encounter sequence than the
+regional codings of Agekian--Anosova or the unsigned sequences of Tanikawa--Mikkola; it is
+not established in the prior literature.
+
+\subsection{Heggie's encounter classification}
+
+The binary--single scattering problem has been systematically studied by Heggie~\cite{heggie1975}
+and Heggie \& Hut~\cite{heggie2003}.  They classify outcomes as fly-by (the single body passes
+without disrupting the binary), exchange (the single replaces one binary member), and
+ionisation.  These coarse outcome classes correspond to distinct regions in the IC space of the
+scattering problem, and the boundaries between them are the three-body analogues of the fractal
+basin boundaries visible in the Agekian--Anosova and Lehto maps.
+
+% =========================================================
+\section{Chaos Diagnostics}
+\label{sec:chaos}
+% =========================================================
+
+\subsection{Lyapunov exponents and FTLE}
+
+The primary quantitative diagnostic of chaos in Hamiltonian systems is the Lyapunov
+characteristic exponent, measuring the exponential rate of divergence of nearby trajectories.
+Benettin, Galgani, Giorgilli \& Strelcyn~\cite{benettin1980} established the theoretical
+foundations and gave a practical algorithm for computing the full Lyapunov spectrum via periodic
+Gram--Schmidt reorthonormalisation of a tangent-vector basis evolved by the linearised flow.
+
+For comparing chaos across different ICs over a finite integration horizon, the
+\emph{finite-time Lyapunov exponent} (FTLE) is more appropriate than the asymptotic exponent.
+Haller~\cite{haller2001} established the FTLE field---computed over a spatial grid of initial
+conditions---as the standard tool for identifying Lagrangian coherent structures in fluid
+dynamics, where the ridges of the FTLE field delineate the boundaries of qualitatively different
+flow regimes.  Applied to the three-body IC space, an FTLE field rendered as a colour map over
+the IC plane delineates the fractal basin boundaries more sharply than a simple escape-outcome
+map, because it is sensitive to trajectory divergence rather than just final state.  We have not
+found prior work that computes the FTLE as a 2D field over a dense pixel grid for the three-body
+IC space; the present work applies this tool in that setting.
+
+\subsection{Frequency diffusion and spectral chaos indicators}
+\label{sec:freqdiff}
+
+An independent chaos indicator is the \emph{frequency diffusion coefficient}, which measures
+the drift of fundamental orbital frequencies across sub-intervals of a trajectory.  Laskar
+introduced frequency analysis as a tool for identifying regular and chaotic orbits in the solar
+system~\cite{laskar1990,laskar1993}: on a KAM torus the fundamental frequencies are conserved;
+in the chaotic region they diffuse, and the diffusion rate provides a chaos indicator more
+sensitive than the short-time Lyapunov exponent.  The relationship between frequency diffusion
+and Arnold diffusion in multi-dimensional Hamiltonian systems is discussed by
+Nekhoroshev~\cite{nekhoroshev1977} and Laskar and collaborators.
+
+Frequency diffusion has been applied extensively in the solar system context but not, to our
+knowledge, rendered as a 2D field over a dense IC grid for the general three-body problem.
+
+\subsection{Kolmogorov--Sinai entropy in the three-body problem}
+\label{sec:ksentropy}
+
+The Kolmogorov--Sinai (KS) entropy---the rate of information creation along a trajectory,
+equal to the sum of positive Lyapunov exponents---provides a global chaos measure per IC.
+Heinäm\"{a}ki et al.~\cite{chernin2000} applied KS-entropy analysis to the
+Agekian--Anosova IC space, producing entropy maps that correlate strongly with the lifetime
+maps of Lehto et al.~\cite{lehto2008}: short-lived systems tend to low entropy, long-lived
+systems to high entropy.  Chernin, Valtonen \& Mikkola~\cite{chernin1994} carried out a
+related KS-entropy analysis for an analogous restricted four-body system.  These entropy maps
+are early examples of multi-diagnostic rendering of IC-space structure---computing something
+other than mere lifetime---but are restricted to the equal-mass, zero-velocity subspace (or
+to an analogous restricted configuration).
+
+% =========================================================
+\section{Statistical Theory of Three-Body Outcomes}
+% =========================================================
+
+Because individual three-body trajectories are unpredictable in the chaotic regime, a
+complementary approach characterises the \emph{distribution} of outcomes over ensembles of ICs.
+Heggie~\cite{heggie1975} derived the first statistical theory of binary-single scattering, using
+a microcanonical ensemble argument to predict post-encounter binary orbital element distributions.
+This theory was extended by Hut \& Bahcall~\cite{hutbahcall1983} and applied broadly in the
+context of dense stellar systems.
+
+Stone \& Leigh~\cite{stone2019} gave a modern, closed-form statistical solution to the
+non-hierarchical three-body problem under the ergodicity assumption: the distribution of
+outcomes agrees well with numerical ensembles for ``resonant'' encounters (those involving
+multiple close triple approaches, approximately 50\% of all encounters~\cite{stone2019}) but fails for the
+non-resonant (``prompt'') fraction, which escapes without full ergodic mixing.
+
+Breen et al.~\cite{breen2020} trained a deep neural network to predict three-body trajectories
+at a fraction of the cost of direct integration, demonstrating that the IC space contains
+learnable structure; however, accuracy degrades near fractal basin boundaries, exactly the
+regime where Principia's diagnostic rendering is most informative.
+
+The tension between the Stone--Leigh statistical theory and the structured, non-ergodic
+features visible in IC maps such as the Lehto et al.\ Maasai shield is an open question: the statistical theory
+predicts smooth distributions, while the IC maps reveal sharp fractal boundaries that imply
+strongly non-ergodic structure at fine scales.  Dense IC maps with multiple simultaneous
+diagnostics are a natural tool for investigating where and how the ergodic approximation breaks
+down as a function of IC.  For Principia, this motivates computing both chaos-sensitive
+diagnostics (FTLE, frequency diffusion) and outcome-based diagnostics (escape identity, orbit
+count) simultaneously, so that the two can be compared directly within the same IC neighbourhood.
+
+% =========================================================
+\section{Symplectic Numerical Integration}
+% =========================================================
+
+Symplectic integrators, which exactly preserve the symplectic structure of Hamiltonian systems,
+maintain bounded energy error over exponentially long times, making them the standard choice for
+long-duration celestial mechanics simulations~\cite{leimkuhler2004}.  The standard textbook
+treatment is Leimkuhler \& Reich~\cite{leimkuhler2004}; applications to N-body celestial
+mechanics are discussed by Heggie \& Hut~\cite{heggie2003}.
+
+Yoshida~\cite{yoshida1990} showed how to construct symplectic integrators of arbitrarily high
+order by composing leapfrog steps with appropriately chosen step sizes, giving 4th and 6th
+order methods whose energy-conservation properties make them well suited to long IC-manifold
+scans in which each trajectory must be integrated to a common horizon.
+
+For close encounters between bodies---triple approaches and near-collisions---symplectic
+integrators at fixed step size lose accuracy.  Aarseth~\cite{aarseth2003} developed
+regularisation methods (Kustaanheimo--Stiefel and its extensions) that analytically resolve
+close pairs.  Modern codes such as REBOUND~\cite{rein2012} and Tsunami~\cite{trani2024} use
+variants of these approaches for close-encounter handling; their treatment of this regime is
+more accurate than a fixed-step integrator, at the cost of variable computational load per
+trajectory.  Li \& Liao~\cite{li2017} additionally demonstrated that reliable long-time
+trajectories in the chaotic three-body problem require extended-precision arithmetic (their
+``clean numerical simulation''), identifying numerical noise as a fundamental constraint on
+trajectory fidelity in the deeply chaotic regime.
+
+Principia adopts a fixed-step Yoshida leapfrog on the GPU for parallelism and uniformity.
+This means close-encounter trajectories are not regularised; near-collision samples are
+flagged and the trajectory is terminated rather than continued.  This bounds Principia's
+reliable IC-map coverage to initial conditions that do not involve deep triple encounters,
+and means that certain diagnostics (orbit count, encounter word) may be unavailable or
+unreliable near collision loci.  These limitations are a known trade-off of the GPU
+parallelism architecture.
+
+% =========================================================
+\section{GPU-Accelerated Parallel Computation}
+% =========================================================
+
+Computing an IC map at $N^2$ pixels, each requiring an independent trajectory integration, is
+embarrassingly parallel: no data is shared between pixels.  This maps naturally to the massively
+parallel architecture of modern graphics processing units.
+
+GPU acceleration for gravitational N-body problems was pioneered by Portegies Zwart and
+collaborators~\cite{portegies2007}, achieving order-of-magnitude speedups over CPU codes for
+direct-sum N-body.  The REBOUND code~\cite{rein2012} provides a widely used CPU-based N-body
+framework with symplectic integrators; it does not, however, support GPU execution.
+
+The WebGPU API~\cite{webgpu2024} is a new W3C standard that exposes GPU compute hardware
+through a browser-based sandbox, allowing compute-shader programmes to run without native
+binary installation.  To our knowledge, the application of WebGPU to gravitational N-body
+simulation or interactive IC-manifold visualisation has not been previously reported.
+
+% =========================================================
+\section{The Burrau--Pythagorean Family and Number Theory}
+\label{sec:number_theory}
+% =========================================================
+
+The number-theoretic object at the heart of the Burrau--Pythagorean programme is the set of
+primitive Pythagorean triples, parametrised by Euclid's formula~\cite{hardy1979}:
+$a = m^2-n^2$, $b = 2mn$, $c = m^2+n^2$ for coprime $m>n>0$ with $m-n$ odd.  This gives
+approximately $\mathcal{O}(N/\log N)$ primitive triples with hypotenuse $c \leq N$.  Each
+triple defines a distinct Burrau initial condition; the full family sweeps out a 1D curve in
+the 8-dimensional symmetry-reduced IC manifold as the Euclid parameters $(m,n)$ vary.
+
+The literature on periodic orbits of the three-body problem provides an important reference
+point.  \v{S}uvakov \& Dmitra\v{s}inovi\'{c}~\cite{suvakov2013} reported 13 new families of
+planar equal-mass periodic orbits using a topological classification based on shape-sphere
+choreography curves; this tripled the number of known periodic families overnight.  Li \&
+Liao~\cite{li2017} subsequently used high-precision ``clean numerical simulation'' to find
+more than 600 additional families.  These periodic-orbit catalogues are relevant because
+Principia's rendering pipeline may reveal periodic-orbit loci as distinguished islands of
+regularity within the IC maps, and because the shape-sphere paths of known choreographies
+provide reference curves against which computed trajectories can be compared.
+
+We have not found prior dynamical-systems work that uses the Pythagorean-triple family as an
+indexing scheme for three-body configurations; the number-theoretic structure motivating the
+programme is new to this context.
+
+% =========================================================
+\section{Summary of Gaps}
+% =========================================================
+
+The literature reviewed above establishes a clear lineage from Agekian \& Anosova (1967) through
+Lehto et al.\ (2008) and Trani et al.\ (2024): the IC manifold of the three-body problem can be
+rendered as a colour-coded 2D image, revealing fractal basin boundaries, regular islands, and
+entropy structure.  The theoretical foundations in shape space, symbolic dynamics, Lyapunov
+theory, and statistical mechanics are well developed.  The following gaps are identified.
+
+\paragraph{Coverage of the IC manifold.}
+All prior pixel-scale IC surveys are restricted to a 2-dimensional subspace of the
+8-dimensional symmetry-reduced IC manifold.  Specifically, the Agekian--Anosova tradition fixes
+equal masses and zero velocities; Trani et al.\ fix a hierarchical encounter geometry.  The four
+momentum dimensions and the two mass dimensions are entirely absent from existing maps.
+
+\paragraph{Interactivity and zoom.}
+All prior IC maps were computed offline in batch.  We have not identified a tool that permits
+interactive navigation---zoom, pan, chart switching---within a live-rendered IC map.
+
+\paragraph{Simultaneous multi-diagnostic output.}
+Prior maps render a single diagnostic per computation (usually lifetime or escape identity).
+We have not found prior work that computes FTLE, frequency diffusion, orbit count, and a
+symbolic encounter summary simultaneously over a dense IC grid.
+
+\paragraph{Symbolic encounter invariants.}
+Existing symbolic dynamics work uses coarse regional codings (Agekian--Anosova) or unsigned
+shape-sphere sequences (Tanikawa--Mikkola).  A group-theoretic formulation that records the
+signed (prograde/retrograde) topology of the encounter sequence and satisfies composition laws
+has not, to our knowledge, been reported.
+
+\paragraph{Variable-mass IC maps.}
+We have not found IC-map work that includes mass ratio as a free parameter or chart axis.
+The effect of mass variation on basin topology, fractal dimension, and regular-island structure
+is not systematically documented in the literature we have reviewed.
+
+\paragraph{Structured family surveys.}
+We are not aware of a systematic survey of how three-body dynamics varies across the
+Burrau--Pythagorean family, or any other number-theoretically indexed family of configurations.
+
+\paragraph{Scope of the review.}
+This review is necessarily incomplete; the gaps identified are those apparent from the
+literature accessible to us at the time of writing.  It is possible that unpublished code,
+conference proceedings, or adjacent-field work addresses one or more of these points, and any
+strong gap claim should be treated as a research hypothesis rather than an established fact.
+Additionally, even with Principia, interactive 2D slice navigation does not equal exhaustive
+coverage of the 8-dimensional IC manifold: the tool makes selected 2D cross-sections navigable,
+and the structure of the full manifold can only be inferred indirectly from families of such
+cross-sections.
+
+% =========================================================
+\begin{thebibliography}{99}
+% =========================================================
+
+\bibitem{aguirre2001}
+Aguirre, J., Vallejo, J.\,C., \& Sanju\'{a}n, M.\,A.\,F. (2001).
+Wada basins and chaotic invariant sets in the H\'{e}non--Heiles system.
+\textit{Physical Review E}, \textbf{64}, 066208.
+
+\bibitem{aarseth1994}
+Aarseth, S.\,J., Anosova, J.\,P., Orlov, V.\,V., \& Szebehely, V.\,G. (1994).
+Global chaoticity in the Pythagorean three-body problem.
+\textit{Celestial Mechanics and Dynamical Astronomy}, \textbf{58}, 1--16.
+
+\bibitem{aarseth2003}
+Aarseth, S.\,J. (2003).
+\textit{Gravitational N-Body Simulations}.
+Cambridge University Press.
+
+\bibitem{agekian1967}
+Agekian, T.\,A., \& Anosova, Z.\,P. (1967).
+A study of the dynamics of triple systems by means of statistical sampling.
+\textit{Astrophysics}, \textbf{3}, 1--17.
+
+\bibitem{alekseev1969}
+Alekseev, V.\,M. (1969).
+Quasirandom dynamical systems, I--III.
+\textit{Mathematics of the USSR-Sbornik}, \textbf{5--7} (series of papers, 1968--1969).
+
+\bibitem{arnold1963}
+Arnold, V.\,I. (1963).
+Proof of a theorem of A.\,N.\,Kolmogorov on the preservation of conditionally periodic motions.
+\textit{Russian Mathematical Surveys}, \textbf{18}(5), 9--36.
+
+\bibitem{benettin1980}
+Benettin, G., Galgani, L., Giorgilli, A., \& Strelcyn, J.-M. (1980).
+Lyapunov characteristic exponents for smooth dynamical systems and for Hamiltonian systems:
+a method for computing all of them.
+\textit{Meccanica}, \textbf{15}, 9--30.
+
+\bibitem{breen2020}
+Breen, P.\,G., Foley, C.\,N., Boekholt, T., \& Portegies Zwart, S. (2020).
+Newton versus the machine: solving the chaotic three-body problem using deep neural networks.
+\textit{Monthly Notices of the Royal Astronomical Society}, \textbf{494}, 2465--2470.
+
+\bibitem{bruns1887}
+Bruns, H. (1887).
+\"{U}ber die Integrale des Vielk\"{o}rper-Problems.
+\textit{Acta Mathematica}, \textbf{11}, 25--96.
+
+\bibitem{burrau1913}
+Burrau, C. (1913).
+Numerische Berechnung eines Spezialfalles des Dreik\"{o}rperproblems.
+\textit{Vierteljahrsschrift der Astronomischen Gesellschaft}, \textbf{48}, 135--136.
+
+\bibitem{chenciner2000}
+Chenciner, A., \& Montgomery, R. (2000).
+A remarkable periodic solution of the three-body problem in the case of equal masses.
+\textit{Annals of Mathematics}, \textbf{152}(3), 881--901.
+
+\bibitem{chernin1994}
+Chernin, A.\,D., Valtonen, M.\,J., \& Mikkola, S. (1994).
+Chaos in a restricted four-body system: Kolmogorov--Sinai entropy and dynamics.
+\textit{New Astronomy Reviews}, \textbf{38}, 251.
+
+\bibitem{chernin2000}
+Heinäm\"{a}ki, P., Lehto, H.\,J., Valtonen, M.\,J., \& Chernin, A.\,D. (2000).
+Fractal distribution of points in the three-body problem: Kolmogorov--Sinai entropy.
+\textit{Monthly Notices of the Royal Astronomical Society}, \textbf{310}, 811--822.
+
+\bibitem{haller2001}
+Haller, G. (2001).
+Distinguished material surfaces and coherent structures in three-dimensional fluid flows.
+\textit{Physica D: Nonlinear Phenomena}, \textbf{149}, 248--277.
+
+\bibitem{heinamaki1998}
+Heinäm\"{a}ki, P., Lehto, H.\,J., Valtonen, M.\,J., \& Chernin, A.\,D. (1998).
+Three-body dynamics: intermittent chaos with strange attractor.
+\textit{Monthly Notices of the Royal Astronomical Society}, \textbf{298}, 790--800.
+
+\bibitem{hardy1979}
+Hardy, G.\,H., \& Wright, E.\,M. (1979).
+\textit{An Introduction to the Theory of Numbers} (5th ed.).
+Oxford University Press.
+
+\bibitem{heggie1975}
+Heggie, D.\,C. (1975).
+Binary evolution in stellar dynamics.
+\textit{Monthly Notices of the Royal Astronomical Society}, \textbf{173}, 729--787.
+
+\bibitem{heggie2003}
+Heggie, D.\,C., \& Hut, P. (2003).
+\textit{The Gravitational Million-Body Problem}.
+Cambridge University Press.
+
+\bibitem{hutbahcall1983}
+Hut, P., \& Bahcall, J.\,N. (1983).
+Binary--single star scattering. I -- Numerical experiments for equal masses.
+\textit{Astrophysical Journal}, \textbf{268}, 319--341.
+
+\bibitem{jacobi1842}
+Jacobi, C.\,G.\,J. (1842).
+Sur l'\'{e}limination des noeuds dans le probl\`{e}me des trois corps.
+\textit{Astronomische Nachrichten}, \textbf{20}, 81--102.
+
+\bibitem{kolmogorov1954}
+Kolmogorov, A.\,N. (1954).
+On conservation of conditionally periodic motions for a small change in Hamilton's function.
+\textit{Doklady Akademii Nauk SSSR}, \textbf{98}, 527--530.
+
+\bibitem{li2017}
+Li, X., \& Liao, S. (2017).
+More than six hundred new families of Newtonian periodic planar collisionless three-body orbits.
+\textit{Science China Physics, Mechanics \& Astronomy}, \textbf{60}, 129511.
+[arXiv:1705.00527]
+
+\bibitem{laskar1990}
+Laskar, J. (1990).
+The chaotic motion of the solar system: a numerical estimate of the size of the chaotic zones.
+\textit{Icarus}, \textbf{88}, 266--291.
+
+\bibitem{laskar1993}
+Laskar, J. (1993).
+Frequency analysis for multi-dimensional systems: global dynamics and diffusion.
+\textit{Physica D: Nonlinear Phenomena}, \textbf{67}, 257--281.
+
+\bibitem{lehto2008}
+Lehto, H.\,J., Kotiranta, S., Valtonen, M.\,J., Heinäm\"{a}ki, P., Mikkola, S., \& Chernin, A.\,D. (2008).
+Mapping the three-body system: decay time and reversibility.
+\textit{Monthly Notices of the Royal Astronomical Society}, \textbf{388}, 965--978.
+
+\bibitem{leimkuhler2004}
+Leimkuhler, B., \& Reich, S. (2004).
+\textit{Simulating Hamiltonian Dynamics}.
+Cambridge University Press.
+
+\bibitem{mcdonald1985}
+McDonald, S.\,W., Grebogi, C., Ott, E., \& Yorke, J.\,A. (1985).
+Fractal basin boundaries.
+\textit{Physica D: Nonlinear Phenomena}, \textbf{17}, 125--153.
+
+\bibitem{moeckel2023}
+Moeckel, R. (2023).
+Natural dynamical reduction of the three-body problem.
+\textit{Celestial Mechanics and Dynamical Astronomy}, \textbf{135}, 10.
+
+\bibitem{montgomery2015}
+Montgomery, R. (2015).
+The three-body problem and the shape sphere.
+\textit{American Mathematical Monthly}, \textbf{122}(4), 299--321.
+
+\bibitem{moser1962}
+Moser, J. (1962).
+On invariant curves of area-preserving mappings of an annulus.
+\textit{Nachrichten der Akademie der Wissenschaften G\"{o}ttingen}, \textbf{2}, 1--20.
+
+\bibitem{nekhoroshev1977}
+Nekhoroshev, N.\,N. (1977).
+An exponential estimate of the time of stability of nearly integrable Hamiltonian systems.
+\textit{Russian Mathematical Surveys}, \textbf{32}(6), 1--65.
+
+\bibitem{newton1687}
+Newton, I. (1687).
+\textit{Philosophi\ae\ Naturalis Principia Mathematica}.
+Royal Society, London.
+
+\bibitem{poincare1892}
+Poincar\'{e}, H. (1892--1899).
+\textit{Les M\'{e}thodes Nouvelles de la M\'{e}canique C\'{e}leste}, Vols.\ I--III.
+Gauthier-Villars, Paris.
+
+\bibitem{portegies2007}
+Portegies Zwart, S., Belleman, R.\,G., \& Geldof, P.\,M. (2007).
+High-performance direct gravitational N-body simulations on graphics processing units.
+\textit{New Astronomy}, \textbf{12}, 641--650.
+
+\bibitem{rein2012}
+Rein, H., \& Liu, S.-F. (2012).
+REBOUND: an open-source multi-purpose N-body code for collisional dynamics.
+\textit{Astronomy \& Astrophysics}, \textbf{537}, A128.
+
+\bibitem{stone2019}
+Stone, N.\,C., \& Leigh, N.\,W.\,C. (2019).
+A statistical solution to the chaotic, non-hierarchical three-body problem.
+\textit{Nature}, \textbf{576}, 406--410.
+
+\bibitem{suvakov2013}
+{\v{S}}uvakov, M., \& Dmitra{\v{s}}inovi{\'c}, V. (2013).
+Three classes of Newtonian three-body planar periodic orbits.
+\textit{Physical Review Letters}, \textbf{110}, 114301.
+
+\bibitem{sundman1912}
+Sundman, K.\,F. (1912).
+M\'{e}moire sur le probl\`{e}me des trois corps.
+\textit{Acta Mathematica}, \textbf{36}, 105--179.
+
+\bibitem{szebehely1967book}
+Szebehely, V. (1967).
+\textit{Theory of Orbits: The Restricted Problem of Three Bodies}.
+Academic Press, New York.
+
+\bibitem{szebehely1967}
+Szebehely, V., \& Peters, C.\,F. (1967).
+Complete solution of a general problem of three bodies.
+\textit{Astronomical Journal}, \textbf{72}, 876--883.
+
+\bibitem{tanikawa2000}
+Tanikawa, K., \& Mikkola, S. (2000).
+One-dimensional three-body problem via symbolic dynamics.
+\textit{Chaos: An Interdisciplinary Journal of Nonlinear Science}, \textbf{10}(3), 649--657.
+
+\bibitem{tanikawa2015}
+Tanikawa, K., \& Mikkola, S. (2015).
+Symbol sequences and orbits of the free-fall three-body problem.
+\textit{Publications of the Astronomical Society of Japan}, \textbf{67}(6), 115.
+
+\bibitem{trani2024}
+Trani, A.\,A., Leigh, N.\,W.\,C., Vesperini, E., \& Fujii, M.\,S. (2024).
+Isles of regularity in a sea of chaos amid the gravitational three-body problem.
+\textit{Astronomy \& Astrophysics}, \textbf{689}, A24.
+
+\bibitem{valtonen2016}
+Valtonen, M., Anosova, J., Kholshevnikov, K., Myll\"{a}ri, A., Orlov, V., \& Tanikawa, K. (2016).
+\textit{The Three-body Problem from Pythagoras to Hawking}.
+Springer International Publishing.
+
+\bibitem{webgpu2024}
+W3C GPU for the Web Working Group (2024).
+WebGPU specification.
+\url{https://www.w3.org/TR/webgpu/}
+
+\bibitem{yoshida1990}
+Yoshida, H. (1990).
+Construction of higher order symplectic integrators.
+\textit{Physics Letters A}, \textbf{150}(5--7), 262--268.
+
+\end{thebibliography}
+
+\end{document}

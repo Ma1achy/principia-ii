@@ -1,0 +1,385 @@
+\contentsline {part}{I\hspace {1em}The IC Manifold}{6}{part.1}%
+\contentsline {section}{\numberline {0.1}Goal}{7}{section.0.1}%
+\contentsline {paragraph}{No holes.}{7}{section*.2}%
+\contentsline {paragraph}{Views are charts, not branches.}{7}{section*.3}%
+\contentsline {section}{\numberline {0.2}Problem setup: symmetries and gauges}{7}{section.0.2}%
+\contentsline {subsection}{\numberline {0.2.1}Injectivity caveats}{8}{subsection.0.2.1}%
+\contentsline {section}{\numberline {0.3}General chart-based construction}{8}{section.0.3}%
+\contentsline {subsection}{\numberline {0.3.1}View = coordinates + decoder + canonicaliser}{8}{subsection.0.3.1}%
+\contentsline {subsection}{\numberline {0.3.2}Factorisation: masses $\times $ configuration $\times $ momentum}{8}{subsection.0.3.2}%
+\contentsline {section}{\numberline {0.4}The 8D latent chart}{8}{section.0.4}%
+\contentsline {section}{\numberline {0.5}Chart maps $\Phi $}{9}{section.0.5}%
+\contentsline {subsection}{\numberline {0.5.1}Affine slicing}{9}{subsection.0.5.1}%
+\contentsline {paragraph}{Avoid gauge directions.}{9}{section*.4}%
+\contentsline {section}{\numberline {0.6}Decoder and canonicaliser}{9}{section.0.6}%
+\contentsline {subsection}{\numberline {0.6.1}Masses}{9}{subsection.0.6.1}%
+\contentsline {subsection}{\numberline {0.6.2}Configuration: hyperspherical mass-weighted Jacobi}{9}{subsection.0.6.2}%
+\contentsline {paragraph}{Canonical-frame decode (recommended).}{9}{section*.5}%
+\contentsline {paragraph}{Unweight and reconstruct.}{9}{section*.6}%
+\contentsline {subsection}{\numberline {0.6.3}Canonicalise configuration}{10}{subsection.0.6.3}%
+\contentsline {subsection}{\numberline {0.6.4}Momentum decode}{10}{subsection.0.6.4}%
+\contentsline {paragraph}{Free Jacobi momenta.}{10}{section*.7}%
+\contentsline {subsection}{\numberline {0.6.5}Scale gauge}{10}{subsection.0.6.5}%
+\contentsline {subsection}{\numberline {0.6.6}Energy normalisation (optional)}{10}{subsection.0.6.6}%
+\contentsline {paragraph}{Where energy normalisation is allowed.}{10}{section*.8}%
+\contentsline {subsection}{\numberline {0.6.7}No-holes: degeneracy and $t=0$ collision}{10}{subsection.0.6.7}%
+\contentsline {section}{\numberline {0.7}Generic chart instantiations}{10}{section.0.7}%
+\contentsline {subsection}{\numberline {0.7.1}Geometry + momentum in a fundamental domain}{10}{subsection.0.7.1}%
+\contentsline {subsection}{\numberline {0.7.2}Invariant coordinates $(L_z,E)$}{11}{subsection.0.7.2}%
+\contentsline {paragraph}{Feasibility.}{11}{section*.9}%
+\contentsline {paragraph}{Domain warp (always-feasible).}{11}{section*.10}%
+\contentsline {paragraph}{Deterministic momentum construction.}{11}{section*.11}%
+\contentsline {subsection}{\numberline {0.7.3}Invariant coordinates $(L_z,K)$}{11}{subsection.0.7.3}%
+\contentsline {subsection}{\numberline {0.7.4}Shape-sphere projection $(\theta ,\varphi )$}{12}{subsection.0.7.4}%
+\contentsline {paragraph}{Chart map.}{12}{section*.12}%
+\contentsline {paragraph}{Hemisphere redundancy.}{12}{section*.13}%
+\contentsline {paragraph}{Projection choice.}{12}{section*.14}%
+\contentsline {paragraph}{What lives on this map.}{12}{section*.15}%
+\contentsline {paragraph}{Burrau application.}{12}{section*.16}%
+\contentsline {paragraph}{The shape sphere as phase portrait.}{12}{section*.17}%
+\contentsline {paragraph}{Hover-streamline interaction.}{13}{section*.18}%
+\contentsline {paragraph}{What the user sees.}{13}{section*.19}%
+\contentsline {paragraph}{Relationship to the locked-pixel inspector.}{13}{section*.20}%
+\contentsline {subsection}{\numberline {0.7.5}Mixed-axis charts}{13}{subsection.0.7.5}%
+\contentsline {paragraph}{Examples.}{14}{section*.21}%
+\contentsline {paragraph}{Implementation.}{14}{section*.22}%
+\contentsline {paragraph}{Phase-space plots.}{14}{section*.23}%
+\contentsline {section}{\numberline {0.8}Measure and sampling density}{14}{section.0.8}%
+\contentsline {paragraph}{Examples of non-uniformity.}{14}{section*.24}%
+\contentsline {paragraph}{Energy drift as a quality diagnostic.}{14}{section*.25}%
+\contentsline {paragraph}{Three distinct notions of density.}{15}{section*.26}%
+\contentsline {part}{II\hspace {1em}The Burrau--Pythagorean Family}{25}{part.2}%
+\contentsline {section}{\numberline {0.9}Motivation}{26}{section.0.9}%
+\contentsline {section}{\numberline {0.10}The discrete family}{26}{section.0.10}%
+\contentsline {subsection}{\numberline {0.10.1}Euclid's parametrisation}{26}{subsection.0.10.1}%
+\contentsline {subsection}{\numberline {0.10.2}Distinct shapes}{26}{subsection.0.10.2}%
+\contentsline {subsection}{\numberline {0.10.3}Jacobi coordinates for Burrau configurations}{26}{subsection.0.10.3}%
+\contentsline {subsection}{\numberline {0.10.4}Continuous interpolation}{26}{subsection.0.10.4}%
+\contentsline {section}{\numberline {0.11}Relaxing constraints}{27}{section.0.11}%
+\contentsline {subsection}{\numberline {0.11.1}Mass simplex}{27}{subsection.0.11.1}%
+\contentsline {subsection}{\numberline {0.11.2}Momentum}{27}{subsection.0.11.2}%
+\contentsline {subsection}{\numberline {0.11.3}Progressive escalation}{27}{subsection.0.11.3}%
+\contentsline {section}{\numberline {0.12}Burrau-specific charts}{27}{section.0.12}%
+\contentsline {paragraph}{Decoder contract.}{27}{section*.27}%
+\contentsline {subsection}{\numberline {0.12.1}The Euclid plane}{27}{subsection.0.12.1}%
+\contentsline {subsection}{\numberline {0.12.2}The acute-angle axis}{28}{subsection.0.12.2}%
+\contentsline {subsection}{\numberline {0.12.3}Ternary mass plot}{28}{subsection.0.12.3}%
+\contentsline {subsection}{\numberline {0.12.4}Bifurcation strips}{28}{subsection.0.12.4}%
+\contentsline {section}{\numberline {0.13}Central hypothesis}{28}{section.0.13}%
+\contentsline {part}{III\hspace {1em}Interaction Model}{31}{part.3}%
+\contentsline {section}{\numberline {0.14}The projective microscope}{32}{section.0.14}%
+\contentsline {subsection}{\numberline {0.14.1}Existing controls (unchanged)}{32}{subsection.0.14.1}%
+\contentsline {subsection}{\numberline {0.14.2}Tilt: rotating into hidden dimensions}{32}{subsection.0.14.2}%
+\contentsline {paragraph}{Tilt formula.}{32}{section*.28}%
+\contentsline {paragraph}{Note on terminology.}{32}{section*.29}%
+\contentsline {paragraph}{Target dimension selection.}{32}{section*.30}%
+\contentsline {paragraph}{Orthonormalisation.}{32}{section*.31}%
+\contentsline {paragraph}{When is correction needed?}{33}{section*.32}%
+\contentsline {paragraph}{Degenerate case.}{33}{section*.33}%
+\contentsline {paragraph}{UI conventions.}{33}{section*.34}%
+\contentsline {section}{\numberline {0.15}Lock gesture}{33}{section.0.15}%
+\contentsline {paragraph}{Affine charts.}{33}{section*.35}%
+\contentsline {paragraph}{Nonlinear charts.}{33}{section*.36}%
+\contentsline {paragraph}{Locked mode.}{33}{section*.37}%
+\contentsline {section}{\numberline {0.16}Locked-pixel inspector}{33}{section.0.16}%
+\contentsline {subsection}{\numberline {0.16.1}Compute model}{34}{subsection.0.16.1}%
+\contentsline {subsection}{\numberline {0.16.2}Why CPU and why high precision}{34}{subsection.0.16.2}%
+\contentsline {subsection}{\numberline {0.16.3}Inspector overlay contents}{34}{subsection.0.16.3}%
+\contentsline {subsection}{\numberline {0.16.4}Relationship to the tiled pipeline}{34}{subsection.0.16.4}%
+\contentsline {paragraph}{Caveat: integrator-family mismatch in cross-checks.}{35}{section*.38}%
+\contentsline {section}{\numberline {0.17}Lookup: entering ICs directly}{35}{section.0.17}%
+\contentsline {paragraph}{Exact IC (full lock).}{35}{section*.39}%
+\contentsline {paragraph}{Partial specification (constrained slice).}{35}{section*.40}%
+\contentsline {subsection}{\numberline {0.17.1}Inverse encode paths}{35}{subsection.0.17.1}%
+\contentsline {paragraph}{Mass inverse.}{35}{section*.41}%
+\contentsline {paragraph}{Configuration inverse.}{36}{section*.42}%
+\contentsline {paragraph}{Free-momentum inverse.}{36}{section*.43}%
+\contentsline {paragraph}{Canonical inverse policy.}{36}{section*.44}%
+\contentsline {subsection}{\numberline {0.17.2}Chart-aware validation}{36}{subsection.0.17.2}%
+\contentsline {paragraph}{Validation layers (applied in order).}{36}{section*.45}%
+\contentsline {paragraph}{Response to validation failure.}{37}{section*.46}%
+\contentsline {paragraph}{Lock validation.}{37}{section*.47}%
+\contentsline {paragraph}{Implementation note.}{37}{section*.48}%
+\contentsline {paragraph}{Chart compatibility flags.}{37}{section*.49}%
+\contentsline {section}{\numberline {0.18}Named compound directions}{37}{section.0.18}%
+\contentsline {section}{\numberline {0.19}Implementation summary}{38}{section.0.19}%
+\contentsline {part}{IV\hspace {1em}Simulation and Analysis}{40}{part.4}%
+\contentsline {section}{\numberline {0.20}Equations of motion and integrators}{41}{section.0.20}%
+\contentsline {subsection}{\numberline {0.20.1}KDK leapfrog (default, 2nd order)}{41}{subsection.0.20.1}%
+\contentsline {paragraph}{Adaptive substepping.}{41}{section*.50}%
+\contentsline {subsection}{\numberline {0.20.2}Yoshida composition (4th and 6th order)}{41}{subsection.0.20.2}%
+\contentsline {paragraph}{Yoshida 4th order (3 stages).}{41}{section*.51}%
+\contentsline {paragraph}{Yoshida 6th order (7 stages).}{42}{section*.52}%
+\contentsline {paragraph}{GPU performance note.}{42}{section*.53}%
+\contentsline {paragraph}{Integrator selection by quality tier.}{43}{section*.54}%
+\contentsline {subsection}{\numberline {0.20.3}RK4 (validation reference)}{44}{subsection.0.20.3}%
+\contentsline {subsection}{\numberline {0.20.4}Future direction: KS regularisation}{44}{subsection.0.20.4}%
+\contentsline {subsection}{\numberline {0.20.5}Failure handling}{44}{subsection.0.20.5}%
+\contentsline {subsection}{\numberline {0.20.6}COM projection and invariant monitoring}{44}{subsection.0.20.6}%
+\contentsline {paragraph}{Motivation.}{44}{section*.55}%
+\contentsline {paragraph}{Projection rule.}{44}{section*.56}%
+\contentsline {paragraph}{Why COM is special.}{45}{section*.57}%
+\contentsline {paragraph}{Invariant monitoring.}{45}{section*.58}%
+\contentsline {paragraph}{Per-step vs start-and-end.}{45}{section*.59}%
+\contentsline {section}{\numberline {0.21}Event detection}{45}{section.0.21}%
+\contentsline {subsection}{\numberline {0.21.1}Collision}{45}{subsection.0.21.1}%
+\contentsline {subsection}{\numberline {0.21.2}Escape}{45}{subsection.0.21.2}%
+\contentsline {section}{\numberline {0.22}Stability metrics}{46}{section.0.22}%
+\contentsline {subsection}{\numberline {0.22.1}Shape-sphere observable}{46}{subsection.0.22.1}%
+\contentsline {paragraph}{Convention check.}{47}{section*.60}%
+\contentsline {paragraph}{Canonical geometric representation.}{47}{section*.61}%
+\contentsline {subsection}{\numberline {0.22.2}Frequency diffusion}{48}{subsection.0.22.2}%
+\contentsline {paragraph}{Phase.}{48}{section*.62}%
+\contentsline {paragraph}{Unwrapping.}{48}{section*.63}%
+\contentsline {paragraph}{Windowed frequency estimate.}{48}{section*.64}%
+\contentsline {paragraph}{Diffusion.}{48}{section*.65}%
+\contentsline {paragraph}{Secondary observable.}{48}{section*.66}%
+\contentsline {paragraph}{Window validity and partial windows.}{48}{section*.67}%
+\contentsline {subsection}{\numberline {0.22.3}Finite-time Lyapunov exponent (FTLE)}{48}{subsection.0.22.3}%
+\contentsline {paragraph}{What FTLE answers.}{48}{section*.68}%
+\contentsline {paragraph}{Definition.}{49}{section*.69}%
+\contentsline {paragraph}{Mass-weighted phase-space norm.}{49}{section*.70}%
+\contentsline {paragraph}{Benettin renormalisation loop.}{49}{section*.71}%
+\contentsline {paragraph}{Perturbation hierarchy.}{50}{section*.72}%
+\contentsline {paragraph}{Implementation caveats.}{50}{section*.73}%
+\contentsline {paragraph}{Compute shader integration.}{50}{section*.74}%
+\contentsline {paragraph}{Interpretation.}{50}{section*.75}%
+\contentsline {subsection}{\numberline {0.22.4}Finite-resolution ensemble spread}{50}{subsection.0.22.4}%
+\contentsline {paragraph}{What ensemble spread answers.}{50}{section*.76}%
+\contentsline {paragraph}{Why this is useful for Principia.}{50}{section*.77}%
+\contentsline {paragraph}{Definition.}{51}{section*.78}%
+\contentsline {paragraph}{Continuous spread.}{51}{section*.79}%
+\contentsline {paragraph}{Categorical impurity.}{51}{section*.80}%
+\contentsline {paragraph}{Why resolution-dependent.}{51}{section*.81}%
+\contentsline {paragraph}{Interpretation.}{51}{section*.82}%
+\contentsline {paragraph}{Dispatch model.}{51}{section*.83}%
+\contentsline {subsection}{\numberline {0.22.5}Why FTLE and ensemble spread correlate but are not equivalent}{51}{subsection.0.22.5}%
+\contentsline {subsection}{\numberline {0.22.6}Trajectory coherence on the shape sphere}{53}{subsection.0.22.6}%
+\contentsline {paragraph}{Compressed descriptor.}{53}{section*.84}%
+\contentsline {paragraph}{Interpretation.}{53}{section*.85}%
+\contentsline {subsection}{\numberline {0.22.7}Free-group word of the encounter sequence}{53}{subsection.0.22.7}%
+\contentsline {paragraph}{What the free-group word is.}{53}{section*.86}%
+\contentsline {paragraph}{Generators.}{53}{section*.87}%
+\contentsline {paragraph}{Branch-cut construction.}{54}{section*.88}%
+\contentsline {paragraph}{Free reduction.}{55}{section*.89}%
+\contentsline {paragraph}{Unequal masses.}{55}{section*.90}%
+\contentsline {paragraph}{Compute shader implementation.}{55}{section*.91}%
+\contentsline {paragraph}{Cost.}{55}{section*.92}%
+\contentsline {paragraph}{Bit-packing layout.}{55}{section*.93}%
+\contentsline {paragraph}{Why this matters.}{55}{section*.94}%
+\contentsline {subsection}{\numberline {0.22.8}Alternative indicators}{56}{subsection.0.22.8}%
+\contentsline {subsection}{\numberline {0.22.9}Stability metric hierarchy}{56}{subsection.0.22.9}%
+\contentsline {paragraph}{Tier A --- default / cheap / always-on.}{56}{section*.95}%
+\contentsline {paragraph}{Tier B --- medium-cost / selective.}{56}{section*.96}%
+\contentsline {paragraph}{Tier C --- expensive / research / spot-check.}{56}{section*.97}%
+\contentsline {paragraph}{Key conceptual point.}{56}{section*.98}%
+\contentsline {paragraph}{Implementation consequence.}{56}{section*.99}%
+\contentsline {subsection}{\numberline {0.22.10}Canonical per-sample summary}{57}{subsection.0.22.10}%
+\contentsline {paragraph}{Why \texttt {.w} = unwrapped phase.}{57}{section*.100}%
+\contentsline {subsection}{\numberline {0.22.11}Time-coherent shape representation and animation policy}{57}{subsection.0.22.11}%
+\contentsline {paragraph}{Knot samples (preferred for chaotic trajectories).}{57}{section*.101}%
+\contentsline {paragraph}{Truncated Fourier.}{57}{section*.102}%
+\contentsline {subsection}{\numberline {0.22.12}Representative sample choice for coarse tiles}{57}{subsection.0.22.12}%
+\contentsline {paragraph}{Mean path.}{57}{section*.103}%
+\contentsline {paragraph}{Medoid path.}{57}{section*.104}%
+\contentsline {paragraph}{Dominant-outcome representative.}{58}{section*.105}%
+\contentsline {paragraph}{Playback guard.}{58}{section*.106}%
+\contentsline {part}{V\hspace {1em}Rendering Pipeline}{59}{part.5}%
+\contentsline {section}{\numberline {0.23}Render graph architecture}{60}{section.0.23}%
+\contentsline {paragraph}{Pipeline.}{60}{section*.107}%
+\contentsline {paragraph}{Stage contracts.}{60}{section*.108}%
+\contentsline {paragraph}{Fragment context.}{60}{section*.109}%
+\contentsline {paragraph}{Combiner.}{60}{section*.110}%
+\contentsline {paragraph}{Two shader types.}{60}{section*.111}%
+\contentsline {section}{\numberline {0.24}Shader helper library}{61}{section.0.24}%
+\contentsline {paragraph}{Colour-space helpers.}{61}{section*.112}%
+\contentsline {paragraph}{Scalar and transfer-function helpers.}{61}{section*.113}%
+\contentsline {paragraph}{Shape-sphere helpers.}{61}{section*.114}%
+\contentsline {paragraph}{VMF colour helpers.}{61}{section*.115}%
+\contentsline {paragraph}{Namespace convention.}{61}{section*.116}%
+\contentsline {section}{\numberline {0.25}Physics visualisation modes}{61}{section.0.25}%
+\contentsline {subsection}{\numberline {0.25.1}Group 1: Conserved quantities and invariants}{61}{subsection.0.25.1}%
+\contentsline {paragraph}{Energy colour scale.}{61}{section*.117}%
+\contentsline {subsection}{\numberline {0.25.2}Group 2: Mass and configuration geometry}{61}{subsection.0.25.2}%
+\contentsline {paragraph}{Jacobi ratio.}{62}{section*.118}%
+\contentsline {paragraph}{Cyclic palette.}{62}{section*.119}%
+\contentsline {subsection}{\numberline {0.25.3}Group 3: Trajectory-derived quantities}{62}{subsection.0.25.3}%
+\contentsline {paragraph}{Escape time and fractal dimension.}{62}{section*.120}%
+\contentsline {subsection}{\numberline {0.25.4}Group 4: Numerical diagnostics}{62}{subsection.0.25.4}%
+\contentsline {paragraph}{Diagnostic colour scale.}{62}{section*.121}%
+\contentsline {subsection}{\numberline {0.25.5}Compositing model}{63}{subsection.0.25.5}%
+\contentsline {paragraph}{Primary mode.}{63}{section*.122}%
+\contentsline {paragraph}{Overlay mode.}{63}{section*.123}%
+\contentsline {subsection}{\numberline {0.25.6}GUI colour mode selector}{63}{subsection.0.25.6}%
+\contentsline {section}{\numberline {0.26}Spherical colour map system}{63}{section.0.26}%
+\contentsline {subsection}{\numberline {0.26.1}Colour spaces}{63}{subsection.0.26.1}%
+\contentsline {subsection}{\numberline {0.26.2}Von Mises--Fisher blending engine}{63}{subsection.0.26.2}%
+\contentsline {subsection}{\numberline {0.26.3}Seamless LUT sphere}{64}{subsection.0.26.3}%
+\contentsline {subsection}{\numberline {0.26.4}CVD simulation}{64}{subsection.0.26.4}%
+\contentsline {paragraph}{Pole hue angle table.}{64}{section*.124}%
+\contentsline {paragraph}{Cubehelix analytical generation.}{64}{section*.125}%
+\contentsline {paragraph}{Seam-free guarantee.}{64}{section*.126}%
+\contentsline {section}{\numberline {0.27}Render modes}{65}{section.0.27}%
+\contentsline {subsection}{\numberline {0.27.1}State taxonomy}{65}{subsection.0.27.1}%
+\contentsline {subsection}{\numberline {0.27.2}Event classification mode}{65}{subsection.0.27.2}%
+\contentsline {subsection}{\numberline {0.27.3}Stability evolution mode (OKLab/OKLCH)}{65}{subsection.0.27.3}%
+\contentsline {subsection}{\numberline {0.27.4}Shape sphere physics overlay}{65}{subsection.0.27.4}%
+\contentsline {paragraph}{Special configurations (equal-mass).}{65}{section*.127}%
+\contentsline {paragraph}{Stability $\times $ hue (principal Principia encoding).}{65}{section*.128}%
+\contentsline {paragraph}{Gaussian blob overlay.}{66}{section*.129}%
+\contentsline {paragraph}{Unequal-mass interpretation.}{66}{section*.130}%
+\contentsline {paragraph}{Physics-aware rendering defaults.}{66}{section*.131}%
+\contentsline {subsection}{\numberline {0.27.5}Pattern and special modes}{66}{subsection.0.27.5}%
+\contentsline {paragraph}{Fibonacci lattice.}{66}{section*.132}%
+\contentsline {paragraph}{Turing-like standing waves.}{66}{section*.133}%
+\contentsline {paragraph}{Custom $N$-pole vMF.}{66}{section*.134}%
+\contentsline {paragraph}{Additional modes.}{66}{section*.135}%
+\contentsline {part}{VI\hspace {1em}WebGPU Systems Layer}{69}{part.6}%
+\contentsline {section}{\numberline {0.28}Layered build-up}{70}{section.0.28}%
+\contentsline {subsection}{\numberline {0.28.1}Layer 0: flat grid, no cache}{70}{subsection.0.28.1}%
+\contentsline {paragraph}{Notation.}{70}{section*.136}%
+\contentsline {paragraph}{Data flow.}{70}{section*.137}%
+\contentsline {subsection}{\numberline {0.28.2}Layer 1: tile cache and ancestor fallback}{70}{subsection.0.28.2}%
+\contentsline {paragraph}{Slippy-map behaviour.}{71}{section*.138}%
+\contentsline {paragraph}{Data flow.}{71}{section*.139}%
+\contentsline {subsection}{\numberline {0.28.3}Layer 2: adaptive refinement}{71}{subsection.0.28.3}%
+\contentsline {paragraph}{Data flow.}{71}{section*.140}%
+\contentsline {paragraph}{Tile debug overlays.}{73}{section*.141}%
+\contentsline {section}{\numberline {0.29}Tiled quadtree architecture}{73}{section.0.29}%
+\contentsline {subsection}{\numberline {0.29.1}Tile pyramid}{73}{subsection.0.29.1}%
+\contentsline {subsection}{\numberline {0.29.2}Camera-to-zoom mapping}{74}{subsection.0.29.2}%
+\contentsline {subsection}{\numberline {0.29.3}Parent fallback}{74}{subsection.0.29.3}%
+\contentsline {subsection}{\numberline {0.29.4}The quadtree as adaptive scientific sampling}{74}{subsection.0.29.4}%
+\contentsline {paragraph}{Important distinction.}{75}{section*.142}%
+\contentsline {paragraph}{Why CPU-managed.}{75}{section*.143}%
+\contentsline {section}{\numberline {0.30}Two-stage tile pipeline}{75}{section.0.30}%
+\contentsline {subsection}{\numberline {0.30.1}Per-pixel compute workflow}{75}{subsection.0.30.1}%
+\contentsline {subsection}{\numberline {0.30.2}Ensemble sampling (optional)}{75}{subsection.0.30.2}%
+\contentsline {subsection}{\numberline {0.30.3}Rendering from the same canonical data}{75}{subsection.0.30.3}%
+\contentsline {subsection}{\numberline {0.30.4}Quality tiers}{76}{subsection.0.30.4}%
+\contentsline {subsection}{\numberline {0.30.5}Full-retention mode}{76}{subsection.0.30.5}%
+\contentsline {paragraph}{Memory cost.}{76}{section*.144}%
+\contentsline {paragraph}{What you gain.}{76}{section*.145}%
+\contentsline {paragraph}{Tiled dispatch.}{77}{section*.146}%
+\contentsline {paragraph}{Adaptive benefit preserved.}{77}{section*.147}%
+\contentsline {paragraph}{Hybrid workflow.}{77}{section*.148}%
+\contentsline {subsection}{\numberline {0.30.6}Export modes}{77}{subsection.0.30.6}%
+\contentsline {paragraph}{Three export modes.}{77}{section*.149}%
+\contentsline {subsubsection}{Static frame export}{77}{section*.150}%
+\contentsline {paragraph}{Guarantees.}{78}{section*.151}%
+\contentsline {paragraph}{Workflow.}{78}{section*.152}%
+\contentsline {subsubsection}{Animated sweep export}{78}{section*.153}%
+\contentsline {paragraph}{Sweepable parameters.}{78}{section*.154}%
+\contentsline {paragraph}{Sweep specification.}{78}{section*.155}%
+\contentsline {subsubsection}{Live simulation export}{79}{section*.156}%
+\contentsline {paragraph}{Output.}{79}{section*.157}%
+\contentsline {subsubsection}{Data export API}{79}{section*.158}%
+\contentsline {paragraph}{Export formats.}{79}{section*.159}%
+\contentsline {paragraph}{Binary format layout.}{79}{section*.160}%
+\contentsline {paragraph}{Field decoding.}{79}{section*.161}%
+\contentsline {paragraph}{Batch export for ML.}{79}{section*.162}%
+\contentsline {paragraph}{Reproducibility metadata.}{80}{section*.163}%
+\contentsline {subsubsection}{Unified view state}{80}{section*.164}%
+\contentsline {paragraph}{Schema.}{80}{section*.165}%
+\contentsline {paragraph}{Chart-specific parameters.}{81}{section*.166}%
+\contentsline {paragraph}{Four consumers, one schema.}{81}{section*.167}%
+\contentsline {paragraph}{Animation timeline.}{81}{section*.168}%
+\contentsline {paragraph}{Track evaluation.}{82}{section*.169}%
+\contentsline {paragraph}{Easing functions.}{82}{section*.170}%
+\contentsline {paragraph}{What this enables.}{82}{section*.171}%
+\contentsline {paragraph}{Backwards compatibility.}{83}{section*.172}%
+\contentsline {paragraph}{Executor.}{83}{section*.173}%
+\contentsline {paragraph}{Any \texttt {ViewState} field is animatable.}{83}{section*.174}%
+\contentsline {paragraph}{Interactive store.}{83}{section*.175}%
+\contentsline {paragraph}{Implementation.}{84}{section*.176}%
+\contentsline {paragraph}{Dispatch structure.}{84}{section*.177}%
+\contentsline {paragraph}{Zoom precision in export.}{84}{section*.178}%
+\contentsline {paragraph}{What the export modes do \emph {not} have:}{84}{section*.179}%
+\contentsline {paragraph}{Comparison of all pipeline modes.}{84}{section*.180}%
+\contentsline {section}{\numberline {0.31}WebGPU execution model}{84}{section.0.31}%
+\contentsline {subsection}{\numberline {0.31.1}Dispatch}{84}{subsection.0.31.1}%
+\contentsline {subsection}{\numberline {0.31.2}Deep-zoom precision: tile-local coordinates}{85}{subsection.0.31.2}%
+\contentsline {paragraph}{The fix: CPU-computed tile centre and half-width.}{85}{section*.181}%
+\contentsline {paragraph}{Why this works.}{85}{section*.182}%
+\contentsline {paragraph}{Precision floor.}{85}{section*.183}%
+\contentsline {paragraph}{Summary of precision responsibilities.}{85}{section*.184}%
+\contentsline {subsection}{\numberline {0.31.3}Linearised decoder for deep zoom}{85}{subsection.0.31.3}%
+\contentsline {paragraph}{Principle.}{86}{section*.185}%
+\contentsline {paragraph}{CPU precomputation (\texttt {f64}).}{86}{section*.186}%
+\contentsline {paragraph}{GPU shader (\texttt {f32}).}{86}{section*.187}%
+\contentsline {paragraph}{Precision gain.}{86}{section*.188}%
+\contentsline {paragraph}{Performance gain.}{86}{section*.189}%
+\contentsline {paragraph}{Switchover.}{86}{section*.190}%
+\contentsline {paragraph}{Jacobian cost.}{87}{section*.191}%
+\contentsline {subsection}{\numberline {0.31.4}Workgroup shape}{87}{subsection.0.31.4}%
+\contentsline {subsection}{\numberline {0.31.5}Reduction strategy}{87}{subsection.0.31.5}%
+\contentsline {subsection}{\numberline {0.31.6}WGSL constraints}{87}{subsection.0.31.6}%
+\contentsline {section}{\numberline {0.32}Tile diagnostic payload}{87}{section.0.32}%
+\contentsline {paragraph}{Required fields.}{87}{section*.192}%
+\contentsline {paragraph}{Optional time-coherence.}{87}{section*.193}%
+\contentsline {paragraph}{Packing recommendations.}{88}{section*.194}%
+\contentsline {paragraph}{Payload versioning.}{88}{section*.195}%
+\contentsline {section}{\numberline {0.33}Tile-level summary and coherence score}{88}{section.0.33}%
+\contentsline {paragraph}{Per-sample summary (GPU output).}{88}{section*.196}%
+\contentsline {paragraph}{\texttt {sample\_descriptor} bit layout.}{88}{section*.197}%
+\contentsline {paragraph}{\texttt {trajectory\_stats} bit layout.}{89}{section*.198}%
+\contentsline {paragraph}{The \texttt {ftle} field.}{89}{section*.199}%
+\contentsline {paragraph}{The \texttt {diffusion} field.}{89}{section*.200}%
+\contentsline {paragraph}{Memory cost.}{90}{section*.201}%
+\contentsline {paragraph}{All fields are either free or near-free to compute.}{90}{section*.202}%
+\contentsline {paragraph}{IC descriptor (decode-time physics quantities).}{90}{section*.203}%
+\contentsline {paragraph}{Jacobi vector convention.}{90}{section*.204}%
+\contentsline {paragraph}{Global simulation uniforms.}{90}{section*.205}%
+\contentsline {paragraph}{Data flow architecture.}{91}{section*.206}%
+\contentsline {paragraph}{Tile-level reduction (GPU $\to $ CPU).}{91}{section*.207}%
+\contentsline {paragraph}{Tile-level \texttt {status\_flags}.}{92}{section*.208}%
+\contentsline {paragraph}{Reduction of float fields.}{93}{section*.209}%
+\contentsline {paragraph}{Reduction of packed uint fields.}{93}{section*.210}%
+\contentsline {paragraph}{Ensemble reduction.}{93}{section*.211}%
+\contentsline {paragraph}{Composite coherence score.}{93}{section*.212}%
+\contentsline {paragraph}{Initial split thresholds.}{93}{section*.213}%
+\contentsline {paragraph}{Design principle.}{93}{section*.214}%
+\contentsline {subsection}{\numberline {0.33.1}Explicit split / keep / merge criteria}{94}{subsection.0.33.1}%
+\contentsline {paragraph}{Split a tile if any of:}{94}{section*.215}%
+\contentsline {paragraph}{Priority tiebreakers.}{94}{section*.216}%
+\contentsline {paragraph}{Stop splitting if:}{94}{section*.217}%
+\contentsline {paragraph}{Keep a tile coarse if all of:}{94}{section*.218}%
+\contentsline {paragraph}{Merge or deprioritise if:}{94}{section*.219}%
+\contentsline {section}{\numberline {0.34}Scheduling and progressive refinement}{94}{section.0.34}%
+\contentsline {subsection}{\numberline {0.34.1}Why CPU-managed}{94}{subsection.0.34.1}%
+\contentsline {subsection}{\numberline {0.34.2}Tile request}{94}{subsection.0.34.2}%
+\contentsline {paragraph}{\texttt {flags} field.}{95}{section*.220}%
+\contentsline {paragraph}{Linearised decoder uniforms.}{95}{section*.221}%
+\contentsline {subsection}{\numberline {0.34.3}Priority}{95}{subsection.0.34.3}%
+\contentsline {paragraph}{Term definitions.}{95}{section*.222}%
+\contentsline {paragraph}{Default weights.}{95}{section*.223}%
+\contentsline {subsection}{\numberline {0.34.4}Memory strategy and eviction}{95}{subsection.0.34.4}%
+\contentsline {paragraph}{Cancellation.}{96}{section*.224}%
+\contentsline {subsection}{\numberline {0.34.5}Per-frame update loop}{96}{subsection.0.34.5}%
+\contentsline {subsection}{\numberline {0.34.6}Split policy}{96}{subsection.0.34.6}%
+\contentsline {subsection}{\numberline {0.34.7}Controls}{96}{subsection.0.34.7}%
+\contentsline {paragraph}{Interpretation.}{97}{section*.225}%
+\contentsline {paragraph}{Suggested defaults.}{97}{section*.226}%
+\contentsline {section}{\numberline {0.35}Validation and failure modes}{97}{section.0.35}%
+\contentsline {paragraph}{Integrator validation.}{97}{section*.227}%
+\contentsline {paragraph}{Event validation.}{97}{section*.228}%
+\contentsline {paragraph}{Metric validation.}{97}{section*.229}%
+\contentsline {paragraph}{Refinement validation.}{97}{section*.230}%
+\contentsline {paragraph}{Architectural validation checklist.}{97}{section*.231}%
+\contentsline {paragraph}{Common failure modes.}{98}{section*.232}%
+\contentsline {paragraph}{Numerical failure regions are expected.}{98}{section*.233}%
+\contentsline {section}{\numberline {0.36}Cache and invalidation}{98}{section.0.36}%
+\contentsline {paragraph}{Invalidation matrix.}{99}{section*.234}%
+\contentsline {section}{\numberline {.1}Conventions and numerical defaults}{100}{section.Alph0.1}%
+\contentsline {paragraph}{Units.}{100}{section*.235}%
+\contentsline {paragraph}{Sigmoid.}{100}{section*.236}%
+\contentsline {paragraph}{Numerical defaults (starting points).}{100}{section*.237}%
+\contentsline {paragraph}{Diffusion windows.}{100}{section*.238}%
+\contentsline {paragraph}{Shape-sphere checkpoints.}{100}{section*.239}%
+\contentsline {paragraph}{Coherence weights (first-pass concrete values).}{100}{section*.240}%
+\contentsline {paragraph}{Acceptance targets.}{100}{section*.241}%
+\contentsline {paragraph}{Split and refinement thresholds (first-pass defaults).}{100}{section*.242}%
+\contentsline {section}{\numberline {.2}Cartesian Jacobi decode (reference only)}{101}{section.Alph0.2}%
+\contentsline {paragraph}{Incompatibility with the 8D latent chart.}{101}{section*.243}%
+\contentsline {section}{\numberline {.3}Colour map quick reference}{101}{section.Alph0.3}%
+\contentsline {paragraph}{Key parameters.}{101}{section*.244}%
