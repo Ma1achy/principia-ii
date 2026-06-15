@@ -389,7 +389,7 @@ export function decideSplit(
 ## `src/quadtree/priority.ts`
 
 ```ts
-import type { TileID, ViewState } from './types.js';
+import type { TileID, QuadtreeView } from './types.js';
 import type { TileReduction } from './reduction_types.js';
 import { tileBounds } from './tile.js';
 import { clamp } from '@/math/scalar.js';
@@ -406,7 +406,7 @@ export const DEFAULT_PRIORITY_WEIGHTS: PriorityWeights = {
 };
 
 export function computePriority(
-  id: TileID, view: ViewState,
+  id: TileID, view: QuadtreeView,
   r: TileReduction | null,
   weights = DEFAULT_PRIORITY_WEIGHTS,
 ): number {
@@ -473,7 +473,7 @@ export function pickEvictee(
 ## `src/quadtree/scheduler.ts`
 
 ```ts
-import type { TileCacheKey, TileID, ViewState } from './types.js';
+import type { TileCacheKey, TileID, QuadtreeView } from './types.js';
 import type { TileReduction } from './reduction_types.js';
 import { TileCache } from './cache.js';
 import { transition } from './lifecycle.js';
@@ -507,7 +507,7 @@ export interface FrameJob {
  * Returns the jobs ordered highest-priority first.
  */
 export function planFrame(
-  cache: TileCache, view: ViewState, opts: SchedulerOpts,
+  cache: TileCache, view: QuadtreeView, opts: SchedulerOpts,
 ): FrameJob[] {
   const candidates: FrameJob[] = [];
   const seen = new Set<string>();
@@ -1245,7 +1245,7 @@ import { describe, it, expect } from 'vitest';
 import { TileCache } from '@/quadtree/cache.js';
 import { FifoComputeQueue } from '@/quadtree/compute_queue.js';
 import { planFrame } from '@/quadtree/scheduler.js';
-import type { ViewState, TileCacheKey } from '@/quadtree/types.js';
+import type { QuadtreeView, TileCacheKey } from '@/quadtree/types.js';
 
 const KEY: TileCacheKey = {
   chartId: 'latent_slice', z0: [0,0,0,0,0,0,0,0],
@@ -1262,7 +1262,7 @@ describe('off-screen cancellation', () => {
     const cache = new TileCache(64);
     const queue = new FifoComputeQueue();
 
-    let view: ViewState = {
+    let view: QuadtreeView = {
       cacheKey: KEY, uvCentre: [0.5, 0.5], uvHalfWidth: [0.05, 0.05],
       zBase: 4, zMax: 12, width: 1024, height: 1024, tilePix: 256,
     };

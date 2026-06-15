@@ -59,8 +59,12 @@ import type { Vec2, Vec3, Vec8, Triple, TerminalLabel, TrajState } from '@/math/
  * Frozen u32 codes (10..17) shared byte-for-byte with the WGSL outcome
  * encoding; downstream matches on the enum, never on free strings.
  * `COLLISION_T0` is a separate terminal kind, NOT a member here.
+ *
+ * A plain (non-`const`) enum: under `isolatedModules` (Vite/esbuild) a
+ * cross-module `const enum` is erased to `undefined` at the import site, and
+ * this enum is consumed from `@/decode/types.js` by M10 and G11.
  */
-export const enum DegenerateReason {
+export enum DegenerateReason {
   M01_TINY                 = 10,
   MASS_SATURATION          = 11,
   ALPHA_CLAMPOUT           = 12,
