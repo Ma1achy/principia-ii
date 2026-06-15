@@ -31,6 +31,9 @@ one detailed file per milestone with copy-paste-runnable TypeScript and WGSL.
 | [G11_error_telemetry.md](G11_error_telemetry.md) | `ErrorBoundary` + structured telemetry: closed `AppErrorKind`, user-facing messages, M5 `status_flags` → tile-failure overlays, pluggable sink | G2, G7, G9 |
 | [G12_ui_shell.md](G12_ui_shell.md) | Full vanilla-TS shell: ControlPanel/Canvas/Inspector, ChartBrowser presets, rebindable keymap, responsive layout, loading chrome, ViewState undo/redo (render-only changes excluded) | G2, G8 (G9/G10/G11) |
 | [G13_accessibility_cvd.md](G13_accessibility_cvd.md) | Accessibility + CVD UI: render-only `cvdMode` toggle, keyboard nav + roving tabindex, ARIA + live region, high-contrast/font-scale, reduced-motion | G12, M7 |
+| [G14_e2e_regression_ci.md](G14_e2e_regression_ci.md) | Real-Chrome WebGPU e2e (nightly/opt-in; swiftshader stays the per-PR fallback), golden-PNG visual diff, perf-regression + axe a11y gates; §7 job off `needs-gpu` | G8, M12 (G9/G10/G12/G13) |
+| [G15_build_deploy_hosting.md](G15_build_deploy_hosting.md) | Production Vite build (hashed chunks, `?raw` shaders, base path), shader compression, env injection, GitHub Pages deploy, optional PWA; pure config validator | G8 (pairs with G14) |
+| [G16_documentation_onboarding.md](G16_documentation_onboarding.md) | User guide, architecture guide, ADR index, "add-a-chart" runbook, glossary, TypeDoc API; pure docs-completeness/link checker | most milestones |
 
 The G-series files are gap-fill milestones written after v1 and
 project-wide planning self-reviews; they cover the load-bearing seams the
