@@ -55,6 +55,23 @@ principia/
 import type { Vec2, Vec3, Vec8, Triple, TerminalLabel, TrajState } from '@/math/types.js';
 
 /**
+ * Closed enumeration of decode-time degeneracy reasons (ADR 0007).
+ * Frozen u32 codes (10..17) shared byte-for-byte with the WGSL outcome
+ * encoding; downstream matches on the enum, never on free strings.
+ * `COLLISION_T0` is a separate terminal kind, NOT a member here.
+ */
+export const enum DegenerateReason {
+  M01_TINY                 = 10,
+  MASS_SATURATION          = 11,
+  ALPHA_CLAMPOUT           = 12,
+  JACOBI_GUARD             = 13,
+  MIRROR_TIE               = 14,
+  INFEASIBLE_ENERGY        = 15,
+  MOMENTUM_SEEDS_EXHAUSTED = 16,
+  NONFINITE                = 17,
+}
+
+/**
  * The latent 8D point. Components, in order:
  *   0,1: configuration (z_α, z_β)
  *   2,3,4,5: free Jacobi momentum (z_q0..z_q3)
@@ -195,7 +212,8 @@ export function inverseConfigCanonical(
 ## `src/decode/momentum_free.ts`
 
 ```ts
-import type { Vec2, JacobiMomenta } from './types.js';
+import type { Vec2 } from '@/math/types.js';
+import type { JacobiMomenta } from './types.js';
 import { sigmoid, logit, clamp } from '@/math/scalar.js';
 
 /**
@@ -380,20 +398,36 @@ function closestPair(r: Triple<Vec2>): 0 | 1 | 2 {
 
 ```ts
 import type { TerminalLabel, TrajState } from '@/math/types.js';
+import { DegenerateReason } from './types.js';
+
+/**
+ * Classify a thrown decoder error into a closed `DegenerateReason` member
+ * (ADR 0007). Unrecognised throws fall through to the named catch-all
+ * `NONFINITE` — never a free string and never an open `OTHER`.
+ */
+function classifyDecodeError(e: unknown): DegenerateReason {
+  const v = (e as { reason?: unknown } | null)?.reason;
+  if (typeof v === 'number' && v >= DegenerateReason.M01_TINY
+                            && v <= DegenerateReason.NONFINITE) {
+    return v as DegenerateReason;
+  }
+  return DegenerateReason.NONFINITE;
+}
 
 /**
  * Top-level guard that ensures every decode path emits a labelled output.
  * Convert any thrown decoder error into a DEGENERATE label rather than
- * letting it bubble up to the GPU dispatch.
+ * letting it bubble up to the GPU dispatch. The reason is the closed
+ * `DegenerateReason` enum (ADR 0007), defaulting to `NONFINITE`.
  */
 export function safeguardDecode<T>(
   fn: () => T,
-  fallback: (reason: string) => TerminalLabel,
+  fallback: (reason: DegenerateReason) => TerminalLabel,
 ): T | { __terminal: TerminalLabel } {
   try {
     return fn();
   } catch (e) {
-    return { __terminal: fallback((e as Error).message ?? 'unknown') };
+    return { __terminal: fallback(classifyDecodeError(e)) };
   }
 }
 ```
@@ -403,6 +437,7 @@ export function safeguardDecode<T>(
 ```ts
 import type { TrajState, Triple, Vec2, TerminalLabel } from '@/math/types.js';
 import type { DecodeKnobs, DecodeResult, ICDescriptor, LatentZ } from './types.js';
+import { DegenerateReason } from './types.js';
 import { decodeMassSoftmax } from './mass.js';
 import { decodeConfigCanonical } from './configuration.js';
 import { decodeFreeJacobiMomenta } from './momentum_free.js';
@@ -424,7 +459,7 @@ export function decodeLatent(
 
   // No-holes guard: tiny M_{01} blocks the Jacobi reconstruction.
   if (m[0] + m[1] < 1e-10) {
-    return makeTerminal({ kind: 'DEGENERATE', reason: 'M01_TINY' }, m);
+    return makeTerminal({ kind: 'DEGENERATE', reason: DegenerateReason.M01_TINY }, m);
   }
 
   const cfg = decodeConfigCanonical(z[0], z[1], knobs.alphaMin, knobs.RTilde);

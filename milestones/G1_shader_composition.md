@@ -13,6 +13,12 @@ flattens the dependency graph, validates that every referenced symbol is
 either defined locally or imported, and emits one syntactically-valid
 shader module per pipeline.
 
+**This milestone is a refactor, not a prerequisite (A1 ruling).** M3, M5,
+and M7 are built first with *provisional inline shader strings* glued by a
+stub `concatShaders()`; G1 later replaces that glue with the single WGSL
+linker described here. The provisional inline shaders ship before G1
+exists by design — G1 centralises them once there is something to link.
+
 **Exit criterion.**
 
 ```bash

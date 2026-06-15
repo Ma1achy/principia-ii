@@ -29,12 +29,15 @@ principia/
       split.ts                # split / keep / merge logic
       eviction.ts             # weighted-LRU
       scheduler.ts            # per-frame loop
+      reduction_types.ts      # MODIFIED: TileReduction interface pinned to the field table
     gpu/
+      structs.ts              # MODIFIED (from M3): + TILE_REDUCTION_FIELDS table,
+                              #   generated decodeTileReduction, TILE_REDUCTION_SCHEMA_VERSION
       shaders/
-        reduce.wgsl
+        reduce.wgsl           # writes TILE_REDUCTION_SCHEMA_VERSION into the version slot
       reduce_pipeline.ts
       reduce_dispatch.ts
-      reduce_readback.ts
+      reduce_readback.ts      # MODIFIED: imports the generated decoder + schema check
   test/
     unit/quadtree/
       lifecycle.test.ts
@@ -42,6 +45,9 @@ principia/
       coherence.test.ts
       split.test.ts
       eviction.test.ts
+    golden/
+      tile_reduction_layout.test.ts   # ADR-0006 golden byte-fixture round-trip
+                                       #   + schema-version-mismatch guard
     integration/
       layer2_basin_stays_coarse.test.ts
       layer2_boundary_refines.test.ts
@@ -137,52 +143,168 @@ export function compositeCoherence(
 }
 ```
 
+## `src/gpu/structs.ts` — MODIFIED from M3 (ADR 0006 TileReduction offset map)
+
+`TileReduction` is the *only* struct that crosses GPU->CPU, so it is the only
+one that needs a CPU **decoder**. Per ADR 0006 that decoder must not be a
+fourth hand copy of the layout. M5 extends the M3 `structs.ts` (which already
+owns `sizeOfTileReduction`) with **one declarative field table** that is the
+single source of truth: the WGSL struct snippet, the TS decoder, and the schema
+version are all derived from it. M6 changes the layout by editing this table and
+bumping the version — never by hand-editing decoder offsets.
+
+```ts
+// ── appended to src/gpu/structs.ts (from M3) ──────────────────────────────
+
+import type { TileReduction } from '@/quadtree/reduction_types.js';
+import type { TileID } from '@/quadtree/types.js';
+
+/**
+ * Bump whenever TILE_REDUCTION_FIELDS changes (order, type, insertion,
+ * removal). reduce.wgsl writes this into the version slot; the decoder
+ * asserts it. Hand-bumped integer, per ADR 0006 (a content hash can replace
+ * it later without changing the contract).
+ */
+export const TILE_REDUCTION_SCHEMA_VERSION = 1;
+
+/**
+ * The single declarative layout of the per-tile `TileReduction` body fields
+ * (everything *after* id+level+mean_n_checkpoints[M]). One entry per f32/u32/i32
+ * lane, in WGSL field order. The WGSL struct emitter, the TS decoder, and the
+ * `reduction_types.ts` interface are all derived from / pinned to this table —
+ * there is no second hand-maintained copy of these offsets (ADR 0006).
+ *
+ * The version slot reuses the `status_flags` reserved bits 6-7 (TILE_STATUS
+ * occupies bits 0-5); reduce.wgsl ORs TILE_REDUCTION_SCHEMA_VERSION into those
+ * two bits, and decodeTileReduction strips + checks them. Two bits hold
+ * versions 0-3; widen to a dedicated `schema_version` slot (kept at constant
+ * 272-byte size, enforced by the alignment pin) before version 4.
+ */
+export const TILE_REDUCTION_FIELDS = [
+  { name: 'mean_arc_length_n',          type: 'f32' },
+  { name: 'mean_t_end',                 type: 'f32' },
+  { name: 'mean_d_min',                 type: 'f32' },
+  { name: 'mean_ftle',                  type: 'f32' },
+  { name: 'mean_energy_drift',          type: 'f32' },
+  { name: 'mean_diffusion',             type: 'f32' },
+  { name: 'spread_n',                   type: 'f32' },
+  { name: 'spread_arc_length_n',        type: 'f32' },
+  { name: 'spread_t_end',               type: 'f32' },
+  { name: 'spread_d_min',               type: 'f32' },
+  { name: 'spread_ftle',                type: 'f32' },
+  { name: 'spread_energy_drift',        type: 'f32' },
+  { name: 'spread_diffusion',           type: 'f32' },
+  { name: 'outcome_impurity',           type: 'f32' },
+  { name: 'dominant_outcome',           type: 'u32' },
+  { name: 'suspect_fraction',           type: 'f32' },
+  { name: 'suspect_lz_fraction',        type: 'f32' },
+  { name: 'energy_drift_worst',         type: 'f32' },
+  { name: 'lz_drift_worst',             type: 'f32' },
+  { name: 'mean_word_length',           type: 'f32' },
+  { name: 'spread_word_length',         type: 'f32' },
+  { name: 'word_agreement',             type: 'f32' },
+  { name: 'dominant_word_hash',         type: 'u32' },
+  { name: 'ensemble_outcome_agreement', type: 'f32' },
+  { name: 'ensemble_count',             type: 'i32' },
+  { name: 'mean_orbit_count',           type: 'f32' },
+  { name: 'retrograde_fraction',        type: 'f32' },
+  { name: 'coherence_score',            type: 'f32' },
+  { name: 'priority_score',             type: 'f32' },
+  { name: 'sample_count',               type: 'i32' },
+  { name: 'status_flags',               type: 'u32' },
+] as const;
+
+export type TileReductionFieldName = (typeof TILE_REDUCTION_FIELDS)[number]['name'];
+
+/** status_flags bits 6-7 carry the schema version (TILE_STATUS owns bits 0-5). */
+const SCHEMA_VERSION_SHIFT = 6;
+const SCHEMA_VERSION_MASK = 0x3 << SCHEMA_VERSION_SHIFT;   // bits 6-7
+
+/**
+ * Emit the WGSL `TileReduction` struct body from the table (the head — id,
+ * level, mean_n_checkpoints[M] — is fixed). reduce.wgsl is diffed against this
+ * in CI so a WGSL edit cannot bypass the table.
+ */
+export function wgslTileReductionStruct(M: number = M_DEFAULT): string {
+  const head =
+    `struct TileReduction {\n` +
+    `  id:    TileID,\n` +
+    `  level: i32,\n` +
+    `  mean_n_checkpoints: array<vec4<f32>, ${M}>,\n`;
+  const body = TILE_REDUCTION_FIELDS
+    .map((f) => `  ${f.name}: ${f.type === 'i32' ? 'i32' : f.type === 'u32' ? 'u32' : 'f32'},`)
+    .join('\n');
+  return head + body + `\n};`;
+}
+
+/**
+ * Decode a mapped `TileReduction` buffer. Derived from TILE_REDUCTION_FIELDS:
+ * lanes are assigned in table order starting at `base = 8 + M*4` (skipping the
+ * 16-byte id+level head plus M vec4 checkpoints). Throws on schema mismatch.
+ */
+export function decodeTileReduction(ab: ArrayBuffer, M: number = M_DEFAULT): TileReduction {
+  const f32 = new Float32Array(ab);
+  const i32 = new Int32Array(ab);
+  const u32 = new Uint32Array(ab);
+
+  const id: TileID = { z: i32[0], tx: i32[1], ty: i32[2] };
+  const level = i32[4];
+
+  const ck: { x: number; y: number; z: number; w: number }[] = [];
+  for (let m = 0; m < M; m++) {
+    const o = 8 + m * 4;     // 16B id+level head (4 i32) + WGSL pad to vec4
+    ck.push({ x: f32[o], y: f32[o + 1], z: f32[o + 2], w: f32[o + 3] });
+  }
+
+  const base = 8 + M * 4;
+  const out = { id, level, mean_n_checkpoints: ck } as Record<string, unknown>;
+  TILE_REDUCTION_FIELDS.forEach((field, i) => {
+    const lane = base + i;
+    out[field.name] =
+      field.type === 'u32' ? u32[lane]
+      : field.type === 'i32' ? i32[lane]
+      : f32[lane];
+  });
+
+  const version = ((out.status_flags as number) & SCHEMA_VERSION_MASK) >>> SCHEMA_VERSION_SHIFT;
+  if (version !== TILE_REDUCTION_SCHEMA_VERSION) {
+    throw new Error(
+      `TileReduction schema mismatch: buffer v${version}, ` +
+      `decoder v${TILE_REDUCTION_SCHEMA_VERSION}`,
+    );
+  }
+  // Strip the version bits so consumers see the real status flags.
+  out.status_flags = (out.status_flags as number) & ~SCHEMA_VERSION_MASK;
+
+  return out as unknown as TileReduction;
+}
+```
+
 ## `src/quadtree/reduction_types.ts`
+
+The `TileReduction` interface is **derived from** `TILE_REDUCTION_FIELDS`, not a
+hand copy. The `id`/`level`/`mean_n_checkpoints` head is declared explicitly
+(it is the fixed part of the layout); every scalar field is generated as
+`Record<TileReductionFieldName, number>`, so a table edit re-types the interface
+automatically and the round-trip golden (below) pins the byte offsets.
 
 ```ts
 import type { TileID } from './types.js';
+import type { TileReductionFieldName } from '@/gpu/structs.js';
 
 /**
  * In-memory mirror of the GPU `TileReduction` struct (272 bytes at M=8).
- * Field order matches the WGSL definition; indexing tests verify the
- * round-trip from the GPU buffer.
+ * The scalar fields are the single source of truth in `TILE_REDUCTION_FIELDS`
+ * (src/gpu/structs.ts); this interface derives their names from the table so
+ * the two cannot drift. The round-trip golden pins the byte offsets.
  */
-export interface TileReduction {
-  id:                       TileID;
-  level:                    number;
-  mean_n_checkpoints:       readonly { x: number; y: number; z: number; w: number }[];
-  mean_arc_length_n:        number;
-  mean_t_end:               number;
-  mean_d_min:               number;
-  mean_ftle:                number;
-  mean_energy_drift:        number;
-  mean_diffusion:           number;
-  spread_n:                 number;
-  spread_arc_length_n:      number;
-  spread_t_end:             number;
-  spread_d_min:             number;
-  spread_ftle:              number;
-  spread_energy_drift:      number;
-  spread_diffusion:         number;
-  outcome_impurity:         number;
-  dominant_outcome:         number;
-  suspect_fraction:         number;
-  suspect_lz_fraction:      number;
-  energy_drift_worst:       number;
-  lz_drift_worst:           number;
-  mean_word_length:         number;
-  spread_word_length:       number;
-  word_agreement:           number;
-  dominant_word_hash:       number;
-  ensemble_outcome_agreement: number;
-  ensemble_count:           number;
-  mean_orbit_count:         number;
-  retrograde_fraction:      number;
-  coherence_score:          number;          // GPU writes S_tile here
-  priority_score:           number;          // CPU writes priority here
-  sample_count:             number;
-  status_flags:             number;
-}
+export type TileReduction =
+  & {
+      id:                 TileID;
+      level:              number;
+      mean_n_checkpoints: readonly { x: number; y: number; z: number; w: number }[];
+    }
+  & Record<TileReductionFieldName, number>;
 
 /** Status-flag bit positions. */
 export const TILE_STATUS = {
@@ -787,10 +909,16 @@ export function dispatchReduce(
 
 ## `src/gpu/reduce_readback.ts`
 
+Per ADR 0006 this module no longer hand-codes byte offsets. It maps the buffer
+and hands the bytes to the table-generated `decodeTileReduction` in
+`structs.ts`, which also performs the `TILE_REDUCTION_SCHEMA_VERSION` check
+(throwing on a stale or mismatched payload). The old `const base = 8 + M*4` /
+`f32[base + N]` arithmetic is deleted.
+
 ```ts
 import type { TileReduction } from '@/quadtree/reduction_types.js';
 import type { ReducePipeline } from './reduce_pipeline.js';
-import type { TileID } from '@/quadtree/types.js';
+import { decodeTileReduction } from './structs.js';
 
 export async function readbackReduction(
   rp: ReducePipeline, M: number,
@@ -798,59 +926,9 @@ export async function readbackReduction(
   await rp.readbackBuf.mapAsync(GPUMapMode.READ);
   const ab = rp.readbackBuf.getMappedRange().slice(0);
   rp.readbackBuf.unmap();
+  // Generated, table-derived decoder. Asserts TILE_REDUCTION_SCHEMA_VERSION;
+  // throws if the GPU wrote a layout the CPU doesn't recognise.
   return decodeTileReduction(ab, M);
-}
-
-function decodeTileReduction(ab: ArrayBuffer, M: number): TileReduction {
-  const f32 = new Float32Array(ab);
-  const i32 = new Int32Array(ab);
-  const u32 = new Uint32Array(ab);
-
-  const id: TileID = { z: i32[0], tx: i32[1], ty: i32[2] };
-  const level = i32[4];
-
-  const ck: { x: number; y: number; z: number; w: number }[] = [];
-  for (let m = 0; m < M; m++) {
-    const o = 8 + m * 4;     // skip 16 bytes id+level (4 i32) + WGSL pad to vec4
-    ck.push({ x: f32[o], y: f32[o+1], z: f32[o+2], w: f32[o+3] });
-  }
-  const base = 8 + M * 4;
-
-  return {
-    id, level,
-    mean_n_checkpoints:    ck,
-    mean_arc_length_n:     f32[base + 0],
-    mean_t_end:            f32[base + 1],
-    mean_d_min:            f32[base + 2],
-    mean_ftle:             f32[base + 3],
-    mean_energy_drift:     f32[base + 4],
-    mean_diffusion:        f32[base + 5],
-    spread_n:              f32[base + 6],
-    spread_arc_length_n:   f32[base + 7],
-    spread_t_end:          f32[base + 8],
-    spread_d_min:          f32[base + 9],
-    spread_ftle:           f32[base + 10],
-    spread_energy_drift:   f32[base + 11],
-    spread_diffusion:      f32[base + 12],
-    outcome_impurity:      f32[base + 13],
-    dominant_outcome:      u32[base + 14],
-    suspect_fraction:      f32[base + 15],
-    suspect_lz_fraction:   f32[base + 16],
-    energy_drift_worst:    f32[base + 17],
-    lz_drift_worst:        f32[base + 18],
-    mean_word_length:      f32[base + 19],
-    spread_word_length:    f32[base + 20],
-    word_agreement:        f32[base + 21],
-    dominant_word_hash:    u32[base + 22],
-    ensemble_outcome_agreement: f32[base + 23],
-    ensemble_count:        i32[base + 24],
-    mean_orbit_count:      f32[base + 25],
-    retrograde_fraction:   f32[base + 26],
-    coherence_score:       f32[base + 27],
-    priority_score:        f32[base + 28],
-    sample_count:          i32[base + 29],
-    status_flags:          u32[base + 30],
-  };
 }
 ```
 

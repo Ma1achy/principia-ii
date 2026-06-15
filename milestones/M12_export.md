@@ -5,8 +5,9 @@
 The exit milestone. Make every parameter that affects rendering or
 computation reachable from a serialisable `ViewState`, hang every
 non-interactive workflow off it (URL sharing, single-frame export,
-animated sweep, live simulation, data export), and wire the spec §7
-acceptance gates into CI so regressions caught here block merging.
+animated sweep, live simulation, data export), and wire the
+architectural acceptance gates into CI so regressions caught here block
+merging.
 
 After M12: `ViewState` is the canonical schema; URL sharing round-trips
 losslessly; static exports produce flat `SimResult[W×H]` buffers with
@@ -22,16 +23,23 @@ SHA-256 hash of the binary payload.
 npm test -- --run test/integration/acceptance
 ```
 
-All six spec §7 architectural checks pass on the frozen corpus:
-- Spec A1: `n(t)` storage is stable near poles and wrap regions.
-- Spec A2: tiles marked coherent stay visually and dynamically coherent
-  one level deeper.
-- Spec A3: coarse baseline coverage stays available while children are
-  pending.
-- Spec A4: changing render mode does not change the compute payload.
-- Spec A5: `FTLE_VALID` outputs only appear when Benettin renormalisation
-  ran.
-- Spec A6: bounded-trajectory energy drift is below threshold.
+All six architectural acceptance checks pass on the frozen corpus.
+These are this milestone's own checks (`a1`..`a6`), each anchored to a
+spec guarantee — the energy-drift bound (A6) maps directly to the
+"Acceptance targets" appendix; the rest enforce the two-stage
+pipeline's structural invariants:
+- A1: `n(t)` storage is stable near poles and wrap regions
+  (shape-sphere stability).
+- A2: tiles marked coherent stay visually and dynamically coherent
+  one level deeper (Coherence / split thresholds).
+- A3: coarse baseline coverage stays available while children are
+  pending (quadtree refinement).
+- A4: changing render mode does not change the compute payload
+  (render/diagnostics separation — Invalidation matrix).
+- A5: `FTLE_VALID` outputs only appear when Benettin renormalisation
+  ran (FTLE gating).
+- A6: bounded-trajectory energy drift is below threshold
+  (Acceptance targets: $\epsilon_E$ bound).
 
 Additionally: a 10-frame `z[3]` sweep round-trips byte-for-byte through
 the sidecar reproducibility check.
@@ -84,6 +92,7 @@ principia/
         a4.test.ts
         a5.test.ts
         a6.test.ts
+        a_all.test.ts
       sweep_reproducibility.test.ts
 ```
 
@@ -99,7 +108,7 @@ export type EasingName =
 export type OutputFormat = 'png' | 'json' | 'binary' | 'csv' | 'npz' | 'both';
 
 export interface TimelineTrack<T = any> {
-  /** Dotted path into a ViewState, e.g. "z0[3]" or "chart_params.nu". */
+  /** Dotted path into a ViewState, e.g. "z0[3]" or "chartParams.nu". */
   path:      string;
   keyframes: { frame: number; value: T; easing: EasingName }[];
 }
@@ -1098,7 +1107,7 @@ import { describe, it, expect } from 'vitest';
 import '@/validation/index.js';        // registers all six
 import { acceptanceTests } from '@/validation/acceptance.js';
 
-describe('Spec §7 acceptance', () => {
+describe('Architectural acceptance', () => {
   it('A1: n(t) stable near poles and wrap regions', async () => {
     const t = acceptanceTests.find(x => x.id === 'A1')!;
     const r = await t.run();
@@ -1115,7 +1124,7 @@ import { describe, it, expect } from 'vitest';
 import '@/validation/index.js';
 import { runAllAcceptance } from '@/validation/acceptance.js';
 
-describe('Spec §7 acceptance — all', () => {
+describe('Architectural acceptance — all', () => {
   it('every check passes', async () => {
     const all = await runAllAcceptance();
     for (const r of all) expect(r.passed).toBe(true);
@@ -1137,8 +1146,8 @@ npm test -- --run test/integration/sweep_reproducibility
 npm test -- --run test/integration/acceptance
 ```
 
-All six spec §7 checks pass. The reproducibility sidecar correctly
-verifies a 10-frame sweep payload.
+All six architectural acceptance checks pass. The reproducibility
+sidecar correctly verifies a 10-frame sweep payload.
 
 ## Notes for the implementer
 

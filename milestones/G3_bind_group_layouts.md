@@ -14,6 +14,13 @@ After G3: one `buildLayouts(device)` call returns the canonical
 `PipelineLayouts` object; all three pipelines use it; bind groups
 allocated for one pipeline bind cleanly into the others.
 
+**This milestone is a refactor, not a prerequisite (A1 ruling).** M3, M5,
+and M7 are built first with their own *provisional per-pipeline bind-group
+layouts*; G3 later replaces those ad-hoc layouts with the single `Layouts`
+authority described here. The per-pipeline bind groups ship before G3
+exists by design — G3 centralises them into one source of truth once all
+three pipelines exist to share layout identity.
+
 **Exit criterion.**
 
 ```bash

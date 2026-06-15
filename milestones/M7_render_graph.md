@@ -865,7 +865,7 @@ fn fs_main(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
     case 12u: { rgb = palette_seq((ic.rho_angle + PI) / (2.0 * PI)); }
     case 13u: { rgb = palette_seq(clamp(ic.r_min_pair_0 * 2.0, 0.0, 1.0)); }
     case 14u: { rgb = palette_seq(clamp(r.t_end / uniforms.T_horizon, 0.0, 1.0)); }
-    case 15u: { rgb = palette_seq(f32((r.sample_descriptor >> 9u) & 0x7fu) / 64.0); }
+    case 15u: { rgb = palette_seq(f32((r.sample_descriptor >> 10u) & 0x3fu) / 64.0); }
     case 16u: { rgb = palette_seq(clamp(r.d_min, 0.0, 1.0)); }
     case 17u: { rgb = palette_seq(clamp(log(r.delta_E_max_abs + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
     case 18u: { rgb = palette_seq(clamp(log(r.energy_drift + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
@@ -1043,7 +1043,8 @@ describe('viridis', () => {
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { packRenderParams, DEFAULT_RENDER_PARAMS } from '@/render/params.js';
+import { packRenderParams } from '@/render/params.js';
+import { DEFAULT_RENDER_PARAMS } from '@/render/types.js';
 
 /**
  * Palette swap should change the contents of the 64-byte RenderParams
@@ -1152,7 +1153,7 @@ colour mode.
   same vertex / fragment modules for every mode; only `RenderParams`
   changes. The branchy `switch` on `colour_mode_id` lives in the same
   shader module — not separate pipeline objects per mode — because
-  pipeline switching cost would dwarf the cost of one branch on a 32-byte
+  pipeline switching cost would dwarf the cost of one branch on a 64-byte
   uniform. M10 may revisit this if a particular mode's dead code becomes
   significant.
 - **Stages cleanly composable.** Adding mode 24 means: extending the

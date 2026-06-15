@@ -109,7 +109,7 @@ export interface TileCacheKey {
  * One screen-space frame description. The renderer walks the quadtree
  * with this in hand to decide which tiles are visible.
  */
-export interface ViewState {
+export interface QuadtreeView {
   cacheKey:     TileCacheKey;
   uvCentre:     Vec2;       // world-UV centre of the viewport
   uvHalfWidth:  Vec2;       // half-extent of the viewport in UV space
@@ -247,7 +247,7 @@ export function reachedF32Floor(z: number, samplesPerAxis: number): boolean {
 ## `src/quadtree/camera.ts`
 
 ```ts
-import type { ViewState } from './types.js';
+import type { QuadtreeView } from './types.js';
 import { Z_MAX_DEFAULT, tileSpan } from './pyramid.js';
 import { clamp } from '@/math/scalar.js';
 
@@ -283,7 +283,7 @@ export function visibleTilesAt(
 }
 
 /** Adapt the requested z to whatever `pyramid.f32Floor` allows. */
-export function effectiveZ(view: ViewState, samplesPerAxis: number): number {
+export function effectiveZ(view: QuadtreeView, samplesPerAxis: number): number {
   let z = view.zBase;
   while (z > 0 && require_f32_floor_check_failure(z, samplesPerAxis)) z--;
   return Math.min(z, view.zMax);
@@ -495,7 +495,7 @@ export class FifoComputeQueue {
 ## `src/quadtree/visible.ts`
 
 ```ts
-import type { TileID, ViewState } from './types.js';
+import type { TileID, QuadtreeView } from './types.js';
 import { visibleTilesAt } from './camera.js';
 
 /**
@@ -503,7 +503,7 @@ import { visibleTilesAt } from './camera.js';
  * raster order (rows top-to-bottom, columns left-to-right) so that the
  * scheduler can do simple top-of-page-first scheduling.
  */
-export function visibleTiles(view: ViewState): TileID[] {
+export function visibleTiles(view: QuadtreeView): TileID[] {
   const uvMin: [number, number] = [
     view.uvCentre[0] - view.uvHalfWidth[0],
     view.uvCentre[1] - view.uvHalfWidth[1],
@@ -858,7 +858,7 @@ import { TileCache } from '@/quadtree/cache.js';
 import { FifoComputeQueue } from '@/quadtree/compute_queue.js';
 import { visibleTiles } from '@/quadtree/visible.js';
 import { tileKey } from '@/quadtree/tile.js';
-import type { TileCacheKey, TileID, ViewState } from '@/quadtree/types.js';
+import type { TileCacheKey, TileID, QuadtreeView } from '@/quadtree/types.js';
 
 const CKEY: TileCacheKey = {
   chartId: 'latent_slice', z0: [0,0,0,0,0,0,0,0],
@@ -878,8 +878,8 @@ interface ScreenStats {
 
 function runPan(
   cache: TileCache, queue: FifoComputeQueue,
-  startView: ViewState,
-  endView: ViewState,
+  startView: QuadtreeView,
+  endView: QuadtreeView,
   frames: number,
   computeLatency: number,    // tiles delivered after this many frames
 ): ScreenStats {
@@ -894,7 +894,7 @@ function runPan(
   for (let f = 0; f < frames; f++) {
     frameNum = f;
     const u = f / Math.max(1, frames - 1);
-    const view: ViewState = {
+    const view: QuadtreeView = {
       ...startView,
       uvCentre: [
         startView.uvCentre[0] * (1 - u) + endView.uvCentre[0] * u,
@@ -953,11 +953,11 @@ describe('Layer 1 panning never blanks (with ancestor)', () => {
     });
     const queue = new FifoComputeQueue();
 
-    const start: ViewState = {
+    const start: QuadtreeView = {
       cacheKey: CKEY, uvCentre: [0.2, 0.5], uvHalfWidth: [0.05, 0.05],
       zBase: 4, zMax: 12, width: 1024, height: 1024, tilePix: 256,
     };
-    const end: ViewState = { ...start, uvCentre: [0.8, 0.5] };
+    const end: QuadtreeView = { ...start, uvCentre: [0.8, 0.5] };
 
     const stats = runPan(cache, queue, start, end, 60, 5);
     expect(stats.framesWithBlank).toBe(0);
@@ -968,7 +968,7 @@ describe('Layer 1 panning never blanks (with ancestor)', () => {
     const cache = new TileCache(64);
     const queue = new FifoComputeQueue();
 
-    const view: ViewState = {
+    const view: QuadtreeView = {
       cacheKey: CKEY, uvCentre: [0.5, 0.5], uvHalfWidth: [0.5, 0.5],
       zBase: 0, zMax: 12, width: 1024, height: 1024, tilePix: 256,
     };
@@ -986,7 +986,7 @@ import { describe, it, expect } from 'vitest';
 import { TileCache } from '@/quadtree/cache.js';
 import { FifoComputeQueue } from '@/quadtree/compute_queue.js';
 import { visibleTiles } from '@/quadtree/visible.js';
-import type { TileCacheKey, ViewState } from '@/quadtree/types.js';
+import type { TileCacheKey, QuadtreeView } from '@/quadtree/types.js';
 import { tileKey } from '@/quadtree/tile.js';
 
 const CKEY: TileCacheKey = {
@@ -1011,7 +1011,7 @@ describe('Layer 1 zoom hand-off', () => {
         });
 
     const queue = new FifoComputeQueue();
-    let view: ViewState = {
+    let view: QuadtreeView = {
       cacheKey: CKEY, uvCentre: [0.5, 0.5], uvHalfWidth: [0.5, 0.5],
       zBase: 1, zMax: 6, width: 1024, height: 1024, tilePix: 256,
     };
@@ -1070,7 +1070,7 @@ and a zoom step shows the parent for one frame and then sharpens.
 
 ## Notes for the implementer
 
-- **Where this connects to Layer 0.** The `dispatch_layer0` call from M3
+- **Where this connects to Layer 0.** The `dispatchLayer0` call from M3
   becomes the per-tile body of the loop here: each compute job pulls a
   `TileID` off the queue, fills `uv_centre` and `uv_half` from
   `tileCentreHalf(id)`, allocates a fresh `simBuffer` / `icBuffer`, and

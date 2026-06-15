@@ -111,11 +111,13 @@ export interface ViewState {
 
   /** Lock state. */
   locked:       boolean;
+  // `| undefined` is explicit so `lockedPhysical: undefined` is a legal
+  // assignment under exactOptionalPropertyTypes (lockAffine/unlock clear it).
   lockedPhysical?: {                                // present iff locked
     m: readonly [number, number, number];
     r: readonly [Vec2, Vec2, Vec2];
     p: readonly [Vec2, Vec2, Vec2];
-  };
+  } | undefined;
 
   /** Reproducibility metadata. */
   principiaVersion: string;
@@ -221,7 +223,7 @@ export function applyZoomStep(v: ViewState, deltaLog2: number): ViewState {
 import type { ViewState } from './view_state.js';
 import type { Vec8 } from '@/math/types.js';
 import {
-  add8, scale8, sub8, dot8, normalize8, unitE8, ZERO8,
+  add8, scale8, sub8, dot8, normalize8, unitE8,
 } from '@/math/vec.js';
 
 const EPS_DEGEN = 1e-6;
@@ -373,7 +375,7 @@ export function physicalToLatent(
 ## `src/interact/lookup.ts`
 
 ```ts
-import type { Vec2, Vec3, Vec8, Triple, TrajState } from '@/math/types.js';
+import type { Vec2, Vec3, Vec8, Triple } from '@/math/types.js';
 import type { ViewState } from './view_state.js';
 import { decodeLatent } from '@/decode/pipeline.js';
 import { inverseEncodeLatent } from '@/decode/inverse.js';

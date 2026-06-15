@@ -12,7 +12,7 @@ the spec describes.
 **Exit criterion.**
 
 ```bash
-npm test -- --run test/golden/metrics
+npm test -- --run test/golden/figure8_word test/golden/ftle_chaotic_vs_regular test/golden/shape_sphere_landmarks
 ```
 
 The corrected shape-sphere formula places binary collisions on the equator
@@ -75,6 +75,7 @@ export interface MetricsAccumulator {
   prevTheta:            number | null;
   thetaTilde:           number;
   word:                 FreeGroupWord;
+  wordUncertain:        boolean;       // ADR 0004: set off the equal-mass band
   ftleEstimate:         number;
   ftleValid:            boolean;
   encounters:           number;
@@ -441,14 +442,15 @@ export function wordToString(w: FreeGroupWord): string {
 export interface SampleDescriptorFields {
   outcomeClass:    0 | 1 | 2 | 3 | 4;     // bits 0-2
   detail:          number;                 // bits 3-4
-  suspectEnergy:   boolean;
-  suspectLz:       boolean;
-  ftleValid:       boolean;
-  wordTruncated:   boolean;
-  encounterCount:  number;                 // 0..127
-  substepLog2:     number;                 // 0..127
-  benettinCount:   number;                 // 0..127
-  dominantPair:    0 | 1 | 2;
+  suspectEnergy:   boolean;                // bit 5
+  suspectLz:       boolean;                // bit 6
+  ftleValid:       boolean;                // bit 7
+  wordTruncated:   boolean;                // bit 8 (WORD_TRUNCATED)
+  wordUncertain:   boolean;                // bit 9 (WORD_UNCERTAIN — ADR 0004)
+  encounterCount:  number;                 // bits 10-15, 0..63
+  substepLog2:     number;                 // bits 16-22, 0..127
+  benettinCount:   number;                 // bits 23-29, 0..127
+  dominantPair:    0 | 1 | 2;              // bits 30-31
 }
 
 export function packSampleDescriptor(f: SampleDescriptorFields): number {
@@ -459,7 +461,8 @@ export function packSampleDescriptor(f: SampleDescriptorFields): number {
   v |= f.suspectLz     ? 1 << 6 : 0;
   v |= f.ftleValid     ? 1 << 7 : 0;
   v |= f.wordTruncated ? 1 << 8 : 0;
-  v |= (Math.min(127, Math.max(0, f.encounterCount)) & 0x7f) << 9;
+  v |= f.wordUncertain ? 1 << 9 : 0;
+  v |= (Math.min(63,  Math.max(0, f.encounterCount)) & 0x3f) << 10;
   v |= (Math.min(127, Math.max(0, f.substepLog2))    & 0x7f) << 16;
   v |= (Math.min(127, Math.max(0, f.benettinCount))  & 0x7f) << 23;
   v |= (f.dominantPair & 0x3) << 30;
@@ -474,7 +477,8 @@ export function unpackSampleDescriptor(v: number): SampleDescriptorFields {
     suspectLz:      ((v >>> 6) & 1) === 1,
     ftleValid:      ((v >>> 7) & 1) === 1,
     wordTruncated:  ((v >>> 8) & 1) === 1,
-    encounterCount: (v >>> 9)  & 0x7f,
+    wordUncertain:  ((v >>> 9) & 1) === 1,
+    encounterCount: (v >>> 10) & 0x3f,
     substepLog2:    (v >>> 16) & 0x7f,
     benettinCount:  (v >>> 23) & 0x7f,
     dominantPair:   ((v >>> 30) & 0x3) as 0|1|2,
@@ -532,11 +536,29 @@ export const DEFAULT_BRANCH_CUTS: BranchCutCfg = {
   b2: [-0.5, Math.sqrt(3)/2, 0],
 };
 
+/** Equal-mass band half-width ε_m (ADR 0004). Masses are "equal" when every
+ *  pairwise difference is within this tolerance of the equal-mass triple. */
+export const EQUAL_MASS_EPS = 1e-6;
+
+/**
+ * Whether a mass triple sits inside the equal-mass ε band (ADR 0004). Outside
+ * the band the free-group word is computed-but-untrusted and the descriptor's
+ * `WORD_UNCERTAIN` bit must be set so it never gates refinement or science.
+ */
+export function massesAreEqual(
+  m: readonly [number, number, number], eps = EQUAL_MASS_EPS,
+): boolean {
+  const mean = (m[0] + m[1] + m[2]) / 3;
+  return Math.abs(m[0] - mean) <= eps
+      && Math.abs(m[1] - mean) <= eps
+      && Math.abs(m[2] - mean) <= eps;
+}
+
 export function makeMetrics(): MetricsAccumulator {
   return {
     arcLengthN: 0, checkpoints: [],
     prevN: null, prevTheta: null, thetaTilde: 0,
-    word: emptyWord(),
+    word: emptyWord(), wordUncertain: false,
     ftleEstimate: 0, ftleValid: false,
     encounters: 0,
     closeEncounterPair: { count: 0, pair: 0 },
@@ -557,6 +579,9 @@ export function metricsTick(
   emitCheckpoint: boolean,
   branchCuts: BranchCutCfg = DEFAULT_BRANCH_CUTS,
 ): void {
+  // ADR 0004: off the equal-mass band the word is untrusted (WORD_UNCERTAIN).
+  if (!massesAreEqual(s.m)) acc.wordUncertain = true;
+
   // Mass-weighted Jacobi.
   const { rho, lambda } = particlePositionsToJacobi(s.r, s.m);
   const { rhoT, lambdaT } = massWeightedJacobi(rho, lambda, s.m);
@@ -933,6 +958,7 @@ describe('sample_descriptor pack / unpack', () => {
     const f = {
       outcomeClass: 2 as const, detail: 1, suspectEnergy: true,
       suspectLz: false, ftleValid: true, wordTruncated: false,
+      wordUncertain: true,
       encounterCount: 17, substepLog2: 6, benettinCount: 12,
       dominantPair: 1 as const,
     };
@@ -944,12 +970,12 @@ describe('sample_descriptor pack / unpack', () => {
     const f = {
       outcomeClass: 0 as const, detail: 0,
       suspectEnergy: false, suspectLz: false,
-      ftleValid: false, wordTruncated: false,
+      ftleValid: false, wordTruncated: false, wordUncertain: false,
       encounterCount: 1000, substepLog2: 1000, benettinCount: 1000,
       dominantPair: 0 as const,
     };
     const u = unpackSampleDescriptor(packSampleDescriptor(f));
-    expect(u.encounterCount).toBe(127);
+    expect(u.encounterCount).toBe(63);
     expect(u.substepLog2).toBe(127);
     expect(u.benettinCount).toBe(127);
   });
@@ -1018,7 +1044,7 @@ periods, the recorded word should be a power of that base.
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { run } from '@/integrate/run.js';
+import { kdkMacroStep } from '@/integrate/kdk.js';
 import { metricsTick, makeMetrics, DEFAULT_BRANCH_CUTS } from '@/metrics/observe_extended.js';
 import { wordToString } from '@/metrics/free_group.js';
 import type { TrajState } from '@/math/types.js';
@@ -1056,12 +1082,9 @@ describe('figure-8 orbit free-group word', () => {
     const T = 6.32 * 4;       // approx four periods of the figure-8
 
     // We integrate ourselves so we can call metricsTick once per macro step.
+    // In production, metricsTick is wired into the integrator's macro loop;
+    // the test mirrors that by stepping kdkMacroStep directly.
     while (s.t < T) {
-      // Reuse run() with a tiny horizon to step exactly one macro step at a time
-      // would be wasteful; for the test we step using kdkMacroStep directly.
-      // Implementation note: in production, metricsTick is wired into the
-      // integrator's macro loop; the test mirrors that by importing kdk.
-      const { kdkMacroStep } = await import('@/integrate/kdk.js');
       const r = kdkMacroStep(s, dt, { rSub: 0.05, gammaSub: 1.5, NMax: 64 });
       s = r.state;
       metricsTick(acc, s, false, DEFAULT_BRANCH_CUTS);
@@ -1197,7 +1220,7 @@ npm test -- --run test/golden/ftle_chaotic_vs_regular
 ## Acceptance check
 
 ```bash
-npm test -- --run test/golden/metrics
+npm test -- --run test/golden/figure8_word test/golden/ftle_chaotic_vs_regular test/golden/shape_sphere_landmarks
 ```
 
 All three goldens pass:

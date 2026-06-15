@@ -9,6 +9,15 @@ milestone is to land the data contracts (`SimResult`, `ICDescriptor`,
 `SimUniforms`, `TileRequest`) and validate that a GPU integration matches
 the M1 CPU reference.
 
+> **Provisional shaders & bind groups (A1 ruling).** The `simulate.wgsl` /
+> `render_layer0.wgsl` sources and the per-pipeline bind-group definitions below
+> are **provisional**: M3 (like M5 and M7) lands inline shader strings and
+> hand-rolled, per-pipeline bind groups so the first GPU pass can stand on its
+> own. Centralising them is an explicit *later refactor* — **G1** introduces the
+> WGSL linker that composes the shader modules, and **G3** introduces the
+> `Layouts` authority that owns the bind-group layouts. Do not block M3 on G1/G3;
+> they consume and replace what M3 establishes here.
+
 **Exit criterion.**
 
 ```bash
@@ -118,11 +127,15 @@ export interface SimUniforms {
   quality_tier:    number;
   checkpoint_count:number;
   samples_per_axis:number;
+  // M3 chart hyperparameters, read by decode.wgsl (promoted per-chart in M10).
+  mu_max:          number;
+  alpha_min:       number;
+  q_max:           number;
 }
 
 export function packSimUniforms(u: SimUniforms): ArrayBuffer {
-  // 80-byte buffer, padded to 96 for vec3 alignment if needed.
-  // m[3] is laid out as vec3<f32> + 4 bytes pad.
+  // 96-byte buffer. m[3] is laid out as vec3<f32> + 4 bytes pad; the three
+  // M3 chart hyperparameters occupy f32[19..21] (offsets 76, 80, 84).
   const buf = new ArrayBuffer(96);
   const f32 = new Float32Array(buf);
   const u32 = new Uint32Array(buf);
@@ -138,6 +151,9 @@ export function packSimUniforms(u: SimUniforms): ArrayBuffer {
   u32[16] = u.quality_tier >>> 0;
   u32[17] = u.checkpoint_count >>> 0;
   u32[18] = u.samples_per_axis >>> 0;
+  f32[19] = u.mu_max;
+  f32[20] = u.alpha_min;
+  f32[21] = u.q_max;
   return buf;
 }
 ```
@@ -804,7 +820,8 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     if (nsub >= uniforms.N_max) { max_substeps_runs += 1u; }
     else                         { max_substeps_runs = 0u; }
     if (max_substeps_runs >= 1u) {
-      terminal_kind = 3u; break;
+      // Substep budget exhausted / stall → TIMEOUT (Outcome=4), not DEGENERATE.
+      terminal_kind = 4u; break;
     }
 
     let coll = collision_check(s.r, uniforms.r_coll);
@@ -868,7 +885,11 @@ fn write_terminal(idx: u32, ic: ICOut) {
   r.t_end = 0.0;
   r.d_min = 0.0;
   r.diffusion = -1.0;
-  r.sample_descriptor = (1u & 0x7u);     // collision class
+  // Map the decode terminal (1 = degenerate, 2 = collision_t0) to the Outcome
+  // enum class (BOUNDED=0, COLLISION=1, ESCAPE=2, DEGENERATE=3, TIMEOUT=4).
+  var cls: u32 = 3u;                      // default DEGENERATE
+  if (ic.terminal == 2u) { cls = 1u; }   // COLLISION_T0 → COLLISION class
+  r.sample_descriptor = (cls & 0x7u);
   results[idx] = r;
   // (descriptor still written for visualisation purposes.)
 }
@@ -919,6 +940,18 @@ fn fs_main(@builtin(position) frag : vec4<f32>) -> @location(0) vec4<f32> {
 ```
 
 ## `src/gpu/dispatch_layer0.ts`
+
+> **ADR-0005 dispatch contract.** M3's single-tile pass is the *degenerate case*
+> of the chunked dispatch scheme ratified in ADR 0005: a chunk is one tile of
+> `N×N` samples, chunks are issued in centre-out order, each chunk is its own
+> `queue.submit`, and a monotonically-increasing `viewGeneration` token lets the
+> driver abandon any still-queued chunks the moment the camera moves. With a
+> single tile there is exactly one chunk, one submit, and nothing to abandon, so
+> none of that machinery is visible here — but the contract is the one M4 must
+> honour. **M4 implements the multi-tile loop under this contract** (the
+> centre-out queue, per-chunk submit, and stale-`viewGeneration` abandonment);
+> M3 only records it so M4/M5 agents don't ship a non-chunked layer that trips
+> the WebGPU timeout guard.
 
 ```ts
 import type { GpuContext } from './init.js';
