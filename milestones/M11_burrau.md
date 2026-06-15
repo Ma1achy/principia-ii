@@ -205,10 +205,12 @@ export function makeAcuteAngleKChart(opts: {
       const c = canonicalise({ r, p, m, t: 0 },
                              { deltaLambda: EPS_DEADBAND, rColl: R_COLL_DEFAULT });
       if (c.terminal) {
+        // terminal path: no integrable state, zeroed geometry is acceptable
         return { kind: 'terminal', terminal: c.terminal,
-                 descriptor: stub(m) };
+                 descriptor: zeroDescriptor(m) };
       }
-      return { kind: 'ok', state: c.state, descriptor: stub(m) };
+      // OK path: a full canonicalised state exists, so emit a real descriptor.
+      return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
     },
 
     inverseEncode(_ic) {
@@ -224,10 +226,42 @@ export function makeAcuteAngleKChart(opts: {
   };
 }
 
-function stub(m: any): any {
-  return { m, qMass: Math.min(...m),
+const EPS_BOLT = 1e-12;
+
+/** Zeroed descriptor for terminal (stateless) decode results, mirroring
+ *  M10's makeTerminalLabel. */
+function zeroDescriptor(m: any): any {
+  return { m, qMass: Math.min(...m) / (m[0] + m[1] + m[2]),
            rho1Mag: 0, rho2Mag: 0, rhoRatio: 0, rhoAngle: 0,
            K0: 0, V0: 0, virial: 0, rMinPair0: 0 };
+}
+
+/** Real ICDescriptor from a canonicalised state {m, r, p}; same shape as
+ *  M10's makeDescriptor / M2's pipeline.makeDescriptor. q_mass = m_min/M_total
+ *  (spec ICDescriptor). V0/virial left 0 here to avoid importing a potential
+ *  helper this module does not use; the geometric fields the inspector/overlays
+ *  read are computed correctly. */
+function makeDescriptor(s: { m: any; r: any; p: any }): any {
+  const M01 = s.m[0] + s.m[1];
+  const cx = (s.m[0]*s.r[0][0] + s.m[1]*s.r[1][0]) / M01;
+  const cy = (s.m[0]*s.r[0][1] + s.m[1]*s.r[1][1]) / M01;
+  const rho    = [s.r[1][0]-s.r[0][0], s.r[1][1]-s.r[0][1]];
+  const lambda = [s.r[2][0]-cx, s.r[2][1]-cy];
+  const rho1Mag = Math.hypot(rho[0], rho[1]);
+  const rho2Mag = Math.hypot(lambda[0], lambda[1]);
+  const K = (s.p[0][0]**2+s.p[0][1]**2)/(2*s.m[0])
+          + (s.p[1][0]**2+s.p[1][1]**2)/(2*s.m[1])
+          + (s.p[2][0]**2+s.p[2][1]**2)/(2*s.m[2]);
+  return {
+    m: s.m, qMass: Math.min(...s.m) / (s.m[0] + s.m[1] + s.m[2]),
+    rho1Mag, rho2Mag,
+    rhoRatio: rho2Mag / Math.max(rho1Mag, EPS_BOLT),
+    rhoAngle: Math.atan2(rho[0]*lambda[1]-rho[1]*lambda[0],
+                         rho[0]*lambda[0]+rho[1]*lambda[1]),
+    K0: K, V0: 0,
+    virial: 0,
+    rMinPair0: Math.min(rho1Mag, rho2Mag),
+  };
 }
 ```
 
@@ -276,12 +310,12 @@ export function makeBurrauMassChart(nu0: number): Chart {
     },
 
     validate([u, v]) {
+      if (u < 0 || u > 1 || v < 0 || v > 1) {
+        return { kind: 'reject', reason: 'uv out of range' };
+      }
       if (u + v >= 1 - EPS_MASS) {
         return { kind: 'project', pixel: { s: u, t: v },
                  reason: 'beyond simplex interior buffer' };
-      }
-      if (u < 0 || u > 1 || v < 0 || v > 1) {
-        return { kind: 'reject', reason: 'uv out of range' };
       }
       return { kind: 'pass' };
     },
@@ -333,8 +367,8 @@ export function makeThetaKStrip(opts: {
       const c = canonicalise({ r, p, m, t: 0 },
                              { deltaLambda: EPS_DEADBAND, rColl: R_COLL_DEFAULT });
       if (c.terminal) return { kind: 'terminal', terminal: c.terminal,
-                               descriptor: stub(m) };
-      return { kind: 'ok', state: c.state, descriptor: stub(m) };
+                               descriptor: terminalDescriptor(m) };
+      return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
     },
     inverseEncode() { return { kind: 'projected', reason: 'strip inverse not unique' }; },
     validate([u, v]) {
@@ -373,8 +407,8 @@ export function makeThetaDeltaMStrip(opts: {
       const c = canonicalise({ r, p, m: mInterp, t: 0 },
                              { deltaLambda: EPS_DEADBAND, rColl: R_COLL_DEFAULT });
       if (c.terminal) return { kind: 'terminal', terminal: c.terminal,
-                               descriptor: stub(mInterp) };
-      return { kind: 'ok', state: c.state, descriptor: stub(mInterp) };
+                               descriptor: terminalDescriptor(mInterp) };
+      return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
     },
     inverseEncode() { return { kind: 'projected', reason: 'δm inverse needs interpolation factor' }; },
     validate([u, v]) {
@@ -385,9 +419,41 @@ export function makeThetaDeltaMStrip(opts: {
   };
 }
 
-function stub(m: any): any {
-  return { m, qMass: Math.min(...m),
-           rho1Mag: 0, rho2Mag: 0, rhoRatio: 0, rhoAngle: 0,
+// Real ICDescriptor from the canonicalised state (same construction as
+// M2 pipeline.makeDescriptor / M10 lz_e). q_mass = m_min / M_total.
+function makeDescriptor(s: { m: Vec3; r: Triple<Vec2>; p: Triple<Vec2> }) {
+  const m = s.m;
+  const M = m[0] + m[1] + m[2];
+  const M01 = m[0] + m[1];
+  const cx = (m[0]*s.r[0][0] + m[1]*s.r[1][0]) / M01;
+  const cy = (m[0]*s.r[0][1] + m[1]*s.r[1][1]) / M01;
+  const rho    = [s.r[1][0]-s.r[0][0], s.r[1][1]-s.r[0][1]] as const;
+  const lambda = [s.r[2][0]-cx,        s.r[2][1]-cy       ] as const;
+  const rho1Mag = Math.hypot(rho[0], rho[1]);
+  const rho2Mag = Math.hypot(lambda[0], lambda[1]);
+  const rhoAngle = Math.atan2(rho[0]*lambda[1]-rho[1]*lambda[0],
+                              rho[0]*lambda[0]+rho[1]*lambda[1]);
+  const K0 = (s.p[0][0]**2 + s.p[0][1]**2)/(2*m[0])
+           + (s.p[1][0]**2 + s.p[1][1]**2)/(2*m[1])
+           + (s.p[2][0]**2 + s.p[2][1]**2)/(2*m[2]);
+  let V0 = 0;
+  for (let i = 0; i < 3; i++) for (let j = i+1; j < 3; j++) {
+    const d = Math.hypot(s.r[i][0]-s.r[j][0], s.r[i][1]-s.r[j][1]);
+    V0 -= m[i]*m[j] / Math.max(1e-30, d);
+  }
+  let rMin = Infinity;
+  for (let i = 0; i < 3; i++) for (let j = i+1; j < 3; j++)
+    rMin = Math.min(rMin, Math.hypot(s.r[i][0]-s.r[j][0], s.r[i][1]-s.r[j][1]));
+  return { m, qMass: Math.min(m[0], m[1], m[2]) / M,
+           rho1Mag, rho2Mag,
+           rhoRatio: rho1Mag === 0 ? Infinity : rho2Mag / rho1Mag,
+           rhoAngle, K0, V0,
+           virial: 2*K0 / Math.max(1e-30, Math.abs(V0)),
+           rMinPair0: rMin };
+}
+
+function terminalDescriptor(m: any): any {
+  return { m, qMass: 0, rho1Mag: 0, rho2Mag: 0, rhoRatio: 0, rhoAngle: 0,
            K0: 0, V0: 0, virial: 0, rMinPair0: 0 };
 }
 ```
@@ -404,6 +470,33 @@ export interface PersistenceTracePoint {
   outcomeImpurity:   number;     // from TileReduction
   coherenceScore:    number;
   freeGroupWord:     string | null;
+}
+
+export type PersistenceVerdict = 'persists' | 'deforms' | 'dissolves';
+
+export interface PersistenceResult {
+  trace:   PersistenceTracePoint[];
+  verdict: PersistenceVerdict;
+}
+
+/**
+ * Classify a persistence trace per spec 2.5. A live basin boundary keeps
+ * the locked pixel mixed (outcome_impurity stays high). If impurity
+ * collapses toward 0 the boundary has dissolved; if it stays high but the
+ * free-group word changes, the boundary persisted but deformed; otherwise
+ * it persisted intact. Threshold matches the tile split criterion
+ * (tau_imp) so "boundary" here means what the renderer means.
+ */
+export function classifyPersistence(
+  trace: PersistenceTracePoint[],
+  tauImp = 0.15,
+): PersistenceVerdict {
+  if (trace.length === 0) return 'dissolves';
+  const endImpurity = trace[trace.length - 1]!.outcomeImpurity;
+  if (endImpurity < tauImp) return 'dissolves';
+  const w0 = trace[0]!.freeGroupWord;
+  const wEnd = trace[trace.length - 1]!.freeGroupWord;
+  return w0 !== wEnd ? 'deforms' : 'persists';
 }
 
 /**
@@ -425,7 +518,7 @@ export async function probePersistence(
     coherence_score:  number;
     word?:            string;
   }>,
-): Promise<PersistenceTracePoint[]> {
+): Promise<PersistenceResult> {
   const trace: PersistenceTracePoint[] = [];
   const locked = lockAffine(startView, pixel);
   for (let i = 0; i < steps; i++) {
@@ -439,7 +532,7 @@ export async function probePersistence(
       freeGroupWord:   summary.word ?? null,
     });
   }
-  return trace;
+  return { trace, verdict: classifyPersistence(trace) };
 }
 ```
 
@@ -577,8 +670,11 @@ describe('primitive triples', () => {
     expect(has31).toBe(false);
   });
 
-  it('nearestPrimitiveTriple finds (3, 4, 5) closest to ν = 0.51', () => {
-    const t = nearestPrimitiveTriple(0.51);
+  it('nearestPrimitiveTriple finds (3, 4, 5) closest to ν = 0.51 within a coarse bound', () => {
+    // With the default maxM=32 a finer fraction (e.g. 16/31 ≈ 0.516) is
+    // strictly closer to 0.51 than 1/2, so constrain the search to the
+    // coarse landmark range the assertion describes.
+    const t = nearestPrimitiveTriple(0.51, 3);
     expect(t.m).toBe(2); expect(t.n).toBe(1);
   });
 });
@@ -685,7 +781,7 @@ describe('Stage 4 persistence probe: trace is finite and monotone', () => {
         word: 'abAB',
       };
     };
-    const trace = await probePersistence(
+    const { trace, verdict } = await probePersistence(
       defaultViewState(), { s: 0.5, t: 0.5 }, /* tiltTarget */ 5,
       30, fakeSummary,
     );
@@ -696,6 +792,9 @@ describe('Stage 4 persistence probe: trace is finite and monotone', () => {
     // outcome_impurity should be (synthetically) monotone-decreasing here.
     expect(trace[trace.length - 1]!.outcomeImpurity)
       .toBeLessThan(trace[0]!.outcomeImpurity);
+    // Synthetic impurity ends at 0.1 < tau_imp, so the boundary is
+    // classified dissolved -- the probe yields a verdict, not just a trace.
+    expect(verdict).toBe('dissolves');
   });
 });
 ```

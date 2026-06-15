@@ -285,7 +285,7 @@ export function constructMomentaForLzE(
   ];
   for (let s = 0; s < seeds.length; s++) {
     const seed = seeds[s]!;
-    const v = projectAndNormalise(seed, vL, m, I);
+    const v = projectAndNormalise(seed, r, m, I);
     if (v) {
       const a = Math.sqrt(2 * (K_target - Kmin));
       const out: Triple<Vec2> = [
@@ -300,24 +300,40 @@ export function constructMomentaForLzE(
 }
 
 function projectAndNormalise(
-  w0: Triple<Vec2>, vL: Triple<Vec2>, m: TrajState['m'], I: number,
+  w0: Triple<Vec2>, r: Triple<Vec2>, m: TrajState['m'], I: number,
   epsW = 1e-10,
 ): Triple<Vec2> | null {
   // Remove COM drift.
   const M = m[0] + m[1] + m[2];
   const cx = (m[0]*w0[0][0] + m[1]*w0[1][0] + m[2]*w0[2][0]) / M;
   const cy = (m[0]*w0[0][1] + m[1]*w0[1][1] + m[2]*w0[2][1]) / M;
-  const w1: Triple<Vec2> = [
+  let w: Triple<Vec2> = [
     [w0[0][0]-cx, w0[0][1]-cy],
     [w0[1][0]-cx, w0[1][1]-cy],
     [w0[2][0]-cx, w0[2][1]-cy],
   ];
-  // Remove L_z component: β = L(w1) / I, w2 = w1 - β J(r).
+  // Remove L_z component: β = L(w) / I, w := w - β J(r).
   // L(w) = Σ m_i (r_i × w_i)_z.
-  // We don't know r here without context; in practice this function takes
-  // r as an argument. The full version sits inside the chart's decode.
-  // For brevity, the rest of the projection lives in the chart itself.
-  return w1;     // placeholder; the chart's decode does the L_z removal too
+  const L_w = m[0]*(r[0][0]*w[0][1] - r[0][1]*w[0][0])
+            + m[1]*(r[1][0]*w[1][1] - r[1][1]*w[1][0])
+            + m[2]*(r[2][0]*w[2][1] - r[2][1]*w[2][0]);
+  const beta = L_w / I;
+  w = [
+    [w[0][0] + beta * r[0][1], w[0][1] - beta * r[0][0]],
+    [w[1][0] + beta * r[1][1], w[1][1] - beta * r[1][0]],
+    [w[2][0] + beta * r[2][1], w[2][1] - beta * r[2][0]],
+  ];
+  // Mass-weighted norm; reject degenerate (collinear / zero) seeds.
+  const mwn2 = m[0]*(w[0][0]**2+w[0][1]**2)
+             + m[1]*(w[1][0]**2+w[1][1]**2)
+             + m[2]*(w[2][0]**2+w[2][1]**2);
+  if (mwn2 < epsW*epsW) return null;
+  const inv = 1 / Math.sqrt(mwn2);
+  return [
+    [w[0][0]*inv, w[0][1]*inv],
+    [w[1][0]*inv, w[1][1]*inv],
+    [w[2][0]*inv, w[2][1]*inv],
+  ];
 }
 ```
 
@@ -334,6 +350,7 @@ import { J } from '@/math/vec.js';
 import {
   ALPHA_MIN_DEFAULT, R_COLL_DEFAULT, EPS_DEADBAND, EPS_BOLT,
 } from '@/math/constants.js';
+import { DegenerateReason } from '@/decode/types.js';
 import type { Vec2, Triple } from '@/math/types.js';
 
 export const lzEChart: Chart = {
@@ -370,10 +387,15 @@ export const lzEChart: Chart = {
     const Lz = (2*u - 1) * Lmax;
 
     // Construct momenta deterministically (see momentum_construction.ts).
-    const v_i = constructLzEMomenta(m, r, Lz, K, I);
-    if (!v_i) {
-      return makeTerminalLabel(m, { kind: 'DEGENERATE', reason: 'no_seed' });
+    const mc = constructLzEMomenta(m, r, Lz, K, I);
+    if (mc.kind !== 'ok') {
+      // ADR 0007: distinguish the two invariant-momentum failures.
+      const reason = mc.kind === 'infeasible'
+        ? DegenerateReason.INFEASIBLE_ENERGY        // 15: K* < K_min
+        : DegenerateReason.MOMENTUM_SEEDS_EXHAUSTED; // 16: all seeds failed
+      return makeTerminalLabel(m, { kind: 'DEGENERATE', reason });
     }
+    const v_i = mc.v;
     const p_i: Triple<Vec2> = [
       [v_i[0][0] * m[0], v_i[0][1] * m[0]],
       [v_i[1][0] * m[1], v_i[1][1] * m[1]],
@@ -451,10 +473,10 @@ function makeDescriptor(s: { m: any; r: any; p: any }) {
  */
 function constructLzEMomenta(
   m: any, r: Triple<Vec2>, Lz: number, K_target: number, I: number,
-): Triple<Vec2> | null {
+): { kind: 'ok'; v: Triple<Vec2> } | { kind: 'infeasible' } | { kind: 'seeds_exhausted' } {
   const omega = Lz / I;
   const Kmin = Lz * Lz / (2 * I);
-  if (K_target < Kmin - 1e-15) return null;
+  if (K_target < Kmin - 1e-15) return { kind: 'infeasible' };
 
   const vL: Triple<Vec2> = [
     [omega * -r[0][1], omega * r[0][0]],
@@ -473,14 +495,14 @@ function constructLzEMomenta(
     const w = projectSeed(seed, m, r, I);
     if (w) {
       const a = Math.sqrt(2 * (K_target - Kmin));
-      return [
+      return { kind: 'ok', v: [
         [vL[0][0] + a*w[0][0], vL[0][1] + a*w[0][1]],
         [vL[1][0] + a*w[1][0], vL[1][1] + a*w[1][1]],
         [vL[2][0] + a*w[2][0], vL[2][1] + a*w[2][1]],
-      ];
+      ] };
     }
   }
-  return null;
+  return { kind: 'seeds_exhausted' };
 }
 
 function projectSeed(
@@ -553,7 +575,8 @@ import type { Chart, ChartView } from '../types.js';
 import { FLAGS_SPHERE } from '../flags.js';
 import { jacobiToParticlePositions, jacobiToParticleMomenta } from '@/decode/jacobi_particle.js';
 import { canonicalise } from '@/decode/canonicalise.js';
-import { EPS_DEADBAND, R_COLL_DEFAULT } from '@/math/constants.js';
+import { totalEnergy } from '@/integrate/forces.js';
+import { EPS_DEADBAND, R_COLL_DEFAULT, EPS_BOLT } from '@/math/constants.js';
 import type { Vec2, Triple } from '@/math/types.js';
 
 /**
@@ -608,7 +631,7 @@ export const shapeSphereChart: Chart = {
       return { kind: 'terminal', terminal: c.terminal,
                descriptor: makeStubDescriptor(m) };
     }
-    return { kind: 'ok', state: c.state, descriptor: makeStubDescriptor(m) };
+    return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
   },
 
   inverseEncode(ic) {
@@ -624,10 +647,38 @@ export const shapeSphereChart: Chart = {
   },
 };
 
+// Terminal path: no valid state, so zeros (same convention as makeTerminalLabel).
 function makeStubDescriptor(m: any): any {
   return { m, qMass: Math.min(...m),
            rho1Mag: 0, rho2Mag: 0, rhoRatio: 0, rhoAngle: 0,
            K0: 0, V0: 0, virial: 0, rMinPair0: 0 };
+}
+
+// ok-path: compute the descriptor from the decoded canonical state
+// (mirrors makeDescriptor in lz_e.ts / M2 pipeline.makeDescriptor).
+function makeDescriptor(s: { m: any; r: any; p: any }): any {
+  const M01 = s.m[0] + s.m[1];
+  const cx = (s.m[0]*s.r[0][0] + s.m[1]*s.r[1][0]) / M01;
+  const cy = (s.m[0]*s.r[0][1] + s.m[1]*s.r[1][1]) / M01;
+  const rho    = [s.r[1][0]-s.r[0][0], s.r[1][1]-s.r[0][1]];
+  const lambda = [s.r[2][0]-cx, s.r[2][1]-cy];
+  const rho1Mag = Math.hypot(rho[0], rho[1]);
+  const rho2Mag = Math.hypot(lambda[0], lambda[1]);
+  const K = (s.p[0][0]**2+s.p[0][1]**2)/(2*s.m[0])
+          + (s.p[1][0]**2+s.p[1][1]**2)/(2*s.m[1])
+          + (s.p[2][0]**2+s.p[2][1]**2)/(2*s.m[2]);
+  const E = totalEnergy(s.m, s.r, s.p);
+  const V = E - K;
+  return {
+    m: s.m, qMass: Math.min(...s.m),
+    rho1Mag, rho2Mag,
+    rhoRatio: rho2Mag / Math.max(rho1Mag, EPS_BOLT),
+    rhoAngle: Math.atan2(rho[0]*lambda[1]-rho[1]*lambda[0],
+                         rho[0]*lambda[0]+rho[1]*lambda[1]),
+    K0: K, V0: V,
+    virial: 2*K / Math.max(Math.abs(V), EPS_BOLT),
+    rMinPair0: Math.min(rho1Mag, rho2Mag),
+  };
 }
 ```
 
@@ -640,8 +691,9 @@ import { decodeMassSimplex } from '@/decode/mass.js';
 import { jacobiToParticlePositions, jacobiToParticleMomenta } from '@/decode/jacobi_particle.js';
 import { canonicalise } from '@/decode/canonicalise.js';
 import {
-  ALPHA_MIN_DEFAULT, EPS_DEADBAND, R_COLL_DEFAULT,
+  ALPHA_MIN_DEFAULT, EPS_DEADBAND, R_COLL_DEFAULT, EPS_BOLT,
 } from '@/math/constants.js';
+import { totalEnergy } from '@/integrate/forces.js';
 import type { Vec2, Triple } from '@/math/types.js';
 
 const EPS_MASS = 1e-4;
@@ -671,8 +723,8 @@ export const massSimplexChart: Chart = {
     const c = canonicalise({ r, p, m, t: 0 },
                            { deltaLambda: EPS_DEADBAND, rColl: R_COLL_DEFAULT });
     if (c.terminal) return { kind: 'terminal', terminal: c.terminal,
-                             descriptor: stub(m) };
-    return { kind: 'ok', state: c.state, descriptor: stub(m) };
+                             descriptor: terminalDescriptor(m) };
+    return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
   },
 
   inverseEncode(ic) {
@@ -697,10 +749,36 @@ export const massSimplexChart: Chart = {
   },
 };
 
-function stub(m: any): any {
+function terminalDescriptor(m: any): any {
+  // No usable geometry on terminal IC; report mass-only, zero the rest.
   return { m, qMass: Math.min(...m),
            rho1Mag: 0, rho2Mag: 0, rhoRatio: 0, rhoAngle: 0,
            K0: 0, V0: 0, virial: 0, rMinPair0: 0 };
+}
+
+function makeDescriptor(s: { m: any; r: any; p: any }): any {
+  const M01 = s.m[0] + s.m[1];
+  const cx = (s.m[0]*s.r[0][0] + s.m[1]*s.r[1][0]) / M01;
+  const cy = (s.m[0]*s.r[0][1] + s.m[1]*s.r[1][1]) / M01;
+  const rho    = [s.r[1][0]-s.r[0][0], s.r[1][1]-s.r[0][1]];
+  const lambda = [s.r[2][0]-cx, s.r[2][1]-cy];
+  const rho1Mag = Math.hypot(rho[0], rho[1]);
+  const rho2Mag = Math.hypot(lambda[0], lambda[1]);
+  const K = (s.p[0][0]**2+s.p[0][1]**2)/(2*s.m[0])
+          + (s.p[1][0]**2+s.p[1][1]**2)/(2*s.m[1])
+          + (s.p[2][0]**2+s.p[2][1]**2)/(2*s.m[2]);
+  const E = totalEnergy(s.m, s.r, s.p);
+  const V = E - K;
+  return {
+    m: s.m, qMass: Math.min(...s.m),
+    rho1Mag, rho2Mag,
+    rhoRatio: rho2Mag / Math.max(rho1Mag, EPS_BOLT),
+    rhoAngle: Math.atan2(rho[0]*lambda[1]-rho[1]*lambda[0],
+                         rho[0]*lambda[0]+rho[1]*lambda[1]),
+    K0: K, V0: V,
+    virial: 2*K / Math.max(Math.abs(V), EPS_BOLT),
+    rMinPair0: Math.min(rho1Mag, rho2Mag),
+  };
 }
 ```
 
