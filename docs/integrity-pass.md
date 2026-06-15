@@ -1,8 +1,13 @@
 # Principia — cohesion / integrity pass (findings)
 
-**Status:** findings only — *nothing in the milestone docs, spec, ADRs, or
-`milestones/README.md` was changed by this pass.* Every item below is catalogued
-and verified for a separate, explicitly-approved fix follow-up.
+**Status: RESOLVED (2026-06-15).** The findings below were catalogued first
+(commit `afc902c`), then fixed in a follow-up pass (commits `8d39756`,
+`213c152`) on branch `chore/integrity-pass`. All HIGH + MED applied across the
+14 milestone docs; LOW backlog noted in §C.4 + the P2 spec-citation pattern left
+for implementation time. Fence balance and the 9 HIGH roots re-verified.
+Cross-file consistency confirmed (M6 packer ↔ M7 consumer; M4 `QuadtreeView`
+rename ↔ M5; `DegenerateReason` home `@/decode/types.js` ↔ M10/G11; made it a
+plain enum for `isolatedModules`). The text below is the original findings record.
 
 **Why this exists.** The planning push that produced the spec, the 7 ADRs, and
 the G9–G16 milestones was bottom-up. The only adversarial review run so far
