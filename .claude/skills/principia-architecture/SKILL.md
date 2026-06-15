@@ -185,6 +185,26 @@ All acceptance and numerical constants belong in the cache signature. Changing
 any of them changes what a cached tile *means*, so it must invalidate the cache.
 When you add a constant that affects results, add it to the signature.
 
+### ViewState is the single source of compute/render parameters
+
+Every parameter that affects what is computed *or* rendered must be a field of
+`ViewState` (or the render-only `RenderParams`), never a side variable. The
+split is load-bearing and follows the two-stage pipeline:
+
+- **Compute-affecting fields** (chart, `z0`, zoom/`uv`, tilt, lock, integrator
+  constants, enabled metrics, tier) feed the cache signature, drive
+  invalidation, and are what undo/redo records (G12). The cache key must be
+  **bit-identical for the same logical state** — relying on "nearly equal"
+  states causes cache-miss storms; a bypassed parameter is a silent
+  stale-tile bug.
+- **Render-only fields** (palette, render mode, brightness/combiner, `cvdMode`)
+  live in `RenderParams`. They rebind group 3 only, must **never** invalidate
+  the cache or enter undo history, and a change to them must never re-integrate
+  (the two-stage rule). A CVD toggle that changes a cache key is a bug.
+- Serialised state (URL, export sidecar, animation keyframes) carries a version
+  byte; bump it when the `SimResult`/payload layout changes (ADR 0006). Same
+  schema → same bytes → reproducible.
+
 ## Before you finish an architectural change — checklist
 
 - Does a new view add only a `(Y, Phi)` chart, leaving `D`, `C`, simulation, and

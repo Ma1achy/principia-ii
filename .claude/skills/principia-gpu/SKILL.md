@@ -151,6 +151,28 @@ CPU and pass a tile-local delta.
   the compute shader to the active render mode — palette and render-mode swaps
   must never trigger recomputation.
 
+### Shader composition: `@import` / `@export` (G1)
+
+WGSL has no module system, so Principia links shaders with a small preprocessor
+(milestone G1) before handing source to the WGSL compiler. Two directives:
+`@export` marks a symbol public; `@import` pulls another module's exports in.
+The rules that bite:
+
+- **Forgetting `@export` is the common bug.** A helper without `@export` is
+  module-private: it compiles where it's defined but is *missing* when another
+  module `@import`s it. If a linked symbol is "undefined", check the export
+  first.
+- **Import cycles are a hard error, caught at link time.** The linker does
+  dependency resolution + cycle detection and fails with a readable error before
+  anything reaches the WGSL compiler — don't introduce `A @import B; B @import A`.
+- **The `principia_` prefix is still law.** Collision detection happens at link
+  time across all imported modules; the prefix is what keeps library symbols
+  from clashing with custom-shader code. Never drop it, even on an `@export`ed
+  helper.
+- Linking is deterministic (topologically ordered) and the *linked* WGSL is what
+  the cache/compile step sees — keep the linker output stable for identical
+  inputs.
+
 ### Bit-packing patterns
 
 Register budget on the GPU is tight, so several quantities are bit-packed.
