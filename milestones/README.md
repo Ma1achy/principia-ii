@@ -26,10 +26,12 @@ one detailed file per milestone with copy-paste-runnable TypeScript and WGSL.
 | [G6_linearised_decoder.md](G6_linearised_decoder.md) | f64 reference IC + Jacobian, f32 GPU evaluation, depth-20 switchover | M3, M5 |
 | [G7_device_loss_ensemble_spreads.md](G7_device_loss_ensemble_spreads.md) | Device-loss recovery, ensemble dispatch with Halton/stratified jitter, spread second-pass shader | M5 |
 | [G8_ui_ci_perf.md](G8_ui_ci_perf.md) | Vanilla TS reactive UI shell, GitHub Actions + Playwright CI, hot-path allocation patches | G2 |
+| [G9_capability_detection.md](G9_capability_detection.md) | WebGPU capability detection + graceful degradation: `CapabilityProfile`, per-tier caps, full-retention viewport math, typed `UnsupportedError` | M3 (pairs with G7) |
 
-The G-series files are gap-fill milestones written after a v1
-self-review; they cover the load-bearing seams the M-series milestones
-left implicit. Implement them after M-series in a logical order: G1
+The G-series files are gap-fill milestones written after v1 and
+project-wide planning self-reviews; they cover the load-bearing seams the
+M-series milestones left implicit. (G9+ come from the second, project-wide
+review — see the cross-cutting workstream in the plan.) Implement them after M-series in a logical order: G1
 unblocks every GPU milestone, G3 must land before any pipeline
 allocates real bind groups, G4 simplifies M10 once it's in, G5 makes
 M8's chart-switch path actually preserve the lock, and G2 ties the
