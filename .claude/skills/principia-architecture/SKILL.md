@@ -76,6 +76,13 @@ point. Decode failures emit `DEGENERATE(reason)`; `t = 0` near-collisions emit
 pixel gets a defined output. (The numerical detail lives in the
 `principia-numerics` skill; architecturally, the rule is: tag, never throw.)
 
+The `DEGENERATE` reason is a **closed integer enum** (ADR 0007, record in
+`docs/adr/`), not a free string — e.g. `M01_TINY=10`, with the `1x` band
+reserved for decode-time terminal reasons and codes `0–4` reserved for the
+post-integration outcome classes (ADR 0002). `COLLISION_T0` stays a separate
+terminal kind. CPU and GPU share one frozen table; downstream code matches the
+enum, never a string.
+
 ## The three-layer tile architecture
 
 The quadtree system is built in three layers, and this is the **implementation
@@ -177,6 +184,26 @@ merge them. (Byte layout lives in the `principia-gpu` skill.)
 All acceptance and numerical constants belong in the cache signature. Changing
 any of them changes what a cached tile *means*, so it must invalidate the cache.
 When you add a constant that affects results, add it to the signature.
+
+### ViewState is the single source of compute/render parameters
+
+Every parameter that affects what is computed *or* rendered must be a field of
+`ViewState` (or the render-only `RenderParams`), never a side variable. The
+split is load-bearing and follows the two-stage pipeline:
+
+- **Compute-affecting fields** (chart, `z0`, zoom/`uv`, tilt, lock, integrator
+  constants, enabled metrics, tier) feed the cache signature, drive
+  invalidation, and are what undo/redo records (G12). The cache key must be
+  **bit-identical for the same logical state** — relying on "nearly equal"
+  states causes cache-miss storms; a bypassed parameter is a silent
+  stale-tile bug.
+- **Render-only fields** (palette, render mode, brightness/combiner, `cvdMode`)
+  live in `RenderParams`. They rebind group 3 only, must **never** invalidate
+  the cache or enter undo history, and a change to them must never re-integrate
+  (the two-stage rule). A CVD toggle that changes a cache key is a bug.
+- Serialised state (URL, export sidecar, animation keyframes) carries a version
+  byte; bump it when the `SimResult`/payload layout changes (ADR 0006). Same
+  schema → same bytes → reproducible.
 
 ## Before you finish an architectural change — checklist
 

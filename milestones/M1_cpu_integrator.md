@@ -71,7 +71,7 @@ export interface RunResult {
   finalState:  TrajState;
   terminal:    TerminalLabel;
   diagnostics: Diagnostics;
-  trace?:      TrajState[];        // optional checkpointed trace
+  trace?:      TrajState[] | undefined;  // optional checkpointed trace
 }
 
 export interface Diagnostics {
@@ -350,7 +350,7 @@ export function yoshida6MacroStep(
 
 ```ts
 import type { TrajState, TerminalLabel, Vec2, Vec3 } from './types.js';
-import { dot2, scale2, sub2, add2, norm2 } from '@/math/vec.js';
+import { dot2, scale2, norm2 } from '@/math/vec.js';
 import { minPairSeparation } from './forces.js';
 
 /** Three-gate escape detector with persistence counter (spec §4.2). */
@@ -874,7 +874,7 @@ describe('escape persistence', () => {
 ### Burrau golden test
 
 The 3-4-5 Burrau rest start is well-studied. The published reference outcome
-is that body 1 (the lightest, opposite the longest leg) escapes after a
+is that body 1 (the middle-mass body, `m = 4/12`) escapes after a
 sequence of close encounters around `t ≈ 60`, leaving bodies 0 and 2 in a
 binary. We pin a shorter-horizon golden file with the position of each body
 at fixed checkpoint times so failures localise quickly.

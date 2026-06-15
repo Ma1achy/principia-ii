@@ -151,6 +151,28 @@ CPU and pass a tile-local delta.
   the compute shader to the active render mode — palette and render-mode swaps
   must never trigger recomputation.
 
+### Shader composition: `@import` / `@export` (G1)
+
+WGSL has no module system, so Principia links shaders with a small preprocessor
+(milestone G1) before handing source to the WGSL compiler. Two directives:
+`@export` marks a symbol public; `@import` pulls another module's exports in.
+The rules that bite:
+
+- **Forgetting `@export` is the common bug.** A helper without `@export` is
+  module-private: it compiles where it's defined but is *missing* when another
+  module `@import`s it. If a linked symbol is "undefined", check the export
+  first.
+- **Import cycles are a hard error, caught at link time.** The linker does
+  dependency resolution + cycle detection and fails with a readable error before
+  anything reaches the WGSL compiler — don't introduce `A @import B; B @import A`.
+- **The `principia_` prefix is still law.** Collision detection happens at link
+  time across all imported modules; the prefix is what keeps library symbols
+  from clashing with custom-shader code. Never drop it, even on an `@export`ed
+  helper.
+- Linking is deterministic (topologically ordered) and the *linked* WGSL is what
+  the cache/compile step sees — keep the linker output stable for identical
+  inputs.
+
 ### Bit-packing patterns
 
 Register budget on the GPU is tight, so several quantities are bit-packed.
@@ -165,6 +187,26 @@ Follow the established conventions exactly so downstream readers stay valid:
   **Contract:** any routine that needs only geometry must ignore `.w`. If you
   add a geometry-only reader, ignore `.w`; if you add a phase reader, don't
   assume `.w` is zero.
+
+## Ratified contracts (ADRs)
+
+Three GPU-path contracts are decided and binding (full records in `docs/adr/`):
+
+- **Outcome-class enum** (ADR 0002): `BOUNDED=0, COLLISION=1, ESCAPE=2,
+  DEGENERATE=3, TIMEOUT=4`, in `sample_descriptor` bits 0–2. Single source of
+  truth `src/gpu/outcome_class.ts`, which exports **both** the TS enum and the
+  WGSL `const` block — never hard-code these integers in a shader.
+- **TileReduction schema** (ADR 0006): the `TileReduction` layout is generated
+  from a single declarative field table in `src/gpu/structs.ts` that emits the
+  TS decoder, the WGSL struct, and a `TILE_REDUCTION_SCHEMA_VERSION`. The GPU
+  writes the version word; the CPU decoder asserts it. **Hand-coded byte offsets
+  are prohibited** — this is the offset-map form of the "layout is one artifact"
+  rule.
+- **Layer-0 dispatch batching** (ADR 0005): Layer 0 dispatches in fixed chunks
+  (one chunk = one tile = one `N×N` pass), centre-out raster order, one
+  `queue.submit` per chunk, bounded chunks per frame; a CPU `viewGeneration`
+  token skips all remaining chunks of a stale generation the instant the camera
+  moves (in-flight passes finish, never cancelled).
 
 ## Before you finish any GPU change — checklist
 

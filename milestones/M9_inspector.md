@@ -442,10 +442,27 @@ export function inspectorWithShadow(
 }
 
 function perturb(s: TrajState, d: number): TrajState {
+  // ADR 0003 / spec §4.3.3.1: the canonical full phase-space FTLE seed
+  // perturbs BOTH positions and momenta. A position-only seed measured
+  // in the phase-space `sep` norm must NOT be labelled canonical FTLE.
+  // Seed a normalised split across all 12 phase-space components so the
+  // perturbation spans the momentum dimensions; the Benettin
+  // renormalisation washes out the exact seed direction.
+  const dir = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  const norm = Math.sqrt(12);                  // ||dir|| = sqrt(12)
+  const scale = d / norm;                       // total seed magnitude = d
   return {
     m: s.m, t: s.t,
-    r: [[s.r[0][0] + d, s.r[0][1]], s.r[1], s.r[2]],
-    p: s.p,
+    r: [
+      [s.r[0][0] + scale*dir[0]!, s.r[0][1] + scale*dir[1]!],
+      [s.r[1][0] + scale*dir[2]!, s.r[1][1] + scale*dir[3]!],
+      [s.r[2][0] + scale*dir[4]!, s.r[2][1] + scale*dir[5]!],
+    ],
+    p: [
+      [s.p[0][0] + scale*dir[6]!,  s.p[0][1] + scale*dir[7]!],
+      [s.p[1][0] + scale*dir[8]!,  s.p[1][1] + scale*dir[9]!],
+      [s.p[2][0] + scale*dir[10]!, s.p[2][1] + scale*dir[11]!],
+    ],
   };
 }
 
@@ -627,7 +644,7 @@ import type { InspectorResult } from './types.js';
  */
 export interface OverlaySlots {
   shapeSpherePanel:  { trajectory: { x: number; y: number; z: number }[];
-                       landmarks: 'BC' | 'Euler' | 'Lagrange'[]; };
+                       landmarks: ('BC' | 'Euler' | 'Lagrange')[]; };
   realSpacePanel:    { bodies: { positions: readonly [number, number][];
                                  trail: readonly [number, number][] }[]; };
   icSummary:         { masses: number[]; positions: any[]; momenta: any[];
@@ -744,7 +761,7 @@ import { describe, it, expect } from 'vitest';
 import { HoverStreamline } from '@/inspector/hover_streamline.js';
 
 describe('hover streamline debouncing', () => {
-  it('only the most recent move's session produces a result', async () => {
+  it("only the most recent move's session produces a result", async () => {
     const hs = new HoverStreamline();
     let calls = 0;
     const decode = () => {

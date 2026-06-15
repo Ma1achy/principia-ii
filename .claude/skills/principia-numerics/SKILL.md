@@ -36,6 +36,19 @@ non-symplectic scheme (RK4, Euler, anything with secular energy drift) defeats
 the entire stability-metric apparatus — the whole point is bounded invariant
 error over long horizons. If you reach for a generic ODE solver, stop.
 
+**The one sanctioned exception: the inspector.** The hover/lock inspector
+(M9) integrates with an *adaptive non-symplectic* RK45 (Dormand–Prince /
+DOPRI5) on purpose — it serves a single short, high-accuracy trajectory for a
+streamline overlay, not the long-horizon stability metrics. This is the only
+place in Principia where a non-symplectic integrator is correct; do **not**
+"fix" the inspector to KDK/Yoshida. Two consequences worth pinning here:
+comparing energy traces between the RK45 inspector and the symplectic GPU
+pipeline is not apples-to-apples (use the inspector's *match-integrator* mode
+for a true cross-check, per spec rev #13), and DOPRI5's step-size error must be
+measured in the **mass-weighted phase-space norm**, not Euclidean. The full
+inspector contract lives in the `principia-inspector` skill (authored before
+M9); everything *outside* the inspector stays symplectic-only.
+
 The family, all built by composing the base KDK step:
 
 - **KDK leapfrog** — the base second-order step (kick / drift / kick). The
@@ -143,6 +156,21 @@ invalidate the cache, because they change what the pixel *means*.
 | Mass logit saturation | `mu_max` | 5 |
 | Jacobi guard | `eps` | `1e-6` |
 | Mirror tie deadband | `delta_lambda` | `1e-12` |
+
+## Ratified contracts (ADRs)
+
+Two metric contracts are decided and binding (full records in `docs/adr/`):
+
+- **Checkpoint schedule** (ADR 0001): shape-sphere checkpoints are equally
+  spaced with **no `t=0` anchor** — `t_m = m·T/M`, so `t_M = T`. Frequency-
+  diffusion windows are closed–closed with `t=T/2` counted in **both** `W₁` and
+  `W₂`, giving exactly three checkpoints per window at `M=8`. The schedule is
+  identical on the f32 GPU and f64 inspector paths and is part of the cache
+  signature — don't change it on one side only.
+- **FTLE per tier** (ADR 0003): full phase-space Benettin FTLE is the **only**
+  FTLE variant and runs in **Research tier only**. Preview/Balanced leave
+  `ftle = 0` with `FTLE_VALID` clear (a cheaper proxy may fill `stretch`, never
+  flagged valid). IC-manifold / position-only variants are deferred.
 
 ## Hot-loop discipline (after correctness)
 

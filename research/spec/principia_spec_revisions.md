@@ -87,3 +87,37 @@ real document. If you do at some point introduce those paragraphs, the
 edits in this revised file already give the correct treatment for them
 (corrected formula, ≥3 checkpoints, 352 MB / 336 MiB, `quality_tier` now
 explicitly in `TileCacheKey`).
+
+## Ratified contract decisions (ADRs 0001–0007, 2026-06-15)
+
+Seven cross-milestone contracts that the body left open or underspecified were
+ratified and applied. Full records (context/options/consequences/verification)
+live in `docs/adr/`; a new "Ratified contract decisions (ADRs)" appendix section
+in `principia_spec_revised.tex` carries the authoritative summaries.
+
+1. **Checkpoint schedule (ADR 0001, §4.3).** Equal spacing, no `t=0` anchor:
+   `t_m = m·T/M`, `t_M = T`. Diffusion windows closed–closed with `t=T/2` in
+   both `W₁` and `W₂` → exactly 3 checkpoints/window at M=8. Part of the cache
+   signature; identical on GPU (f32) and inspector (f64).
+2. **Outcome-class enum (ADR 0002, §6.6).** `BOUNDED=0, COLLISION=1, ESCAPE=2,
+   DEGENERATE=3, TIMEOUT=4`, single source `src/gpu/outcome_class.ts`. **Fixed a
+   spec/code conflict**: the §6.6 `sample_descriptor` table previously read
+   `escape(0), bounded(1), collision(2)…`, contradicting the M3 shader and
+   M5/M6 reduction; the table line was corrected to the code's mapping.
+3. **FTLE variant per tier (ADR 0003, §4.3.3).** Full phase-space Benettin FTLE
+   only, Research tier only; Preview/Balanced leave `ftle=0`, `FTLE_VALID`
+   clear. IC-manifold / position-only deferred.
+4. **Free-group word, unequal masses (ADR 0004, §4.6).** Trusted only in the
+   equal-mass regime (generators frozen at spec constants). Unequal masses →
+   `WORD_UNCERTAIN`, excluded from refinement/diagnostics; general rule deferred.
+5. **Layer-0 dispatch batching (ADR 0005, §6.1.1).** Fixed chunks (1 chunk = 1
+   tile = 1 N×N pass), centre-out raster, one submit/chunk, bounded chunks/frame,
+   `viewGeneration` token to skip stale chunks (in-flight never cancelled).
+6. **TileReduction schema (ADR 0006, §6.6).** Single declarative field table in
+   `src/gpu/structs.ts` generating the TS decoder + WGSL snippet +
+   `TILE_REDUCTION_SCHEMA_VERSION` (GPU writes, CPU asserts). No hand-coded
+   offsets.
+7. **DEGENERATE reason enum (ADR 0007, §1.2).** Closed integer reason enum
+   (`M01_TINY=10`, …; `1x` band = decode-time terminal; `0–4` reserved for ADR
+   0002 outcomes). `COLLISION_T0` stays a separate terminal kind; shared CPU/GPU
+   table, matched as an enum not strings.

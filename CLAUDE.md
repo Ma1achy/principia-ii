@@ -7,6 +7,23 @@ Canonical references: `principia_spec.tex` (implementation spec) and
 `principia_milestones.tex` (the milestone-by-milestone build plan). Both are
 living documents.
 
+## Branch policy — `main` is untouchable
+
+`main` holds the historical proof-of-concept and is **never touched**. The
+active integration branch is `webgpu-rewrite`, and it is the target of every
+PR/MR.
+
+- **Never** commit to, push to, merge into, force-push, or open a PR against
+  `main`, and don't `checkout`/`switch` to `main` to do work there.
+- **Integration branch:** `webgpu-rewrite`. Every PR/MR merges *into*
+  `webgpu-rewrite`, never into `main`.
+- **Feature flow:** branch off `webgpu-rewrite` (`feat/<thing>`, `fix/<thing>`,
+  …), do the work on that feature branch, then merge it back into
+  `webgpu-rewrite`. One feature = one feature branch = one PR into
+  `webgpu-rewrite`.
+- This binds subagents and workflows too: any orchestrated work creates its own
+  feature branch off `webgpu-rewrite` and targets `webgpu-rewrite`.
+
 ## Stack
 
 TypeScript (strict, ESM) + WebGPU/WGSL compute and render shaders. Vitest for

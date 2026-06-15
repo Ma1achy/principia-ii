@@ -53,6 +53,11 @@ coverage/
 *.bak
 *.orig
 
-.claude/
+# Ignore .claude/ but keep version-controlled, shared project config tracked:
+# auto-loading skills, team settings, and policy-enforcement hooks.
+.claude/*
+!.claude/skills/
+!.claude/settings.json
+!.claude/hooks/
 .cursor/
 .vscode/

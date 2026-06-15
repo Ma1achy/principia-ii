@@ -1126,7 +1126,7 @@ All three are useful, but they are not the same object and should not be conflat
 \item Nondimensionalisation is strongly recommended.
 \end{itemize}
 
-\paragraph{Compute shader integration.} When FTLE is enabled (Tier~C / Research mode), each invocation maintains a shadow state alongside the base trajectory: 4 extra position floats $+$ 4 extra momentum floats $=$ 32 bytes per sample in thread-local registers. The Benettin accumulator $S$ and renormalisation counter are thread-local scalars. On completion, $\lambda_T=S/T$ is written into the \texttt{stretch} field of \texttt{SimResult}. When FTLE is disabled (Preview/Balanced), \texttt{stretch} holds a cheaper proxy (e.g.\ max local deformation or arc-length-based estimate). The quality tier is a dispatch-time uniform, not a per-sample decision.
+\paragraph{Compute shader integration.} When FTLE is enabled (Tier~C / Research mode), each invocation maintains a shadow state alongside the base trajectory: 4 extra position floats $+$ 4 extra momentum floats $=$ 32 bytes per sample in thread-local registers. The Benettin accumulator $S$ and renormalisation counter are thread-local scalars. On completion, $\lambda_T=S/T$ is written into the \texttt{ftle} field of \texttt{SimResult} and \texttt{FTLE\_VALID} is set. When FTLE is disabled (Preview/Balanced) the \texttt{ftle} field is left $0.0$ and \texttt{FTLE\_VALID} is clear --- there is \emph{no} proxy in that field (see the \texttt{ftle} field definition in the \texttt{SimResult} layout and ADR 0003). The quality tier is a dispatch-time uniform, not a per-sample decision.
 
 \paragraph{Interpretation.} Low FTLE: nearby trajectories stay close; locally regular or weakly stretching. High FTLE: strong local exponential separation; chaos, transient instability, or proximity to invariant manifolds / basin boundaries. FTLE can still depend on the finite time horizon $T$, the norm, and transient behaviour.
 
@@ -1353,9 +1353,9 @@ free-group word & \texttt{uint4} & 2 bits/symbol, 58 slots, length in top 6 bits
 arc length $L_n$ on $S^2$ & \texttt{float} & accumulated during integration \\
 $t_{\mathrm{end}}$ & \texttt{float} & \\
 $d_{\min}$ (min pair separation) & \texttt{float} & \\
-stretch proxy & \texttt{float} & \\
+ftle & \texttt{float} & Benettin FTLE when \texttt{FTLE\_VALID}; else $0.0$ (Research tier only, ADR 0003) \\
 energy drift $\epsilon_E$ & \texttt{float} & \\
-outcome class & \texttt{uint} & broad category (bounded/escape/collision/\ldots) \\
+outcome class & \texttt{uint} & 3-bit class per ADR 0002 (\texttt{src/gpu/outcome\_class.ts}): bounded 0, collision 1, escape 2, degenerate 3, timeout 4 \\
 event code & \texttt{uint} & sub-detail (which body/pair, degenerate reason) \\
 \bottomrule
 \end{tabular}
@@ -2486,13 +2486,14 @@ struct SimResult {
 \toprule
 Bit(s) & Name & Meaning \\
 \midrule
-0--2 & \texttt{class} & outcome class: escape (0), bounded (1), collision (2), degenerate (3), timeout (4). 3 bits, 5 values. \\
+0--2 & \texttt{class} & outcome class: bounded (0), collision (1), escape (2), degenerate (3), timeout (4). 3 bits, 5 values. Canonical mapping ratified in ADR 0002 (single source \texttt{src/gpu/outcome\_class.ts}); matches the M3 shader and M5/M6 reduction. \\
 3--4 & \texttt{detail} & union field keyed by class. Escape: which body (0/1/2). Collision: which pair (01/02/12). Bounded/other: 0. \\
 5 & \texttt{SUSPECT\_ENERGY} & $|\epsilon_E|>\tau_E$. \\
 6 & \texttt{SUSPECT\_LZ} & gated on absolute drift, not relative: set when $|\Delta L_{z,\max}|>\tau_L^{\mathrm{abs}}$. The relative drift $|L_z\text{ drift}|=|\Delta L_z|/(|L_{z,0}|+\varepsilon_L)$ is not used here because it is dominated by the floor $\varepsilon_L$ for trajectories starting near $L_{z,0}=0$ (e.g.\ Burrau rest start) and would mark such tiles spuriously. \\
 7 & \texttt{FTLE\_VALID} & \texttt{ftle} field contains true Benettin FTLE. \\
 8 & \texttt{WORD\_TRUNCATED} & free-group word hit 58-symbol limit. \\
-9--15 & \texttt{encounter\_count} & total close encounters ($r_{ij}<r_{\mathrm{threshold}}$), 0--127, clamped. \\
+9 & \texttt{WORD\_UNCERTAIN} & free-group word not trusted (unequal-mass regime, ADR 0004); excluded from refinement / boundary detection / published diagnostics. \\
+10--15 & \texttt{encounter\_count} & total close encounters ($r_{ij}<r_{\mathrm{threshold}}$), 0--63, clamped. \\
 16--22 & \texttt{substep\_log2} & $\lfloor\log_2(\text{max substep count})\rfloor$. GPU cost proxy. \\
 23--29 & \texttt{benettin\_count} & Benettin renormalisations performed, 0--127. FTLE confidence proxy. \\
 30--31 & \texttt{dominant\_pair} & which body pair had the most encounters (01=0, 02=1, 12=2). \\
@@ -2694,7 +2695,7 @@ Bit(s) & Name & Meaning \\
 
 \paragraph{Reduction of packed uint fields.} \texttt{suspect\_fraction}: mask bit~5 of each \texttt{sample\_descriptor}, count, divide by $N^2$. \texttt{retrograde\_fraction}: mask bit~31 of each \texttt{trajectory\_stats}, count, divide. \texttt{mean\_orbit\_count}: extract bits~23--28 of each \texttt{trajectory\_stats}, sum, divide. All are mask-and-increment operations with no branching.
 
-\paragraph{Ensemble reduction.} When ensemble is enabled ($E>1$), the dispatch produces $N^2\times E$ \texttt{SimResult} records. The reduction pass groups them by grid position (each group of $E$ records shares the same nominal IC, differing only by sub-pixel jitter). Per group: compute outcome agreement (do all $E$ copies agree on outcome class? --- mask bits~0--4 of \texttt{sample\_descriptor}). These per-group agreement fractions are then averaged across the $N^2$ grid positions to produce the tile-level \texttt{ensemble\_outcome\_agreement}.
+\paragraph{Ensemble reduction.} When ensemble is enabled ($E>1$), the dispatch produces $N^2\times E$ \texttt{SimResult} records. The reduction pass groups them by grid position (each group of $E$ records shares the same nominal IC, differing only by sub-pixel jitter). Per group: compute outcome agreement (do all $E$ copies agree on outcome class? --- mask bits~0--2, the 3-bit class \texttt{\& 0x7}, per ADR 0002). These per-group agreement fractions are then averaged across the $N^2$ grid positions to produce the tile-level \texttt{ensemble\_outcome\_agreement}.
 
 % ---------------------------------------------------------------
 
@@ -3052,5 +3053,66 @@ Cubehelix & Full (LUT) & Monotone $L$ & Tolerant \\
 \end{center}
 
 \paragraph{Key parameters.} $L\in[0.35,0.90]$; $C\in[0.05,0.22]$; $\kappa\in[0.5,12]$; stripe frequency $f\in[2,14]$ (integer for seam-free); Fibonacci $N\in[12,96]$.
+
+\section{Ratified contract decisions (ADRs)}
+\label{sec:ratified-adrs}
+
+Several cross-milestone contracts were left open or underspecified in the body
+above. They have been ratified as binding decisions and are recorded in full
+(context, options, consequences, verification) under \texttt{docs/adr/}. The
+summaries below are authoritative for implementation; where one corrects body
+text, the body has been amended to match.
+
+\paragraph{ADR 0001 --- Shape-sphere checkpoint schedule.} The fixed checkpoints
+$t_1,\ldots,t_M$ are equally spaced with no $t=0$ anchor: $t_m = m\,T/M$, so
+$t_M = T$. Frequency-diffusion window membership is closed--closed with the
+shared boundary $t=T/2$ counted in both $W_1$ and $W_2$, yielding exactly three
+checkpoints per window at $M=8$. The schedule is identical on the f32 GPU and
+f64 inspector paths and is part of the cache compatibility signature.
+
+\paragraph{ADR 0002 --- Outcome-class enum.} Canonical 3-bit mapping:
+\texttt{BOUNDED=0}, \texttt{COLLISION=1}, \texttt{ESCAPE=2},
+\texttt{DEGENERATE=3}, \texttt{TIMEOUT=4}. Single source of truth
+\texttt{src/gpu/outcome\_class.ts}, exporting both the TypeScript enum and the
+WGSL \texttt{const} block. This supersedes the earlier ordering in the
+\texttt{sample\_descriptor} table (now corrected).
+
+\paragraph{ADR 0003 --- FTLE variant per tier.} Full phase-space Benettin FTLE
+is the only computed FTLE variant and runs in Research tier only. Preview and
+Balanced leave the single \texttt{ftle} field${}=0$ with \texttt{FTLE\_VALID}
+clear --- there is no separate proxy field, and \texttt{SimResult} carries no
+\texttt{stretch} field. The IC-manifold and position-only variants are deferred
+research toggles.
+
+\paragraph{ADR 0004 --- Free-group word for unequal masses.} The free-group word
+is a trusted invariant \emph{only} in the equal-mass regime, with generators
+frozen at $\hat{\mathbf b}_1=(1,0,0)$, $\hat{\mathbf b}_2=(-\tfrac12,\tfrac{\sqrt3}{2},0)$
+and branch cuts anchored at $\hat{\mathbf l}^+=(0,0,1)$. For unequal masses the
+same detector runs against decoder-derived collision points, but the result is
+stamped \texttt{WORD\_UNCERTAIN} and must not gate refinement, boundary
+detection, or any published diagnostic. The general unequal-mass rule is
+deferred to a future ADR.
+
+\paragraph{ADR 0005 --- Layer-0 dispatch batching.} Layer~0 dispatches in
+fixed-size chunks (one chunk $=$ one tile $=$ one self-contained $N\times N$
+compute pass), emitted centre-out in raster order, one \texttt{queue.submit} per
+chunk, with a bounded number of chunks per animation frame. A CPU-held
+\texttt{viewGeneration} token causes all remaining chunks of a stale generation
+to be skipped the instant the camera moves; in-flight passes finish and are
+never cancelled. ``All tiles are dispatched'' (\S Layer~0) means across chunks,
+not in a single pass.
+
+\paragraph{ADR 0006 --- TileReduction schema.} The \texttt{TileReduction} layout
+is generated from a single declarative field table in \texttt{src/gpu/structs.ts}
+that emits the TypeScript decoder, the WGSL struct snippet, and a
+\texttt{TILE\_REDUCTION\_SCHEMA\_VERSION}. The GPU writes the version word and
+the CPU decoder asserts it. Hand-coded byte offsets are prohibited.
+
+\paragraph{ADR 0007 --- DEGENERATE reason enum.} Decode-time degeneracies carry
+a closed integer reason enum (e.g.\ \texttt{M01\_TINY=10}), with the $1x$ band
+reserved for decode-time terminal reasons and codes $0$--$4$ reserved for the
+post-integration outcome classes of ADR 0002. \texttt{COLLISION\_T0} remains a
+separate terminal kind. CPU and GPU share one frozen table, and downstream code
+matches the enum, never free strings.
 
 \end{document}

@@ -423,16 +423,18 @@ export function massFromLogits(zMu1: number, zMu2: number, muMax: number): Vec3 
 
 /**
  * Direct simplex parameterisation (spec §1.6.1, alternative path used by
- * the ternary mass chart). Maps (t1, t2) ∈ [0,1]² to the open simplex
- * interior. Caller may apply an interior buffer εₘ.
+ * the ternary mass chart). Maps (t1, t2) ∈ [0,1]² to the simplex.
+ * Caller may apply an interior buffer εₘ.
  *
- * The mapping (t1(1-t1·t2), t2(1-t1·t2), 1-m1-m2) is bijective from
- * [0,1]² onto the simplex.
+ * The mapping x = t1, y = (1-t1)·t2, then (m0, m1, m2) = (1-x-y, x, y)
+ * is a bijection from [0,1]² onto the simplex (spec ternary-mass map).
  */
 export function massFromSimplex(t1: number, t2: number): Vec3 {
-  const m1 = t1 * (1 - t1 * t2);
-  const m2 = t2 * (1 - t1 * t2);
-  const m0 = 1 - m1 - m2;
+  const x = t1;
+  const y = (1 - t1) * t2;
+  const m0 = 1 - x - y;
+  const m1 = x;
+  const m2 = y;
   return [m0, m1, m2];
 }
 
@@ -739,10 +741,15 @@ describe('massFromSimplex (direct parameterisation)', () => {
     }
   });
 
-  it('reaches the corners at (0,*) / (*,0) / (1,1)', () => {
+  it('reaches the corners under x = t1, y = (1-t1)·t2', () => {
+    // (0,0): x=0, y=0  -> [1, 0, 0]
     expect(massFromSimplex(0, 0)).toEqual([1, 0, 0]);
-    expect(massFromSimplex(1, 0)[1]).toBe(1);
-    expect(massFromSimplex(0, 1)[2]).toBe(1);
+    // (1,0): x=1, y=0  -> [0, 1, 0]
+    expect(massFromSimplex(1, 0)).toEqual([0, 1, 0]);
+    // (0,1): x=0, y=1  -> [0, 0, 1]
+    expect(massFromSimplex(0, 1)).toEqual([0, 0, 1]);
+    // (1,1): x=1, y=0  -> [0, 1, 0]
+    expect(massFromSimplex(1, 1)).toEqual([0, 1, 0]);
   });
 });
 ```
