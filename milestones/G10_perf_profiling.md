@@ -291,6 +291,9 @@ fully testable with plain objects.
 ```ts
 import { RollingWindow } from './stats.js';
 import { GPU_PASSES, type GpuPass, type GpuPassTimings } from './gpu_timing.js';
+// QualityTier's canonical home is G9's '@/gpu/capability.js'. M8's
+// ViewState.qualityTier is the SAME union (identical members) — `recommend()`
+// takes `view.qualityTier` directly; do not re-declare a parallel type.
 import type { QualityTier } from '@/gpu/capability.js';
 
 /** Per-frame sample handed to the monitor. */
@@ -349,6 +352,7 @@ export function lowerTier(t: QualityTier): QualityTier | null {
 
 export class PerfMonitor {
   private readonly cpu: RollingWindow;
+  private readonly wall: RollingWindow;        // per-frame effective wall time (ms)
   private readonly gpu = new Map<GpuPass, RollingWindow>();
   private readonly overFlags: RollingWindow;   // 1 = over budget that frame
   private frames = 0;
@@ -356,6 +360,7 @@ export class PerfMonitor {
   constructor(private readonly opts: PerfMonitorOpts) {
     if (opts.windowFrames <= 0) throw new RangeError('windowFrames must be > 0');
     this.cpu = new RollingWindow(opts.windowFrames);
+    this.wall = new RollingWindow(opts.windowFrames);
     this.overFlags = new RollingWindow(opts.windowFrames);
     for (const pass of GPU_PASSES) this.gpu.set(pass, new RollingWindow(opts.windowFrames));
   }
@@ -364,9 +369,11 @@ export class PerfMonitor {
   record(sample: FrameTimingSample): void {
     this.frames++;
     this.cpu.push(sample.cpuMs);
-    // The "wall-clock" we budget against is the GPU-bound max pass when
-    // timestamps exist, else CPU time. We track the over flag accordingly.
+    // The "wall-clock" we budget against is the max of CPU planning and the
+    // summed GPU passes when timestamps exist, else CPU time. The over flag and
+    // the budget classifier both read this single wall metric so they agree.
     const wall = this.frameWallMs(sample);
+    this.wall.push(wall);
     this.overFlags.push(wall > this.opts.frameBudgetMs ? 1 : 0);
     if (this.opts.gpuTimingAvailable && sample.gpu) {
       for (const pass of GPU_PASSES) {
@@ -386,20 +393,16 @@ export class PerfMonitor {
     return sample.cpuMs;
   }
 
-  /** Classify the current window's budget state. */
+  /**
+   * Classify the current window's budget state. Uses the same summed wall
+   * metric the over flag is derived from (max of CPU and summed GPU passes),
+   * so the p95 ratio and the over fraction can never disagree.
+   */
   budgetState(): BudgetState {
-    if (this.cpu.size === 0) return 'ok';
-    const ratio = this.cpu.percentile(0.95) / this.opts.frameBudgetMs;
-    const wallRatio = Math.max(ratio, this.gpuWorstP95() / this.opts.frameBudgetMs);
+    if (this.wall.size === 0) return 'ok';
+    const wallRatio = this.wall.percentile(0.95) / this.opts.frameBudgetMs;
     if (wallRatio <= this.opts.overRatio) return 'ok';
     return this.overFlags.mean() >= this.opts.sustainedFraction ? 'sustained' : 'over';
-  }
-
-  private gpuWorstP95(): number {
-    if (!this.opts.gpuTimingAvailable) return 0;
-    let worst = 0;
-    for (const w of this.gpu.values()) worst = Math.max(worst, w.percentile(0.95));
-    return worst;
   }
 
   snapshot(): PerfSnapshot {
@@ -457,6 +460,7 @@ export class PerfMonitor {
   reset(): void {
     this.frames = 0;
     this.cpu.reset();
+    this.wall.reset();
     this.overFlags.reset();
     for (const w of this.gpu.values()) w.reset();
   }
@@ -560,11 +564,11 @@ tickOnce(): FrameStats {
   this.perf.record({ cpuMs: stats.cpuMs, gpu, jobsDispatched: stats.jobsDispatched });
   const rec = this.perf.recommend(view.qualityTier);
   this.dispatchCap = Math.max(1, Math.round(this.dispatchCap * rec.dispatchCapScale));
-  if (rec.recommendTier && rec.recommendTier !== view.qualityTier) {
-    // Don't mutate tier behind the user's back; surface the suggestion. The UI
-    // (G8) reads this and either auto-applies (default) or shows a toast.
-    this.store.update(v => ({ ...v, recommendedTier: rec.recommendTier! }));
-  }
+  // Do NOT mutate the tier — and do NOT write it onto ViewState (it has no
+  // recommendedTier field; ViewState is a closed interface). The recommendation
+  // already lives on the monitor: the UI reads `frameLoop.perf.recommend(tier)`
+  // (or the cached `rec` exposed via a getter) and either auto-applies (default)
+  // or shows a toast. PerfMonitor is the single source of the suggestion.
   if (gpu) {
     stats.gpuPassMs = gpu;
     stats.gpuMs = (Object.values(gpu) as number[]).reduce((s, x) => s + x, 0);
@@ -921,7 +925,8 @@ without one.
   one-frame shift is invisible to mean/p95.
 - **Budget feedback is advisory for tier, mandatory for the cap.** The dispatch
   cap is the monitor's own knob and is applied immediately. The tier
-  recommendation is written to `view.recommendedTier`; the UI (G8) decides
+  recommendation is **not** a ViewState field — it is exposed from `PerfMonitor`
+  (`recommend()`/`snapshot()`); the UI (G8) reads it off the monitor and decides
   whether to auto-apply or prompt — never silently change what the user picked
   without surfacing it. The cap recovers naturally: once frames are back under
   budget, `dispatchCapScale` returns `1` and `Math.min(dispatchCap, maxInFlight)`

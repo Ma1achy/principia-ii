@@ -465,7 +465,8 @@ contract (`subscribe`/`update`/`snapshot`) so G8's `bind`/`bindInput` work
 against it unchanged.
 
 ```ts
-import { type RenderParams, DEFAULT_RENDER_PARAMS, packRenderParams } from '@/render/types.js';
+import { type RenderParams, DEFAULT_RENDER_PARAMS } from '@/render/types.js';
+import { packRenderParams } from '@/render/params.js';
 
 export type RenderSubscriber = (p: RenderParams) => void;
 
@@ -591,9 +592,12 @@ export function mountUI(
 ## `src/ui/Canvas.ts` (modified, G8)
 
 G8's `Canvas` handled click→lock and wheel→zoom. G12 adds **pan** (pointer
-drag → `uvCentre` shift, a compute-affecting move that pushes history through the
-normal Store funnel) and zoom-around-pointer, all routed through `app.input` so
-the Store stays the single writer.
+drag → `uvCentre` shift) and zoom-around-pointer. A drag is **coalesced into a
+single history entry**: we snapshot `uvCentre` at `pointerdown`, update the view
+*transiently* during the drag via `app.input.panTransient` (a non-history path
+that writes `uvCentre` without going through the history funnel), and commit the
+final `uvCentre` exactly once at `pointerup` through `app.store.update` (the one
+funnel) — so a long drag never floods the undo ring with intermediate frames.
 
 ```ts
 import type { App } from '@/app/app.js';
@@ -606,6 +610,8 @@ export function mountCanvas(
   let dragging = false;
   let moved = false;
   let lastX = 0, lastY = 0;
+  let panU = 0, panV = 0;          // accumulated transient pan since pointerdown
+  let startCentre: readonly [number, number] = [0, 0];
 
   const norm = (e: { clientX: number; clientY: number }) => {
     const rect = canvas.getBoundingClientRect();
@@ -618,6 +624,8 @@ export function mountCanvas(
   const onDown = (e: PointerEvent) => {
     dragging = true; moved = false;
     lastX = e.clientX; lastY = e.clientY;
+    panU = 0; panV = 0;
+    startCentre = app.store.snapshot().uvCentre;       // snapshot for the single commit
     canvas.setPointerCapture(e.pointerId);
   };
 
@@ -629,14 +637,22 @@ export function mountCanvas(
     if (Math.abs(du) + Math.abs(dv) > 1e-4) moved = true;
     lastX = e.clientX; lastY = e.clientY;
     // Pan: shift uvCentre opposite the drag (content follows the cursor).
-    app.store.update(v => ({
-      ...v,
-      uvCentre: [v.uvCentre[0] - du, v.uvCentre[1] - dv],
-    }));
+    panU -= du; panV -= dv;
+    // Transient, NON-history path: re-render the live pan without pushing an
+    // undo entry per pointermove (the drag commits once on pointerup).
+    app.input.panTransient([startCentre[0] + panU, startCentre[1] + panV]);
   };
 
   const onUp = (e: PointerEvent) => {
-    if (dragging && !moved) app.input.lock(norm(e));   // a click, not a drag
+    if (dragging && !moved) {
+      app.input.lock(norm(e));                         // a click, not a drag
+    } else if (dragging && moved) {
+      // Commit the whole drag as ONE compute-affecting change → one history entry.
+      app.store.update(v => ({
+        ...v,
+        uvCentre: [startCentre[0] + panU, startCentre[1] + panV],
+      }));
+    }
     dragging = false;
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
   };
@@ -659,6 +675,16 @@ export function mountCanvas(
   };
 }
 ```
+
+> **extends InputController with `panTransient`.** The drag-coalescing above
+> needs a non-history live-pan path. G2's `InputController` (`app.input`) must
+> grow `panTransient(uvCentre: readonly [number, number]): void` — it updates the
+> transient `uvCentre` and re-renders **without** going through the history-funnel
+> `Store.subscribe` (i.e. it writes the live view but does not commit an undo
+> entry). The drag's single committed entry still flows through `app.store.update`
+> on `pointerup`. If a transient path is undesirable, the fallback is to call
+> `app.store.update` only on `pointerup` and drive intermediate frames straight to
+> the renderer; either way no intermediate pointermove may push history.
 
 ## `src/ui/ControlPanel.ts` (modified, G8)
 
@@ -733,6 +759,20 @@ export function mountRenderControls(root: HTMLElement, render: RenderParamsStore
     render.update(p => ({ ...p, cvdMode: cvd.value as CvdMode })));
 
   offs.push(() => section.remove());
+  return () => offs.forEach(off => off());
+}
+
+/** Full control panel mount (the call site in App.ts). Mounts G8's
+ *  chart/z0/zoom/tilt/quality body bound to the view `Store`, then mounts the
+ *  render-only section internally via `mountRenderControls` bound to the
+ *  separate `RenderParamsStore`. The 3-arg arity (root, app, render) matches
+ *  the `mountUI` call site; the render section never touches ViewState. */
+export function mountControlPanel(
+  root: HTMLElement, app: App, render: RenderParamsStore,
+): () => void {
+  const offs: (() => void)[] = [];
+  // ... G8's chart/z0/zoom/tilt/quality controls bound to `app.store` (unchanged) ...
+  offs.push(mountRenderControls(root, render));   // render-only section (group-3 rebind)
   return () => offs.forEach(off => off());
 }
 ```

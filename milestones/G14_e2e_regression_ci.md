@@ -2,20 +2,21 @@
 
 ## Goal
 
-G8 stood up CI but parked every WebGPU check behind the `needs-gpu` PR label
-running swiftshader, and it never asserted anything *visual*, *perf*, or
+G8 stood up CI and runs the §7 acceptance job CPU-only and un-gated (push / PR /
+nightly schedule), with only the `webgpu_integration` job behind the `needs-gpu`
+PR label running swiftshader. But G8 never asserted anything *visual*, *perf*, or
 *accessible* — a render-mode that silently inverts, a frame budget that
 regresses 3×, or an unlabelled control all sail through. G14 closes those gaps
 without inflating the per-PR cost: it keeps swiftshader as the always-on
-fallback (so every PR still gets a headless WebGPU smoke), adds a **real**
-headless-Chrome WebGPU project that runs only on a nightly schedule / opt-in
-label, and bolts on three regression gates — a **golden-PNG visual-regression
-harness** (one golden per render mode, deterministic seed, tolerance-based pixel
-diff), a **perf-regression gate** that compares a captured G10 `PerfSnapshot`
-against a committed baseline, and an **axe-core a11y scan** over the G12/G13
-shell. It also stops forcing M12's §7 acceptance job behind `needs-gpu` —
-that gate is CPU-only and belongs on the nightly schedule + label, not gated on
-GPU hardware.
+fallback (so every labelled PR still gets a headless WebGPU smoke), adds a
+**real** headless-Chrome WebGPU Playwright project that runs only on a nightly
+schedule / opt-in `real-gpu` label, and bolts on three regression gates — a
+**golden-PNG visual-regression harness** (one golden per render mode,
+deterministic seed, tolerance-based pixel diff), a **perf-regression gate** that
+compares a captured G10 `PerfSnapshot` against a committed baseline, and an
+**axe-core a11y scan** over the G12/G13 shell. The §7 acceptance job is already
+CPU-only and un-gated in G8; G14 leaves it as-is and does not gate it on GPU
+hardware.
 
 The keystone is a **pure** image comparator (`compareImages(a, b, tol) →
 { diffRatio, passed, … }`): every browser spec produces a PNG, but the
@@ -60,19 +61,21 @@ principia/
   playwright.config.ts            # MODIFIED (G8): add real-webgpu project alongside swiftshader
   .github/
     workflows/
-      acceptance.yml              # MODIFIED (G8): §7 off needs-gpu → nightly+label; add real-gpu job
+      acceptance.yml              # MODIFIED (G8): add nightly real-gpu job; §7 already CPU-only & un-gated
 ```
 
 ## Depends on / pairs with
 
 - **G8** (`playwright.config.ts` ~line 506 with `--enable-unsafe-webgpu` /
-  `--use-vulkan=swiftshader`; `acceptance.yml` ~line 463 gated on `needs-gpu`)
-  — G14 **extends** both: it does not rewrite them. The swiftshader project and
-  the existing jobs stay; G14 adds a sibling `real-webgpu` Playwright project and
-  a nightly real-GPU workflow job, and moves the §7 job's trigger.
+  `--use-vulkan=swiftshader`, one `chromium` project; `acceptance.yml` ~line 463
+  where the `spec_section_7` job is CPU-only & un-gated and only
+  `webgpu_integration` is gated on `needs-gpu`) — G14 **extends** both: it does
+  not rewrite them. The swiftshader project and the existing jobs stay; G14 adds
+  a sibling real-WebGPU Playwright project and a nightly real-GPU workflow job.
 - **M12** (`runAllAcceptance`, `acceptanceTests`, §7 A1–A6 in
-  `test/integration/acceptance/*`) — that suite is CPU-only; G14 reschedules its
-  CI job (nightly + label) rather than gating it on GPU.
+  `test/integration/acceptance/*`) — that suite is CPU-only and G8 already runs
+  its CI job un-gated (push / PR / nightly); G14 leaves that as-is and does not
+  gate it on GPU.
 - **M3** (the `if (!('gpu' in navigator))` skip pattern, ~line 189) — every G14
   Playwright spec uses the same guard so it skips cleanly without a real adapter.
 - **G9** (`detectCapabilities`) — the browser specs call it first and skip the
@@ -83,9 +86,10 @@ principia/
   that snapshot to `baseline.json`.
 - **G12 / G13** (`mountUI`, `mountChrome`; `buildAria`/`applyAria`) — the axe-core
   spec scans the mounted shell; G13's ARIA work is what makes the scan pass.
-- Contracts: tiers per **ADR 0003** (`PerfSnapshot` carries tier-relevant p95);
-  the golden manifest's render-mode set mirrors G12's `colourMode` options and is
-  **render-only** (changing it must never change a cache key — spec §7 A4).
+- Contracts: the perf gate reads G10's `PerfSnapshot` (its p95 timings + budget
+  state); the golden manifest's render-mode set mirrors G12's `colourMode`
+  options and is **render-only** (changing it must never change a cache key —
+  spec §7 A4).
 
 ## `src/regression/image_diff.ts`
 
@@ -485,9 +489,11 @@ export function checkPerf(
 
 ## `playwright.config.ts` (modified — additions to G8)
 
-G8's config is kept verbatim; G14 adds a **second project** so the same specs
-run under either real WebGPU (nightly/opt-in) or the always-on swiftshader
-fallback, selected by `PW_REAL_GPU`. Labelled additions only.
+G8's config has a single `chromium` project on swiftshader args. G14 keeps that
+project's launch behaviour but renames it to `chromium-swiftshader` for clarity
+and adds a **second project** so the same specs run under either real WebGPU
+(nightly/opt-in) or the always-on swiftshader fallback, selected by
+`PW_REAL_GPU`. Labelled additions only.
 
 ```ts
 import { defineConfig, devices } from '@playwright/test';
@@ -520,7 +526,8 @@ export default defineConfig({
     },
   },
   projects: [
-    // Unchanged G8 project — always-on swiftshader smoke.
+    // G8's `chromium` project, renamed for clarity — always-on swiftshader smoke
+    // (same Desktop Chrome device + swiftshader launch args as G8).
     { name: 'chromium-swiftshader', use: { ...devices['Desktop Chrome'] } },
     // --- G14 ADDITION: real-WebGPU project, opt-in via PW_REAL_GPU=1 ---
     ...(REAL_GPU
@@ -533,12 +540,11 @@ export default defineConfig({
 
 ## `.github/workflows/acceptance.yml` (modified — patches to G8)
 
-Two changes. First, the §7 `spec_section_7` job already had `schedule:` at the
-workflow level (G8); G14 makes it **explicit and label-aware** and removes the
-implicit reliance on `needs-gpu` for GPU-adjacent acceptance work (the §7 suite
-is CPU-only and should not require the label). Second, the `webgpu_integration`
-job is renamed/extended into a nightly real-GPU regression job that runs the
-visual/perf/a11y specs.
+One real change. The §7 `spec_section_7` job is already CPU-only and un-gated in
+G8 (push / PR / nightly `schedule:`); G14 leaves it untouched and reproduces it
+here only for context. The substantive change is that the `webgpu_integration`
+job is split: its swiftshader smoke stays label-gated (`needs-gpu`), and a new
+nightly real-GPU regression job runs the visual/perf/a11y specs.
 
 Labelled patch (apply against G8's `acceptance.yml`):
 
@@ -547,8 +553,9 @@ Labelled patch (apply against G8's `acceptance.yml`):
 #  nightly `schedule: cron '0 4 * * *'` already exist.)
 
 jobs:
-  # --- CHANGED (G14): §7 acceptance no longer implies needs-gpu. Run it on
-  #     PRs (CPU-only, cheap) AND nightly; never gate it on GPU hardware. ---
+  # --- UNCHANGED from G8: §7 acceptance is already CPU-only and un-gated —
+  #     it runs on push / PR / nightly and never required needs-gpu. Shown
+  #     here for context only; G14 does not modify this job. ---
   spec_section_7:
     runs-on: ubuntu-latest
     steps:
@@ -619,9 +626,10 @@ and bumped deliberately. CPU p95 mirrors G8's frame budget table (Balanced
 {
   "cpuP95Ms": 14.0,
   "gpuP95Ms": {
-    "sim": 9.5,
+    "simulate": 9.5,
     "reduce": 0.8,
-    "color": 1.2
+    "reduce_spreads": 0.4,
+    "render": 1.2
   },
   "budget": "ok"
 }
@@ -809,7 +817,7 @@ import type { PerfSnapshot } from '@/perf/perf_monitor.js';
 
 const baseline: PerfBaseline = {
   cpuP95Ms: 14,
-  gpuP95Ms: { sim: 9.5, reduce: 0.8 },
+  gpuP95Ms: { simulate: 9.5, reduce: 0.8 },
   budget: 'ok',
 };
 
@@ -817,7 +825,7 @@ const snap = (over: Partial<PerfSnapshot> = {}): PerfSnapshot => ({
   frames: 600,
   cpuMeanMs: 12,
   cpuP95Ms: 14,
-  gpuP95Ms: { sim: 9.5, reduce: 0.8 },
+  gpuP95Ms: { simulate: 9.5, reduce: 0.8 },
   gpuTimingAvailable: true,
   budget: 'ok',
   overFraction: 0,
@@ -842,9 +850,9 @@ describe('checkPerf: regression classifier', () => {
   });
 
   it('a per-pass GPU regression is caught with the gpu: prefix', () => {
-    const r = checkPerf(snap({ gpuP95Ms: { sim: 13, reduce: 0.8 } }), baseline);
+    const r = checkPerf(snap({ gpuP95Ms: { simulate: 13, reduce: 0.8 } }), baseline);
     expect(r.passed).toBe(false);
-    expect(r.regressions.some(x => x.metric === 'gpu:sim')).toBe(true);
+    expect(r.regressions.some(x => x.metric === 'gpu:simulate')).toBe(true);
   });
 
   it('a worsened budget state fails even if timings match', () => {
@@ -869,7 +877,7 @@ describe('checkPerf: regression classifier', () => {
   });
 
   it('a GPU pass missing from the observed snapshot is ignored', () => {
-    const r = checkPerf(snap({ gpuP95Ms: { reduce: 0.8 } }), baseline); // no `sim`
+    const r = checkPerf(snap({ gpuP95Ms: { reduce: 0.8 } }), baseline); // no `simulate`
     expect(r.passed).toBe(true);
   });
 });
@@ -971,7 +979,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 test('G12/G13 shell has no serious a11y violations', async ({ page }) => {
   await page.goto('/');                       // mounts mountUI + mountChrome (G12)
-  await page.waitForSelector('.layout');
+  await page.waitForSelector('.shell');
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze();
@@ -1008,8 +1016,9 @@ missing mode, a duplicate file, and a bad tolerance. The perf gate suite proves
 `checkPerf` tolerates +25% / noise-floor deltas but fails real regressions and
 budget worsening. `playwright.config.ts` exposes a `chromium-real-webgpu`
 project that runs the visual/perf/a11y specs under real WebGPU while keeping
-`chromium-swiftshader` always-on; `acceptance.yml`'s §7 job no longer requires
-`needs-gpu`; the three browser specs skip cleanly when no real adapter exists.
+`chromium-swiftshader` always-on; `acceptance.yml` adds a nightly real-GPU
+regression job (the §7 job stays CPU-only and un-gated, as in G8); the three
+browser specs skip cleanly when no real adapter exists.
 
 ## Notes for the implementer
 
@@ -1041,11 +1050,11 @@ project that runs the visual/perf/a11y specs under real WebGPU while keeping
   sampling. A solid colour flip in a flat region is always counted. If real-GPU
   jitter still trips a mode, prefer `metric: 'luma'` or a slightly looser
   per-mode `tolerance` over disabling the AA discount globally.
-- **§7 acceptance is CPU-only — keep it off the GPU gate.** G8 accidentally
-  coupled the §7 job to `needs-gpu`; M12's A1–A6 run entirely on the frozen
-  corpus with no adapter. Running them on every PR (cheap) plus nightly catches
-  spec regressions early without paying the WebGPU cost. Reserve `needs-gpu` for
-  the swiftshader smoke and `real-gpu` for the nightly regression job.
+- **§7 acceptance is CPU-only — and G8 already keeps it off the GPU gate.** G8's
+  `spec_section_7` job already runs un-gated on push / PR / nightly; M12's A1–A6
+  run entirely on the frozen corpus with no adapter. G14 does not touch that job.
+  Reserve `needs-gpu` for the swiftshader smoke and `real-gpu` for the nightly
+  regression job — never gate the CPU-only §7 suite on either.
 - **a11y is a contract with G13.** The axe scan asserts the ARIA work in G13
   (`buildAria`/`applyAria`, roving tabindex, live-region announce) actually
   reaches the DOM. If the scan flags a control, fix the markup in G12's mount

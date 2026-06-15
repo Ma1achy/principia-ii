@@ -318,12 +318,16 @@ export function parseHeadingSections(md: string): HeadingSection[] {
 /**
  * Resolve every relative link in `pages` against the filesystem.
  * `pages` maps a doc's POSIX path (relative to docsDir) to its content;
- * `exists(relPath)` reports whether a path relative to docsDir is a real file.
- * Returns one Check per (page, link).
+ * `exists(resolved)` reports whether the resolved path is a real file. A
+ * resolved path is relative to docsDir, **except** that leading '..' segments
+ * (links that escape docsDir, e.g. '../milestones/*.md' or '../CLAUDE.md') are
+ * preserved by posixResolve, so `exists` must resolve such paths against the
+ * repo root (i.e. `existsSync(join(docsDir, resolved))`, which join() walks up
+ * for leading '..'). Returns one Check per (page, link).
  */
 export function checkRelativeLinks(
   pages: ReadonlyMap<string, string>,
-  exists: (relToDocsDir: string) => boolean,
+  exists: (resolved: string) => boolean,
 ): Check[] {
   const out: Check[] = [];
   for (const [page, content] of pages) {
@@ -346,13 +350,24 @@ export function posixDirname(p: string): string {
   return i < 0 ? '' : p.slice(0, i);
 }
 
-/** Resolve `target` against `baseDir`, collapsing '.' and '..'. */
+/**
+ * Resolve `target` against `baseDir`, collapsing '.' and '..'. Leading '..'
+ * segments that escape the base are **preserved** (e.g. `posixResolve('', '../x')`
+ * → `'../x'`), so a doc link that points above docsDir resolves correctly against
+ * the repo root rather than silently no-opping to `'x'`. The caller's `exists`
+ * predicate must therefore be rooted at repoRoot (see checkRelativeLinks).
+ */
 export function posixResolve(baseDir: string, target: string): string {
   const parts = (baseDir ? baseDir.split('/') : []).concat(target.split('/'));
   const stack: string[] = [];
   for (const part of parts) {
     if (part === '' || part === '.') continue;
-    if (part === '..') { stack.pop(); continue; }
+    if (part === '..') {
+      // Pop a real segment, but keep a leading '..' that escapes the base.
+      if (stack.length > 0 && stack[stack.length - 1] !== '..') stack.pop();
+      else stack.push('..');
+      continue;
+    }
     stack.push(part);
   }
   return stack.join('/');
@@ -399,7 +414,7 @@ docs above synthesise it; the milestones remain the source of truth.
 
 - [Milestone index](../milestones/README.md)
 - M-series: [M0](../milestones/M0_foundations.md) · [M1](../milestones/M1_cpu_integrator.md) · [M2](../milestones/M2_decoder_atlas.md) · [M3](../milestones/M3_layer0_gpu.md) · [M4](../milestones/M4_layer1_cache.md) · [M5](../milestones/M5_layer2_refinement.md) · [M6](../milestones/M6_metrics.md) · [M7](../milestones/M7_render_graph.md) · [M8](../milestones/M8_interaction.md) · [M9](../milestones/M9_inspector.md) · [M10](../milestones/M10_charts.md) · [M11](../milestones/M11_burrau.md) · [M12](../milestones/M12_export.md)
-- G-series: [G1](../milestones/G1_shader_composition.md) · [G2](../milestones/G2_frame_loop.md) · [G3](../milestones/G3_bind_group_layouts.md) · [G4](../milestones/G4_chart_parameters.md) · [G5](../milestones/G5_inverses.md) · [G6](../milestones/G6_linearised_decoder.md) · [G7](../milestones/G7_device_loss_ensemble_spreads.md) · [G8](../milestones/G8_ui_ci_perf.md) · [G9](../milestones/G9_capability_detection.md) · [G10](../milestones/G10_perf_profiling.md) · [G11](../milestones/G11_error_telemetry.md) · [G12](../milestones/G12_ui_shell.md) · [G13](../milestones/G13_accessibility_cvd.md) · [G16](../milestones/G16_documentation_onboarding.md)
+- G-series: [G1](../milestones/G1_shader_composition.md) · [G2](../milestones/G2_frame_loop.md) · [G3](../milestones/G3_bind_group_layouts.md) · [G4](../milestones/G4_chart_parameters.md) · [G5](../milestones/G5_inverses.md) · [G6](../milestones/G6_linearised_decoder.md) · [G7](../milestones/G7_device_loss_ensemble_spreads.md) · [G8](../milestones/G8_ui_ci_perf.md) · [G9](../milestones/G9_capability_detection.md) · [G10](../milestones/G10_perf_profiling.md) · [G11](../milestones/G11_error_telemetry.md) · [G12](../milestones/G12_ui_shell.md) · [G13](../milestones/G13_accessibility_cvd.md) · [G14](../milestones/G14_e2e_regression_ci.md) · [G15](../milestones/G15_build_deploy_hosting.md) · [G16](../milestones/G16_documentation_onboarding.md)
 
 ## API reference
 
@@ -913,6 +928,17 @@ describe('path resolution (pure)', () => {
     expect(posixResolve('', './user-guide.md')).toBe('user-guide.md');
     expect(posixDirname('runbooks/add-a-chart.md')).toBe('runbooks');
     expect(posixDirname('README.md')).toBe('');
+  });
+
+  it('preserves leading .. that escape the base dir (links above docsDir)', () => {
+    // From the index (baseDir ''), '../milestones/*.md' and '../CLAUDE.md' must
+    // keep their leading '..' so exists() resolves them against the repo root,
+    // not silently no-op down to 'milestones/*.md' / 'CLAUDE.md'.
+    expect(posixResolve('', '../milestones/G16_documentation_onboarding.md'))
+      .toBe('../milestones/G16_documentation_onboarding.md');
+    expect(posixResolve('', '../CLAUDE.md')).toBe('../CLAUDE.md');
+    // A '..' from a one-deep base cancels that segment, then escapes.
+    expect(posixResolve('runbooks', '../../CLAUDE.md')).toBe('../CLAUDE.md');
   });
 });
 

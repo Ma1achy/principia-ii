@@ -53,8 +53,10 @@ test/
 - **G9** (`UnsupportedError`, `CapabilityProfile.reason`/`.warnings`) — the
   boundary classifies `UnsupportedError` and renders `reason`/`warnings`.
 - **G7** (device-loss recovery) — `device.lost` `{reason,message}` is classified
-  into `AppErrorKind.DeviceLost`; the boundary message is what `onRecovering`
-  shows while G7 rebuilds.
+  into `AppErrorKind.DeviceLost`; G7's `onRecovering: () => void` takes no args, so
+  the user-facing boundary message is surfaced via the boundary's `onUserError`
+  hook (CANON #14), not through `onRecovering` — `onRecovering` only signals that a
+  rebuild is in progress while G7 rebuilds.
 - **M5** (`TileReduction.status_flags` u32, `TILE_STATUS`) — `tile_status.ts`
   extends the flag set with the failure bits named in the spec's failure-handling
   section and maps them to user descriptors.
@@ -72,6 +74,7 @@ fields, never from `Error.stack`.
 ```ts
 import type { CapabilityProfile } from '@/gpu/capability.js';
 import type { DegenerateReason } from '@/decode/types.js';
+import { tileFlagDescriptor } from './tile_status.js';
 
 /** Closed set of application-level error categories. */
 export const enum AppErrorKind {
@@ -141,8 +144,9 @@ export function userMessage(e: AppError): string {
   }
 }
 
-// Re-export so callers get descriptor + message from one place.
-export { tileFlagDescriptor } from './tile_status.js';
+// Re-export (already imported above as a value) so callers get descriptor +
+// message from one place.
+export { tileFlagDescriptor };
 ```
 
 ## `src/error/tile_status.ts`
@@ -503,6 +507,12 @@ Minimal, labelled diff against G2.
 ```ts
 // + import at top:
 import type { ErrorBoundary } from '@/error/boundary.js';
+import { AppErrorKind } from '@/error/kinds.js';
+
+// A boundary-shaped no-op default so G2's existing 3-arg
+// `new JobLedger(dispatcher, cache, opts)` keeps compiling (CANON #7).
+type CaptureFn = Pick<ErrorBoundary, 'capture'>;
+const NOOP_BOUNDARY: CaptureFn = { capture: () => ({ kind: AppErrorKind.Generic, recoverable: false }) };
 
 export class JobLedger {
   private inflight = new Map<string, InflightJob>();
@@ -512,7 +522,9 @@ export class JobLedger {
     private cache: TileCache,
     private opts: { maxInFlight: number;
                     ftleEnabled: boolean; ensembleEnabled: boolean },
-    private boundary: ErrorBoundary,          // + NEW (G11)
+    // + NEW (G11): OPTIONAL with a no-op default so G2's existing 3-arg
+    //   `new JobLedger(dispatcher, cache, opts)` still compiles unchanged.
+    private boundary: CaptureFn = NOOP_BOUNDARY,
   ) {}
 
   dispatch(tile: TileID, view: ViewState): boolean {
@@ -544,10 +556,21 @@ export class JobLedger {
 
 Leave M5's `TILE_STATUS` (bits 0–5) untouched; the new failure bits live in
 `src/error/tile_status.ts` (`TILE_STATUS_FAIL`, bits 6–8) so the two ranges never
-collide. The M5 reduce shader ORs a failure bit into `out.status_flags` when its
-per-sample descriptor decodes to `DEGENERATE` (ADR 0002 class 3 → `SIM_FAILED`)
-or `TIMEOUT` (class 4 → `TIMEOUT`/`MAX_SUBSTEPS`). The CPU overlay reads the same
-bits via `hasTileFailure()` / `tileFlagDescriptor()`.
+collide. **Drive the failure bits from the per-sample detail/event bits, NOT the
+broad 3-bit outcome class** (CANON #13): an ordinary DEGENERATE-IC tile is an
+*expected* terminal (class 3) and must NOT be shaded as a sim-failure, so keying
+`SIM_FAILED` off the broad class would mis-flag every degenerate region. Instead
+the M5 reduce shader ORs:
+- `SIM_FAILED` when the sample's detail bits flag an untrustworthy / non-finite
+  integration state (the explicit failure event), not merely class 3 DEGENERATE;
+- `MAX_SUBSTEPS` when the adaptive-stepper detail bit reports the substep ceiling
+  was hit;
+- `TIMEOUT` when the wall-clock / horizon-budget detail bit is set.
+
+`MAX_SUBSTEPS` and `TIMEOUT` are distinct: the former means the stepper exhausted
+its substep allotment, the latter that the time/horizon budget ran out before
+classification. The CPU overlay reads the same bits via `hasTileFailure()` /
+`tileFlagDescriptor()`.
 
 ## Tests
 

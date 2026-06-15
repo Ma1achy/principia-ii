@@ -70,13 +70,19 @@ principia/
 - **G8** (`vite.config.ts`, `.github/workflows/`, `src/main.ts`) — G15 replaces
   G8's placeholder build block and adds a deploy workflow; the UI shell and dev
   flow are untouched. Patches against G8 are small and labelled, not rewrites.
-- **G14** (CI matrix: `unit` / `integration_no_gpu` / `golden`) — `deploy.yml`
-  reuses G14's `unit` job as a `needs:` gate, so a publish only happens after the
-  same checks G14 enforces are green. (G14 owns `ci.yml`; G15 only adds
-  `deploy.yml` and references G14's job name.)
-- **G1** (`linkShaders`, `?raw` shader imports, `src/gpu/shaders/*.wgsl`) —
-  `build/shaders.manifest.ts` is the canonical list G1 imports; the validator
-  asserts the two stay in sync (every manifest entry exists on disk).
+- **G8 / G14** (CI matrix: `unit` / `integration_no_gpu` / `golden`) —
+  `deploy.yml` reuses the `unit` job as a `needs:`-style gate, so a publish only
+  happens after the same checks CI enforces are green. (**G8** owns `ci.yml` and
+  the canonical `unit` job — lint→typecheck→test; **G14** adds the nightly
+  schedule + real-GPU Playwright job. G15 only adds `deploy.yml` and re-runs the
+  unit gate as a pre-publish guard.)
+- **G1** (`wgslLink` from `@/gpu/wgsl/link.js`, `?raw` shader imports,
+  `src/gpu/shaders/*.wgsl`) — `build/shaders.manifest.ts` is the canonical list
+  the build/SW/test read. G1 has no central registry: `wgslLink` is a per-entry
+  linker taking an explicit sources map. The validator only checks that every
+  manifest entry exists on disk (manifest→disk); to guard manifest↔G1 drift,
+  either import `SHADER_MODULES` into the dispatch/sources-map wiring, or add a
+  test diffing the manifest against the source-map keys.
 - **G9** (`CapabilityProfile`) — the service worker (optional) precaches the
   shader bundle so a capable-but-offline device still resolves WGSL; it never
   caches a *response* that depends on the GPU profile.
@@ -89,19 +95,26 @@ principia/
 
 ## `build/shaders.manifest.ts`
 
-The single canonical list of WGSL modules G1 links. G1's `linkShaders` registry
-(`milestones/G1_shader_composition.md` ~line 456) and this manifest must name the
-same files; the validator enforces it. Keeping the list here (not buried in a
-`?raw` import block) lets the build, the service-worker precache, and the test all
-read one array.
+The single canonical list of WGSL modules used by the build. G1 has no central
+registry — `wgslLink` (`@/gpu/wgsl/link.js`, `milestones/G1_shader_composition.md`
+~line 456) is a per-entry linker taking an explicit sources map — so this manifest
+is the build's own canonical list, not a mirror of a G1 registry. The validator
+only checks that every manifest entry resolves on disk; guarding manifest↔G1 drift
+is a separate concern (import `SHADER_MODULES` into the sources-map wiring, or add
+a test diffing manifest entries against the source-map keys). Keeping the list here
+(not buried in a `?raw` import block) lets the build, the service-worker precache,
+and the test all read one array.
 
 ```ts
 /**
- * Canonical WGSL module list. Must match the registry G1's linkShaders() builds
- * from `?raw` imports (G1 ~line 456). The build_config validator asserts every
- * entry resolves to an existing file under src/gpu/shaders/.
+ * Canonical WGSL module list for the build. G1 has no registry: `wgslLink`
+ * (@/gpu/wgsl/link.js, G1 ~line 456) is a per-entry linker fed an explicit
+ * sources map from `?raw` imports. This list is the build's own source of
+ * truth; the build_config validator only asserts every entry resolves to an
+ * existing file under src/gpu/shaders/ (manifest→disk). To guard manifest↔G1
+ * drift, diff this against the source-map keys in a separate test.
  *
- * Order is irrelevant to linking (G1 resolves imports by graph), but kept
+ * Order is irrelevant to linking (wgslLink resolves imports by graph), but kept
  * alphabetical so diffs are stable.
  */
 export const SHADER_DIR = 'src/gpu/shaders';
@@ -472,10 +485,10 @@ async function registerServiceWorker(): Promise<void> {
 
 ## `.github/workflows/deploy.yml`
 
-Builds the production bundle and publishes it to GitHub Pages. Gates on G14's
-`unit` job (referenced by name via `workflow_run`-style `needs` is not
-cross-workflow, so we re-run the same checks here as a fast pre-publish guard
-and document the G14 dependency). The real `vite build` lives here — never in
+Builds the production bundle and publishes it to GitHub Pages. Gates on the
+`unit` job G8 owns in `ci.yml` (referenced by name; `workflow_run`-style `needs`
+is not cross-workflow, so we re-run the same checks here as a fast pre-publish
+guard and document the dependency). The real `vite build` lives here — never in
 the unit test.
 
 ```yaml
@@ -497,8 +510,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Pre-publish guard: the same unit gate G14's ci.yml enforces. A red unit
-  # suite must never publish. (G14 owns the canonical job; this mirrors it.)
+  # Pre-publish guard: the same unit gate G8's ci.yml enforces (lint→typecheck
+  # →test). A red unit suite must never publish. (G8 owns the canonical job;
+  # this mirrors it.)
   guard:
     runs-on: ubuntu-latest
     steps:
@@ -508,6 +522,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --run test/unit
 
@@ -775,12 +790,15 @@ the Pages deploy publishes `dist/` (with `404.html` SPA fallback) under
   `Accept-Encoding`. The WGSL strings are part of the bundled JS (G1 inlines them
   via `?raw`), so they ride along in the compressed `gpu` chunk; the explicit
   `.wgsl` extension in the policy covers any host that copies raw `.wgsl` assets.
-- **G14 vs G15 boundary.** G14 owns `ci.yml` (unit / integration / golden).
-  `deploy.yml` re-runs the unit gate as a fast pre-publish guard rather than
-  reaching across workflows; if G14 later exposes a reusable workflow, replace the
-  `guard` job with a `uses: ./.github/workflows/ci.yml` call. Do not duplicate the
-  integration/golden jobs here — a deploy gates on unit + typecheck only, by
-  design, so publishing stays fast.
+- **CI ownership vs G15 boundary.** **G8** owns `ci.yml` and the canonical `unit`
+  job (lint→typecheck→test); **G14** adds the nightly schedule + real-GPU
+  Playwright job (it does not "un-gate §7" — G8 already runs §7 CPU-only and
+  un-gated). `deploy.yml` re-runs the unit gate (lint + typecheck + unit) as a
+  fast pre-publish guard rather than reaching across workflows; if G8 later
+  exposes a reusable workflow, replace the `guard` job with a
+  `uses: ./.github/workflows/ci.yml` call. Do not duplicate the
+  integration/golden jobs here — a deploy gates on lint + typecheck + unit only,
+  by design, so publishing stays fast.
 - **Keep the validator pure.** It must never import `vite`, spawn a build, or
   touch the GPU/DOM — that is what makes it the headless exit criterion. The only
   filesystem touch is `existsSync` for the shader-sync check, and that is gated by
