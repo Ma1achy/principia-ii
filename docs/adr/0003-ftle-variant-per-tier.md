@@ -23,7 +23,7 @@ The existing rule to preserve: FTLE_VALID only when `benettinCount > 0` (i.e. `r
 ## Options
 
 ### Option A — Full phase-space FTLE in Research only; no FTLE in Preview/Balanced
-How it works: Research tier (Tier C) sets `FTLE_ENABLED` in the dispatch flags and runs the canonical variant from §4.3.3.1: shadow perturbation in **both positions and momenta**, Benettin renormalisation in the mass-weighted phase-space norm, written to `ftle`. Preview and Balanced do not allocate a shadow state at all; `stretch`/`ftle` holds 0.0 and `FTLE_VALID` is clear. This matches the quality-tier table (Stability row: "diffusion only" / "diffusion + coherence" / "+ FTLE") and the spec line "FTLE is not used as the primary adaptive-refinement signal in Preview or Balanced modes."
+How it works: Research tier (Tier C) sets `FTLE_ENABLED` in the dispatch flags and runs the canonical variant from §4.3.3.1: shadow perturbation in **both positions and momenta**, Benettin renormalisation in the mass-weighted phase-space norm, written to `ftle`. Preview and Balanced do not allocate a shadow state at all; the single `ftle` field holds 0.0 and `FTLE_VALID` is clear (there is no separate `stretch` field). This matches the quality-tier table (Stability row: "diffusion only" / "diffusion + coherence" / "+ FTLE") and the spec line "FTLE is not used as the primary adaptive-refinement signal in Preview or Balanced modes."
 - Pros: Single canonical variant, so the `ftle` field has one meaning everywhere. Honours §4.3.3's "do not conflate" directive and the "no proxies" rule for the field. Cheapest possible build contract — agents implement exactly one FTLE path. Aligns with the existing `ftle.ts` norm choice and the tier table verbatim. `FTLE_VALID` predicate is trivial.
 - Cons: No FTLE signal at all in interactive tiers (acceptable per spec — coherence and ensemble spread drive refinement there). The current M9 `shadow.ts` seeds position-only and must be corrected to perturb momenta too, to be the canonical object.
 - Implementation cost: Low. Mostly a deletion of ambiguity plus a one-line fix to `perturb()` in `shadow.ts` and a no-op (leave 0) path for the two cheap tiers.
@@ -42,7 +42,7 @@ How it works: Adopt the position-only perturbation seed (as `shadow.ts` currentl
 
 ## Decision
 
-**Adopt Option A.** Full phase-space Benettin FTLE is the default and only FTLE variant; it runs in **Research tier only**. Preview and Balanced compute no FTLE: their `ftle` field is 0.0 and `FTLE_VALID` is clear (Preview/Balanced may still fill `stretch` with a cheaper non-FTLE proxy per §4.3.3, but that proxy is never flagged `FTLE_VALID`).
+**Adopt Option A.** Full phase-space Benettin FTLE is the default and only FTLE variant; it runs in **Research tier only**. Preview and Balanced compute no FTLE: their `ftle` field is 0.0 and `FTLE_VALID` is clear. There is **no** proxy field — `SimResult` carries a single `ftle` float and no `stretch` field (§4.3.3 and §6.6 are amended to match).
 
 This is the simplest option that satisfies the science and a multi-agent build: it gives the `ftle` field exactly one meaning, matches the quality-tier table and the "Research-tier scientific overlay" statement verbatim, and obeys §4.3.3's prohibition on conflating the three variants. The IC-manifold variant remains a documented future research toggle but is NOT wired to `FTLE_VALID`.
 

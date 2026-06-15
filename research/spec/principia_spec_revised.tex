@@ -1126,7 +1126,7 @@ All three are useful, but they are not the same object and should not be conflat
 \item Nondimensionalisation is strongly recommended.
 \end{itemize}
 
-\paragraph{Compute shader integration.} When FTLE is enabled (Tier~C / Research mode), each invocation maintains a shadow state alongside the base trajectory: 4 extra position floats $+$ 4 extra momentum floats $=$ 32 bytes per sample in thread-local registers. The Benettin accumulator $S$ and renormalisation counter are thread-local scalars. On completion, $\lambda_T=S/T$ is written into the \texttt{stretch} field of \texttt{SimResult}. When FTLE is disabled (Preview/Balanced), \texttt{stretch} holds a cheaper proxy (e.g.\ max local deformation or arc-length-based estimate). The quality tier is a dispatch-time uniform, not a per-sample decision.
+\paragraph{Compute shader integration.} When FTLE is enabled (Tier~C / Research mode), each invocation maintains a shadow state alongside the base trajectory: 4 extra position floats $+$ 4 extra momentum floats $=$ 32 bytes per sample in thread-local registers. The Benettin accumulator $S$ and renormalisation counter are thread-local scalars. On completion, $\lambda_T=S/T$ is written into the \texttt{ftle} field of \texttt{SimResult} and \texttt{FTLE\_VALID} is set. When FTLE is disabled (Preview/Balanced) the \texttt{ftle} field is left $0.0$ and \texttt{FTLE\_VALID} is clear --- there is \emph{no} proxy in that field (see the \texttt{ftle} field definition in the \texttt{SimResult} layout and ADR 0003). The quality tier is a dispatch-time uniform, not a per-sample decision.
 
 \paragraph{Interpretation.} Low FTLE: nearby trajectories stay close; locally regular or weakly stretching. High FTLE: strong local exponential separation; chaos, transient instability, or proximity to invariant manifolds / basin boundaries. FTLE can still depend on the finite time horizon $T$, the norm, and transient behaviour.
 
@@ -1353,9 +1353,9 @@ free-group word & \texttt{uint4} & 2 bits/symbol, 58 slots, length in top 6 bits
 arc length $L_n$ on $S^2$ & \texttt{float} & accumulated during integration \\
 $t_{\mathrm{end}}$ & \texttt{float} & \\
 $d_{\min}$ (min pair separation) & \texttt{float} & \\
-stretch proxy & \texttt{float} & \\
+ftle & \texttt{float} & Benettin FTLE when \texttt{FTLE\_VALID}; else $0.0$ (Research tier only, ADR 0003) \\
 energy drift $\epsilon_E$ & \texttt{float} & \\
-outcome class & \texttt{uint} & broad category (bounded/escape/collision/\ldots) \\
+outcome class & \texttt{uint} & 3-bit class per ADR 0002 (\texttt{src/gpu/outcome\_class.ts}): bounded 0, collision 1, escape 2, degenerate 3, timeout 4 \\
 event code & \texttt{uint} & sub-detail (which body/pair, degenerate reason) \\
 \bottomrule
 \end{tabular}
@@ -2492,7 +2492,8 @@ Bit(s) & Name & Meaning \\
 6 & \texttt{SUSPECT\_LZ} & gated on absolute drift, not relative: set when $|\Delta L_{z,\max}|>\tau_L^{\mathrm{abs}}$. The relative drift $|L_z\text{ drift}|=|\Delta L_z|/(|L_{z,0}|+\varepsilon_L)$ is not used here because it is dominated by the floor $\varepsilon_L$ for trajectories starting near $L_{z,0}=0$ (e.g.\ Burrau rest start) and would mark such tiles spuriously. \\
 7 & \texttt{FTLE\_VALID} & \texttt{ftle} field contains true Benettin FTLE. \\
 8 & \texttt{WORD\_TRUNCATED} & free-group word hit 58-symbol limit. \\
-9--15 & \texttt{encounter\_count} & total close encounters ($r_{ij}<r_{\mathrm{threshold}}$), 0--127, clamped. \\
+9 & \texttt{WORD\_UNCERTAIN} & free-group word not trusted (unequal-mass regime, ADR 0004); excluded from refinement / boundary detection / published diagnostics. \\
+10--15 & \texttt{encounter\_count} & total close encounters ($r_{ij}<r_{\mathrm{threshold}}$), 0--63, clamped. \\
 16--22 & \texttt{substep\_log2} & $\lfloor\log_2(\text{max substep count})\rfloor$. GPU cost proxy. \\
 23--29 & \texttt{benettin\_count} & Benettin renormalisations performed, 0--127. FTLE confidence proxy. \\
 30--31 & \texttt{dominant\_pair} & which body pair had the most encounters (01=0, 02=1, 12=2). \\
@@ -2694,7 +2695,7 @@ Bit(s) & Name & Meaning \\
 
 \paragraph{Reduction of packed uint fields.} \texttt{suspect\_fraction}: mask bit~5 of each \texttt{sample\_descriptor}, count, divide by $N^2$. \texttt{retrograde\_fraction}: mask bit~31 of each \texttt{trajectory\_stats}, count, divide. \texttt{mean\_orbit\_count}: extract bits~23--28 of each \texttt{trajectory\_stats}, sum, divide. All are mask-and-increment operations with no branching.
 
-\paragraph{Ensemble reduction.} When ensemble is enabled ($E>1$), the dispatch produces $N^2\times E$ \texttt{SimResult} records. The reduction pass groups them by grid position (each group of $E$ records shares the same nominal IC, differing only by sub-pixel jitter). Per group: compute outcome agreement (do all $E$ copies agree on outcome class? --- mask bits~0--4 of \texttt{sample\_descriptor}). These per-group agreement fractions are then averaged across the $N^2$ grid positions to produce the tile-level \texttt{ensemble\_outcome\_agreement}.
+\paragraph{Ensemble reduction.} When ensemble is enabled ($E>1$), the dispatch produces $N^2\times E$ \texttt{SimResult} records. The reduction pass groups them by grid position (each group of $E$ records shares the same nominal IC, differing only by sub-pixel jitter). Per group: compute outcome agreement (do all $E$ copies agree on outcome class? --- mask bits~0--2, the 3-bit class \texttt{\& 0x7}, per ADR 0002). These per-group agreement fractions are then averaged across the $N^2$ grid positions to produce the tile-level \texttt{ensemble\_outcome\_agreement}.
 
 % ---------------------------------------------------------------
 
@@ -3078,9 +3079,10 @@ WGSL \texttt{const} block. This supersedes the earlier ordering in the
 
 \paragraph{ADR 0003 --- FTLE variant per tier.} Full phase-space Benettin FTLE
 is the only computed FTLE variant and runs in Research tier only. Preview and
-Balanced leave \texttt{ftle}${}=0$ with \texttt{FTLE\_VALID} clear; they may
-fill \texttt{stretch} with a cheaper non-FTLE proxy, never flagged valid. The
-IC-manifold and position-only variants are deferred research toggles.
+Balanced leave the single \texttt{ftle} field${}=0$ with \texttt{FTLE\_VALID}
+clear --- there is no separate proxy field, and \texttt{SimResult} carries no
+\texttt{stretch} field. The IC-manifold and position-only variants are deferred
+research toggles.
 
 \paragraph{ADR 0004 --- Free-group word for unequal masses.} The free-group word
 is a trusted invariant \emph{only} in the equal-mass regime, with generators

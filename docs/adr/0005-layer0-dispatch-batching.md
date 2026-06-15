@@ -3,7 +3,7 @@
 - **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M3
-- **Recommendation:** Adopt fixed-size dispatch chunks (each chunk = one compute pass = one tile, 256x256 samples) submitted in centre-out raster order, one queue submit per chunk, with a per-frame generation token that lets the render loop abandon remaining chunks the instant the camera moves.
+- **Recommendation:** Adopt fixed-size dispatch chunks (each chunk = one compute pass = one tile of N×N samples, default N=16, rendered footprint capped at ~256×256 px) submitted in centre-out raster order, one queue submit per chunk, with a per-frame generation token that lets the render loop abandon remaining chunks the instant the camera moves.
 
 ---
 

@@ -61,7 +61,7 @@ This is a recommendation for human ratification. The one substantive thing it as
 ## Consequences
 
 Structs / types (`src/metrics/types.ts`, `packing.ts`):
-- Add `WORD_UNCERTAIN` as a new `sample_descriptor` bit. `wordTruncated` already occupies bit 8; place `wordUncertain` in the next free bit and update `SampleDescriptorFields`, `packSampleDescriptor`/`unpackSampleDescriptor`, and the spec's §6.6 bit table (the `WORD_TRUNCATED` event-code table near line 2494 of the spec gains a sibling). Do **not** repurpose any existing bit.
+- Add `WORD_UNCERTAIN` as a new `sample_descriptor` bit. `wordTruncated` already occupies bit 8; place `wordUncertain` at **bit 9** (shifting `encounter_count` to bits 10–15, range 0–63) and update `SampleDescriptorFields`, `packSampleDescriptor`/`unpackSampleDescriptor`, and the spec's §6.6 bit table (now done — the `WORD_UNCERTAIN` row sits between `WORD_TRUNCATED` and `encounter_count`). Do **not** repurpose any existing bit.
 - `FreeGroupWord`, the `uint4` layout, 58-slot capacity, and 2-bit symbol codes are **unchanged** in every regime.
 
 Metrics / decoder:

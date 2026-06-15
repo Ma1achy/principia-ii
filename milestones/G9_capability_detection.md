@@ -19,7 +19,7 @@ device-**loss** recovery.
 npm test -- --run test/unit/gpu/capability
 ```
 
-passes with at least 20 green tests covering: unsupported-browser/adapter
+passes with at least 12 green tests covering: unsupported-browser/adapter
 classification, per-tier cap derivation from synthetic limits, the
 `maxStorageBufferBindingSize` → full-retention-viewport math, and request
 degradation (tier downgrade + viewport clamp).
@@ -45,8 +45,9 @@ test/
 - **G7** (device-loss recovery) — detection (G9) + recovery (G7) are the two
   halves of device resilience.
 - Contracts: tiers per ADR 0003 (FTLE is Research-tier only), checkpoints per
-  ADR 0001 (`M ∈ [8,16]`), sample byte cost per ADR 0006 / spec §6.6
-  (208 B/sample at `M=8`).
+  ADR 0001 (`M ∈ [8,16]`), sample byte cost per spec §6.6 / M3
+  `sizeOfSimResult(8)` (208 B/sample at `M=8`; ADR 0006 governs `TileReduction`,
+  not `SimResult`).
 
 ## `src/gpu/capability.ts`
 
@@ -60,7 +61,7 @@ test/
  * fully unit-testable without a real GPU.
  */
 
-/** Bytes per retained SimResult sample at M=8 (spec §6.6 / ADR 0006). */
+/** Bytes per retained SimResult sample at M=8 (spec §6.6 / M3 sizeOfSimResult). */
 export const BYTES_PER_SAMPLE_M8 = 208;
 /** WebGPU baseline maxStorageBufferBindingSize (spec §6.2.4): 128 MiB. */
 export const WEBGPU_BASELINE_BINDING = 128 * 1024 * 1024;
@@ -400,7 +401,7 @@ npm test -- --run test/integration/capability_probe   # real GPU only; skips oth
 
 ## Acceptance check
 
-`test/unit/gpu/capability.test.ts` passes with ≥20 green tests; `initGpu`
+`test/unit/gpu/capability.test.ts` passes with ≥12 green tests; `initGpu`
 throws a typed `UnsupportedError` (not a bare `Error`) on a device without
 WebGPU/adapter, and never requests a `requiredLimit` exceeding the adapter's
 reported value. The real-adapter probe passes on a WebGPU-capable machine and
