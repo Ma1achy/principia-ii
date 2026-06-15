@@ -166,6 +166,26 @@ Follow the established conventions exactly so downstream readers stay valid:
   add a geometry-only reader, ignore `.w`; if you add a phase reader, don't
   assume `.w` is zero.
 
+## Ratified contracts (ADRs)
+
+Three GPU-path contracts are decided and binding (full records in `docs/adr/`):
+
+- **Outcome-class enum** (ADR 0002): `BOUNDED=0, COLLISION=1, ESCAPE=2,
+  DEGENERATE=3, TIMEOUT=4`, in `sample_descriptor` bits 0–2. Single source of
+  truth `src/gpu/outcome_class.ts`, which exports **both** the TS enum and the
+  WGSL `const` block — never hard-code these integers in a shader.
+- **TileReduction schema** (ADR 0006): the `TileReduction` layout is generated
+  from a single declarative field table in `src/gpu/structs.ts` that emits the
+  TS decoder, the WGSL struct, and a `TILE_REDUCTION_SCHEMA_VERSION`. The GPU
+  writes the version word; the CPU decoder asserts it. **Hand-coded byte offsets
+  are prohibited** — this is the offset-map form of the "layout is one artifact"
+  rule.
+- **Layer-0 dispatch batching** (ADR 0005): Layer 0 dispatches in fixed chunks
+  (one chunk = one tile = one `N×N` pass), centre-out raster order, one
+  `queue.submit` per chunk, bounded chunks per frame; a CPU `viewGeneration`
+  token skips all remaining chunks of a stale generation the instant the camera
+  moves (in-flight passes finish, never cancelled).
+
 ## Before you finish any GPU change — checklist
 
 - Did you update all three of: WGSL struct, `structs.ts` packer/interface, and

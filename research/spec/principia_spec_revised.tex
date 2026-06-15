@@ -2486,7 +2486,7 @@ struct SimResult {
 \toprule
 Bit(s) & Name & Meaning \\
 \midrule
-0--2 & \texttt{class} & outcome class: escape (0), bounded (1), collision (2), degenerate (3), timeout (4). 3 bits, 5 values. \\
+0--2 & \texttt{class} & outcome class: bounded (0), collision (1), escape (2), degenerate (3), timeout (4). 3 bits, 5 values. Canonical mapping ratified in ADR 0002 (single source \texttt{src/gpu/outcome\_class.ts}); matches the M3 shader and M5/M6 reduction. \\
 3--4 & \texttt{detail} & union field keyed by class. Escape: which body (0/1/2). Collision: which pair (01/02/12). Bounded/other: 0. \\
 5 & \texttt{SUSPECT\_ENERGY} & $|\epsilon_E|>\tau_E$. \\
 6 & \texttt{SUSPECT\_LZ} & gated on absolute drift, not relative: set when $|\Delta L_{z,\max}|>\tau_L^{\mathrm{abs}}$. The relative drift $|L_z\text{ drift}|=|\Delta L_z|/(|L_{z,0}|+\varepsilon_L)$ is not used here because it is dominated by the floor $\varepsilon_L$ for trajectories starting near $L_{z,0}=0$ (e.g.\ Burrau rest start) and would mark such tiles spuriously. \\
@@ -3052,5 +3052,65 @@ Cubehelix & Full (LUT) & Monotone $L$ & Tolerant \\
 \end{center}
 
 \paragraph{Key parameters.} $L\in[0.35,0.90]$; $C\in[0.05,0.22]$; $\kappa\in[0.5,12]$; stripe frequency $f\in[2,14]$ (integer for seam-free); Fibonacci $N\in[12,96]$.
+
+\section{Ratified contract decisions (ADRs)}
+\label{sec:ratified-adrs}
+
+Several cross-milestone contracts were left open or underspecified in the body
+above. They have been ratified as binding decisions and are recorded in full
+(context, options, consequences, verification) under \texttt{docs/adr/}. The
+summaries below are authoritative for implementation; where one corrects body
+text, the body has been amended to match.
+
+\paragraph{ADR 0001 --- Shape-sphere checkpoint schedule.} The fixed checkpoints
+$t_1,\ldots,t_M$ are equally spaced with no $t=0$ anchor: $t_m = m\,T/M$, so
+$t_M = T$. Frequency-diffusion window membership is closed--closed with the
+shared boundary $t=T/2$ counted in both $W_1$ and $W_2$, yielding exactly three
+checkpoints per window at $M=8$. The schedule is identical on the f32 GPU and
+f64 inspector paths and is part of the cache compatibility signature.
+
+\paragraph{ADR 0002 --- Outcome-class enum.} Canonical 3-bit mapping:
+\texttt{BOUNDED=0}, \texttt{COLLISION=1}, \texttt{ESCAPE=2},
+\texttt{DEGENERATE=3}, \texttt{TIMEOUT=4}. Single source of truth
+\texttt{src/gpu/outcome\_class.ts}, exporting both the TypeScript enum and the
+WGSL \texttt{const} block. This supersedes the earlier ordering in the
+\texttt{sample\_descriptor} table (now corrected).
+
+\paragraph{ADR 0003 --- FTLE variant per tier.} Full phase-space Benettin FTLE
+is the only computed FTLE variant and runs in Research tier only. Preview and
+Balanced leave \texttt{ftle}${}=0$ with \texttt{FTLE\_VALID} clear; they may
+fill \texttt{stretch} with a cheaper non-FTLE proxy, never flagged valid. The
+IC-manifold and position-only variants are deferred research toggles.
+
+\paragraph{ADR 0004 --- Free-group word for unequal masses.} The free-group word
+is a trusted invariant \emph{only} in the equal-mass regime, with generators
+frozen at $\hat{\mathbf b}_1=(1,0,0)$, $\hat{\mathbf b}_2=(-\tfrac12,\tfrac{\sqrt3}{2},0)$
+and branch cuts anchored at $\hat{\mathbf l}^+=(0,0,1)$. For unequal masses the
+same detector runs against decoder-derived collision points, but the result is
+stamped \texttt{WORD\_UNCERTAIN} and must not gate refinement, boundary
+detection, or any published diagnostic. The general unequal-mass rule is
+deferred to a future ADR.
+
+\paragraph{ADR 0005 --- Layer-0 dispatch batching.} Layer~0 dispatches in
+fixed-size chunks (one chunk $=$ one tile $=$ one self-contained $N\times N$
+compute pass), emitted centre-out in raster order, one \texttt{queue.submit} per
+chunk, with a bounded number of chunks per animation frame. A CPU-held
+\texttt{viewGeneration} token causes all remaining chunks of a stale generation
+to be skipped the instant the camera moves; in-flight passes finish and are
+never cancelled. ``All tiles are dispatched'' (\S Layer~0) means across chunks,
+not in a single pass.
+
+\paragraph{ADR 0006 --- TileReduction schema.} The \texttt{TileReduction} layout
+is generated from a single declarative field table in \texttt{src/gpu/structs.ts}
+that emits the TypeScript decoder, the WGSL struct snippet, and a
+\texttt{TILE\_REDUCTION\_SCHEMA\_VERSION}. The GPU writes the version word and
+the CPU decoder asserts it. Hand-coded byte offsets are prohibited.
+
+\paragraph{ADR 0007 --- DEGENERATE reason enum.} Decode-time degeneracies carry
+a closed integer reason enum (e.g.\ \texttt{M01\_TINY=10}), with the $1x$ band
+reserved for decode-time terminal reasons and codes $0$--$4$ reserved for the
+post-integration outcome classes of ADR 0002. \texttt{COLLISION\_T0} remains a
+separate terminal kind. CPU and GPU share one frozen table, and downstream code
+matches the enum, never free strings.
 
 \end{document}

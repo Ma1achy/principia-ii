@@ -1,6 +1,6 @@
 # ADR 0005: Layer-0 dispatch batching under WebGPU timeouts
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M3
 - **Recommendation:** Adopt fixed-size dispatch chunks (each chunk = one compute pass = one tile, 256x256 samples) submitted in centre-out raster order, one queue submit per chunk, with a per-frame generation token that lets the render loop abandon remaining chunks the instant the camera moves.

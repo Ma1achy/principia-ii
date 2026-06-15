@@ -76,6 +76,13 @@ point. Decode failures emit `DEGENERATE(reason)`; `t = 0` near-collisions emit
 pixel gets a defined output. (The numerical detail lives in the
 `principia-numerics` skill; architecturally, the rule is: tag, never throw.)
 
+The `DEGENERATE` reason is a **closed integer enum** (ADR 0007, record in
+`docs/adr/`), not a free string — e.g. `M01_TINY=10`, with the `1x` band
+reserved for decode-time terminal reasons and codes `0–4` reserved for the
+post-integration outcome classes (ADR 0002). `COLLISION_T0` stays a separate
+terminal kind. CPU and GPU share one frozen table; downstream code matches the
+enum, never a string.
+
 ## The three-layer tile architecture
 
 The quadtree system is built in three layers, and this is the **implementation

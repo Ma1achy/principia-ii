@@ -1,6 +1,6 @@
 # ADR 0004: Free-group word encoding for unequal masses
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M6, M10, M11
 - **Recommendation:** Scope v1 to equal masses: the F2 word with fixed equator generators (1,0,0)/(-1/2,±√3/2,0) is the only validated, golden-pinned regime; unequal-mass slices compute the word against decoder-derived collision points but flag it WORD_UNCERTAIN and never gate refinement or science on it until a future ADR ratifies the general rule.

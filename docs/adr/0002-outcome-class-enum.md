@@ -1,6 +1,6 @@
 # ADR 0002: Outcome-class enum to u32 mapping
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M3, M5, M6
 - **Recommendation:** Pin BOUNDED=0, COLLISION=1, ESCAPE=2, DEGENERATE=3, TIMEOUT=4 (low 3 bits of sample_descriptor) in a single shared file generated into both a TS enum and a WGSL const, fold MAX_SUBSTEPS/SIM_FAILED into existing classes, and lock it with a parity golden test.

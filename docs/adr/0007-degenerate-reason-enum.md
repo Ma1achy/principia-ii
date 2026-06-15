@@ -1,6 +1,6 @@
 # ADR 0007: DEGENERATE(reason) reason enumeration
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M2, M3
 - **Recommendation:** Adopt a closed 8-member DegenerateReason enum with frozen u32 codes (10-17), reserving COLLISION_T0 as a separate terminal kind; downstream matches on the enum, never on free strings.

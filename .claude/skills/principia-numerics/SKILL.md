@@ -157,6 +157,21 @@ invalidate the cache, because they change what the pixel *means*.
 | Jacobi guard | `eps` | `1e-6` |
 | Mirror tie deadband | `delta_lambda` | `1e-12` |
 
+## Ratified contracts (ADRs)
+
+Two metric contracts are decided and binding (full records in `docs/adr/`):
+
+- **Checkpoint schedule** (ADR 0001): shape-sphere checkpoints are equally
+  spaced with **no `t=0` anchor** — `t_m = m·T/M`, so `t_M = T`. Frequency-
+  diffusion windows are closed–closed with `t=T/2` counted in **both** `W₁` and
+  `W₂`, giving exactly three checkpoints per window at `M=8`. The schedule is
+  identical on the f32 GPU and f64 inspector paths and is part of the cache
+  signature — don't change it on one side only.
+- **FTLE per tier** (ADR 0003): full phase-space Benettin FTLE is the **only**
+  FTLE variant and runs in **Research tier only**. Preview/Balanced leave
+  `ftle = 0` with `FTLE_VALID` clear (a cheaper proxy may fill `stretch`, never
+  flagged valid). IC-manifold / position-only variants are deferred.
+
 ## Hot-loop discipline (after correctness)
 
 The inner numeric work should be allocation-free: use the monomorphic flat-array

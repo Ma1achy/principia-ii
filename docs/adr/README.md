@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Cross-milestone contract decisions for Principia. **All are _Proposed_** — pending ratification into `research/spec/principia_spec_revised.tex`. See plan Workstream A.
+Cross-milestone contract decisions for Principia. **All are _Accepted_** — ratified 2026-06-15 into `research/spec/principia_spec_revised.tex` (see its "Ratified contract decisions (ADRs)" appendix and `principia_spec_revisions.md`). Owning-skill constants mirrored into `.claude/skills/`.
 
 | # | Decision | Gates | Recommendation |
 |---|----------|-------|----------------|

@@ -1,6 +1,6 @@
 # ADR 0001: Shape-sphere checkpoint-time schedule
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M3, M6, inspector
 - **Recommendation:** Adopt closed-form equal spacing with no t=0 anchor: t_m = m·T/M for m=1..M (right-aligned endpoints, t_M = T), fixed for all tiers and charts.

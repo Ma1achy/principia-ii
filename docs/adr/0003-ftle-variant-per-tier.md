@@ -1,6 +1,6 @@
 # ADR 0003: Default FTLE perturbation variant per quality tier
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M6, M9
 - **Recommendation:** Full phase-space Benettin FTLE in Research tier only; Preview and Balanced compute no FTLE (FTLE_VALID always clear, ftle=0); FTLE_VALID is set iff the tier enabled FTLE AND benettinCount>0 AND the run is numerically finite.

@@ -1,6 +1,6 @@
 # ADR 0006: TileReduction versioned offset map (vs hard-coded byte offsets)
 
-- **Status:** Proposed (not yet ratified into the spec)
+- **Status:** Accepted (ratified into the spec 2026-06-15)
 - **Date:** 2026-06-15
 - **Gates:** M5, M6
 - **Recommendation:** Generate the TS decoder, WGSL struct, and a schema-version field from one declarative TileReduction field table in src/gpu/structs.ts, pinned by a golden round-trip fixture.
