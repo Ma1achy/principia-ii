@@ -300,9 +300,9 @@ export function makeBurrauMassChart(nu0: number): Chart {
       const c = canonicalise({ r, p, m, t: 0 },
                              { deltaLambda: EPS_DEADBAND, rColl: R_COLL_DEFAULT });
       if (c.terminal) {
-        return { kind: 'terminal', terminal: c.terminal, descriptor: stub(m) };
+        return { kind: 'terminal', terminal: c.terminal, descriptor: zeroDescriptor(m) };
       }
-      return { kind: 'ok', state: c.state, descriptor: stub(m) };
+      return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
     },
 
     inverseEncode(_ic) {
@@ -322,10 +322,43 @@ export function makeBurrauMassChart(nu0: number): Chart {
   };
 }
 
-function stub(m: any): any {
-  return { m, qMass: Math.min(...m),
+function zeroDescriptor(m: any): any {
+  return { m, qMass: Math.min(...m) / (m[0] + m[1] + m[2]),
            rho1Mag: 0, rho2Mag: 0, rhoRatio: 0, rhoAngle: 0,
            K0: 0, V0: 0, virial: 0, rMinPair0: 0 };
+}
+
+/** Real ICDescriptor from a canonicalised state {m, r, p}; same construction
+ *  as M2 pipeline.makeDescriptor. q_mass = m_min / M_total. */
+function makeDescriptor(s: { m: any; r: any; p: any }): any {
+  const m = s.m;
+  const M = m[0] + m[1] + m[2];
+  const M01 = m[0] + m[1];
+  const cx = (m[0]*s.r[0][0] + m[1]*s.r[1][0]) / M01;
+  const cy = (m[0]*s.r[0][1] + m[1]*s.r[1][1]) / M01;
+  const rho    = [s.r[1][0]-s.r[0][0], s.r[1][1]-s.r[0][1]];
+  const lambda = [s.r[2][0]-cx,        s.r[2][1]-cy];
+  const rho1Mag = Math.hypot(rho[0], rho[1]);
+  const rho2Mag = Math.hypot(lambda[0], lambda[1]);
+  const rhoAngle = Math.atan2(rho[0]*lambda[1]-rho[1]*lambda[0],
+                              rho[0]*lambda[0]+rho[1]*lambda[1]);
+  const K0 = (s.p[0][0]**2 + s.p[0][1]**2)/(2*m[0])
+           + (s.p[1][0]**2 + s.p[1][1]**2)/(2*m[1])
+           + (s.p[2][0]**2 + s.p[2][1]**2)/(2*m[2]);
+  let V0 = 0;
+  for (let i = 0; i < 3; i++) for (let j = i+1; j < 3; j++) {
+    const d = Math.hypot(s.r[i][0]-s.r[j][0], s.r[i][1]-s.r[j][1]);
+    V0 -= m[i]*m[j] / Math.max(1e-30, d);
+  }
+  let rMin = Infinity;
+  for (let i = 0; i < 3; i++) for (let j = i+1; j < 3; j++)
+    rMin = Math.min(rMin, Math.hypot(s.r[i][0]-s.r[j][0], s.r[i][1]-s.r[j][1]));
+  return { m, qMass: Math.min(m[0], m[1], m[2]) / M,
+           rho1Mag, rho2Mag,
+           rhoRatio: rho1Mag === 0 ? Infinity : rho2Mag / rho1Mag,
+           rhoAngle, K0, V0,
+           virial: 2*K0 / Math.max(1e-30, Math.abs(V0)),
+           rMinPair0: rMin };
 }
 ```
 
