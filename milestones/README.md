@@ -29,6 +29,8 @@ one detailed file per milestone with copy-paste-runnable TypeScript and WGSL.
 | [G9_capability_detection.md](G9_capability_detection.md) | WebGPU capability detection + graceful degradation: `CapabilityProfile`, per-tier caps, full-retention viewport math, typed `UnsupportedError` | M3 (pairs with G7) |
 | [G10_perf_profiling.md](G10_perf_profiling.md) | `PerfMonitor` in the frame loop: rolling CPU/GPU per-pass timings (`timestamp-query` when present), budget feedback + tier-drop, BufferPool hot-path patches | G2, G8 (pairs with G9/G7) |
 | [G11_error_telemetry.md](G11_error_telemetry.md) | `ErrorBoundary` + structured telemetry: closed `AppErrorKind`, user-facing messages, M5 `status_flags` → tile-failure overlays, pluggable sink | G2, G7, G9 |
+| [G12_ui_shell.md](G12_ui_shell.md) | Full vanilla-TS shell: ControlPanel/Canvas/Inspector, ChartBrowser presets, rebindable keymap, responsive layout, loading chrome, ViewState undo/redo (render-only changes excluded) | G2, G8 (G9/G10/G11) |
+| [G13_accessibility_cvd.md](G13_accessibility_cvd.md) | Accessibility + CVD UI: render-only `cvdMode` toggle, keyboard nav + roving tabindex, ARIA + live region, high-contrast/font-scale, reduced-motion | G12, M7 |
 
 The G-series files are gap-fill milestones written after v1 and
 project-wide planning self-reviews; they cover the load-bearing seams the
