@@ -17,6 +17,8 @@ npm test -- --run test/golden/burrau
 The Burrau 3-4-5 rest start integrates to `T = 80` with relative energy drift
 below `1e-7`, and the body identity that escapes matches the reference.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); a pure-TS reference integrator that produces the ground-truth trajectories every later GPU result is checked against.
+
 ## File tree
 
 ```

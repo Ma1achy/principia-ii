@@ -41,6 +41,8 @@ tile vs `E = 1`. The reduce-spread pass writes non-zero
 `spread_arc_length_n`, `spread_t_end`, `spread_d_min` for any tile
 with sample variance.
 
+**Deliverable:** the app survives a forced device loss without blanking the slippy-map (recovers in <200 ms), ensemble mode dispatches `E`-fold jittered copies, and the reduce pass writes real spread fields — verified by `test/integration/gap_g7`.
+
 ## File tree
 
 ```

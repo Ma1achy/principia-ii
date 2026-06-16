@@ -34,6 +34,8 @@ one detailed file per milestone with copy-paste-runnable TypeScript and WGSL.
 | [G14_e2e_regression_ci.md](G14_e2e_regression_ci.md) | Real-Chrome WebGPU e2e (nightly/opt-in; swiftshader stays the per-PR fallback), golden-PNG visual diff, perf-regression + axe a11y gates; §7 job off `needs-gpu` | G8, G12, G13, M3, M12 |
 | [G15_build_deploy_hosting.md](G15_build_deploy_hosting.md) | Production Vite build (hashed chunks, `?raw` shaders, base path), shader compression, env injection, GitHub Pages deploy, optional PWA; pure config validator | G1, G8, G14 |
 | [G16_documentation_onboarding.md](G16_documentation_onboarding.md) | User guide, architecture guide, ADR index, "add-a-chart" runbook, glossary, TypeDoc API; pure docs-completeness/link checker | most milestones |
+| [G17_debug_harness.md](G17_debug_harness.md) | Debugging & bring-up harness: standalone dev-harness page + buffer/struct dumpers, GPU readback helpers, headless capture so M3's first pass is inspectable the moment it exists | M3 |
+| [G18_debug_hud.md](G18_debug_hud.md) | Debug HUD integration: in-app overlay wiring G17's dumpers to live perf/error/telemetry feeds, toggleable diagnostics layer over the running shell | G17, G2, G8, G10, G11, M9 |
 
 The G-series files are gap-fill milestones written after v1 and
 project-wide planning self-reviews; they cover the load-bearing seams the
@@ -55,6 +57,16 @@ defined provisionally. Beyond G1/G3: G4 simplifies M10 once it's in, G5 makes
 M8's chart-switch path actually preserve the lock, and G2 ties the whole thing
 together into a runnable shell.
 
+**G17/G18 ordering (debug tooling).** G17 (the debugging & bring-up harness) is
+written late in the G-series but **builds right after M3** — the earliest point
+at which there is anything to debug, since M3 is the first milestone that puts
+real numbers into a GPU buffer. Standing G17 up there means M3's first
+simulate/render pass is inspectable the moment it exists, rather than weeks
+later. G18 (the in-app debug HUD) **builds after G11** and pairs with G12: it
+needs the frame loop (G2), the UI shell hooks (G8), and live perf/error/
+telemetry feeds (G10/G11) to overlay, plus the inspector (M9), so it lands
+alongside the full shell rather than during bring-up.
+
 ## Conventions
 
 - TypeScript on the host, WGSL on the GPU, Vitest for unit/integration tests.
@@ -66,6 +78,18 @@ together into a runnable shell.
   section in M11.
 - Sentinel values: `-1.0` for missing diffusion (NaN forbidden under WGSL),
   `0.0` for unset FTLE (`FTLE_VALID` bit drives interpretation).
+
+## Deliverable policy
+
+Every milestone declares a single **Deliverable** line up front, stating what
+actually works at the end of it and what is see/run-able by a human — a page to
+open, a harness to launch, a visible behaviour to exercise — or the explicit
+tag `internal — tests only` when the milestone ships no user-facing surface and
+is gated purely by its acceptance test. The Deliverable is about observability,
+not just passing tests: it answers "if I finish this, what can I look at?"
+GPU milestones in particular must not be invisible — **M3 (via G17), M5, and
+M7** each ship a standalone dev-harness page so their GPU output is inspectable
+on its own, independent of the full application shell.
 
 ## How to follow along
 

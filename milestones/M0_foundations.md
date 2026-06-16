@@ -14,6 +14,8 @@ npm test -- --run test/unit/math
 
 passes with at least 30 unit tests, all of which are green.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); a green CI gate and the math/decoder/integrator primitives later milestones build on.
+
 ## File tree created in this milestone
 
 ```

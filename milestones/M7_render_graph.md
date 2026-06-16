@@ -22,6 +22,8 @@ changes; groups 0/1/2 stay constant.
 npm test -- --run test/integration/render_graph
 ```
 
+**Deliverable:** a dev-harness page where you can switch colour/brightness modes and swap palettes live and SEE the render-graph output update (render-only, no recompute).
+
 A palette swap rebinds only group 3 — it does not change any byte of the
 `SimResult` storage buffer. The OKLAB round-trip holds to 1e-6 ΔE. The
 stability×hue mode reproduces the published reference frame to within 2
@@ -1146,6 +1148,31 @@ npm test -- --run test/integration/render_graph
 two renders that differ only in palette, and `render_graph_stability_hue`
 verifies the reference luminance ordering for the principal Principia
 colour mode.
+
+## Dev harness
+
+A minimal page proves the render-only contract by eye: it builds the
+render graph once and never touches the compute side again. After a GPU
+context plus a *static* `SimResult`/`ICDescriptor` pair are bound to
+groups 0/1/2 (reuse an M3/M5 sample tile, or a synthetic fixture), call
+`buildRenderGraph(ctx, bufs, code)` once to get the `{ pipeline,
+bgRenderParams, paramsBuffer }`. Wire HTML `<select>` controls for colour
+mode, brightness mode, combiner, CVD, and palette onto a single mutable
+`RenderParams` object seeded from `DEFAULT_RENDER_PARAMS`. On any change,
+re-pack with `packRenderParams(params)`, `device.queue.writeBuffer(graph.paramsBuffer, 0, bytes)`,
+and re-encode one render pass that binds the *same* `bgRenderParams`
+group 3 — groups 0/1/2 and the `SimResult` storage buffer are never
+rewritten, so the only cost of a mode/palette flip is the 64-byte uniform
+write. Entry point, called once on page load and again per control
+`change` event:
+
+```ts
+const graph = await buildRenderGraph(ctx, bufs, RENDER_GRAPH_WGSL);
+function repaint() {
+  ctx.device.queue.writeBuffer(graph.paramsBuffer, 0, packRenderParams(params));
+  drawFrame(ctx, graph);   // one render pass; rebinds group 3 only
+}
+```
 
 ## Notes for the implementer
 

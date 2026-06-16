@@ -20,6 +20,8 @@ and equilateral configurations at the poles. A periodic figure-8 orbit
 produces a free-group word that is a power of `abAB`. A clearly chaotic
 Burrau scattering trajectory has FTLE at least 10× a clearly regular orbit.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); the derived stability observables (corrected shape-sphere coordinate, unwrapped phase, frequency diffusion, Benettin FTLE, free-group word) packed into the descriptor uint32s every later render mode reads.
+
 ## File tree
 
 ```

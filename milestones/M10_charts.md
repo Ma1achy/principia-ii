@@ -26,6 +26,8 @@ shape-sphere chart, switch to `(L_z, E)` chart at `K = 0`: lands at the
 feasibility-parabola apex `(L_z = 0, E = U)`. The mass-simplex chart
 respects the interior buffer at every corner.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); a `chartRegistry` of total `(decode, inverseEncode, validate)` chart objects (latent affine, `(L_z, E)`, `(L_z, K)`, shape sphere, ternary mass, mixed-axis) with compatibility flags, all exercised headlessly.
+
 ## File tree
 
 ```

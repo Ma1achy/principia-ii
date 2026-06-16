@@ -39,6 +39,8 @@ The dev shell renders, the perf-baseline test stays under the budget
 800 µs per tile), and the ci-acceptance test runs all six §7 checks
 in under 30 seconds.
 
+**Deliverable:** `npm run dev` opens a working, interactive slippy-map of the 3-body manifold (canvas renders Burrau (3,4,5)) you can pan and zoom; `npm run build && npm run preview` produces a production bundle; CI runs unit + integration + acceptance on every push.
+
 ## File tree
 
 ```
@@ -416,9 +418,9 @@ export default defineConfig({
 name: ci
 on:
   push:
-    branches: [main]
+    branches: [webgpu-rewrite]
   pull_request:
-    branches: [main]
+    branches: [webgpu-rewrite]
 
 jobs:
   unit:
@@ -466,9 +468,9 @@ jobs:
 name: acceptance
 on:
   push:
-    branches: [main]
+    branches: [webgpu-rewrite]
   pull_request:
-    branches: [main]
+    branches: [webgpu-rewrite]
   schedule:
     # Nightly run; longer-horizon goldens go here.
     - cron: '0 4 * * *'
@@ -527,6 +529,20 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
 });
+```
+
+### `package.json` (scripts patch)
+
+M0 defined the core scripts but not the GPU/Playwright runner that the
+`webgpu_integration` CI job and local devs invoke via `npm run test:gpu`.
+Add the script:
+
+```json
+{
+  "scripts": {
+    "test:gpu": "playwright test"
+  }
+}
 ```
 
 ### `test/integration/ci_acceptance.test.ts`

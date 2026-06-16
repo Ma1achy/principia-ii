@@ -34,6 +34,8 @@ lookup, rebind, and unknown-key fall-through); and the preset store
 (save/apply round-trip, render-only fields excluded from a preset, and built-in
 presets being immutable).
 
+**Deliverable:** the full interactive UI shell — preset gallery, keyboard control, responsive layout, loading/error/warning chrome, and undo/redo — usable over the G2 canvas via `npm run dev`; the pure reducers (history ring, keymap, preset store) are pinned by `test/unit/ui/shell`.
+
 ## File tree
 
 ```

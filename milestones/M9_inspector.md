@@ -25,6 +25,8 @@ chases a near-collision approach where the GPU pipeline declared
 `MAX_SUBSTEPS`. Match-integrator mode reproduces the GPU `t_end` to
 sub-millisecond on a smooth Burrau sample.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); a pure-CPU f64 recompute path (DOPRI5 RK45 + match-integrator) that turns a locked IC into a high-fidelity `InspectorResult`, verified against the GPU pipeline in headless tests.
+
 ## File tree
 
 ```

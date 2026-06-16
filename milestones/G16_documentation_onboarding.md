@@ -31,6 +31,8 @@ every intra-doc relative link (`[…](relative/path.md)`, `…#anchor` stripped)
 resolves to an existing file on disk. No GPU, no browser, no network — the
 checker reads files and parses Markdown links with a regex.
 
+**Deliverable:** a browsable `docs/` site — user guide, architecture guide, ADR index, "add a new chart" runbook, glossary, and a TypeDoc API-doc setup — with a pure docs-completeness/link checker as its gate, pinned by `test/unit/docs/completeness`.
+
 ## File tree
 
 ```

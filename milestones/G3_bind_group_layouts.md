@@ -32,6 +32,8 @@ without validation errors when used in the reduce pipeline (input
 group), the render pipeline (storage read), and the inspector preview
 pipeline.
 
+**Deliverable:** internal — tests only; one `buildLayouts(device)` authority yields a canonical `PipelineLayouts` so the same bind group binds cleanly across simulate/reduce/render, checked by `test/integration/layout_compat`.
+
 ## File tree
 
 ```

@@ -40,6 +40,8 @@ identical) and matches the full `f64` decoder to within 1e-13 in
 phase-space norm — versus the full `f32` decoder which produces
 identical bytes for >50% of samples at the same depth.
 
+**Deliverable:** internal — tests only; a linearised decoder (`x_0` + Jacobian uniforms with a `decode_linear` shader path and a depth-20 switchover) keeps deep-zoom samples distinct past the `f32` precision floor, pinned by golden `test/golden/linearised_decoder`.
+
 ## File tree
 
 ```
