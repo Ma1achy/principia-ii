@@ -29,6 +29,8 @@ the expected hit rate; reductions are ingested in submission order;
 no tile is dispatched twice; the inspector recomputes once on lock and
 no more.
 
+**Deliverable:** a running frame loop — the top-level `App` ticks read-view → plan → dispatch → render → handle-input each frame, verified by a 100-frame mocked-GPU harness in `test/integration/app_frame_loop` (the milestone graph's "main", not yet a visible canvas).
+
 ## File tree
 
 ```

@@ -24,6 +24,8 @@ classification, per-tier cap derivation from synthetic limits, the
 `maxStorageBufferBindingSize` → full-retention-viewport math, and request
 degradation (tier downgrade + viewport clamp).
 
+**Deliverable:** internal — tests only; a capability layer emits one `CapabilityProfile` (support state, limits, chosen tier, derived caps, warnings) that `initGpu`, the scheduler, and the UI read so unsupported devices degrade informatively instead of throwing, verified by `test/unit/gpu/capability`.
+
 ## File tree
 
 ```

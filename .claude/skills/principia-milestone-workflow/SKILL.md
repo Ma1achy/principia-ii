@@ -28,13 +28,17 @@ Every milestone has these sections, in this order:
 
 1. **Goal** — one paragraph plus a single **exit criterion**: an exact command
    that must pass (e.g. `npm test -- --run test/unit/math` with 30+ green tests).
-2. **File tree** — the exact set of files this milestone creates. This is the
+2. **Deliverable** — one line stating what concretely works when the milestone
+   lands and what the user can see or run (open a page, run an export), or an
+   explicit "internal — tests only (no visible artifact yet)". GPU/UI milestones
+   should ship a dev-harness page as their deliverable.
+3. **File tree** — the exact set of files this milestone creates. This is the
    scope; don't add files from later milestones.
-3. **Per-file sections** — the source for each file, in dependency order.
-4. **Tests** — the unit and golden tests for the milestone.
-5. **Run it** — the exact `npm` command(s) to execute.
-6. **Acceptance check** — the binary done condition.
-7. **Notes for the implementer** — the gotchas. Read these; they carry the
+4. **Per-file sections** — the source for each file, in dependency order.
+5. **Tests** — the unit and golden tests for the milestone.
+6. **Run it** — the exact `npm` command(s) to execute.
+7. **Acceptance check** — the binary done condition.
+8. **Notes for the implementer** — the gotchas. Read these; they carry the
    non-obvious decisions.
 
 ## Build top-down, in the listed order

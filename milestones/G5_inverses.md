@@ -26,6 +26,8 @@ resulting physical IC reproduces the original pixel to within 1e-6
 switch-chart preserves the physical IC's inter-body distances to within
 1e-3 in the mass-weighted phase-space norm.
 
+**Deliverable:** internal — tests only; real closed-form `inverseEncode` for every chart makes the lookup → lock → switch-chart round trip preserve the physical IC across all charts, pinned by golden `test/golden/chart_inverse`.
+
 ## File tree
 
 ```

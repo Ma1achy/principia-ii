@@ -18,6 +18,8 @@ A scripted pan that scrolls four screens of content across a 1024² viewport
 produces zero frames with a blank region. A zoom step shows a stretched
 parent for exactly one frame, then sharp children once they land.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); the tile-cache / quadtree-pyramid / ancestor-fallback logic that guarantees no blank frame while the compute queue drains, exercised in headless tests.
+
 ## File tree
 
 ```

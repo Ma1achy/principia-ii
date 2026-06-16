@@ -36,6 +36,8 @@ diff-mask production; and the golden-manifest validator (every declared render
 mode has exactly one golden entry, all paths unique). No GPU, browser, or
 display required — the comparator and manifest validator are pure.
 
+**Deliverable:** internal/CI — a pure image comparator plus golden-PNG visual-regression, perf-regression, and axe-core a11y gates wired into CI (real headless-Chrome WebGPU on a nightly/opt-in schedule); the comparator and golden-manifest validator are pinned by `test/unit/regression/image_diff`.
+
 ## File tree
 
 ```

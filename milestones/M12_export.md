@@ -44,6 +44,8 @@ pipeline's structural invariants:
 Additionally: a 10-frame `z[3]` sweep round-trips byte-for-byte through
 the sidecar reproducibility check.
 
+**Deliverable:** exportable artifacts you can open and share — a canonical serialisable `ViewState`, shareable URLs that round-trip losslessly, single-frame and animated-sweep exports, and PNG/JSON/binary/CSV/NPZ data dumps with SHA-256 reproducibility sidecars, all gated by the six CI acceptance checks.
+
 ## File tree
 
 ```

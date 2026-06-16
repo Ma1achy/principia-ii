@@ -37,6 +37,8 @@ computation (`rovingTabindex`, `focusOrder`, arrow-key index advance with
 wrap/clamp); and the live-announcement message builder (`announce` for lock,
 chart, zoom, and CVD changes, plus `describeShortcuts`).
 
+**Deliverable:** the full UI shell becomes accessible — a CVD-mode toggle, keyboard navigation, an ARIA/live-status layer, a high-contrast theme, font-size scaling, and reduced-motion handling all usable via `npm run dev`; the pure CVD/ARIA/focus/announcement logic is pinned by `test/unit/ui/a11y`.
+
 ## File tree
 
 ```

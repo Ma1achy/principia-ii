@@ -29,6 +29,8 @@ sim-failure from a `status_flags` bit, decode `DEGENERATE` carrying a
 user-facing descriptor mapping; user messages that contain no stack text; and
 telemetry level filtering plus in-memory sink buffering.
 
+**Deliverable:** internal — tests only; an `ErrorBoundary` classifies every GPU/decode failure into a closed `AppErrorKind` with a user-facing message that never leaks a stack, plus a leveled telemetry sink, verified by `test/unit/error/boundary`.
+
 ## File tree
 
 ```
@@ -77,7 +79,7 @@ import type { DegenerateReason } from '@/decode/types.js';
 import { tileFlagDescriptor } from './tile_status.js';
 
 /** Closed set of application-level error categories. */
-export const enum AppErrorKind {
+export enum AppErrorKind {
   /** WebGPU absent / no adapter / no device (G9 UnsupportedError). */
   Unsupported = 'unsupported',
   /** Device vanished mid-flight (G7 device.lost). Recoverable. */
@@ -254,7 +256,7 @@ buffers records for tests/diagnostics. Level filtering happens once, in
 `Telemetry`, so a disabled level never builds a record.
 
 ```ts
-export const enum Level {
+export enum Level {
   Debug = 10,
   Info = 20,
   Warn = 30,

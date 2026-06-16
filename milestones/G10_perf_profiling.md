@@ -31,6 +31,8 @@ the tier-drop recommendation per ADR 0003 ordering), CPU-only degradation when
 `timestamp-query` is absent, and per-pass GPU label accumulation when it is
 present.
 
+**Deliverable:** internal — tests only; a `PerfMonitor` fed by the G2 frame loop computes rolling CPU/GPU-timestamp mean/p95 and emits an over-budget signal that backs off the scheduler and recommends tier drops, with `timestamp-query` degrading to CPU-only timing, verified by `test/unit/perf/perf_monitor`.
+
 ## File tree
 
 ```

@@ -17,6 +17,10 @@ A uniform-basin tile has `coherence_score ≤ 0.05` and is never split below
 depth 4 with budget unbounded. A fractal-boundary tile splits all the way
 to `MAX_DEPTH`. Off-screen tiles are cancelled before dispatch.
 
+**Deliverable:** a dev-harness view of adaptive refinement — the tile quadtree,
+per-tile coherence/priority, and split/merge decisions rendered/printed for a
+live viewport.
+
 ## File tree
 
 ```
@@ -1299,6 +1303,26 @@ npm test -- --run test/integration/layer2
 Three integration tests pass: a uniform basin holds at coherence ≤ 0.05 at
 every level, a fractal boundary splits at every level below `MAX_DEPTH`,
 and an off-screen viewport cancels every pending job.
+
+## Dev harness
+
+A minimal dev page (`dev/layer2_refinement.html` + `dev/layer2_refinement.ts`,
+outside the test tree) makes the refinement loop legible while the renderer
+proper (G-series) is still pending. It builds the M5 readback surface for a live
+viewport — `buildReducePipeline` → `dispatchReduce` → `readbackReduction` per
+visible tile — then runs the same `compositeCoherence` / `computePriority` /
+`decideSplit` the scheduler uses and paints one cell per tile in the quadtree:
+coherence (`coherence_score`) and priority (`priority_score`) as a colour ramp,
+the split/keep/merge decision as a border, and `outcome_impurity` /
+`status_flags` (suspect/f32-floor/version-stripped) as overlay badges. Driving it
+off the readback `TileReduction` — rather than synthetic fixtures — means the
+harness exercises the real `decodeTileReduction` schema check, so a layout/version
+drift surfaces visually, not just in CI. Entry point:
+
+```ts
+// dev/layer2_refinement.ts
+runLayer2Harness(canvas, ctx, view);   // dispatch+readback per visible tile, then draw the decision map
+```
 
 ## Notes for the implementer
 

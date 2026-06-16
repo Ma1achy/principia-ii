@@ -20,6 +20,8 @@ than `1e-9` at 1000 random non-saturated points; landmark configurations
 geometric shapes; and the no-holes contract holds: every UV pixel lands in
 either a valid IC or a labelled terminal.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); the single decode/canonicalise/encode pipeline (with its no-holes guarantee) that every chart funnels through.
+
 ## File tree
 
 ```

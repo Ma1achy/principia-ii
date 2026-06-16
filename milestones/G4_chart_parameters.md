@@ -27,6 +27,8 @@ chart (α_min = 0.20) does not trigger a shader recompile; the
 `ChartUniforms` buffer rebinds and the next dispatch reads the new
 values.
 
+**Deliverable:** internal — tests only; per-chart decoder knobs live in a `ChartUniforms` buffer at group(0) binding(2) so changing a chart's parameters rebinds without a shader recompile, verified by `test/integration/chart_uniforms`.
+
 ## File tree
 
 ```

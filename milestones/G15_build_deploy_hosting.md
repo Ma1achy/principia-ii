@@ -43,6 +43,8 @@ passes with at least **18 green tests** covering: the canonical chunk split
 WGSL module named in the shader registry resolves to an existing file under
 `src/gpu/shaders/`.
 
+**Deliverable:** a deployed site — a hardened production `vite build` (hashed chunks, gzip/brotli-compressed WGSL, configurable `base`) published to GitHub Pages at `/principia-ii/` by a CI deploy workflow, with an optional offline service worker; the `build.config.ts` source of truth is pinned by `test/unit/build/build_config.test.ts`.
+
 ## File tree
 
 ```

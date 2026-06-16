@@ -31,6 +31,8 @@ Chrome's WebGPU implementation. A symbol used but not defined produces a
 loud error at link time, with line/file context, before reaching the
 GPU.
 
+**Deliverable:** internal — tests only; `wgslLink` resolves `// @import` directives into validated single-module shaders for the simulate/reduce/render pipelines, exercised by `test/integration/shader_compose`.
+
 ## File tree
 
 ```

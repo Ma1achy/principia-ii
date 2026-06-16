@@ -25,6 +25,8 @@ charts). Locking, switching chart, and unlocking preserves the physical
 IC across the round trip. A tilt sweep into a hidden dimension produces a
 sequence of consistent slice cross-sections (no normalisation jitter).
 
+**Deliverable:** internal — tests only (ViewState/interaction logic, still no visible UI until a later GPU/UI milestone); every gesture (sliders, log-zoom, tilt, lock, lookup) reduced to a transform of the canonical `ViewState`, round-tripping a clicked pixel back to its physical IC in headless tests.
+
 ## File tree
 
 ```

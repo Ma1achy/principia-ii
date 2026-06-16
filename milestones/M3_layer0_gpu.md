@@ -28,6 +28,8 @@ A 16×16 sample of the (3,4,5)-Burrau view classifies every pixel identically
 between GPU `f32` and CPU `f64`, with shape-sphere positions agreeing to
 within `1e-3` after `T = 50`.
 
+**Deliverable:** the first on-screen pixels — the G17 debug harness page renders M3's outcome-class grid to a live canvas and lets you inspect any sample (M3 itself is gated by test/integration/layer0; the viewable artifact ships with G17).
+
 ## File tree
 
 ```

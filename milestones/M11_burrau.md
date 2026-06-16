@@ -26,6 +26,8 @@ primitive triples produce distinct geometries. Stage 4 persistence probe
 runs cleanly: lock + tilt sweep produces a smooth `coherence_score`
 trace.
 
+**Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); the Burrau–Pythagorean family expressed entirely as configured M10 charts (triples, ν/mass/momentum sweeps, persistence probe), with the classical (3,4,5) IC reproducing the M1 golden through the full chart pipeline.
+
 ## File tree
 
 ```
