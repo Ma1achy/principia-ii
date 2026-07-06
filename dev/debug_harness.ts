@@ -16,14 +16,8 @@ import { scanNonFinite, nonFiniteSamples } from '@/debug/finite_scan.js';
 import { captureFrame, serializeFrame, deserializeFrame } from '@/debug/frame_capture.js';
 import { Logger, consoleSink, type LogRecord } from '@/debug/logger.js';
 
-// Shaders as raw strings, same concat order as the M3 integration test.
-import helpersWgsl from '@/gpu/shaders/helpers.wgsl?raw';
-import observeWgsl from '@/gpu/shaders/observe.wgsl?raw';
-import eventsWgsl from '@/gpu/shaders/events.wgsl?raw';
-import integrateWgsl from '@/gpu/shaders/integrate.wgsl?raw';
-import decodeWgsl from '@/gpu/shaders/decode.wgsl?raw';
-import simulateWgsl from '@/gpu/shaders/simulate.wgsl?raw';
-import renderWgsl from '@/gpu/shaders/render_layer0.wgsl?raw';
+// Linked shader modules (G1 wgslLink; replaces the M3 hand concat).
+import { SIMULATE_MODULE, RENDER_LAYER0_MODULE } from './shader_modules.js';
 
 const N = 16;
 const M = 8;
@@ -50,11 +44,7 @@ const DEFAULT_TILE: TileRequest = {
 };
 
 function loadShaders(): { simulate: string; render: string } {
-  return {
-    simulate: [helpersWgsl, observeWgsl, eventsWgsl,
-               integrateWgsl, decodeWgsl, simulateWgsl].join('\n'),
-    render: renderWgsl,
-  };
+  return { simulate: SIMULATE_MODULE, render: RENDER_LAYER0_MODULE };
 }
 
 async function readbackToArrayBuffer(ctx: GpuContext, bufs: TileBuffers): Promise<ArrayBuffer> {

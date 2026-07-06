@@ -12,13 +12,17 @@ import { scanNonFinite, nonFiniteSamples } from '@/debug/finite_scan.js';
 import { captureFrame, serializeFrame, deserializeFrame, packedInputs } from '@/debug/frame_capture.js';
 import type { SimUniforms, TileRequest } from '@/gpu/structs.js';
 import { sizeOfSimResult } from '@/gpu/structs.js';
+import { wgslLink } from '@/gpu/wgsl/link.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const S = (f: string): string =>
   readFileSync(path.join(here, '../../src/gpu/shaders', f), 'utf-8');
-// Same concat order as the M3 layer0 test, with the G17-modified render module.
-const simulate = [S('helpers.wgsl'), S('observe.wgsl'), S('events.wgsl'),
-  S('integrate.wgsl'), S('decode.wgsl'), S('simulate.wgsl')].join('\n');
+// Linked by wgslLink (G1; replaces the M3 hand concat), with the
+// G17-modified render module.
+const sources = Object.fromEntries(
+  ['helpers.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
+   'decode.wgsl', 'simulate.wgsl'].map((f) => [f, S(f)]));
+const simulate = wgslLink({ entryPath: 'simulate.wgsl', sources }).module;
 const render = S('render_layer0.wgsl');
 
 function hasWebGPU(): boolean {

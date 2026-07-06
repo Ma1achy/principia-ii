@@ -1,5 +1,8 @@
 // One function per colour mode (M7). Returns linear sRGB.
 
+// @import { PI, linear_rgb_to_oklab, oklab_to_linear_rgb } from "./render_helpers.wgsl"
+
+// @export
 fn colour_event_class(class_: u32, detail: u32) -> vec3<f32> {
   switch (class_) {
     case 0u: { return vec3<f32>(0.7, 0.7, 0.2); }    // bounded
@@ -17,6 +20,7 @@ fn colour_event_class(class_: u32, detail: u32) -> vec3<f32> {
   }
 }
 
+// @export
 fn palette_seq(t: f32) -> vec3<f32> {
   // Inline 5-stop viridis sample. Production reads from a 1D texture.
   let stops = array<vec3<f32>, 5>(
@@ -34,6 +38,7 @@ fn palette_seq(t: f32) -> vec3<f32> {
   return mix(stops[i], stops[j], w);
 }
 
+// @export
 fn palette_div_symlog(x: f32, eps: f32) -> vec3<f32> {
   let absx = abs(x);
   // Linear inside |x| <= eps, logarithmic outside. NB WGSL select(f, t, cond)
@@ -49,9 +54,12 @@ fn palette_div_symlog(x: f32, eps: f32) -> vec3<f32> {
 // hue table: 0 = full-OKLAB hues (shape_sphere_vmf), 1 = Okabe-Ito CB-safe
 // hues (shape_sphere_okabe_ito, stability_x_hue). Mirrors src/render/vmf.ts
 // (HUE_OKLAB / HUE_OKABE_ITO) — the two modes are NOT the same colouring.
+// @export
 const VMF_SCHEME_OKLAB:     u32 = 0u;
+// @export
 const VMF_SCHEME_OKABE_ITO: u32 = 1u;
 
+// @export
 fn vmf_blend6(n: vec3<f32>, kappa: f32, chroma: f32, L: f32, scheme: u32) -> vec3<f32> {
   let pole = array<vec3<f32>, 6>(
     vec3<f32>( 1.0, 0.0, 0.0), vec3<f32>(-1.0, 0.0, 0.0),
@@ -87,6 +95,7 @@ fn vmf_blend6(n: vec3<f32>, kappa: f32, chroma: f32, L: f32, scheme: u32) -> vec
   return oklab_to_linear_rgb(vec3<f32>(L, a, b));
 }
 
+// @export
 // Stability × hue (the principal Principia mode).
 fn stability_x_hue(
   n: vec3<f32>, diffusion: f32, kappa: f32, chroma: f32,

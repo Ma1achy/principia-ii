@@ -5,6 +5,7 @@
 // src/render/cvd.ts; the WGSL mat3x3 constructor is column-major, so they
 // are applied as `rgb * M` (row-vector product), matching render_helpers.
 
+// @export
 fn apply_cvd(rgb: vec3<f32>, mode: u32) -> vec3<f32> {
   switch (mode) {
     case 1u: {       // protan

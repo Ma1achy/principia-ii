@@ -1,3 +1,6 @@
+// @import { State } from "./integrate.wgsl"
+
+// @export
 struct EventOut {
   fired:   bool,
   kind:    u32,                 // 1=collision, 2=escape, 3=max_substeps, 4=sim_failed
@@ -5,6 +8,7 @@ struct EventOut {
   body:    u32,                 // for escape
 };
 
+// @export
 fn collision_check(r: array<vec2<f32>, 3>, r_coll: f32) -> EventOut {
   var out: EventOut;
   out.fired = false;
@@ -21,10 +25,12 @@ fn collision_check(r: array<vec2<f32>, 3>, r_coll: f32) -> EventOut {
   return out;
 }
 
+// @export
 struct EscapeCounters {
   c0: u32, c1: u32, c2: u32,
 };
 
+// @export
 fn escape_tick(
   s: State, st: ptr<function, EscapeCounters>,
   R_esc: f32, k_esc: u32,

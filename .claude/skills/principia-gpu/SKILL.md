@@ -154,24 +154,64 @@ CPU and pass a tile-local delta.
 ### Shader composition: `@import` / `@export` (G1)
 
 WGSL has no module system, so Principia links shaders with a small preprocessor
-(milestone G1) before handing source to the WGSL compiler. Two directives:
-`@export` marks a symbol public; `@import` pulls another module's exports in.
+(`wgslLink` in `src/gpu/wgsl/`, milestone G1) before handing source to the WGSL
+compiler. Directives are **line comments**, so a directive-annotated file is
+still valid WGSL on its own and old-style concatenation keeps working:
+
+```wgsl
+// @import { mass_softmax, sigmoid } from "./helpers.wgsl"   // named
+// @import "./tier_helpers.wgsl"                             // side-effect (all exports)
+// @export
+fn mass_softmax(...) -> vec3<f32> { ... }
+```
+
+`@export` marks the **next declaration** (`fn` / `struct` / `const`) public;
+plain comments and blank lines between `@export` and the declaration are fine,
+any other code cancels it. Anything not exported is module-private *by
+convention* — linking is whole-file concatenation, so privacy is documentation,
+not enforcement.
+
 The rules that bite:
 
-- **Forgetting `@export` is the common bug.** A helper without `@export` is
-  module-private: it compiles where it's defined but is *missing* when another
-  module `@import`s it. If a linked symbol is "undefined", check the export
-  first.
-- **Import cycles are a hard error, caught at link time.** The linker does
-  dependency resolution + cycle detection and fails with a readable error before
-  anything reaches the WGSL compiler — don't introduce `A @import B; B @import A`.
-- **The `principia_` prefix is still law.** Collision detection happens at link
-  time across all imported modules; the prefix is what keeps library symbols
-  from clashing with custom-shader code. Never drop it, even on an `@export`ed
-  helper.
-- Linking is deterministic (topologically ordered) and the *linked* WGSL is what
-  the cache/compile step sees — keep the linker output stable for identical
+- **Forgetting `@export` is the common bug.** The linker validates every named
+  import against the target's export list and fails loudly, at link time, with
+  file/line context. If a link fails with `not @export'ed`, add the export —
+  don't switch to a side-effect import to silence it.
+- **Import cycles are a hard error** (DFS at link time). The escape hatch that
+  keeps the simulate family acyclic is the next rule.
+- **Entry-owned structs.** `SimUniforms`, `TileRequest`, `SimResult`,
+  `ICDescriptor` (and `RenderParams` for the render module) are declared in the
+  **entry file** (`simulate.wgsl` / `render_graph.wgsl`), and imported units
+  reference them **without importing them** — WGSL allows module-scope forward
+  references, so this is legal in the concatenated module, and it's what keeps
+  `integrate.wgsl` (which takes `knobs: SimUniforms`) from importing the entry
+  that imports it. The linker validates *declared imports only*; it does not do
+  full symbol-use analysis, by design.
+- **One directory, no re-exports.** `resolveImport` rejects `../` and nested
+  paths — every linkable unit lives flat in `src/gpu/shaders/`. A unit cannot
+  re-export something it imported; write a wrapper if you need that.
+- **Standalone entries stay standalone.** `reduce.wgsl` and `render_layer0.wgsl`
+  deliberately repeat the shared structs verbatim and link as single-unit
+  modules. `metrics.wgsl` deliberately duplicates `shape_sphere`
+  (`simulate.wgsl` gets its copy from **observe.wgsl**, not metrics) and is
+  consumed only by the M6 WGSL check. Don't "deduplicate" these into imports
+  without checking every consumer.
+- **Two module families, two helper roots.** The simulate family imports from
+  `helpers.wgsl`; the render family imports from `render_helpers.wgsl`, which
+  owns its own `PI`. Never pull `helpers.wgsl` into the render module — the
+  duplicate `PI` is a link-order trap.
+- **The `principia_` prefix is still law for the custom-shader library**
+  (G13): symbols exported to user-authored shaders keep the prefix so link-time
+  collision detection protects user code. Internal module symbols
+  (`kdk_macro_step`, `shape_sphere`, …) are not user-facing and stay unprefixed.
+- Linking is deterministic (topo order follows directive order, dependencies
+  before dependents) and strips directives from the output; the *linked* WGSL is
+  what the cache/compile step sees — keep linker output stable for identical
   inputs.
+- The linker does no IO: it consumes `Record<path, source>`. `?raw` imports
+  (Vite glue) live only in `dev/` call sites — `src/` and `test/` are compiled
+  by tsc, which has no `*.wgsl?raw` declaration; tests read shader files with
+  `node:fs` instead.
 
 ### Bit-packing patterns
 
