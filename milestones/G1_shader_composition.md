@@ -4,14 +4,20 @@
 
 A real cross-shader composition layer. M3, M5, M6 all ship WGSL fragments
 that reference each other (`mass_softmax` from `helpers.wgsl` is called
-by `decode.wgsl`; `shape_sphere` from `metrics.wgsl` is called by
-`simulate.wgsl`); the milestones used a stub `concatShaders()` to glue
+by `decode.wgsl`; `shape_sphere` from `observe.wgsl` is called by
+`simulate.wgsl` — `metrics.wgsl` carries a deliberate standalone duplicate
+for the M6 check); the milestones used a stub `concatShaders()` to glue
 them, which is fragile and produces silent symbol clashes.
 
 After G1: a `wgslLink` function that resolves `// @import` directives,
-flattens the dependency graph, validates that every referenced symbol is
-either defined locally or imported, and emits one syntactically-valid
-shader module per pipeline.
+flattens the dependency graph, validates every **declared import** (target
+exists, symbol is exported, graph is acyclic), and emits one
+syntactically-valid shader module per pipeline. Validation is of declared
+imports only — not full symbol-use analysis of WGSL bodies: entry-owned
+structs (`SimUniforms`, `TileRequest`, `SimResult`, `ICDescriptor`) are
+declared in the entry file and referenced by imported units *without* an
+import, which WGSL's module-scope forward references make legal and which
+keeps the unit graph acyclic.
 
 **This milestone is a refactor, not a prerequisite (A1 ruling).** M3, M5,
 and M7 are built first with *provisional inline shader strings* glued by a
@@ -31,7 +37,12 @@ Chrome's WebGPU implementation. A symbol used but not defined produces a
 loud error at link time, with line/file context, before reaching the
 GPU.
 
-**Deliverable:** internal — tests only; `wgslLink` resolves `// @import` directives into validated single-module shaders for the simulate/reduce/render pipelines, exercised by `test/integration/shader_compose`.
+**Deliverable:** `wgslLink` resolves `// @import` directives into validated
+single-module shaders for the simulate/reduce/render pipelines, exercised by
+`test/integration/shader_compose`; every dev harness page
+(`dev/shader_modules.ts` glue) and both GPU-gated integration tests build
+their modules through it, proven on a real device by `npm run gpu:check`
+plus the m5/m7/g17/depth-stress Playwright page checks.
 
 ## File tree
 
@@ -40,21 +51,27 @@ principia/
   src/
     gpu/
       wgsl/
-        link.ts                 # the linker
-        parse_imports.ts        # @import directive parser
-        symbol_index.ts         # function/struct/const declaration index
-        validate.ts             # symbol resolution check
+        link.ts                 # the linker (also exports stripDirectives)
+        parse_imports.ts        # @import / @export directive parser
+        symbol_index.ts         # unit index + one-directory path resolution
+        validate.ts             # declared-import resolution + cycle check
         format_error.ts         # human-readable link errors
+        index.ts                # barrel (re-exported from src/gpu/index.ts)
       shaders/
-        helpers.wgsl            # @export everything that's reused
-        decode.wgsl             # @import { mass_softmax } from helpers
-        integrate.wgsl
-        events.wgsl
-        observe.wgsl
-        metrics.wgsl
-        simulate.wgsl
-        reduce.wgsl
-        render_layer0.wgsl
+        helpers.wgsl            # simulate-family root: @export'ed constants + fns
+        decode.wgsl             # @import { mass_softmax, sigmoid, PI, EPS_BOLT }
+        integrate.wgsl          # @import { EPS_BOLT }; exports State, kdk_macro_step
+        events.wgsl             # @import { State }; exports collision/escape API
+        observe.wgsl            # @import { State }, { cross_z }; exports shape_sphere
+        metrics.wgsl            # standalone duplicate (M6 check only) — see notes
+        simulate.wgsl           # ENTRY; owns SimUniforms/TileRequest/SimResult/ICDescriptor
+        reduce.wgsl             # standalone single-unit entry
+        render_layer0.wgsl      # standalone single-unit entry
+        render_helpers.wgsl     # render-family root (owns its own PI)
+        colour_modes.wgsl       # + brightness_modes / combiner / cvd
+        render_graph.wgsl       # render ENTRY; owns its struct copies + RenderParams
+  dev/
+    shader_modules.ts           # ?raw imports + wgslLink glue for all dev pages
   test/
     unit/gpu/wgsl/
       parse_imports.test.ts
@@ -62,7 +79,7 @@ principia/
       validate.test.ts
       link.test.ts
     integration/
-      shader_compose.test.ts
+      shader_compose.test.ts    # synthetic mini-suite + the real shader set
 ```
 
 ## Import directive syntax
@@ -78,7 +95,14 @@ dependencies. Three forms:
 
 `@export` marks a top-level symbol as importable. Anything not exported
 is module-private. The convention matches ES modules deliberately; it
-keeps mental model overhead low.
+keeps mental model overhead low. Plain comments and blank lines may sit
+between `@export` and the declaration it marks (doc comments there are
+desirable); any other code cancels the pending export.
+
+The namespace form (`* as h`) is **documentation-only**: WGSL has no
+namespaces, so `h.sigmoid(x)` will not compile — linked symbols are always
+referenced by their bare exported name. It parses and validates like a
+side-effect import.
 
 ```wgsl
 // @export
@@ -220,8 +244,15 @@ export interface LinkError {
   message: string;
 }
 
-/** Validate that every named import points at a real export, and that
- *  there are no circular import chains. */
+/** Validate that every import target exists, every named import points at
+ *  a real export, and there are no circular import chains. Scope: declared
+ *  imports ONLY — no symbol-use analysis of WGSL bodies (entry-owned
+ *  structs are referenced without imports by design).
+ *
+ *  NB `resolveImport` throws on nested paths; as landed the validator
+ *  catches that and reports it as a LinkError with file/line context
+ *  instead of letting the throw escape uncontextualised (the cycle walk
+ *  skips unresolvable edges the same way). */
 export function validateImports(
   units: Map<string, ShaderUnit>,
 ): LinkError[] {
@@ -229,7 +260,7 @@ export function validateImports(
 
   for (const [path, u] of units) {
     for (const imp of u.imports) {
-      const targetPath = resolveImport(path, imp.fromPath);
+      const targetPath = resolveImport(path, imp.fromPath);   // try/catch as landed
       const target = units.get(targetPath);
       if (!target) {
         errors.push({
@@ -305,9 +336,11 @@ export interface LinkOutput {
  * concatenate. Strips `// @import` and `// @export` directives from the
  * output. The result is one valid WGSL module ready for
  * `device.createShaderModule`.
+ *
+ * The linker does no IO — callers supply `Record<path, source>`.
  */
 export function wgslLink(input: LinkInput): LinkOutput {
-  // 1. Parse all units we might need (we'll prune below).
+  // 1. Parse every supplied unit (reachability prunes below).
   const allUnits: ShaderUnit[] = [];
   for (const [path, source] of Object.entries(input.sources)) {
     const { imports, exports } = parseDirectives(source);
@@ -315,30 +348,23 @@ export function wgslLink(input: LinkInput): LinkOutput {
   }
   const index = indexUnits(allUnits);
 
+  if (!index.has(input.entryPath)) {
+    throw new Error(`entry "${input.entryPath}" not found in shader index`);
+  }
+
   // 2. Validate imports first; bail with a useful message on any error.
   const errors = validateImports(index);
   if (errors.length > 0) {
-    throw new Error(formatLinkErrors(errors));
+    throw new Error(`WGSL link errors:\n${formatErrors(errors)}`);
   }
 
-  // 3. Reachability from entry.
-  const reachable = new Set<string>();
-  const enqueue: string[] = [input.entryPath];
-  while (enqueue.length > 0) {
-    const p = enqueue.pop()!;
-    if (reachable.has(p)) continue;
-    reachable.add(p);
-    const u = index.get(p);
-    if (!u) throw new Error(`entry "${p}" not found in shader index`);
-    for (const imp of u.imports) {
-      enqueue.push(resolveImport(p, imp.fromPath));
-    }
-  }
-
-  // 4. Topological order: dependencies before dependents.
+  // 3+4. Topological order over the units reachable from the entry:
+  // dependencies before dependents, following directive order. (A separate
+  // reachability pass is redundant — visit(entry) only touches reachable
+  // units, and validation already guaranteed acyclicity + resolvability.)
   const ordered: string[] = [];
   const seen = new Set<string>();
-  const visit = (p: string) => {
+  const visit = (p: string): void => {
     if (seen.has(p)) return;
     seen.add(p);
     const u = index.get(p)!;
@@ -347,7 +373,7 @@ export function wgslLink(input: LinkInput): LinkOutput {
     }
     ordered.push(p);
   };
-  for (const p of reachable) visit(p);
+  visit(input.entryPath);
 
   // 5. Concatenate, stripping directive comments.
   const parts: string[] = [];
@@ -360,21 +386,19 @@ export function wgslLink(input: LinkInput): LinkOutput {
   return { module: parts.join('\n'), units: ordered };
 }
 
-function stripDirectives(src: string): string {
+/** Remove `// @import` / `// @export` directive lines from a unit source. */
+export function stripDirectives(src: string): string {
   return src
     .split('\n')
-    .filter(l =>
-      !/^\s*\/\/\s*@(import|export)\b/.test(l)
-    ).join('\n');
-}
-
-function formatLinkErrors(errors: { unit: string; line: number; message: string }[]): string {
-  return [
-    'WGSL link errors:',
-    ...errors.map(e => `  ${e.unit}:${e.line}: ${e.message}`),
-  ].join('\n');
+    .filter((l) => !/^\s*\/\/\s*@(import|export)\b/.test(l))
+    .join('\n');
 }
 ```
+
+(`stripDirectives` is exported so the equivalence tests can assert each
+unit's stripped body appears verbatim in the linked output; error
+formatting reuses `formatErrors` from `format_error.ts` rather than a
+private duplicate.)
 
 ## `src/gpu/wgsl/format_error.ts`
 
@@ -438,43 +462,46 @@ fn decode_full(z: array<f32, 8>, knobs: SimUniforms) -> ICOut { /* ... */ }
 ### `simulate.wgsl`
 
 ```wgsl
-// @import { decode_full }                      from "./decode.wgsl"
-// @import { kdk_macro_step, project_com }      from "./integrate.wgsl"
-// @import { collision_check, escape_tick }     from "./events.wgsl"
-// @import { shape_sphere }                     from "./metrics.wgsl"
+// @import { decode_full, ICOut }                          from "./decode.wgsl"
+// @import { State, kdk_macro_step }                       from "./integrate.wgsl"
+// @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
+// @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
+// @import { cross_z, EPS_BOLT }                           from "./helpers.wgsl"
+//
+// Entry-owned structs: SimUniforms / TileRequest / SimResult / ICDescriptor
+// are declared HERE and referenced by the imported units without an import.
 
+struct SimUniforms { /* ... */ };
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
 // ...
 @compute @workgroup_size(8, 8, 1)
 fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) { /* ... */ }
 ```
 
-The build glue in M3's `dispatch_layer0.ts` becomes:
+Note `shape_sphere` comes from **observe.wgsl** (metrics.wgsl's copy is a
+deliberate standalone duplicate consumed only by the M6 WGSL check), and
+`project_com` stays module-private inside integrate.wgsl — simulate calls
+only `kdk_macro_step`, which projects internally.
+
+The build glue lives in `dev/shader_modules.ts` (dev/ is the only place
+Vite `?raw` imports are legal — tsc compiles `src/` and `test/`, and no
+`*.wgsl?raw` module declaration exists):
 
 ```ts
 import { wgslLink } from '@/gpu/wgsl/link.js';
-import helpersSrc   from './shaders/helpers.wgsl?raw';
-import decodeSrc    from './shaders/decode.wgsl?raw';
-import integrateSrc from './shaders/integrate.wgsl?raw';
-import eventsSrc    from './shaders/events.wgsl?raw';
-import metricsSrc   from './shaders/metrics.wgsl?raw';
-import simulateSrc  from './shaders/simulate.wgsl?raw';
+import helpersSrc   from '@/gpu/shaders/helpers.wgsl?raw';
+// ... one ?raw import per unit ...
 
-const linked = wgslLink({
-  entryPath: 'simulate.wgsl',
-  sources: {
-    'helpers.wgsl':   helpersSrc,
-    'decode.wgsl':    decodeSrc,
-    'integrate.wgsl': integrateSrc,
-    'events.wgsl':    eventsSrc,
-    'metrics.wgsl':   metricsSrc,
-    'simulate.wgsl':  simulateSrc,
-  },
-});
-const module = device.createShaderModule({ code: linked.module });
+export const SIMULATE_MODULE =
+  wgslLink({ entryPath: 'simulate.wgsl', sources: SOURCES }).module;
+export const RENDER_GRAPH_MODULE =
+  wgslLink({ entryPath: 'render_graph.wgsl', sources: SOURCES }).module;
 ```
 
-(Vite / esbuild / equivalent supplies `?raw` import as the file's text.)
+Every dev page (`debug_harness`, `layer2_refinement`, `render_graph`,
+`depth_stress`) imports these constants; `dev/gpu_check.html` calls
+`wgslLink` directly over fetched sources; the GPU-gated integration tests
+(`layer0_gpu_vs_cpu`, `debug_harness`) read units with `node:fs` and link.
 
 ## Tests
 
@@ -510,8 +537,16 @@ describe('parseDirectives', () => {
     expect(parseDirectives(src).exports).toEqual([{ symbol: 'quux', line: 2 }]);
   });
 
-  it('ignores @export when followed by a non-decl line', () => {
-    const src = `// @export\n// stray comment\nfn nothing() {}`;
+  it('keeps a pending @export across comments and blank lines', () => {
+    // Doc comments between @export and the declaration are desirable.
+    const src = `// @export\n// Computes the thing.\n\nfn documented() {}`;
+    expect(parseDirectives(src).exports)
+      .toEqual([{ symbol: 'documented', line: 4 }]);
+  });
+
+  it('cancels @export when followed by non-declaration code', () => {
+    // NB a comment does NOT cancel (see above) — only real non-decl code does.
+    const src = `// @export\nvar<private> counter: u32 = 0u;\nfn nothing() {}`;
     expect(parseDirectives(src).exports).toHaveLength(0);
   });
 
@@ -731,9 +766,13 @@ describe('shader compose end-to-end', () => {
   });
 
   it('createShaderModule accepts the linked output (skip if no WebGPU)', async () => {
-    if (!('gpu' in (globalThis as any).navigator ?? {})) return;
-    const adapter = await (navigator as any).gpu.requestAdapter();
-    const device = await adapter!.requestDevice();
+    // NB guard shape matters: `!('gpu' in x ?? {})` parses as
+    // `!(('gpu' in x) ?? {})` and throws when navigator is undefined (Node).
+    const nav = (globalThis as { navigator?: { gpu?: unknown } }).navigator;
+    if (!nav?.gpu) return;
+    const adapter = await (nav.gpu as any).requestAdapter();
+    if (!adapter) return;
+    const device = await adapter.requestDevice();
     const out = wgslLink({ entryPath: 'main.wgsl', sources });
     const module = device.createShaderModule({ code: out.module });
     const info = await (module as any).getCompilationInfo?.();
@@ -744,6 +783,16 @@ describe('shader compose end-to-end', () => {
   });
 });
 ```
+
+The suite as landed also links the **real** shader set (read from
+`src/gpu/shaders/` with `node:fs`): the simulate and render modules link
+with the expected unit sets and their entry last; `reduce.wgsl` /
+`render_layer0.wgsl` link as single-unit modules; and each unit's
+directive-stripped source appears **verbatim** in the linked output.
+Byte-equality with the old hand concat is deliberately not asserted — the
+topo sort reorders units, and WGSL's module-scope forward references make
+concatenation order semantically irrelevant; same unit set + verbatim unit
+bodies *is* semantic equivalence for concatenation.
 
 ## Run it
 
@@ -767,10 +816,26 @@ time.
 - **One-directory-only rule.** `resolveImport` rejects `..` and `/`; all
   shaders live in `src/gpu/shaders/`. Keeps the linker tiny and the
   module graph easy to reason about.
-- **Bundler integration.** The Vite / esbuild glue uses `?raw` imports
-  to read each `.wgsl` file as text at build time. The linker doesn't
-  read from disk — it just consumes `Record<path, source>`. This keeps
-  it testable and lets you swap in a different IO mechanism (e.g.
+- **Entry-owned structs.** The shared TS↔WGSL structs (`SimUniforms`,
+  `TileRequest`, `SimResult`, `ICDescriptor`, plus `RenderParams` in the
+  render module) live in the entry file; imported units reference them
+  without importing. WGSL module-scope forward references make this legal
+  in the concatenated module, and it is the only acyclic arrangement —
+  `integrate.wgsl` takes `knobs: SimUniforms`, and a `simulate.wgsl ->
+  integrate.wgsl -> simulate.wgsl` import would be a cycle. Corollary: the
+  linker validates declared imports only, never full symbol use.
+- **Two module families, two helper roots.** helpers.wgsl (simulate) and
+  render_helpers.wgsl (render) each own a `PI`; the families never link
+  together. metrics.wgsl keeps its deliberate `shape_sphere` duplicate
+  (M6-check only); reduce.wgsl and render_layer0.wgsl stay standalone
+  single-unit entries with their struct copies repeated verbatim.
+- **Bundler integration.** The Vite `?raw` glue lives in
+  `dev/shader_modules.ts` only — `dev/` is outside tsconfig's include, so
+  tsc never sees `?raw` specifiers (there is no `*.wgsl?raw` module
+  declaration, and `src/`/`test/` must stay tsc-clean). The linker doesn't
+  read from disk — it just consumes `Record<path, source>`; tests read
+  units with `node:fs`, `dev/gpu_check.html` fetches them over HTTP. This
+  keeps it testable and lets you swap in a different IO mechanism (e.g.
   hot-reload from a watcher).
 - **Future room.** The directive grammar is deliberately restrictive
   (matches ES modules at the syntactic level). If you ever need

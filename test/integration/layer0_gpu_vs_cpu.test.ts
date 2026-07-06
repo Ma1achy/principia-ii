@@ -15,24 +15,19 @@ import {
   EPS_DEADBAND, DT_MACRO_DEFAULT,
   N_MAX_DEFAULT, R_SUB_DEFAULT, GAMMA_SUB_DEFAULT,
 } from '@/math/constants.js';
+import { wgslLink } from '@/gpu/wgsl/link.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const shaderDir = path.join(here, '../../src/gpu/shaders');
-const SHADERS = {
-  helpers:   readFileSync(path.join(shaderDir, 'helpers.wgsl'), 'utf-8'),
-  decode:    readFileSync(path.join(shaderDir, 'decode.wgsl'),  'utf-8'),
-  integrate: readFileSync(path.join(shaderDir, 'integrate.wgsl'),'utf-8'),
-  events:    readFileSync(path.join(shaderDir, 'events.wgsl'),  'utf-8'),
-  observe:   readFileSync(path.join(shaderDir, 'observe.wgsl'), 'utf-8'),
-  simulate:  readFileSync(path.join(shaderDir, 'simulate.wgsl'),'utf-8'),
-  render:    readFileSync(path.join(shaderDir, 'render_layer0.wgsl'), 'utf-8'),
-};
+const RENDER = readFileSync(path.join(shaderDir, 'render_layer0.wgsl'), 'utf-8');
+const SIM_SOURCES = Object.fromEntries(
+  ['helpers.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
+   'decode.wgsl', 'simulate.wgsl']
+    .map((f) => [f, readFileSync(path.join(shaderDir, f), 'utf-8')]));
 
+// G1: linked by wgslLink (replaces the M3 stub concatShaders()).
 function concatShaders(): string {
-  return [
-    SHADERS.helpers, SHADERS.observe, SHADERS.events,
-    SHADERS.integrate, SHADERS.decode, SHADERS.simulate,
-  ].join('\n');
+  return wgslLink({ entryPath: 'simulate.wgsl', sources: SIM_SOURCES }).module;
 }
 
 function classOf(d: number): number { return d & 0x7; }
@@ -53,7 +48,7 @@ describe('Layer 0 GPU vs CPU', () => {
     const bufs = createTileBuffers(ctx, N, M);
     const pl = await buildPipelines(ctx, bufs, {
       simulate: concatShaders(),
-      render: SHADERS.render,
+      render: RENDER,
     });
 
     const uniforms = {

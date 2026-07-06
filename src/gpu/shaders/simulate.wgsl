@@ -1,3 +1,14 @@
+// @import { decode_full, ICOut }                          from "./decode.wgsl"
+// @import { State, kdk_macro_step }                       from "./integrate.wgsl"
+// @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
+// @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
+// @import { cross_z, EPS_BOLT }                           from "./helpers.wgsl"
+//
+// Entry-owned structs: SimUniforms / TileRequest / SimResult / ICDescriptor
+// are declared HERE and referenced by the imported units without an import
+// (WGSL module-scope forward references). Moving them into a unit that
+// simulate.wgsl imports would create an import cycle.
+
 struct SimUniforms {
   m:                vec3<f32>,
   M_total:          f32,

@@ -1,18 +1,20 @@
 // Shared helpers used by colour, brightness, combiner, and CVD stages (M7).
 //
-// The render module is composed by concatenating, in order:
-//   render_helpers.wgsl -> colour_modes.wgsl -> brightness_modes.wgsl
-//   -> combiner.wgsl -> cvd.wgsl -> render_graph.wgsl
-// It is NOT concatenated with helpers.wgsl (which owns its own PI), so PI
-// is declared here for the render module.
+// This file is the render family's library root (entry: render_graph.wgsl).
+// It is NEVER linked with helpers.wgsl (which owns its own PI), so PI is
+// declared here for the render module.
+
+// @export
 const PI: f32 = 3.141592653589793;
 
+// @export
 fn srgb_to_linear(c: vec3<f32>) -> vec3<f32> {
   let lo = c / 12.92;
   let hi = pow((c + 0.055) / 1.055, vec3<f32>(2.4));
   return select(hi, lo, c <= vec3<f32>(0.04045));
 }
 
+// @export
 fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {
   let lo = 12.92 * c;
   let hi = 1.055 * pow(c, vec3<f32>(1.0/2.4)) - 0.055;
@@ -44,6 +46,7 @@ const M1_INV = mat3x3<f32>(
   -0.0041960865, -0.7034188370,  1.7076147024,
 );
 
+// @export
 fn linear_rgb_to_oklab(c: vec3<f32>) -> vec3<f32> {
   let lms = c * M1_TO_LMS;
   // LMS is non-negative for in-gamut linear sRGB, but combiner lightness
@@ -53,6 +56,7 @@ fn linear_rgb_to_oklab(c: vec3<f32>) -> vec3<f32> {
   return cb * M2_TO_LAB;
 }
 
+// @export
 fn oklab_to_linear_rgb(lab: vec3<f32>) -> vec3<f32> {
   let cb = lab * M2_INV;
   let lms = cb * cb * cb;

@@ -1,3 +1,7 @@
+// @import { mass_softmax, sigmoid, PI, EPS_BOLT } from "./helpers.wgsl"
+// SimUniforms is entry-owned (declared in simulate.wgsl); referenced here
+// without an import directive — see integrate.wgsl for the rationale.
+
 struct ConfigDecoded {
   rho:    vec2<f32>,
   lambda: vec2<f32>,
@@ -29,6 +33,7 @@ fn decode_latent(z: array<f32, 8>, knobs: SimUniforms) -> ConfigDecoded {
   return out;
 }
 
+// @export
 struct ICOut {
   r: array<vec2<f32>, 3>,
   p: array<vec2<f32>, 3>,
@@ -57,6 +62,7 @@ fn jacobi_momenta_to_particle(
   return array<vec2<f32>, 3>(p0, p1, p2);
 }
 
+// @export
 fn decode_full(z: array<f32, 8>, knobs: SimUniforms) -> ICOut {
   var out: ICOut;
   let cfg = decode_latent(z, knobs);

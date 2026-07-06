@@ -1,3 +1,9 @@
+// @import { EPS_BOLT } from "./helpers.wgsl"
+// SimUniforms is entry-owned (declared in simulate.wgsl) and referenced here
+// without an import directive — WGSL module-scope forward references make
+// this legal in the linked module, and it keeps the unit graph acyclic.
+
+// @export
 struct State {
   r: array<vec2<f32>, 3>,
   p: array<vec2<f32>, 3>,
@@ -43,6 +49,7 @@ fn substep_count(rmin: f32, knobs: SimUniforms) -> u32 {
   return clamp(raw, 1u, knobs.N_max);
 }
 
+// @export
 // One macro KDK step with adaptive substepping. Returns the substep count
 // for telemetry.
 fn kdk_macro_step(s: ptr<function, State>, knobs: SimUniforms) -> u32 {

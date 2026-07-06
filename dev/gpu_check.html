@@ -39,12 +39,13 @@ async function main() {
   const { run } = await import('@/integrate/run.js');
   const C = await import('@/math/constants.js');
 
+  const { wgslLink } = await import('@/gpu/wgsl/link.js');
   const fetchText = async (p) => (await fetch(p)).text();
   const S = {};
   for (const n of ['helpers','decode','integrate','events','observe','simulate','render_layer0']) {
-    S[n] = await fetchText(`/src/gpu/shaders/${n}.wgsl`);
+    S[`${n}.wgsl`] = await fetchText(`/src/gpu/shaders/${n}.wgsl`);
   }
-  const simulateSrc = [S.helpers, S.observe, S.events, S.integrate, S.decode, S.simulate].join('\n');
+  const simulateSrc = wgslLink({ entryPath: 'simulate.wgsl', sources: S }).module;
 
   const q = new URLSearchParams(location.search);
   const T_HORIZON = parseFloat(q.get('T') ?? '50');
@@ -65,7 +66,7 @@ async function main() {
 
   const N = 16, M = 8;
   const bufs = createTileBuffers(ctx, N, M);
-  const pl = await buildPipelines(ctx, bufs, { simulate: simulateSrc, render: S.render_layer0 });
+  const pl = await buildPipelines(ctx, bufs, { simulate: simulateSrc, render: S['render_layer0.wgsl'] });
   log('pipelines built');
 
   const uniforms = {

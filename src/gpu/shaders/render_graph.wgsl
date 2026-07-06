@@ -1,11 +1,18 @@
 // M7 render graph: colour node -> brightness node -> combiner -> post (CVD).
 //
-// This file is the tail of the render module; the full module is the
-// concatenation (in order) of render_helpers.wgsl, colour_modes.wgsl,
-// brightness_modes.wgsl, combiner.wgsl, cvd.wgsl, render_graph.wgsl.
-// It compiles standalone from the compute module, so the shared structs are
+// This file is the ENTRY of the render module (linked by wgslLink, G1). It
+// compiles standalone from the compute module, so the shared structs are
 // repeated here in full — they must stay byte-identical to simulate.wgsl
 // and src/gpu/structs.ts.
+
+// @import { PI, linear_to_srgb }                       from "./render_helpers.wgsl"
+// @import { colour_event_class, palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
+// @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift } from "./brightness_modes.wgsl"
+// @import { combine_replace_lightness, combine_modulate_lightness, combine_multiply_rgb } from "./combiner.wgsl"
+// @import { apply_cvd }                                from "./cvd.wgsl"
+//
+// Entry-owned structs: SimUniforms / TileRequest / SimResult / ICDescriptor /
+// RenderParams live here; imported units reference nothing from this file.
 
 struct SimUniforms {
   m:                vec3<f32>,

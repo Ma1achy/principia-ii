@@ -20,22 +20,10 @@ import {
 } from '@/render/types.js';
 import { COLOUR_SOURCES, BRIGHTNESS_SOURCES } from '@/render/mode_registry.js';
 
-// Compute module (M3 concat order).
-import helpersWgsl from '@/gpu/shaders/helpers.wgsl?raw';
-import observeWgsl from '@/gpu/shaders/observe.wgsl?raw';
-import eventsWgsl from '@/gpu/shaders/events.wgsl?raw';
-import integrateWgsl from '@/gpu/shaders/integrate.wgsl?raw';
-import decodeWgsl from '@/gpu/shaders/decode.wgsl?raw';
-import simulateWgsl from '@/gpu/shaders/simulate.wgsl?raw';
-import renderLayer0Wgsl from '@/gpu/shaders/render_layer0.wgsl?raw';
-
-// Render module (M7 concat order — render_helpers owns PI; do NOT add helpers.wgsl).
-import renderHelpersWgsl from '@/gpu/shaders/render_helpers.wgsl?raw';
-import colourModesWgsl from '@/gpu/shaders/colour_modes.wgsl?raw';
-import brightnessModesWgsl from '@/gpu/shaders/brightness_modes.wgsl?raw';
-import combinerWgsl from '@/gpu/shaders/combiner.wgsl?raw';
-import cvdWgsl from '@/gpu/shaders/cvd.wgsl?raw';
-import renderGraphWgsl from '@/gpu/shaders/render_graph.wgsl?raw';
+// Linked shader modules (G1 wgslLink; replaces the M3/M7 hand concat orders).
+import {
+  SIMULATE_MODULE, RENDER_LAYER0_MODULE, RENDER_GRAPH_MODULE,
+} from './shader_modules.js';
 
 // ?n=32 renders a higher-resolution grid (canvas = 32·N px); default 16.
 const N = Math.max(8, Math.min(64,
@@ -43,10 +31,7 @@ const N = Math.max(8, Math.min(64,
 const M = 8;
 const TILE_PIX = 32;
 
-const RENDER_MODULE = [
-  renderHelpersWgsl, colourModesWgsl, brightnessModesWgsl,
-  combinerWgsl, cvdWgsl, renderGraphWgsl,
-].join('\n');
+const RENDER_MODULE = RENDER_GRAPH_MODULE;
 
 const logPane = document.getElementById('log') as HTMLPreElement;
 function log(msg: string): void {
@@ -121,9 +106,8 @@ async function main(): Promise<void> {
 
   // --- Compute ONCE (M3 pipeline), then leave the sim buffers alone. ---
   const pl = await buildPipelines(ctx, bufs, {
-    simulate: [helpersWgsl, observeWgsl, eventsWgsl,
-               integrateWgsl, decodeWgsl, simulateWgsl].join('\n'),
-    render: renderLayer0Wgsl,
+    simulate: SIMULATE_MODULE,
+    render: RENDER_LAYER0_MODULE,
   });
   ctx.device.queue.writeBuffer(bufs.uniforms, 0, packSimUniforms(DEFAULT_UNIFORMS));
   ctx.device.queue.writeBuffer(bufs.tileReq, 0, packTileRequest(DEFAULT_TILE));

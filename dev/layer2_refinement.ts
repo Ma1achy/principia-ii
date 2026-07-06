@@ -23,14 +23,9 @@ import { computePriority } from '@/quadtree/priority.js';
 import { OUTCOME_NAMES } from '@/debug/descriptor_bits.js';
 import type { QuadtreeView, TileCacheKey, TileID } from '@/quadtree/types.js';
 
-import helpersWgsl from '@/gpu/shaders/helpers.wgsl?raw';
-import observeWgsl from '@/gpu/shaders/observe.wgsl?raw';
-import eventsWgsl from '@/gpu/shaders/events.wgsl?raw';
-import integrateWgsl from '@/gpu/shaders/integrate.wgsl?raw';
-import decodeWgsl from '@/gpu/shaders/decode.wgsl?raw';
-import simulateWgsl from '@/gpu/shaders/simulate.wgsl?raw';
-import renderWgsl from '@/gpu/shaders/render_layer0.wgsl?raw';
-import reduceWgsl from '@/gpu/shaders/reduce.wgsl?raw';
+import {
+  SIMULATE_MODULE, RENDER_LAYER0_MODULE, REDUCE_MODULE,
+} from './shader_modules.js';
 
 const N = 16;      // samples per tile axis
 const M = 8;
@@ -92,11 +87,10 @@ async function main(): Promise<void> {
   const ctx = await initGpu();
   const bufs = createTileBuffers(ctx, N, M);
   const pl = await buildPipelines(ctx, bufs, {
-    simulate: [helpersWgsl, observeWgsl, eventsWgsl,
-               integrateWgsl, decodeWgsl, simulateWgsl].join('\n'),
-    render: renderWgsl,
+    simulate: SIMULATE_MODULE,
+    render: RENDER_LAYER0_MODULE,
   });
-  const rp = await buildReducePipeline(ctx, bufs, reduceWgsl);
+  const rp = await buildReducePipeline(ctx, bufs, REDUCE_MODULE);
 
   const g = (document.getElementById('map') as HTMLCanvasElement).getContext('2d')!;
   g.font = '11px monospace';

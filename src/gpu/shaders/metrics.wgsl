@@ -1,9 +1,14 @@
 // Shape-sphere coordinate, phase unwrap, and free-group bookkeeping in
-// the GPU integrator. Compose with helpers.wgsl (for PI) and simulate.wgsl
-// from M3 — this module is function definitions only, no entry point.
+// the GPU integrator. Function definitions only, no entry point; consumed
+// only by the M6 WGSL check (dev/out/m6_wgsl_check.mjs), which composes it
+// with helpers.wgsl for PI. NOT part of the linked simulate module —
+// simulate.wgsl imports shape_sphere from observe.wgsl; the duplicate here
+// is deliberate (I == 0 guard variant for the standalone check).
 //
 // The TS copies live in src/metrics/{shape_sphere,phase,free_group}.ts —
 // change both sides in the same commit.
+
+// @import { PI } from "./helpers.wgsl"
 
 fn shape_sphere(rho_t: vec2<f32>, lambda_t: vec2<f32>) -> vec3<f32> {
   let rho_sq    = dot(rho_t,    rho_t);

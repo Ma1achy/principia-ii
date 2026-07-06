@@ -9,6 +9,94 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G1 — Shader composition / WGSL linker
+
+Branch `feat/g1-shader-composition`. Acceptance gate
+(`npm test -- --run test/integration/shader_compose`) green; 4 unit +
+1 integration suites, 36 tests; full suite 374 passed / 1 skipped;
+typecheck + lint + build clean. Real-GPU proof: `npm run gpu:check`
+plus the m5/m6/m7/g17/depth-stress Playwright checks all pass with
+wgslLink-linked modules. First G-series milestone after G17; entries
+are numbered DG1.x because M1 already owns D1.x.
+
+### DG1.1 — simulate's `shape_sphere` comes from observe.wgsl, not metrics.wgsl
+The doc's Goal and its simulate.wgsl example imported `shape_sphere`
+from metrics.wgsl. The real M3 shader takes it from **observe.wgsl**;
+metrics.wgsl's copy is a deliberate standalone duplicate (with an
+`I == 0` guard variant) consumed only by the M6 WGSL check. As built:
+directives follow the measured symbol graph; metrics.wgsl gained
+`@import { PI }` so it links as its own entry, and its header now
+states the duplication is intentional. Doc corrected.
+
+### DG1.2 — entry-owned structs; validation is declared-imports-only
+The doc's Goal promised the linker "validates that every referenced
+symbol is either defined locally or imported" — full symbol-use
+analysis. That is neither what its own listings do nor what the shader
+set permits: `integrate.wgsl` takes `knobs: SimUniforms`, and
+SimUniforms lives in simulate.wgsl (the entry that imports integrate) —
+importing it back would be a cycle. As built and now documented: the
+shared structs are **entry-owned** and referenced by imported units
+without directives (WGSL module-scope forward references make the
+concatenated module legal), and `validateImports` checks declared
+imports only — target exists, symbol exported, graph acyclic.
+
+### DG1.3 — parser keeps a pending `@export` across comments; doc test contradicted its own parser
+The doc's parser listing explicitly lets comments and blank lines sit
+between `@export` and the declaration (only non-comment code resets
+`pendingExport`), but its test "ignores @export when followed by a
+non-decl line" used `// stray comment` — which that parser does NOT
+ignore. Kept the comments-allowed behaviour (doc comments between
+`@export` and a fn are desirable) and fixed the test to use a genuine
+non-declaration (`var<private>`), plus a positive test pinning the
+comments-allowed case.
+
+### DG1.4 — integration-test WebGPU guard had a precedence bug
+`if (!('gpu' in (globalThis as any).navigator ?? {}))` parses as
+`!(('gpu' in navigator) ?? {})` — the `in` throws before `??` can
+default when navigator is undefined (Node). As built:
+`const nav = globalThis.navigator; if (!nav?.gpu) return;` (and skip
+when requestAdapter returns null). Doc listing corrected with a note.
+
+### DG1.5 — `?raw` glue centralised in dev/; src/ and test/ stay tsc-clean
+The doc's migration example put `?raw` imports in M3's
+`dispatch_layer0.ts` (under src/). No `*.wgsl?raw` module declaration
+exists and tsconfig compiles `src/**` + `test/**`, so that would break
+`npm run build`. As built: one glue module `dev/shader_modules.ts`
+(dev/ is outside tsconfig) exports SIMULATE_MODULE /
+RENDER_GRAPH_MODULE / RENDER_LAYER0_MODULE / REDUCE_MODULE; all four
+dev pages import them, gpu_check.html links over fetched sources, and
+the two GPU-gated tests (layer0_gpu_vs_cpu, debug_harness) read units
+with node:fs — the M3 stub `concatShaders()` and the M7 hand-ordered
+RENDER_MODULE concat are gone.
+
+### DG1.6 — equivalence asserted as unit-set + verbatim bodies, not byte-equality
+The linked module cannot be byte-identical to the old hand concat: the
+topo sort orders dependencies before dependents (helpers, decode,
+integrate, events, observe, simulate vs M3's helpers, observe, events,
+integrate, decode, simulate). WGSL allows module-scope forward
+references, so concatenation order is semantically irrelevant — the
+real-shader tests therefore pin the unit SET, entry-last, and each
+unit's directive-stripped source verbatim in the output; the real-GPU
+checks (gpu:check exit 0 with the same measured gpuDisagree = 95 as
+D3.2's calibration; m7 render check ALL PASS) close the loop.
+
+### DG1.7 — listing hygiene
+Namespace imports (`* as h`) are documentation-only — WGSL has no
+namespaces, so `h.sigmoid(x)` can never compile; parsed and validated
+like a side-effect import, noted in the doc. link.ts's separate
+reachability pass was redundant (visit(entry) only touches reachable
+units) — merged into the topo walk, with a missing-entry check up
+front; its private `formatLinkErrors` duplicate now reuses
+format_error.ts's `formatErrors`; `stripDirectives` is exported for the
+equivalence tests. `resolveImport` throws on nested paths — the
+validator catches it per-import and reports a LinkError with file/line
+context instead of an uncontextualised throw (the doc's listing would
+have thrown out of `validateImports` entirely on the first `../`).
+The `principia-gpu` skill's shader-composition section was rewritten
+from the pre-implementation sketch to the landed conventions
+(entry-owned structs, one-directory rule, two helper roots,
+metrics/observe duplication, declared-imports-only scope).
+
 ## M12 — Export, data API, acceptance harness
 
 Branch `feat/m12-export`. Acceptance gate
