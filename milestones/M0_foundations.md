@@ -506,7 +506,9 @@ describe('sigmoid / logit', () => {
   });
 
   it('is numerically stable for large negative z', () => {
-    expect(sigmoid(-1000)).toBeGreaterThan(0);    // not NaN
+    // σ(-1000) ≈ e^-1000 ≈ 5e-435 is below the smallest float64 subnormal, so
+    // it correctly saturates to exactly 0 — the guarantee is finite, never NaN.
+    expect(sigmoid(-1000)).toBeGreaterThanOrEqual(0);
     expect(sigmoid(-1000)).toBeLessThan(1e-100);
     expect(Number.isFinite(sigmoid(-1000))).toBe(true);
   });
@@ -550,12 +552,16 @@ describe('smoothstep', () => {
   it('hits 0.5 at the midpoint', () => {
     expect(smoothstep(0, 1, 0.5)).toBeCloseTo(0.5, 12);
   });
-  it('has zero derivative at the endpoints', () => {
+  it('has (near-)zero derivative at the endpoints', () => {
+    // s'(t) = 6t(1-t) is exactly 0 at both endpoints. A forward difference over
+    // a step `eps` estimates s'(0) + (eps/2)·s''(0) = O(eps) ≈ 3·eps, so the
+    // slope is O(eps), not machine-zero — and vanishingly small next to the
+    // interior slope s'(0.5) = 1.5.
     const eps = 1e-6;
-    const dLow  = (smoothstep(0, 1, eps)        - smoothstep(0, 1, 0)) / eps;
-    const dHigh = (smoothstep(0, 1, 1)          - smoothstep(0, 1, 1-eps)) / eps;
-    expect(dLow).toBeLessThan(1e-9);
-    expect(dHigh).toBeLessThan(1e-9);
+    const dLow  = (smoothstep(0, 1, eps) - smoothstep(0, 1, 0))     / eps;
+    const dHigh = (smoothstep(0, 1, 1)   - smoothstep(0, 1, 1-eps)) / eps;
+    expect(dLow).toBeLessThan(1e-4);
+    expect(dHigh).toBeLessThan(1e-4);
   });
 });
 
@@ -589,8 +595,8 @@ describe('signDeadband', () => {
 ```ts
 import { describe, it, expect } from 'vitest';
 import {
-  ZERO2, add2, sub2, scale2, dot2, norm2, crossZ, J, normalize2,
-  ZERO3, dot3, cross3, norm3, normalize3,
+  ZERO2, add2, sub2, dot2, norm2, crossZ, J, normalize2,
+  ZERO3, cross3, norm3, normalize3,
   ZERO8, add8, scale8, dot8, norm8, normalize8, unitE8, v8,
 } from '@/math/vec.js';
 
@@ -660,7 +666,7 @@ describe('Vec8 algebra', () => {
     const b = v8(8,7,6,5,4,3,2,1);
     const lhs = scale8(add8(a, b), 2);
     const rhs = add8(scale8(a, 2), scale8(b, 2));
-    for (let i = 0; i < 8; i++) expect(lhs[i]).toBeCloseTo(rhs[i], 15);
+    for (let i = 0; i < 8; i++) expect(lhs[i]!).toBeCloseTo(rhs[i]!, 15);
   });
 
   it('dot8 of orthogonal basis vectors is zero', () => {
@@ -724,7 +730,7 @@ describe('massFromLogits', () => {
         // So we round-trip mu, not z. Just check that re-decoding gives the
         // same masses.
         const m2 = massFromLogits(Math.atanh(mu1/100), Math.atanh(mu2/100), 100);
-        for (let i = 0; i < 3; i++) expect(m2[i]).toBeCloseTo(m[i], 9);
+        for (let i = 0; i < 3; i++) expect(m2[i]!).toBeCloseTo(m[i]!, 9);
       }
     }
   });
