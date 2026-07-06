@@ -9,6 +9,90 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M10 — Chart instantiations
+
+Branch `feat/m10-charts`. Acceptance gate
+(`npm test -- --run test/integration/chart_totality`) green; 7 unit +
+2 integration suites, 24 tests, all green first run; full suite 281
+passed / 1 skipped; typecheck + lint + build clean. Deliverable is
+internal (tests only). The `principia-charts` skill was authored
+just-in-time and carries the contract/flag/momentum conventions.
+
+### D10.1 — one `makeDescriptor`, exported from M2, not three copies
+The doc inlined `makeDescriptor`/terminal-descriptor helpers into lz_e,
+shape_sphere, mass_simplex and burrau_euclid — and they had already
+drifted (`qMass: Math.min(...m)` vs the canonical `m_min / M_total`;
+zero-stub descriptors on canonicalise-terminal where M2 emits a real
+descriptor from the state). As built: M2's private `makeDescriptor` and
+`makeTerminal` are exported from `src/decode/pipeline.ts` (additive
+change, bodies untouched) and every chart imports them. Same
+one-artifact discipline as GPU struct layout.
+
+### D10.2 — momentum construction deduplicated; rotational-seed footgun
+The doc shipped the (L_z, K) momentum construction TWICE — a standalone
+`momentum_construction.ts` returning `{v, usedSeed, degenerate}` and a
+divergent inline copy in lz_e.ts returning a kind-tagged union — with
+different seed lists. Kept ONE implementation
+(`constructMomentaForLzK`, kind-tagged so ADR-0007 reasons 15/16 fall
+out of the type). Two physics fixes while merging: (a) the inline
+version's all-body rotational seed `[J(r0), J(r1), J(r2)]` is the
+pure-rotation field, which the L_z projection annihilates to zero every
+time — replaced with the standalone's partial-rotation seeds; (b) the
+mix amplitude is clamped, `a = √(max(0, 2(K*−K_min)))`, because the
+infeasibility gate admits K* up to 1e-15 BELOW K_min and a bare sqrt
+returns NaN there.
+
+### D10.3 — doc mutated readonly ConfigCanonical; frozen-config helper
+The doc's lz_e built its frozen configuration by calling
+`decodeConfigCanonical(0, 0, ...)` and assigning into the returned
+`rhoTilde`/`lambdaTilde` — readonly `Vec2` tuples; it does not
+typecheck. As built, a shared `frozen_configuration.ts` constructs
+ρ̃ = [cos α, 0], λ̃ = [sin α cos β, sin α sin β] directly at the R̃ = 1
+gauge (where I = 1, which the momentum construction relies on), used by
+lz_e/lz_k, shape_sphere, and mass_simplex — one copy instead of three
+inline repetitions.
+
+### D10.4 — lz_e and lz_k honestly share one decode
+The doc's lz_k wrapped lz_e with a "fakeView" that copied the view
+unchanged — a no-op pretending to substitute the axis semantics. In
+fact the doc's lz_e already parametrises by K* = Kmax·v^γ, which IS the
+(L_z, K) map; with frozen geometry E = U(r) + K*, so the (L_z, E) chart
+relative to U is numerically identical. As built: one exported
+`decodeLzChart`, lz_k spreads lzEChart with its own id and
+inverse-encode reason, and a unit test pins the state-identity. A new
+invariant test also pins that the decoded state carries the requested
+(L_z, K) exactly (to 1e-12) — the construction is closed-form, not
+approximate.
+
+### D10.5 — mass-simplex validate criterion didn't match the map
+The doc flagged `u + v ≥ 1 − ε` as "beyond simplex interior buffer".
+But `massFromSimplex` is the bilinear map m₁ = u, m₂ = (1−u)v,
+m₀ = (1−u)(1−v) — total on [0,1]², and u+v ≥ 1 covers half the square
+including comfortably interior masses like (0.16, 0.6, 0.24). As built,
+validate flags `min(raw components) < ε_m` — the pixels where
+`decodeMassSimplex`'s interior buffer actually engages. `inverseEncode`
+was also upgraded from the doc's approximation to the exact inverse
+(unbuffer, then u = m₁, v = m₂/(1−m₁)), pinned by a round-trip test at
+1e-10. The corner test now sweeps all four corners per the exit text.
+
+### D10.6 — totality test's mixed_axis catch was dead code; test strengthened
+The doc's chart_totality test caught throws from `mixed_axis` — but the
+mixed-axis FACTORY is exported, never registered, so no registered chart
+can reach that catch. Removed the try/catch entirely (registered charts
+must never throw) and strengthened the sweep: finiteness asserted on all
+decoded r/p, all 1000 pixels accounted for, ≥ 6 charts registered, and
+every chart must have a live (non-terminal) interior.
+
+### D10.7 — tree/exit-command hygiene
+The doc's file tree listed `compatibility.ts` (no listing anywhere;
+`compatible()` lives in validation.ts) and
+`gpu/shaders/chart_dispatch.wgsl` (no listing; the doc's own notes say
+M10 ships no chart WGSL — the `wgsl` field is a reserved hook) — both
+dropped. `lz_k.test.ts` was in the tree with no listing — authored
+(id/flags + shared-decode identity). The exit command
+`test/integration/charts` matched no file (the files are
+`chart_totality`/`chart_lock_handoff`) — fixed in Goal and Run-it.
+
 ## M9 — Locked-pixel inspector (CPU f64)
 
 Branch `feat/m9-inspector`. Acceptance gate
