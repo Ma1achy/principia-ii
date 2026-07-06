@@ -41,10 +41,24 @@ export interface DecodedSimResult {
   trajectory_stats:  number;
 }
 
+/** Decode an N×N tile buffer (square-grid convenience over
+ *  `decodeSimResults`). */
 export function decodeBuffer(ab: ArrayBuffer, N: number, M: number): DecodedSimResult[] {
+  return decodeSimResults(ab, N * N, M);
+}
+
+/**
+ * Decode `count` consecutive SimResults from a flat buffer. The ONE
+ * layout decoder — M12's export formats reuse it rather than carrying a
+ * second copy of the field offsets (same single-source rule as
+ * TILE_REDUCTION_FIELDS).
+ */
+export function decodeSimResults(
+  ab: ArrayBuffer, count: number, M: number,
+): DecodedSimResult[] {
   const stride = sizeOfSimResult(M);
-  const out: DecodedSimResult[] = new Array(N * N);
-  for (let i = 0; i < N * N; i++) {
+  const out: DecodedSimResult[] = new Array(count);
+  for (let i = 0; i < count; i++) {
     const off = i * stride;
     const f32 = new Float32Array(ab, off, stride / 4);
     const u32 = new Uint32Array(ab, off, stride / 4);
