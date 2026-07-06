@@ -13,7 +13,8 @@ soon as M10's chart system tries to vary them per chart. G4 fixes it.
 
 After G4: the chart registry is the source of truth for chart
 parameters, and the same shader runs every chart unchanged because the
-chart-specific knobs come in via group(0) binding(2) — not via
+chart-specific knobs come in via group(0) binding(3) — the slot G3
+reserved for exactly this (binding 2 is G17's DebugUniform) — not via
 specialisation constants, not via shader recompilation.
 
 **Exit criterion.**
@@ -27,7 +28,7 @@ chart (α_min = 0.20) does not trigger a shader recompile; the
 `ChartUniforms` buffer rebinds and the next dispatch reads the new
 values.
 
-**Deliverable:** internal — tests only; per-chart decoder knobs live in a `ChartUniforms` buffer at group(0) binding(2) so changing a chart's parameters rebinds without a shader recompile, verified by `test/integration/chart_uniforms`.
+**Deliverable:** internal — tests only; per-chart decoder knobs live in a `ChartUniforms` buffer at group(0) binding(3) (the G3-reserved slot; binding 2 is G17's DebugUniform) so changing a chart's parameters rebinds without a shader recompile, verified by `test/integration/chart_uniforms`.
 
 ## File tree
 
@@ -60,7 +61,9 @@ principia/
 
 ```ts
 /**
- * ChartUniforms is bound at group(0) binding(2). 64 bytes, vec4-aligned.
+ * ChartUniforms is bound at group(0) binding(3) — the slot G3 reserved
+ * (binding 2 is G17's DebugUniform). 64 bytes, vec4-aligned
+ * (= CHART_UNIFORMS_SIZE in src/gpu/layouts.ts).
  * Layout reserved a few slots for chart-specific parameters; future
  * charts that need more can pack into the reserved tail.
  *
@@ -148,7 +151,7 @@ export function unpackChartUniforms(buf: ArrayBuffer): ChartUniforms {
  * After G4, SimUniforms only carries quantities that are constant
  * across every chart in a frame: the integration setup and the
  * event thresholds. Chart-specific decode hyperparameters live in
- * ChartUniforms (binding 2 of group 0).
+ * ChartUniforms (binding 3 of group 0).
  */
 export interface SimUniforms {
   G:                number;
@@ -238,7 +241,7 @@ fn decode_full(z: array<f32, 8>, ch: ChartUniforms) -> ICOut {
 
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform> tile_req : TileRequest;
-@group(0) @binding(2) var<uniform> chart    : ChartUniforms;
+@group(0) @binding(3) var<uniform> chart    : ChartUniforms;
 
 @compute @workgroup_size(8, 8, 1)
 fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
@@ -253,7 +256,7 @@ per frame:
 // G2's frame loop, when assembling per-tile uniforms:
 device.queue.writeBuffer(bufs.uniforms,       0, packSimUniforms(simU));
 device.queue.writeBuffer(bufs.tileReq,        0, packTileRequest(tile));
-device.queue.writeBuffer(bufs.chartUniforms,  0,
+device.queue.writeBuffer(bufs.chart, 0,
                           packChartUniforms(chart.chartUniforms(view)));
 ```
 
@@ -333,7 +336,8 @@ chartUniforms(view) {
 // src/gpu/buffers.ts (extension)
 export interface TileBuffers {
   // ... existing
-  chartUniforms: GPUBuffer;       // new — 64 bytes, group(0) binding(2)
+  chart: GPUBuffer;   // ALREADY EXISTS since G3 (64 B, zero-filled, bound at
+                      // group(0) binding(3)); G4 just starts packing it.
 }
 
 export function createTileBuffers(

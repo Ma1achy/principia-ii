@@ -106,7 +106,10 @@ const TILE_REDUCTION_SCHEMA_VERSION: u32 = 1u;
 
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform> tile_req : TileRequest;
-@group(1) @binding(0) var<storage, read>       results : array<SimResult>;
+// G3: `results` is read_write (not read) because the canonical shared
+// perTile layout binds it as type 'storage', and WebGPU requires the
+// shader's access mode to match the layout's buffer type.
+@group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 @group(2) @binding(0) var<storage, read_write> out     : TileReduction;
 
 const LANES: u32 = 64u;

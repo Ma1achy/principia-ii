@@ -1,5 +1,7 @@
 import type { GpuContext } from '@/gpu/init.js';
 import type { TileBuffers } from '@/gpu/buffers.js';
+import { createTileBindGroups, createRenderParamsBindGroup } from '@/gpu/buffers.js';
+import { buildLayouts } from '@/gpu/layouts.js';
 
 /**
  * Build the render pipeline plus its bind groups. `RenderParams` lives
@@ -7,16 +9,23 @@ import type { TileBuffers } from '@/gpu/buffers.js';
  * 64-byte params buffer and rebind group 3 — groups 0, 1, 2 stay constant
  * across mode changes.
  *
- * M7 owns its own bind-group layouts (unlike the M3 render pass, which
- * shares the compute layouts): group 1 binds the sim buffers as
- * read-only-storage, matching the shader's `var<storage, read>`.
+ * G3-refactored: layouts come from the single buildLayouts authority, so
+ * the bind groups here are the SAME canonical objects the simulate and
+ * reduce pipelines use. Consequences of sharing:
+ *   - group(1) is bound as 'storage' (read-write), so render_graph.wgsl
+ *     declares `var<storage, read_write>` — WebGPU requires the shader's
+ *     access mode to match the layout's buffer type (same rule that shaped
+ *     render_layer0.wgsl in G17).
+ *   - group(2) binds the real canonical TileReduction buffer instead of
+ *     M7's empty-layout placeholder (the shader doesn't read it yet;
+ *     tile-debug overlays will).
+ * Field names kept from M7 (bgTile/bgStorage) so call sites don't churn.
  */
 export interface RenderGraph {
   pipeline:       GPURenderPipeline;
-  bgTile:         GPUBindGroup;   // group 0: SimUniforms + TileRequest
-  bgStorage:      GPUBindGroup;   // group 1: SimResult[] + ICDescriptor[]
-  bgEmpty:        GPUBindGroup;   // group 2: reserved for M5 reduction (empty,
-                                  // but WebGPU still requires it set at draw)
+  bgTile:         GPUBindGroup;   // group 0: canonical frame group
+  bgStorage:      GPUBindGroup;   // group 1: canonical perTile group
+  bgReduction:    GPUBindGroup;   // group 2: canonical reduction group
   bgRenderParams: GPUBindGroup;   // group 3: RenderParams uniform
   paramsBuffer:   GPUBuffer;
 }
@@ -25,43 +34,12 @@ export async function buildRenderGraph(
   ctx: GpuContext, bufs: TileBuffers, code: string,
 ): Promise<RenderGraph> {
   const { device, format } = ctx;
-
-  // group 0 (uniforms / tile)
-  const groupTileLayout = device.createBindGroupLayout({
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: 'uniform' } },
-      { binding: 1, visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: 'uniform' } },
-    ],
-  });
-  // group 1 (storage)
-  const groupStorageLayout = device.createBindGroupLayout({
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: 'read-only-storage' } },
-      { binding: 1, visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: 'read-only-storage' } },
-    ],
-  });
-  // group 2 (reduction storage — unused for static shading, reserved for M5+)
-  const groupEmptyLayout = device.createBindGroupLayout({ entries: [] });
-  const groupParamsLayout = device.createBindGroupLayout({
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: 'uniform' } },
-    ],
-  });
-
-  const layout = device.createPipelineLayout({
-    bindGroupLayouts: [
-      groupTileLayout, groupStorageLayout, groupEmptyLayout, groupParamsLayout,
-    ],
-  });
+  const layouts = buildLayouts(device);
 
   const module = device.createShaderModule({ code });
   const pipeline = device.createRenderPipeline({
-    layout,
+    label: 'principia.render_graph',
+    layout: layouts.pipelineRender,
     vertex:   { module, entryPoint: 'vs_main' },
     fragment: { module, entryPoint: 'fs_main',
                 targets: [{ format }] },
@@ -73,25 +51,15 @@ export async function buildRenderGraph(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  const bgTile = device.createBindGroup({
-    layout: groupTileLayout,
-    entries: [
-      { binding: 0, resource: { buffer: bufs.uniforms } },
-      { binding: 1, resource: { buffer: bufs.tileReq } },
-    ],
-  });
-  const bgStorage = device.createBindGroup({
-    layout: groupStorageLayout,
-    entries: [
-      { binding: 0, resource: { buffer: bufs.simResults } },
-      { binding: 1, resource: { buffer: bufs.icDesc } },
-    ],
-  });
-  const bgEmpty = device.createBindGroup({ layout: groupEmptyLayout, entries: [] });
-  const bgRenderParams = device.createBindGroup({
-    layout: groupParamsLayout,
-    entries: [{ binding: 0, resource: { buffer: paramsBuffer } }],
-  });
+  const bgs = createTileBindGroups(ctx, layouts, bufs);
+  const bgRenderParams = createRenderParamsBindGroup(ctx, layouts, paramsBuffer);
 
-  return { pipeline, bgTile, bgStorage, bgEmpty, bgRenderParams, paramsBuffer };
+  return {
+    pipeline,
+    bgTile: bgs.frame,
+    bgStorage: bgs.perTile,
+    bgReduction: bgs.reduction,
+    bgRenderParams,
+    paramsBuffer,
+  };
 }

@@ -10,9 +10,13 @@ structurally equivalent). Without G3, you get
 `GPUValidationError: bind group at index N is not compatible` the first
 time you try to bind a SimResult buffer for both compute and render.
 
-After G3: one `buildLayouts(device)` call returns the canonical
-`PipelineLayouts` object; all three pipelines use it; bind groups
-allocated for one pipeline bind cleanly into the others.
+After G3: one `buildLayouts(device)` call (memoised per device — layout
+*identity* is the whole point, so every caller must receive the same
+objects) returns the canonical `PipelineLayouts` object; all three
+pipelines use it; bind groups allocated for one pipeline bind cleanly
+into the others. Bind groups are canonical too:
+`createTileBindGroups(ctx, layouts, bufs)` is memoised per `TileBuffers`,
+so simulate/reduce/render literally share the same `GPUBindGroup` objects.
 
 **This milestone is a refactor, not a prerequisite (A1 ruling).** M3, M5,
 and M7 are built first with their own *provisional per-pipeline bind-group
@@ -27,12 +31,19 @@ three pipelines exist to share layout identity.
 npm test -- --run test/integration/layout_compat
 ```
 
-The same `BindGroup` object created for the simulate pipeline binds
-without validation errors when used in the reduce pipeline (input
-group), the render pipeline (storage read), and the inspector preview
-pipeline.
+The same canonical bind-group set dispatches in the simulate pipeline,
+the reduce pipeline, and the render-graph pipeline without validation
+errors (asserted inside a `pushErrorScope('validation')` around real
+dispatches of the real linked shaders; self-skips without WebGPU). On a
+real device the same contract is proven by the dev harness checks —
+`dev/render_graph.ts` computes with the M3 pipelines and draws with the
+M7 graph using the same bind groups in one page.
 
-**Deliverable:** internal — tests only; one `buildLayouts(device)` authority yields a canonical `PipelineLayouts` so the same bind group binds cleanly across simulate/reduce/render, checked by `test/integration/layout_compat`.
+**Deliverable:** one `buildLayouts(device)` authority (+ canonical
+`createTileBindGroups`) consumed by `buildPipelines`,
+`buildReducePipeline`, and `buildRenderGraph`; the same bind-group set
+binds cleanly across simulate/reduce/render, checked by
+`test/integration/layout_compat` and the real-GPU page checks.
 
 ## File tree
 
@@ -40,13 +51,14 @@ pipeline.
 principia/
   src/
     gpu/
-      layouts.ts                # the single source of truth
-      pipelines/
-        simulate.ts             # M3 dispatch, refactored to consume Layouts
-        reduce.ts               # M5
-        render.ts               # M7
-        inspector_preview.ts    # M9 hover-streamline
-      buffers.ts                # extended to expose canonical bind groups
+      layouts.ts                # the single source of truth (+ STAGE consts,
+                                #   *_LAYOUT_DESC exports, CHART_UNIFORMS_SIZE)
+      pipelines.ts              # M3 builder, refactored to consume Layouts
+      reduce_pipeline.ts        # M5 builder, refactored likewise
+      buffers.ts                # + chart & reduction buffers; canonical
+                                #   createTileBindGroups / createRenderParamsBindGroup
+    render/
+      pipeline.ts               # M7 builder, refactored likewise
   test/
     unit/gpu/
       layouts.test.ts
@@ -54,404 +66,164 @@ principia/
       layout_compat.test.ts
 ```
 
-## `src/gpu/layouts.ts`
+(The originally drafted `src/gpu/pipelines/{simulate,reduce,render,
+inspector_preview}.ts` split was not adopted: the landed builders were
+refactored in place with their signatures and result shapes intact, so no
+call site churns. `inspector_preview` does not exist as a pipeline — M9's
+inspector is CPU-f64 — but its pipeline *layout* is reserved in
+`PipelineLayouts` as an alias of the render layout list.)
+
+## The canonical group table
+
+This is an architectural contract — resist adding groups.
+
+| Group | Name | Bindings | Type | Visibility |
+|-------|------|----------|------|------------|
+| 0 | `frame` | 0 `SimUniforms`, 1 `TileRequest`, 2 `DebugUniform` (G17), 3 `ChartUniforms` (G4 slot) | uniform | b2 FRAGMENT; others COMPUTE\|FRAGMENT |
+| 1 | `perTile` | 0 `SimResult[]`, 1 `ICDescriptor[]` | **storage** (read-write) | COMPUTE\|FRAGMENT |
+| 2 | `reduction` | 0 `TileReduction` | storage | COMPUTE |
+| 3 | `render` | 0 `RenderParams` | uniform | FRAGMENT |
+
+Two bindings need their history spelled out:
+
+- **binding(2) of group(0) is G17's DebugUniform**, not ChartUniforms as
+  this doc originally had it — `render_layer0.wgsl` statically reads
+  `dbg` at `@group(0) @binding(2)` (D17.1) and that shipped first.
+  **ChartUniforms therefore lives at binding(3)**; G4's doc was
+  retargeted accordingly. Until G4 packs it, `bufs.chart` is a 64-byte
+  zero-filled placeholder (`CHART_UNIFORMS_SIZE`), exactly the D17.1
+  zero-filled-uniform pattern.
+- **group(1) is `storage` (read-write) everywhere.** WebGPU requires a
+  shader's declared access mode to MATCH the layout's buffer type — a
+  shader `var<storage, read>` against a `'storage'` layout entry is a
+  validation **error**, not a permitted narrowing. (An earlier draft of
+  this doc claimed the opposite; M7's own landed `render_layer0.wgsl`
+  comment states the real rule.) Consequently `reduce.wgsl` and
+  `render_graph.wgsl` declare their group(1) inputs `read_write` even
+  though they only read, matching `render_layer0.wgsl` since G17.
+
+Pipeline layouts: simulate = `[frame, perTile]` (shared by the M3 compute
+pipeline *and* the layer-0 render pipeline), reduce =
+`[frame, perTile, reduction]`, render = `[frame, perTile, reduction,
+render]` (the M7 empty-group(2) hack is gone — the render pass binds the
+real canonical reduction group; the shader ignores it until tile-debug
+overlays read it), inspectorPreview = alias of render.
+
+## `src/gpu/layouts.ts` (essentials)
 
 ```ts
-/**
- * Canonical bind-group layouts. Every pipeline in Principia must use
- * these layout objects (not equivalent ad-hoc instances), so that bind
- * groups allocated against any one of them rebind cleanly across all.
- *
- * Group structure:
- *   group(0): frame-level uniforms — SimUniforms + TileRequest +
- *             ChartUniforms (the last one is added by G4).
- *   group(1): per-tile storage — SimResult and ICDescriptor.
- *   group(2): per-tile reduction output — TileReduction.
- *   group(3): render-only uniforms — RenderParams.
- *
- * Visibility flags are the union of every stage that needs the binding;
- * WebGPU validation is fine with overspecification, and this lets the
- * same layout object back compute-only and fragment-also pipelines.
- */
+/** GPUShaderStage bit values per the WebGPU spec. Defined locally because
+ *  the `GPUShaderStage` global only exists in a WebGPU environment — this
+ *  module (and its descriptor constants) must be importable in plain Node. */
+export const STAGE = { VERTEX: 0x1, FRAGMENT: 0x2, COMPUTE: 0x4 } as const;
+
+export const FRAME_LAYOUT_DESC: GPUBindGroupLayoutDescriptor = {
+  label: 'principia.frame',
+  entries: [
+    { binding: 0, visibility: STAGE.COMPUTE | STAGE.FRAGMENT,
+      buffer: { type: 'uniform' } },                     // SimUniforms
+    { binding: 1, visibility: STAGE.COMPUTE | STAGE.FRAGMENT,
+      buffer: { type: 'uniform' } },                     // TileRequest
+    { binding: 2, visibility: STAGE.FRAGMENT,
+      buffer: { type: 'uniform' } },                     // DebugUniform (G17)
+    { binding: 3, visibility: STAGE.COMPUTE | STAGE.FRAGMENT,
+      buffer: { type: 'uniform' } },                     // ChartUniforms (G4)
+  ],
+};
+// PER_TILE_LAYOUT_DESC (2 × storage, COMPUTE|FRAGMENT),
+// REDUCTION_LAYOUT_DESC (1 × storage, COMPUTE),
+// RENDER_LAYOUT_DESC (1 × uniform, FRAGMENT) follow the table above.
+
 export interface PipelineLayouts {
-  /** group 0 */ frame:    GPUBindGroupLayout;
-  /** group 1 */ perTile:  GPUBindGroupLayout;
-  /** group 2 */ reduction:GPUBindGroupLayout;
-  /** group 3 */ render:   GPUBindGroupLayout;
-  /** Composite layouts for each pipeline. */
-  pipelineSimulate:        GPUPipelineLayout;
-  pipelineReduce:          GPUPipelineLayout;
-  pipelineRender:          GPUPipelineLayout;
-  pipelineInspectorPreview:GPUPipelineLayout;
+  frame: GPUBindGroupLayout;      perTile: GPUBindGroupLayout;
+  reduction: GPUBindGroupLayout;  render: GPUBindGroupLayout;
+  pipelineSimulate: GPUPipelineLayout;
+  pipelineReduce: GPUPipelineLayout;
+  pipelineRender: GPUPipelineLayout;
+  pipelineInspectorPreview: GPUPipelineLayout;
 }
 
-export function buildLayouts(device: GPUDevice): PipelineLayouts {
-  const FRAGMENT_AND_COMPUTE =
-    GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT;
+// Layout identity is per-device: every builder that calls buildLayouts for
+// the same device MUST receive the same objects, or bind groups stop being
+// shareable across pipelines — which is the whole point of G3. Memoised so
+// call sites keep their (ctx, bufs, code) signatures.
+const cache = new WeakMap<GPUDevice, PipelineLayouts>();
+export function buildLayouts(device: GPUDevice): PipelineLayouts { /* … */ }
 
-  const frame = device.createBindGroupLayout({
-    label: 'principia.frame',
-    entries: [
-      { binding: 0, visibility: FRAGMENT_AND_COMPUTE,
-        buffer: { type: 'uniform' } },                     // SimUniforms
-      { binding: 1, visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: 'uniform' } },                     // TileRequest
-      { binding: 2, visibility: FRAGMENT_AND_COMPUTE,
-        buffer: { type: 'uniform' } },                     // ChartUniforms (G4)
-    ],
-  });
-
-  const perTile = device.createBindGroupLayout({
-    label: 'principia.perTile',
-    entries: [
-      { binding: 0, visibility: FRAGMENT_AND_COMPUTE,
-        // 'read-only-storage' is binding-compatible with a 'storage'
-        // group that holds the same buffer in another pipeline. We use
-        // 'storage' here because the simulate compute writes to it.
-        buffer: { type: 'storage' } },                     // SimResult
-      { binding: 1, visibility: FRAGMENT_AND_COMPUTE,
-        buffer: { type: 'storage' } },                     // ICDescriptor
-    ],
-  });
-
-  const reduction = device.createBindGroupLayout({
-    label: 'principia.reduction',
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: 'storage' } },                     // TileReduction
-    ],
-  });
-
-  const render = device.createBindGroupLayout({
-    label: 'principia.render',
-    entries: [
-      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: 'uniform' } },                     // RenderParams
-    ],
-  });
-
-  const pipelineSimulate = device.createPipelineLayout({
-    label: 'principia.pipeline.simulate',
-    bindGroupLayouts: [frame, perTile],
-  });
-  const pipelineReduce = device.createPipelineLayout({
-    label: 'principia.pipeline.reduce',
-    // Reduce reads perTile (storage) and writes reduction (storage).
-    bindGroupLayouts: [frame, perTile, reduction],
-  });
-  const pipelineRender = device.createPipelineLayout({
-    label: 'principia.pipeline.render',
-    // Render reads frame, perTile (storage as readonly), and render.
-    bindGroupLayouts: [frame, perTile, reduction, render],
-  });
-  const pipelineInspectorPreview = device.createPipelineLayout({
-    label: 'principia.pipeline.inspectorPreview',
-    bindGroupLayouts: [frame, perTile, reduction, render],
-  });
-
-  return {
-    frame, perTile, reduction, render,
-    pipelineSimulate, pipelineReduce,
-    pipelineRender, pipelineInspectorPreview,
-  };
-}
+export const CHART_UNIFORMS_SIZE = 64;
 ```
 
-## Why a single source of truth matters
+## How M3 / M5 / M7 changed
 
-WebGPU's bind-group compatibility check is identity-based, not
-structural. Two `GPUBindGroupLayout` objects that have the same
-descriptor are *not* interchangeable. If M3's compute pipeline binds a
-SimResult buffer to its own layout, that bind group can't be passed to
-M7's render pipeline that uses an equivalent-but-distinct layout —
-WebGPU throws `bind group at index 1 is not compatible`.
+All three builders keep their signatures and result shapes; only their
+internals changed to consume the authority:
 
-Real implementations have hit this with shared cross-pipeline buffers.
-The fix is to centralise.
-
-## How M3 / M5 / M7 change
-
-Each pipeline-construction file becomes a thin wrapper around the
-canonical layouts. Below: the M3 `dispatch_layer0.ts` redux.
-
-### `src/gpu/pipelines/simulate.ts`
-
-```ts
-import type { GpuContext } from '../init.js';
-import type { PipelineLayouts } from '../layouts.js';
-
-export interface SimulatePipeline {
-  pipeline: GPUComputePipeline;
-}
-
-export function buildSimulatePipeline(
-  ctx: GpuContext, layouts: PipelineLayouts, code: string,
-): SimulatePipeline {
-  const pipeline = ctx.device.createComputePipeline({
-    label: 'principia.simulate',
-    layout: layouts.pipelineSimulate,
-    compute: {
-      module: ctx.device.createShaderModule({ code, label: 'simulate.wgsl' }),
-      entryPoint: 'simulate',
-    },
-  });
-  return { pipeline };
-}
-```
-
-### `src/gpu/pipelines/reduce.ts`
-
-```ts
-import type { GpuContext } from '../init.js';
-import type { PipelineLayouts } from '../layouts.js';
-
-export interface ReducePipeline {
-  pipeline: GPUComputePipeline;
-}
-
-export function buildReducePipeline(
-  ctx: GpuContext, layouts: PipelineLayouts, code: string,
-): ReducePipeline {
-  return {
-    pipeline: ctx.device.createComputePipeline({
-      label: 'principia.reduce',
-      layout: layouts.pipelineReduce,
-      compute: {
-        module: ctx.device.createShaderModule({ code, label: 'reduce.wgsl' }),
-        entryPoint: 'reduce',
-      },
-    }),
-  };
-}
-```
-
-### `src/gpu/pipelines/render.ts`
-
-```ts
-import type { GpuContext } from '../init.js';
-import type { PipelineLayouts } from '../layouts.js';
-
-export interface RenderPipeline {
-  pipeline: GPURenderPipeline;
-}
-
-export function buildRenderPipeline(
-  ctx: GpuContext, layouts: PipelineLayouts, code: string,
-): RenderPipeline {
-  const module = ctx.device.createShaderModule({
-    code, label: 'render_graph.wgsl',
-  });
-  return {
-    pipeline: ctx.device.createRenderPipeline({
-      label: 'principia.render',
-      layout: layouts.pipelineRender,
-      vertex: { module, entryPoint: 'vs_main' },
-      fragment: { module, entryPoint: 'fs_main',
-                  targets: [{ format: ctx.format }] },
-      primitive: { topology: 'triangle-list' },
-    }),
-  };
-}
-```
+- `buildPipelines(ctx, bufs, shaders)` (M3): both pipelines take
+  `layouts.pipelineSimulate`; `bindGroupCommon`/`bindGroupSim` are now the
+  canonical `frame`/`perTile` groups.
+- `buildReducePipeline(ctx, bufs, code)` (M5): takes
+  `layouts.pipelineReduce`; `bgCommon`/`bgInput`/`bgOutput` are the
+  canonical groups; **`outputBuf` is now `bufs.reduction`** — the
+  TileReduction buffer moved into `TileBuffers` so it has one home that
+  the render pipeline can also bind.
+- `buildRenderGraph(ctx, bufs, code)` (M7): takes
+  `layouts.pipelineRender`; `bgEmpty` became **`bgReduction`** (the only
+  call-site change — `dev/render_graph.ts` sets it at index 2).
 
 ## Bind-group construction (also centralised)
 
-Tiles allocate bind groups once at compute-time and reuse them on every
-subsequent render. The helper:
-
 ```ts
-// src/gpu/buffers.ts (extension)
-import type { PipelineLayouts } from './layouts.js';
-import type { TileBuffers } from './buffers.js';
-
+// src/gpu/buffers.ts
 export interface TileBindGroups {
-  /** group(0) — frame-level uniforms. Bound once per frame. */
-  frame:     GPUBindGroup;
-  /** group(1) — per-tile storage. Bound once per tile. */
-  perTile:   GPUBindGroup;
-  /** group(2) — per-tile reduction output. Bound during the reduce pass. */
-  reduction: GPUBindGroup;
+  frame: GPUBindGroup;      // group(0)
+  perTile: GPUBindGroup;    // group(1)
+  reduction: GPUBindGroup;  // group(2)
 }
-
+// Memoised per TileBuffers: every builder receives the SAME objects.
 export function createTileBindGroups(
-  ctx: { device: GPUDevice }, layouts: PipelineLayouts,
-  bufs: TileBuffers, chartUniforms: GPUBuffer, reductionBuffer: GPUBuffer,
-): TileBindGroups {
-  const frame = ctx.device.createBindGroup({
-    label: 'principia.bg.frame',
-    layout: layouts.frame,
-    entries: [
-      { binding: 0, resource: { buffer: bufs.uniforms } },
-      { binding: 1, resource: { buffer: bufs.tileReq  } },
-      { binding: 2, resource: { buffer: chartUniforms } },        // G4
-    ],
-  });
-  const perTile = ctx.device.createBindGroup({
-    label: 'principia.bg.perTile',
-    layout: layouts.perTile,
-    entries: [
-      { binding: 0, resource: { buffer: bufs.simResults } },
-      { binding: 1, resource: { buffer: bufs.icDesc     } },
-    ],
-  });
-  const reduction = ctx.device.createBindGroup({
-    label: 'principia.bg.reduction',
-    layout: layouts.reduction,
-    entries: [
-      { binding: 0, resource: { buffer: reductionBuffer } },
-    ],
-  });
-  return { frame, perTile, reduction };
-}
-```
+  ctx: { device: GPUDevice }, layouts: PipelineLayouts, bufs: TileBuffers,
+): TileBindGroups { /* … */ }
 
-The render-only group(3) (`RenderParams`) lives separately because
-swapping it shouldn't touch the per-tile bind group:
-
-```ts
+// group(3) stays separate so palette / CVD swaps rebind ONLY this group
+// (M7's 64-byte rebind contract).
 export function createRenderParamsBindGroup(
   ctx: { device: GPUDevice }, layouts: PipelineLayouts, paramsBuffer: GPUBuffer,
-): GPUBindGroup {
-  return ctx.device.createBindGroup({
-    label: 'principia.bg.renderParams',
-    layout: layouts.render,
-    entries: [{ binding: 0, resource: { buffer: paramsBuffer } }],
-  });
-}
+): GPUBindGroup { /* … */ }
 ```
+
+`TileBuffers` gained two buffers: `chart` (64 B zero-filled, the G4 slot)
+and `reduction` (`sizeOfTileReduction(M)`, the canonical TileReduction
+output).
 
 ## Tests
 
 ### `test/unit/gpu/layouts.test.ts`
 
-```ts
-import { describe, it, expect } from 'vitest';
-
-/**
- * Layout descriptor shapes are stable. We can't construct a
- * GPUBindGroupLayout in a unit test, but we can test the descriptors
- * directly via a thin export.
- */
-
-// In real code, expose the descriptor objects (not just the layouts) so
-// tests can introspect.
-import {
-  FRAME_LAYOUT_DESC, PER_TILE_LAYOUT_DESC,
-  REDUCTION_LAYOUT_DESC, RENDER_LAYOUT_DESC,
-} from '@/gpu/layouts.js';
-
-describe('layout descriptors', () => {
-  it('frame group has SimUniforms (0), TileRequest (1), ChartUniforms (2)', () => {
-    expect(FRAME_LAYOUT_DESC.entries).toHaveLength(3);
-    expect(FRAME_LAYOUT_DESC.entries[0]!.binding).toBe(0);
-    expect(FRAME_LAYOUT_DESC.entries[1]!.binding).toBe(1);
-    expect(FRAME_LAYOUT_DESC.entries[2]!.binding).toBe(2);
-  });
-
-  it('frame.SimUniforms is visible to compute and fragment', () => {
-    const SimUniformsEntry = FRAME_LAYOUT_DESC.entries[0]!;
-    const flag = SimUniformsEntry.visibility;
-    expect((flag & GPUShaderStage.COMPUTE) !== 0).toBe(true);
-    expect((flag & GPUShaderStage.FRAGMENT) !== 0).toBe(true);
-  });
-
-  it('per-tile storage is visible to both compute (write) and fragment (read)', () => {
-    const e0 = PER_TILE_LAYOUT_DESC.entries[0]!;
-    expect((e0.visibility & GPUShaderStage.COMPUTE) !== 0).toBe(true);
-    expect((e0.visibility & GPUShaderStage.FRAGMENT) !== 0).toBe(true);
-  });
-
-  it('reduction is compute-only', () => {
-    const e0 = REDUCTION_LAYOUT_DESC.entries[0]!;
-    expect((e0.visibility & GPUShaderStage.FRAGMENT) === 0).toBe(true);
-  });
-
-  it('render group is fragment-only', () => {
-    const e0 = RENDER_LAYOUT_DESC.entries[0]!;
-    expect((e0.visibility & GPUShaderStage.COMPUTE) === 0).toBe(true);
-    expect((e0.visibility & GPUShaderStage.FRAGMENT) !== 0).toBe(true);
-  });
-});
-```
-
-To make this test runnable, the layout module exposes the descriptor
-objects alongside the constructed layouts:
-
-```ts
-// src/gpu/layouts.ts (snippet)
-export const FRAME_LAYOUT_DESC: GPUBindGroupLayoutDescriptor = {
-  label: 'principia.frame',
-  entries: [
-    { binding: 0, visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
-      buffer: { type: 'uniform' } },
-    { binding: 1, visibility: GPUShaderStage.COMPUTE,
-      buffer: { type: 'uniform' } },
-    { binding: 2, visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
-      buffer: { type: 'uniform' } },
-  ],
-};
-// (same pattern for PER_TILE_LAYOUT_DESC, REDUCTION_LAYOUT_DESC, RENDER_LAYOUT_DESC)
-```
+Pins the descriptor table in plain Node (no `GPUShaderStage` global — the
+suite uses layouts.ts's own `STAGE` constants; referencing the browser
+global at module scope would crash every Node import of the barrel):
+binding order and types of all four groups, the G17 slot at frame
+binding(2), the G4 slot at binding(3) with `CHART_UNIFORMS_SIZE === 64`,
+per-tile storage read-write + COMPUTE|FRAGMENT, reduction compute-only,
+render fragment-only. Plus an access-mode sweep over the real shader
+sources: any `@group(1)` storage declaration in any `.wgsl` file must say
+`read_write`.
 
 ### `test/integration/layout_compat.test.ts`
 
-```ts
-import { describe, it, expect } from 'vitest';
-import { initGpu } from '@/gpu/init.js';
-import { buildLayouts } from '@/gpu/layouts.js';
-import { createTileBuffers } from '@/gpu/buffers.js';
+The originally drafted test only called `setBindGroup` and never
+dispatched — WebGPU validates bind-group/pipeline compatibility at
+**dispatch/draw time**, so it asserted nothing (same failure class as
+D12.1's vacuous acceptance checks). As landed, gated on WebGPU:
 
-describe('bind-group layout compatibility across pipelines', () => {
-  it('one perTile bind group binds in simulate, reduce, and render passes', async () => {
-    if (!('gpu' in (globalThis as any).navigator ?? {})) return;
-    const ctx = await initGpu();
-    const layouts = buildLayouts(ctx.device);
-    const bufs = createTileBuffers(ctx, 16, 8);
-
-    // Allocate a single perTile bind group …
-    const perTile = ctx.device.createBindGroup({
-      layout: layouts.perTile,
-      entries: [
-        { binding: 0, resource: { buffer: bufs.simResults } },
-        { binding: 1, resource: { buffer: bufs.icDesc     } },
-      ],
-    });
-
-    // … and exercise it in three encoder passes (compute write, compute
-    // read, fragment read). We don't dispatch real shaders here — we
-    // just verify the validation layer accepts the binds.
-    const enc = ctx.device.createCommandEncoder();
-
-    const dummyCompute = ctx.device.createComputePipeline({
-      layout: layouts.pipelineSimulate,
-      compute: {
-        module: ctx.device.createShaderModule({ code:
-          `@group(0) @binding(0) var<uniform> u : f32;
-           @group(0) @binding(1) var<uniform> t : f32;
-           @group(0) @binding(2) var<uniform> c : f32;
-           @group(1) @binding(0) var<storage, read_write> r : array<u32>;
-           @group(1) @binding(1) var<storage, read_write> i : array<u32>;
-           @compute @workgroup_size(1) fn simulate() { r[0] = i[0]; }`
-        }),
-        entryPoint: 'simulate',
-      },
-    });
-
-    {
-      const pass = enc.beginComputePass();
-      pass.setPipeline(dummyCompute);
-      pass.setBindGroup(1, perTile);
-      // We never bind group 0 with real buffers in this test; we just
-      // assert that setBindGroup(1, perTile) doesn't throw a layout
-      // mismatch when the pipeline was built with the canonical layout.
-      pass.end();
-    }
-    ctx.device.queue.submit([enc.finish()]);
-
-    expect(true).toBe(true);    // reaching here is the assertion
-  }, 30_000);
-});
-```
+1. `buildLayouts` memoisation: two calls return the same object.
+2. Builds the REAL pipelines (simulate + layer-0 render via `wgslLink`,
+   reduce, render graph) over one `TileBuffers`; asserts the builders
+   handed back the *same* bind-group objects
+   (`pl.bindGroupSim === rp.bgInput === rg.bgStorage`); then inside
+   `pushErrorScope('validation')` actually dispatches simulate, dispatches
+   reduce, and draws the render graph (all four groups bound, real target
+   texture) and asserts `popErrorScope()` returns null.
 
 ## Run it
 
@@ -466,32 +238,32 @@ npm test -- --run test/integration/layout_compat
 npm test -- --run test/integration/layout_compat
 ```
 
-The same `perTile` bind group binds across the simulate / reduce /
-render pipelines without `bind group is not compatible` errors.
+Plus, on a real device: `npm run gpu:check` and the m5 / m7 / g17 /
+depth-stress page checks — `dev/render_graph.ts` alone exercises the
+shared set across compute (M3 simulate), layer-0 render, and the M7
+render graph in one page.
 
 ## Notes for the implementer
 
 - **Visibility unions.** Each binding's `visibility` flag is the union
-  of every stage the binding is read in. The simulate compute writes
-  the SimResult buffer; the render fragment reads it; both flags must
-  appear, even though only one runs at a time. This is per-binding,
-  not per-pipeline — a bind group satisfies a layout iff every entry's
-  declared visibility covers its actual use.
-- **`storage` vs `read-only-storage`.** The simulate pipeline writes
-  the SimResult buffer (storage). The render pipeline only reads it.
-  WebGPU lets a pipeline declare `read-only-storage` while the bind
-  group's underlying buffer was created with `STORAGE` usage, but the
-  layout entry types must match exactly across the pipelines that
-  share the bind group. We use `storage` (read-write) at the layout
-  level and let the render shader treat it as read-only via
-  `var<storage, read>`. Validation passes.
+  of every stage the binding is *statically used* in across all
+  pipelines. Overspecification is fine; underspecification fails at
+  pipeline creation. TileRequest is COMPUTE|FRAGMENT because
+  `render_graph.wgsl` declares it in a fragment module even though
+  `fs_main` doesn't read it today.
+- **`storage` vs `read-only-storage`.** The layout entry type and the
+  shader's access mode must match exactly. One shared read-write layout +
+  `var<storage, read_write>` in every group(1) shader is the price of
+  cross-pipeline bind-group sharing, and it's cheap: fragment-stage
+  read-write storage is within default limits and has been proven on
+  swiftshader since G17.
 - **Render-only group(3)** stays separate so that palette swaps and
   CVD-mode toggles only rebind one group (the one with `RenderParams`),
   leaving the per-tile and frame groups intact.
 - **Pipeline labels.** All `label:` strings flow through to the
   browser's GPU validation messages. Worth keeping; debugging
   validation errors is much easier with named layouts.
-- **Future room.** When G4 adds `ChartUniforms` and G7 adds the
-  ensemble dispatch, the layout doesn't need to change — both ride on
-  existing slots. Resist the urge to add new groups; the stable shape
-  here is part of the architectural contract.
+- **Future room.** G4 packs real per-chart knobs into the already-bound
+  `bufs.chart` at frame binding(3) — no layout change. G7's ensemble
+  dispatch rides on existing slots too. Resist the urge to add new
+  groups; the stable shape here is part of the architectural contract.
