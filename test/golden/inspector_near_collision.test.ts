@@ -3,8 +3,10 @@ import { runInspector } from '@/inspector/run.js';
 import { RK45_DEFAULTS } from '@/inspector/types.js';
 
 describe('near-collision chase', () => {
-  it('classifies a Burrau IC before timeout', () => {
-    // Burrau (3, 4, 5) re-indexed.
+  it('classifies a Burrau-family IC before timeout', () => {
+    // Legs-swapped Burrau variant (M1's regression fixture — see the
+    // burrau.test.ts header; the canonical geometry is [[0,0],[0.6,0],
+    // [0,0.8]]). Either works here: the assertions are outcome-robust.
     const m = [5/12, 4/12, 3/12] as const;
     const s0 = {
       r: [[0,0], [0.8, 0], [0, 0.6]] as const,

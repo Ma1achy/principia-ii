@@ -9,6 +9,81 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M11 — Burrau family progression
+
+Branch `feat/m11-burrau`. Acceptance gate
+(`npm test -- --run test/golden/burrau_family_345
+test/golden/burrau_persistence_probe`) green; 4 unit + 2 golden suites,
+22 tests, all green first run; full suite 303 passed / 1 skipped;
+typecheck + lint + build clean. Deliverable is internal (tests only).
+
+### D11.1 — M1's Burrau golden was the LEGS-SWAPPED variant, not the canonical IC
+Reconciling M11 against the spec's canonical Burrau positions
+(eq. `burrau_positions`: each mass opposite its own side, so mass 4/12
+on the 0.6 leg and mass 3/12 on the 0.8 leg — matching Szebehely &
+Peters' published coordinates) revealed that M1's ratified golden
+fixture has the legs swapped (mass 4/12 at (0.8, 0)). Empirical
+consequences, measured this session:
+- The CANONICAL IC's f64 truth at project thresholds is a sub-`r_coll`
+  encounter at t = 4.9047 — the adaptive inspector classifies it
+  `collision` IDENTICALLY across epsRel 1e-9..1e-11 and hMax 1e-2/2e-3
+  (ΔE_max down to 4.6e-9). Converged and tolerance-robust.
+- The non-regularized symplectic path steps over that minimum and blows
+  up: outcome ESCAPE(body 1) with energy drift ~4e+4 — numerically
+  meaningless. The famous t ≈ 60 escape of the lightest body needs G19
+  regularization.
+- The swapped variant's encounter history is milder, which is the only
+  reason M1's symplectic run completes with a stable outcome (lightest
+  ejected, drift ~2e-2) — the ratified physical fact held by luck of
+  genericity, not because the fixture was the classical problem.
+Resolution: the user-ratified M1 golden is KEPT byte-for-byte in its
+assertions but relabelled honestly ("legs-swapped variant — integrator
+physical regression"); the M9 near-collision and M6 FTLE fixtures that
+reuse the geometry got comment fixes (their assertions are
+outcome-robust). The NEW M11 golden pins the canonical truth via the
+adaptive inspector: collision, tEnd ∈ (4.89, 4.92), dMin < 1e-4,
+ΔE_max < 1e-7 — generated once by the tolerance sweep, then pinned.
+
+### D11.2 — descriptor copies again → D10.1 exports
+The doc (predating D10.1) carried three MORE divergent
+makeDescriptor/zeroDescriptor copies — one explicitly leaving V0/virial
+zero "to avoid importing a potential helper". All charts now use
+`makeDescriptor` from `@/decode/pipeline.js`; canonicalise-terminal
+paths emit a real descriptor from the state, same as M2/M10.
+
+### D11.3 — exact-K momentum seeds need the reduced-mass factor
+The doc's radial seed `p_ρ = [√(2K), 0]` yields kinetic energy K/μ_ρ,
+not K (Jacobi K = |p_ρ|²/(2μ_ρ)) — silently mislabelling the K axis by
+~5.4× at Burrau masses. As built: |p_ρ| = √(2 K μ_ρ), and unit tests pin
+the decoded state's K to the requested value at 1e-12 (same exactness
+discipline as M10's D10.4 test).
+
+### D11.4 — ν → triangle single-sourced
+M10's `burrau_euclid` chart inlined the same ν → (r, m) construction the
+new `src/burrau/euclid.ts` provides. The chart now imports
+`burrauTriangle` — one home for the canonical map (the import direction
+chart_atlas → burrau/euclid.ts is acyclic; euclid.ts touches only math
+types).
+
+### D11.5 — mass_chart validate aligned with D10.5
+The doc's Burrau mass chart repeated the `u + v ≥ 1 − ε` saturation
+criterion that D10.5 already established is wrong for the bilinear
+simplex map; it now flags raw-component < ε_m, matching M10's
+mass_simplex.
+
+### D11.6 — Stage 2b made honest: `burrauLzEParams`
+The doc wired Stage 2b as the bare `lzEChart`, whose (α, β) DEFAULT to
+π/4, π/2 — not the (3,4,5) shape the stage description promises. Added
+`burrauLzEParams(ν)` (hyperspherical (α, β) of the ν-triangle plus its
+natural masses, for `ChartView.chartParams`/`view.m`), with a handoff
+test pinning the 3 : 4 : 5 side ratios through the lz_e decode at the
+R̃ = 1 gauge.
+
+### D11.7 — exit-command hygiene
+`test/golden/burrau_family` matched only the 345 file, not the
+persistence probe the acceptance text demands ("two goldens green") —
+both files are now listed explicitly in Goal/Run-it/acceptance.
+
 ## M10 — Chart instantiations
 
 Branch `feat/m10-charts`. Acceptance gate

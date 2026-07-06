@@ -2,26 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { run } from '@/integrate/run.js';
 
 /**
- * Burrau 3-4-5 (Pythagorean problem) — physical validation, NOT a precision
- * golden.
+ * Burrau 3-4-5 — legs-swapped VARIANT — integrator physical regression,
+ * NOT a precision golden and NOT the canonical Burrau IC.
  *
- * The published outcome (Szebehely & Peters 1967) is that after a sequence of
- * close encounters the lightest body (mass 3/12, our body 2) is ejected,
- * leaving the two heavier bodies as a binary. Our non-regularized adaptive
- * leapfrog reproduces that qualitative outcome, but the trajectory passes
- * through r_min ~ 1e-3–1e-4 close approaches that put it firmly in the
- * "numerically suspect" drift regime (≥ 1e-4, per the numerics skill) — the
- * escape *time* is not converged across dt and checkpoint positions cannot be
- * pinned. Resolving Burrau to reference accuracy requires close-encounter
- * regularization (KS / Levi-Civita), tracked as milestone G19.
+ * M11's reconciliation against the spec (eq. burrau_positions, matching
+ * Szebehely & Peters' coordinates) found this fixture has the legs
+ * swapped: canonically mass 4/12 sits at (0.6, 0) and mass 3/12 at
+ * (0, 0.8) — each mass opposite its own side. The CANONICAL IC at f64
+ * dips below r_coll = 1e-4 at t ≈ 4.90 (a converged, tolerance-robust
+ * COLLISION at project thresholds — see test/golden/burrau_family_345);
+ * the famous t ≈ 60 escape needs close-encounter regularization (G19).
+ * The non-regularized symplectic path blows up on it (drift ~1e+4).
  *
- * So this test asserts exactly the robust, literature-matching facts and no
- * more: the run completes (no NaN / substep blow-up), the lightest body
- * escapes, and drift stays within the empirically observed envelope.
+ * This swapped variant is KEPT as an integrator regression because its
+ * encounter history is mild enough for the fixed-substep path to
+ * complete with a stable outcome and pinned drift envelope: the run
+ * completes (no NaN / substep blow-up), the lightest body escapes, and
+ * drift stays within the empirically observed envelope. (Its qualitative
+ * outcome — lightest ejected — happens to match the classical result.)
  */
-describe('Burrau 3-4-5 physical validation', () => {
-  it('ejects the lightest body, matching Szebehely & Peters', () => {
-    // Classical Burrau setup, 0-indexed: masses (5, 4, 3)/12; body 0 at the
+describe('Burrau 3-4-5 legs-swapped variant: integrator regression', () => {
+  it('completes and ejects the lightest body', () => {
+    // Legs-swapped variant, 0-indexed: masses (5, 4, 3)/12; body 0 at the
     // right angle, body 1 at (0.8, 0), body 2 at (0, 0.6); all at rest.
     const m = [5/12, 4/12, 3/12] as const;
     const s0 = {
