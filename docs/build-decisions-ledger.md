@@ -9,6 +9,53 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M5 — Layer 2: GPU reduction + adaptive refinement
+
+Branch `feat/m5-layer2-refinement` off `webgpu-rewrite`. Acceptance gate
+(`npm test -- --run test/integration/layer2`) green first run; 65 M5-touched
+tests; full suite 176 passed / 1 skipped; typecheck + lint clean. Real-GPU
+validation: the new `dev:layer2` harness ran the full M3 simulate → M5 reduce
+→ schema-checked readback pipeline for 16/16 tiles headlessly (real impurity
+0.17–0.5 force-splitting the boundary-rich slice; β→π−β mirror symmetry
+visible in the reduction means), and `gpu:check` is unchanged (95/81/10).
+
+### D5.1 — TileReduction head layout: no TileID pad (272 bytes, not 288)
+The doc's WGSL declared `TileID { z, tx, ty, _pad }` with the decoder reading
+`level` at lane 4 and checkpoints from lane 8 — that layout is 288 bytes,
+contradicting ADR-0006 and M3's pinned `sizeOfTileReduction(8) = 272`.
+Resolved per the ratified contract: TileID is 3 × i32 (no pad), `level` packs
+at byte 12, the checkpoint array lands naturally 16-aligned at byte 16, and
+scalars start at lane `4 + M*4` — total 268 → 272. WGSL, decoder, and the
+golden all agree; doc corrected.
+
+### D5.2 — reduce.wgsl: version bits, standalone structs, complete writes
+Three defects in the doc's shader listing: (a) it wrote `status_flags = 0u`,
+so `decodeTileReduction` would throw a schema mismatch on every readback —
+the version must be ORed into bits 6-7; (b) it referenced `SimUniforms` /
+`TileRequest` without defining them — the module compiles standalone, so the
+structs are repeated in full (M3's D3.3 class); (c) it summed diffusion but
+never wrote `mean_diffusion` (and the valid-count was per-lane only), and
+left mean_ftle / word / ensemble / trajectory fields and the checkpoint means
+unwritten — stale-buffer leaks. As built: a `shared_diff_n` reduction feeds a
+sentinel-respecting mean, and every output field is written explicitly.
+
+### D5.3 — Authored the two test files the doc omitted + lint fixes
+The doc's file tree lists `priority.test.ts` and the ADR-0006
+`tile_reduction_layout.test.ts` golden but provides no listing for either.
+Authored both: the golden hand-pins all 31 scalar lanes (sentinel = 100+index
+— a deliberate second copy of the field order so a constant-size reorder
+fails loudly), checks version-bit stripping, the schema-mismatch throw, and
+string-matches `reduce.wgsl` against `wgslTileReductionStruct(8)`. Also
+removed the off-screen test's unused `FifoComputeQueue`.
+
+### D5.4 — Dev harness is `dev:layer2` (Vite), reusing G17 infrastructure
+The M5 dev-harness section pre-dated G17; as built it follows the G17
+pattern: `dev/layer2_refinement.{html,ts}` + `npm run dev:layer2`, painting
+the decision map on a 2D canvas (sidestepping the known headless WebGPU
+presentation glitch) and validated headlessly with Playwright.
+
+---
+
 ## M4 — Layer 1: tile cache and ancestor fallback
 
 Branch `feat/m4-layer1-cache` off `webgpu-rewrite`. All 40 M4 tests green

@@ -251,23 +251,27 @@ export function decodeTileReduction(ab: ArrayBuffer, M: number = M_DEFAULT): Til
   const i32 = new Int32Array(ab);
   const u32 = new Uint32Array(ab);
 
-  const id: TileID = { z: i32[0], tx: i32[1], ty: i32[2] };
-  const level = i32[4];
+  // Head layout (D5.1): TileID is 3 × i32 with NO trailing pad, so level
+  // packs at lane 3 and the checkpoint array lands naturally 16-aligned at
+  // byte 16 — keeping the struct at the ADR-0006 pinned 272 bytes. (A padded
+  // TileID would push checkpoints to byte 32 and the struct to 288.)
+  const id: TileID = { z: i32[0]!, tx: i32[1]!, ty: i32[2]! };
+  const level = i32[3]!;
 
   const ck: { x: number; y: number; z: number; w: number }[] = [];
   for (let m = 0; m < M; m++) {
-    const o = 8 + m * 4;     // 16B id+level head (4 i32) + WGSL pad to vec4
-    ck.push({ x: f32[o], y: f32[o + 1], z: f32[o + 2], w: f32[o + 3] });
+    const o = 4 + m * 4;     // 16B head (id 3×i32 + level), checkpoints 16-aligned
+    ck.push({ x: f32[o]!, y: f32[o + 1]!, z: f32[o + 2]!, w: f32[o + 3]! });
   }
 
-  const base = 8 + M * 4;
+  const base = 4 + M * 4;
   const out = { id, level, mean_n_checkpoints: ck } as Record<string, unknown>;
   TILE_REDUCTION_FIELDS.forEach((field, i) => {
     const lane = base + i;
     out[field.name] =
-      field.type === 'u32' ? u32[lane]
-      : field.type === 'i32' ? i32[lane]
-      : f32[lane];
+      field.type === 'u32' ? u32[lane]!
+      : field.type === 'i32' ? i32[lane]!
+      : f32[lane]!;
   });
 
   const version = ((out.status_flags as number) & SCHEMA_VERSION_MASK) >>> SCHEMA_VERSION_SHIFT;
@@ -615,7 +619,11 @@ struct SimResult {
   trajectory_stats:  u32,
 };
 
-struct TileID  { z: i32, tx: i32, ty: i32, _pad: i32 };
+// TileID is 3 × i32 with NO trailing pad (D5.1): level packs at byte 12 and
+// the checkpoint array lands naturally 16-aligned at byte 16, keeping the
+// struct at the ADR-0006 pinned 272 bytes. A _pad here pushes it to 288 and
+// breaks the alignment pin.
+struct TileID  { z: i32, tx: i32, ty: i32 };
 struct TileReduction {
   id:    TileID,
   level: i32,
@@ -754,14 +762,18 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
 
   if (lane == 0u) {
     let n = f32(total);
-    out.id = TileID(tile_req.z, tile_req.tx, tile_req.ty, 0);
+    out.id = TileID(tile_req.z, tile_req.tx, tile_req.ty);
     out.level = tile_req.level;
 
     out.mean_arc_length_n = sumArc   / n;
     out.mean_t_end        = sumTend  / n;
     out.mean_d_min        = sumDmin  / n;
     out.mean_energy_drift = sumDrift / n;
-    out.mean_diffusion    = -1.0;       // updated below if any valid samples
+    // D5.2: the diffusion valid-sample count is reduced like the sums (a
+    // shared_diff_n array) so the mean respects the -1 sentinel; see the
+    // as-built reduce.wgsl. Every remaining output field (mean_ftle, word/
+    // ensemble/trajectory fields, mean_n_checkpoints) is written explicitly —
+    // re-used output buffers must never leak a previous tile's lanes.
 
     // Class histogram → outcome impurity and dominant.
     var hist: array<u32, 5>;
@@ -792,10 +804,18 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
 
     out.coherence_score = 0.0;     // CPU patches after readback
     out.priority_score  = 0.0;
-    out.status_flags    = 0u;
+    // D5.2: bits 6-7 MUST carry the schema version or decodeTileReduction
+    // throws on every readback (the original listing wrote 0u here).
+    out.status_flags    = TILE_REDUCTION_SCHEMA_VERSION << 6u;
   }
 }
 ```
+
+> **Standalone module (D5.2, same class as M3's D3.3):** `reduce.wgsl` is not
+> concatenated with `simulate.wgsl`, so the `SimUniforms` / `TileRequest` /
+> `SimResult` structs are repeated in full at the top of the real file, and
+> `const TILE_REDUCTION_SCHEMA_VERSION: u32 = 1u;` is declared in WGSL (the
+> golden test string-matches both the emitted struct text and this constant).
 
 > The pass above produces means, the class histogram, suspect counts, and
 > drift maxima — the information the scheduler actually needs. M6 wires
@@ -1247,7 +1267,6 @@ describe('boundary tiles refine to MAX_DEPTH', () => {
 ```ts
 import { describe, it, expect } from 'vitest';
 import { TileCache } from '@/quadtree/cache.js';
-import { FifoComputeQueue } from '@/quadtree/compute_queue.js';
 import { planFrame } from '@/quadtree/scheduler.js';
 import type { QuadtreeView, TileCacheKey } from '@/quadtree/types.js';
 
@@ -1264,7 +1283,6 @@ const KEY: TileCacheKey = {
 describe('off-screen cancellation', () => {
   it('planFrame yields zero jobs once the viewport leaves the visible region', () => {
     const cache = new TileCache(64);
-    const queue = new FifoComputeQueue();
 
     let view: QuadtreeView = {
       cacheKey: KEY, uvCentre: [0.5, 0.5], uvHalfWidth: [0.05, 0.05],
@@ -1319,10 +1337,13 @@ off the readback `TileReduction` — rather than synthetic fixtures — means th
 harness exercises the real `decodeTileReduction` schema check, so a layout/version
 drift surfaces visually, not just in CI. Entry point:
 
-```ts
-// dev/layer2_refinement.ts
-runLayer2Harness(canvas, ctx, view);   // dispatch+readback per visible tile, then draw the decision map
-```
+As built: `npm run dev:layer2` (Vite, alongside G17's `dev:debug`). The page
+simulates + reduces every visible tile at depth 2 through the real M3→M5
+pipeline, decodes via `readbackReduction` (schema check live), and paints the
+16-cell decision map with per-tile S/impurity/dominant-outcome/priority and a
+split/keep/merge border. Validated headlessly: 16/16 tiles reduced, real
+impurity values (0.17–0.5) force-splitting the boundary-rich slice, and the
+β→π−β mirror symmetry visible across the reduction means.
 
 ## Notes for the implementer
 
