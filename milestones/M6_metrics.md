@@ -57,7 +57,7 @@ principia/
 ## `src/metrics/types.ts`
 
 ```ts
-import type { Vec2, Vec3 } from '@/math/types.js';
+import type { Vec3 } from '@/math/types.js';
 
 /**
  * One checkpoint record. `.xyz` is the canonical geometric state n(t)∈S²;
@@ -334,7 +334,7 @@ export function massWeightedNorm(
 
 ```ts
 import type { Vec3 } from '@/math/types.js';
-import { cross3, dot3, normalize3 } from '@/math/vec.js';
+import { cross3, dot3 } from '@/math/vec.js';
 import type { FreeGroupWord } from './types.js';
 import { SYMBOL, FREE_GROUP_MAX_LENGTH } from './types.js';
 
@@ -343,10 +343,12 @@ const SOUTH: Vec3 = [0, 0, -1];
 
 /** Pick a branch-cut endpoint for a collision singularity b̂. The default
  *  is the north pole; if b̂ is too close to the north pole (extreme mass
- *  ratios), fall back to the south. */
+ *  ratios), fall back to the south. (D6.3: sin∠(b̂, north) is the norm of the
+ *  FULL cross product — the original two-component expression evaluated to
+ *  |b_y| and sent equator basepoints south, failing this file's own test.) */
 export function pickEndpoint(b: Vec3, threshold = 0.1): Vec3 {
-  const sin = Math.hypot(b[0]*NORTH[1] - b[1]*NORTH[0],
-                         b[1]*NORTH[2] - b[2]*NORTH[1]);
+  const cr = cross3(b, NORTH);
+  const sin = Math.hypot(cr[0], cr[1], cr[2]);
   return sin < threshold ? SOUTH : NORTH;
 }
 
@@ -520,7 +522,7 @@ export function unpackTrajectoryStats(v: number): TrajectoryStatsFields {
 
 ```ts
 import type { TrajState } from '@/math/types.js';
-import type { MetricsAccumulator, Checkpoint } from './types.js';
+import type { MetricsAccumulator } from './types.js';
 import { shapeSphere, massWeightedJacobi } from './shape_sphere.js';
 import { phaseFromN, unwrapPhase } from './phase.js';
 import { geodesic } from './arc.js';
@@ -850,9 +852,7 @@ describe('windowed frequency fit', () => {
 describe('diffusion sentinel', () => {
   it('returns -1 when one window has no samples', () => {
     const T = 80;
-    // Only samples in W_1; leave W_2 empty.
-    const t  = [10, 12, 14, 16, 18];      // all in [T/4, T/2] = [20, 40] — actually NOT
-    // Use [22, 24, 26, 28, 30] inside W_1.
+    // Samples only inside W_1 = [20, 40]; W_2 = [40, 60] stays empty.
     const t1 = [22, 24, 26, 28, 30];
     const tt1 = t1.map(x => 0.1 * x);
     expect(diffusion(t1, tt1, T).value).toBe(-1);
@@ -1044,44 +1044,44 @@ solution. Its homotopy class on the punctured shape sphere is the commutator
 `[a, b] = a b a^{-1} b^{-1}`, written here as `abAB`. After multiple
 periods, the recorded word should be a power of that base.
 
+**D6.1 — use the rescaled IC, not the textbook one.** The original listing
+built the IC from the standard CM velocities (mis-halved, with a
+self-contradicting comment) at m = 1/3 and integrated to `T = 6.32·4`. Both
+are wrong at Σm = 1: the canonical unit-mass velocities scale by 1/√3 and the
+period by √3 (≈ 10.9568) — exactly the M1 golden's fixture. A non-periodic
+orbit never closes the word. As built, the test loads
+`test/golden/figure8_reference.json` (the pinned, convergence-verified IC):
+
 ```ts
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { kdkMacroStep } from '@/integrate/kdk.js';
 import { metricsTick, makeMetrics, DEFAULT_BRANCH_CUTS } from '@/metrics/observe_extended.js';
 import { wordToString } from '@/metrics/free_group.js';
 import type { TrajState } from '@/math/types.js';
 
-// Chenciner–Montgomery initial conditions in the standard normalisation.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const REF = JSON.parse(
+  readFileSync(path.join(here, 'figure8_reference.json'), 'utf-8'),
+) as { ic: { m: number[]; r: number[][]; p: number[][] } };
+
 function figure8IC(): TrajState {
-  // Velocity components (Chenciner–Montgomery 2000):
-  //   r_0 = -r_2 = (0.97000436, -0.24308753)
-  //   r_1 = (0, 0)
-  //   v_0 = v_2 = (-0.4662036850, -0.4323657300)/ 2
-  //   v_1 = -v_0 - v_2 = (0.93240737,  0.86473146)
-  const r0 = [ 0.97000436, -0.24308753] as const;
-  const r1 = [ 0,           0          ] as const;
-  const r2 = [-0.97000436,  0.24308753] as const;
-  const v0 = [-0.4662036850 * 0.5, -0.4323657300 * 0.5] as const;
-  const v2 = v0;
-  const v1 = [-(v0[0] + v2[0]), -(v0[1] + v2[1])] as const;
-  // p = m v with m = 1/3.
-  const m = [1/3, 1/3, 1/3] as const;
-  const scale = (v: readonly [number,number], s: number) =>
-    [v[0]*s, v[1]*s] as [number,number];
-  return {
-    m, r: [r0, r1, r2],
-    p: [scale(v0, m[0]), scale(v1, m[1]), scale(v2, m[2])],
-    t: 0,
-  };
+  const [m0, m1, m2] = REF.ic.m as [number, number, number];
+  const r = REF.ic.r as [[number, number], [number, number], [number, number]];
+  const p = REF.ic.p as [[number, number], [number, number], [number, number]];
+  return { m: [m0, m1, m2], r, p, t: 0 };
 }
+
+const PERIOD = 6.32591398 * Math.sqrt(3);   // ≈ 10.9568 in Σm = 1 units
 
 describe('figure-8 orbit free-group word', () => {
   it('reduces to a power of abAB after several periods', () => {
-    const ic = figure8IC();
     const acc = makeMetrics();
-    let s = ic;
+    let s = figure8IC();
     const dt = 1e-3;
-    const T = 6.32 * 4;       // approx four periods of the figure-8
+    const T = PERIOD * 4;
 
     // We integrate ourselves so we can call metricsTick once per macro step.
     // In production, metricsTick is wired into the integrator's macro loop;
@@ -1092,14 +1092,23 @@ describe('figure-8 orbit free-group word', () => {
       metricsTick(acc, s, false, DEFAULT_BRANCH_CUTS);
     }
     const w = wordToString(acc.word);
-    // Allow either rotation: a periodic word can start at any cyclic position.
     const base = 'abAB';
+    expect(w.length).toBeGreaterThan(0);
     expect(w.length % base.length).toBe(0);
+    // A periodic word can start at any cyclic position, in either
+    // orientation (traversal direction depends on velocity sign
+    // conventions): rotations of abAB and of its inverse baBA.
     const rotations = [
-      base, 'bABa', 'ABab', 'BabA',
+      'abAB', 'bABa', 'ABab', 'BabA',
+      'baBA', 'aBAb', 'BAba', 'AbaB',
     ];
-    expect(rotations.some(r => w.startsWith(r))).toBe(true);
-  });
+    const period = rotations.find((r) => w.startsWith(r));
+    expect(period, `word was ${w}`).toBeDefined();
+    // Every 4-symbol block repeats the same base.
+    for (let i = 0; i < w.length; i += 4) {
+      expect(w.slice(i, i + 4)).toBe(period);
+    }
+  }, 120_000);
 });
 ```
 
@@ -1109,17 +1118,19 @@ describe('figure-8 orbit free-group word', () => {
 import { describe, it, expect } from 'vitest';
 import { benettinFTLE } from '@/metrics/ftle.js';
 import { kdkMacroStep } from '@/integrate/kdk.js';
-import { totalEnergy } from '@/integrate/forces.js';
 import type { TrajState } from '@/math/types.js';
 
 const sp = { rSub: 0.05, gammaSub: 1.5, NMax: 64 };
 
 function regularOrbit(): TrajState {
-  // Equal-mass binary on a tight near-circular orbit; third body far away.
+  // Equal-mass binary on a circular orbit; third body far away and inert.
+  // D6.2: circular momentum at separation 1 with m ≈ 1/2 each is
+  // v² = F·r/m = 0.25·0.5/0.5 → v = 0.5, p = m·v ≈ 0.25. (The original
+  // 0.7071 gave an UNBOUND pair — E > 0 — not a regular reference orbit.)
   return {
     m: [0.4999, 0.4999, 0.0002] as const,
     r: [[0.5, 0], [-0.5, 0], [50, 0]] as const,
-    p: [[0, 0.7071], [0, -0.7071], [0, 0]] as const,
+    p: [[0, 0.25], [0, -0.25], [0, 0]] as const,
     t: 0,
   };
 }
