@@ -52,7 +52,13 @@ export function decodeLatent(
   return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
 }
 
-function makeTerminal(
+/**
+ * Terminal-before-geometry helper: emit a labelled terminal with a
+ * mass-only descriptor (positions zeroed). Exported for the chart atlas
+ * (M10) — charts that fail before a state exists (e.g. infeasible
+ * invariant momenta) reuse this rather than hand-rolling descriptors.
+ */
+export function makeTerminal(
   terminal: TerminalLabel, m: TrajState['m'],
 ): DecodeResult {
   // For terminal-at-decode states we still emit a descriptor so render
@@ -64,7 +70,13 @@ function makeTerminal(
   return { kind: 'terminal', terminal, descriptor: makeDescriptor(dummy) };
 }
 
-function makeDescriptor(s: TrajState): ICDescriptor {
+/**
+ * The ONE ICDescriptor constructor (q_mass = m_min / M_total, etc.).
+ * Exported for the chart atlas (M10): every chart derives descriptors
+ * through this function — never a per-chart copy, which is how the
+ * milestone doc's inline versions drifted.
+ */
+export function makeDescriptor(s: TrajState): ICDescriptor {
   const m = s.m;
   const M = m[0] + m[1] + m[2];
   const qMass = Math.min(m[0], m[1], m[2]) / M;
