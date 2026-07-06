@@ -9,6 +9,40 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## Depth-stress harness (user-requested, between M8 and M9)
+
+Branch `feat/depth-stress-harness`. The user asked whether refinement
+works at higher resolutions and deeper depths — the M5 harness had only
+validated one fixed level (z=2, N=16). New `dev:depth` harness +
+`dev/out/depth_stress_check.mjs` (20/20 checks pass on real GPU):
+
+- **Descends the real pipeline level by level** (simulate → reduce →
+  schema-checked readback → coherence → decideSplit → priority) at
+  N=32/tile (4× M5's resolution), chasing the max-impurity child
+  (boundary) and min-impurity child (uniform) from z=2.
+- **Boundary chase: 13 consecutive levels of splits (z=2 → z=15),
+  impurity pinned at 45–63% the whole way** — the fractal basin boundary
+  never smooths out, exactly as the physics demands — and is stopped
+  only by the AT_F32_FLOOR keep guard, at precisely the depth
+  `pyramid.reachedF32Floor(z, 32)` predicts (z=15).
+- **Uniform chase settles to keep('coherent') at z=13** with impurity
+  3.9%; instructive: even "uniform" children hovered at ~20% impurity
+  (above the 10% force-split) for 11 levels in this latent region.
+- τ(ℓ) escalation, split-reason/metric consistency, children-tile-parent
+  geometry, sample_count = N² at every level, and a one-tile N=64
+  (4096-sample) hi-res smoke all validated.
+
+### DS.1 — nothing in production sets AT_F32_FLOOR yet
+`decideSplit` honours `TILE_STATUS.AT_F32_FLOOR` and `camera.effectiveZ`
+clamps requests above the floor, but no production code path currently
+SETS the bit — the harness sets it CPU-side from
+`pyramid.reachedF32Floor(z, N)`, mirroring the scheduler's intended
+wiring. Defensive today (the camera clamp makes below-floor requests
+unreachable), but the scheduler should set the bit when it enqueues
+at-floor tiles; flagged for the G-series/M12 integration wiring.
+
+---
+
 ## M8 — Interaction
 
 Branch `feat/m8-interaction` off `webgpu-rewrite`. Acceptance gate

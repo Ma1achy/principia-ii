@@ -11,7 +11,8 @@
     "gpu:check": "npm run build && node dev/gpu_check.mjs",
     "dev:debug": "vite dev --open /dev/debug_harness.html",
     "dev:layer2": "vite dev --open /dev/layer2_refinement.html",
-    "dev:render": "vite dev --open /dev/render_graph.html"
+    "dev:render": "vite dev --open /dev/render_graph.html",
+    "dev:depth": "vite dev --open /dev/depth_stress.html"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
