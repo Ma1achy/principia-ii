@@ -342,14 +342,26 @@ export function runInspector(
   nArr.push(d0.n);
 
   while (s.t < o.THorizon) {
-    const r = tryStep(s, h, o);
-    h = r.hNext;
-    if (!r.accepted) { nReject++; continue; }
-    if (h <= o.hMin && r.rejected) {
-      terminal = { kind: 'SIM_FAILED', reason: 'h_min reached', t: s.t };
-      outcome = 'failed';
-      break;
+    // Clamp the final step to the horizon so bounded runs end at exactly
+    // T_horizon (the fixed-step match integrator overshoots by < dtMacro;
+    // keeping the adaptive side exact preserves sub-millisecond t_end
+    // agreement).
+    const hTry = Math.min(h, o.THorizon - s.t);
+    const r = tryStep(s, hTry, o);
+    if (!r.accepted) {
+      nReject++;
+      // The h_min abort lives HERE, in the reject branch: a step that was
+      // rejected at h <= hMin would be retried at hMin forever otherwise
+      // (checking after `continue` is unreachable — an infinite loop).
+      if (hTry <= o.hMin) {
+        terminal = { kind: 'SIM_FAILED', reason: 'h_min reached', t: s.t };
+        outcome = 'failed';
+        break;
+      }
+      h = r.hNext;
+      continue;
     }
+    h = r.hNext;
     s = r.s;
     nSteps++;
 
@@ -792,19 +804,21 @@ import { inspectorMatch } from '@/inspector/match_integrator.js';
 
 describe('match-integrator mode', () => {
   it('Yoshida-4 reproduces the run() result with the same params', () => {
-    const s0 = {
-      m: [1/3, 1/3, 1/3] as const,
-      r: [[1, 0], [-0.5, Math.sqrt(3)/2], [-0.5, -Math.sqrt(3)/2]] as const,
-      p: [[0, 0], [0, 0], [0, 0]] as const,
-      t: 0,
-    };
-    const r = inspectorMatch(s0 as any, {
+    // Smooth bounded fixture: the M1 figure-8 (loaded from
+    // figure8_reference.json — see the golden below). An equal-mass
+    // equilateral REST start is NOT smooth or bounded: it is the classic
+    // free-fall triple-collapse configuration (Lagrange central config,
+    // zero velocity) and ejects a body.
+    const r = inspectorMatch(figure8IC(), {
       integrator: 'yoshida4', dtMacro: 1e-3, THorizon: 5,
       NMax: 64, rSub: 0.05, gammaSub: 1.5,
       rColl: 1e-4, REsc: 10, kEsc: 8,
     });
     expect(r.outcome).toBe('bounded');
-    expect(r.tEnd).toBeCloseTo(5, 3);
+    // The fixed-step run() overshoots the horizon by at most one macro
+    // step (fp accumulation of 5000 × 1e-3 lands just under 5.0).
+    expect(r.tEnd).toBeGreaterThanOrEqual(5);
+    expect(r.tEnd).toBeLessThan(5 + 1e-3);
   });
 });
 ```
@@ -825,7 +839,16 @@ describe('Kepler energy conservation', () => {
       p: [[0,  0.5*v0], [0, -0.5*v0], [0, 0]] as const,
       m, t: 0,
     };
-    const r = runInspector(s0 as any, { ...RK45_DEFAULTS, THorizon: 1000 });
+    // RK45 is not symplectic: energy drifts secularly. On this smooth
+    // orbit the step controller rides hMax the whole way, so the binding
+    // knob is hMax, NOT the per-step tolerance (defaults land at ~7e-12
+    // regardless of epsRel; hMax=2e-3 gets under 1e-12 — empirically
+    // calibrated, the M1 don't-pin-uncalibrated-precision lesson).
+    const r = runInspector(s0 as any, {
+      ...RK45_DEFAULTS, THorizon: 1000, fullTrace: false,
+      epsRel: 1e-11, epsAbs: 1e-13, hMax: 2e-3,
+    });
+    expect(r.outcome).toBe('bounded');
     expect(r.deltaEMax).toBeLessThan(1e-12);
   }, 60_000);
 });
@@ -850,8 +873,12 @@ describe('near-collision chase', () => {
     const r = runInspector(s0 as any, {
       ...RK45_DEFAULTS, THorizon: 80, hMin: 1e-12,
     });
-    // Adaptive RK45 should chase the close encounters down, classify.
-    expect(['escape', 'bounded']).toContain(r.outcome);
+    // Adaptive RK45 should chase the close encounters down and CLASSIFY —
+    // no timeout, no h_min failure. 'collision' is a legitimate (indeed
+    // likely) outcome: with hMin=1e-12 the chase resolves the encounter
+    // below r_coll=1e-4 instead of giving up the way the GPU's
+    // fixed-budget path does with MAX_SUBSTEPS.
+    expect(['escape', 'bounded', 'collision']).toContain(r.outcome);
     expect(r.dMin).toBeLessThan(0.1);
   }, 60_000);
 });
@@ -866,19 +893,19 @@ import { inspectorMatch } from '@/inspector/match_integrator.js';
 import { RK45_DEFAULTS } from '@/inspector/types.js';
 
 describe('match-integrator t_end agrees with adaptive on smooth orbits', () => {
-  it('agrees within 1 ms over T = 5 on equal-mass figure-8 stand-in', () => {
-    const m = [1/3, 1/3, 1/3] as const;
-    const s0 = {
-      r: [[1, 0], [-0.5, Math.sqrt(3)/2], [-0.5, -Math.sqrt(3)/2]] as const,
-      p: [[0, 0], [0, 0], [0, 0]] as const,
-      m, t: 0,
-    };
-    const adaptive = runInspector(s0 as any, { ...RK45_DEFAULTS, THorizon: 5 });
-    const matched  = inspectorMatch(s0 as any, {
+  it('agrees within 1 ms over T = 5 on the figure-8 orbit', () => {
+    // The REAL figure-8 from the M1 fixture (figure8_reference.json) —
+    // not an equilateral rest start, which free-fall collapses (Lagrange
+    // central configuration at zero velocity) and ejects a body.
+    const s0 = figure8IC();
+    const adaptive = runInspector(s0, { ...RK45_DEFAULTS, THorizon: 5 });
+    const matched  = inspectorMatch(s0, {
       integrator: 'yoshida4', dtMacro: 1e-3, THorizon: 5,
       NMax: 64, rSub: 0.05, gammaSub: 1.5,
       rColl: 1e-4, REsc: 10, kEsc: 8,
     });
+    expect(adaptive.outcome).toBe('bounded');
+    expect(matched.outcome).toBe('bounded');
     expect(Math.abs(adaptive.tEnd - matched.tEnd)).toBeLessThan(1e-3);
   });
 });
