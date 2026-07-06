@@ -9,6 +9,60 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M9 — Locked-pixel inspector (CPU f64)
+
+Branch `feat/m9-inspector`. Acceptance gate
+(`npm test -- --run test/golden/inspector`) green; 5 unit + 3 golden
+tests; full suite 257 passed / 1 skipped; typecheck + lint clean.
+Deliverable is internal (tests only). The `principia-inspector` skill was
+authored just-in-time and carries the calibration + integrator-family
+rules below.
+
+### D9.1 — doc's h_min abort was unreachable (infinite-loop hazard)
+The doc's `run.ts` checked `h <= hMin && r.rejected` AFTER
+`if (!r.accepted) continue;` — dead code, and a step persistently
+rejected at hMin would retry forever. As built, the abort lives in the
+reject branch (`SIM_FAILED('h_min reached')`, outcome `failed`); the
+shadow loop got the same guard. Also: the adaptive loop clamps the final
+step to the horizon so bounded runs end at exactly T_horizon.
+
+### D9.2 — doc's "smooth bounded" fixture was the free-fall collapse IC
+Both match-integrator tests used an equal-mass equilateral REST start,
+calling it a "figure-8 stand-in". That configuration is the classic
+homothetic free-fall collapse (Lagrange central configuration at zero
+velocity): it collapses, scatters, and ejects a body — outcome `escape`,
+not `bounded`. Replaced with the genuine M1 figure-8 fixture
+(figure8_reference.json), the same D6.1 lesson. Horizon-overshoot
+semantics also pinned: fixed-step `run()` ends within one macro step
+past T; the clamped adaptive side ends exactly at T.
+
+### D9.3 — Kepler 1e-12 drift gate needed calibration, and the knob is hMax
+At the doc's default tolerances the T=1000 Kepler drift is ~6.9e-12 —
+and unchanged under tighter epsRel, because the step controller rides
+hMax on a smooth orbit (the tolerance never binds). Truncation-dominated:
+hMax=2e-3 passes 1e-12 (verified; roundoff floor not yet reached). The
+golden pins the calibrated knobs explicitly. Same family as M1's Burrau
+gate (D-M1) and D7.4: never pin uncalibrated precision.
+
+### D9.4 — near-collision chase: 'collision' is success, not failure
+With hMin=1e-12 the RK45 chase resolves the Burrau encounter below
+r_coll=1e-4 and classifies COLLISION — precisely the "chases where the
+GPU declared MAX_SUBSTEPS" behaviour the milestone celebrates; the doc's
+accept-list just omitted it. Test accepts
+{escape, bounded, collision} and rejects timeout/failed.
+
+### D9.5 — strict-TS reconciliation in doc listings
+TrajState is fully readonly → stepped states are constructed with their
+new `t` (`s5.t = …` doesn't typecheck; `addScaled` takes `tNew`).
+Unused: DOPRI5 c-nodes C2..C5 (autonomous RHS — kept as a comment),
+`TerminalLabel` import in types.ts, `HoverStreamline.lastMoveAt`,
+`RK45Opts` import in match_integrator. Overlay optional fields
+(`chartUv`, `validationPanel`) use conditional spreads
+(exactOptionalPropertyTypes); its tuple-array type needed
+`(readonly [number, number])[]`.
+
+---
+
 ## Depth-stress harness (user-requested, between M8 and M9)
 
 Branch `feat/depth-stress-harness`. The user asked whether refinement
