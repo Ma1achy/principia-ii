@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Principia · M5 layer-2 refinement harness</title>
+    <style>
+      body { font: 13px/1.4 monospace; margin: 16px; display: flex; gap: 24px;
+             background: #111; color: #ddd; }
+      canvas { image-rendering: pixelated; border: 1px solid #444; }
+      #side { min-width: 360px; max-width: 560px; }
+      #log { max-height: 420px; overflow-y: auto; background: #000; padding: 4px;
+             white-space: pre-wrap; }
+      .legend { margin-bottom: 8px; }
+      .legend span { display: inline-block; padding: 1px 6px; margin-right: 6px;
+                     border: 2px solid; }
+    </style>
+  </head>
+  <body>
+    <canvas id="map" width="512" height="512"></canvas>
+    <div id="side">
+      <div class="legend">
+        border: <span style="border-color:#e33">split</span>
+        <span style="border-color:#3c3">keep</span>
+        <span style="border-color:#888">merge</span>
+        — fill: coherence C_tile (green=1 → red=0)
+      </div>
+      <pre id="log"></pre>
+    </div>
+    <script type="module" src="./layer2_refinement.ts"></script>
+  </body>
+</html>
