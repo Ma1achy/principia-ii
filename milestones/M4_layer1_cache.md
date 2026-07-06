@@ -213,9 +213,6 @@ export function subrect(
 ## `src/quadtree/pyramid.ts`
 
 ```ts
-import type { TileID } from './types.js';
-import { tileBounds } from './tile.js';
-
 /** Maximum allowed depth in the quadtree. The hard cap is also constrained
  *  by f32 precision (spec §6.4); see {@link reachedF32Floor}. */
 export const Z_MAX_DEFAULT = 20;
@@ -250,7 +247,7 @@ export function reachedF32Floor(z: number, samplesPerAxis: number): boolean {
 
 ```ts
 import type { QuadtreeView } from './types.js';
-import { Z_MAX_DEFAULT, tileSpan } from './pyramid.js';
+import { Z_MAX_DEFAULT, tileSpan, reachedF32Floor } from './pyramid.js';
 import { clamp } from '@/math/scalar.js';
 
 /**
@@ -284,17 +281,12 @@ export function visibleTilesAt(
   };
 }
 
-/** Adapt the requested z to whatever `pyramid.f32Floor` allows. */
+/** Adapt the requested z down to whatever the f32 precision floor
+ *  (`pyramid.reachedF32Floor`) allows, then apply the view's hard cap. */
 export function effectiveZ(view: QuadtreeView, samplesPerAxis: number): number {
   let z = view.zBase;
-  while (z > 0 && require_f32_floor_check_failure(z, samplesPerAxis)) z--;
+  while (z > 0 && reachedF32Floor(z, samplesPerAxis)) z--;
   return Math.min(z, view.zMax);
-}
-
-function require_f32_floor_check_failure(z: number, n: number): boolean {
-  const halfWidth = Math.pow(2, -(z + 1));
-  const spacing = (2 * halfWidth) / n;
-  return spacing < 1e-6;
 }
 ```
 
@@ -661,19 +653,47 @@ describe('reachedF32Floor', () => {
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { zoomLevel, visibleTilesAt } from '@/quadtree/camera.js';
+import { zoomLevel, visibleTilesAt, effectiveZ } from '@/quadtree/camera.js';
+import type { QuadtreeView, TileCacheKey } from '@/quadtree/types.js';
 
 describe('zoomLevel', () => {
-  it('zoomed out fully returns z = 0', () => {
-    expect(zoomLevel(1024, 1.0, 256)).toBe(0);
+  // z_base = ⌊log₂(W / (T_pix × Δu_view))⌋: a 1024-pixel viewport of
+  // 256-pixel tiles needs 4×4 tiles even fully zoomed out (D4.1 — the
+  // original expectations here contradicted the formula above).
+  it('full unit-square view on a 1024px viewport of 256px tiles is depth 2', () => {
+    expect(zoomLevel(1024, 1.0, 256)).toBe(2);
   });
 
-  it('zoomed in by 4× selects depth 2', () => {
-    expect(zoomLevel(1024, 0.25, 256)).toBe(2);
+  it('zooming in by 4× adds two depths', () => {
+    expect(zoomLevel(1024, 0.25, 256)).toBe(4);
+  });
+
+  it('one-tile viewport is depth 0', () => {
+    expect(zoomLevel(256, 1.0, 256)).toBe(0);
   });
 
   it('caps at zMax', () => {
     expect(zoomLevel(1024, 1e-9, 256, 10)).toBe(10);
+  });
+});
+
+describe('effectiveZ', () => {
+  const key = {} as TileCacheKey;   // effectiveZ never reads the cache key
+  const view = (zBase: number, zMax: number): QuadtreeView => ({
+    cacheKey: key, uvCentre: [0.5, 0.5], uvHalfWidth: [0.5, 0.5],
+    zBase, zMax, width: 1024, height: 1024, tilePix: 256,
+  });
+
+  it('passes a shallow depth through', () => {
+    expect(effectiveZ(view(4, 12), 16)).toBe(4);
+  });
+
+  it('walks down to the f32 floor at extreme depth', () => {
+    expect(effectiveZ(view(30, 40), 16)).toBeLessThan(30);
+  });
+
+  it('applies the view zMax cap', () => {
+    expect(effectiveZ(view(6, 3), 16)).toBe(3);
   });
 });
 
@@ -845,6 +865,16 @@ describe('FifoComputeQueue', () => {
     q.done(t);
     expect(q.size).toBe(0);
   });
+
+  it('flush() drops queued but keeps inflight', () => {
+    const q = new FifoComputeQueue();
+    q.push({ z: 1, tx: 0, ty: 0 });
+    q.push({ z: 1, tx: 1, ty: 0 });
+    q.pop();             // first goes inflight
+    q.flush();
+    expect(q.queued).toBe(0);
+    expect(q.running).toBe(1);
+  });
 });
 ```
 
@@ -889,12 +919,10 @@ function runPan(
     totalFrames: 0, framesWithBlank: 0, framesWithStretched: 0,
   };
 
-  let frameNum = 0;
   // Track when each in-flight tile will finish.
   const finishingFrames = new Map<string, number>();
 
   for (let f = 0; f < frames; f++) {
-    frameNum = f;
     const u = f / Math.max(1, frames - 1);
     const view: QuadtreeView = {
       ...startView,
@@ -925,8 +953,10 @@ function runPan(
     // Drain finishing tiles.
     for (const [k, dueFrame] of finishingFrames) {
       if (dueFrame <= f) {
-        const [z, tx, ty] = k.split('/').map(Number);
-        const id = { z, tx, ty };
+        // Cast: noUncheckedIndexedAccess types destructured elements as
+        // number | undefined; tileKey() guarantees exactly three parts.
+        const [z, tx, ty] = k.split('/').map(Number) as [number, number, number];
+        const id: TileID = { z, tx, ty };
         cache.put(id, CKEY, {
           id, simBuffer: null, icBuffer: null,
           lifecycle: 'ready', computeCostMs: 4,
@@ -989,7 +1019,6 @@ import { TileCache } from '@/quadtree/cache.js';
 import { FifoComputeQueue } from '@/quadtree/compute_queue.js';
 import { visibleTiles } from '@/quadtree/visible.js';
 import type { TileCacheKey, QuadtreeView } from '@/quadtree/types.js';
-import { tileKey } from '@/quadtree/tile.js';
 
 const CKEY: TileCacheKey = {
   chartId: 'latent_slice', z0: [0,0,0,0,0,0,0,0],
