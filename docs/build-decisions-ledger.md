@@ -9,6 +9,38 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M2 — Decoder atlas
+
+Branch `feat/m2-decoder-atlas` off `webgpu-rewrite`. Acceptance gate
+`npm test -- --run test/unit/decode test/golden/decode_landmarks` — **green on
+first run** (21 tests: 1000-point encode/decode round-trip at 1e-9, 10000-point
+totality, landmarks); full suite 77; typecheck/lint clean.
+
+### D2.1 — `TerminalLabel` DEGENERATE reason: `string` → `number` (ADR-0007 alignment)
+M0's `TerminalLabel` typed the DEGENERATE reason as `string`, but ADR-0007 (and
+M2's `DegenerateReason` enum, codes 10–17) make it a closed numeric code shared
+byte-for-byte with WGSL — and M2's pipeline passes the enum value. Changed the
+base type in `src/math/types.ts` to `number` with a comment pointing at the
+enum (not imported there, to keep `math` the base layer with no dependency on
+`decode`). M0 doc listing updated to match. No existing producer of DEGENERATE
+used a string.
+
+### D2.2 — Doc listings cleaned for strict mode / lint (no semantic changes)
+Unused type imports removed from the M2 doc's listings (`Triple` in
+decode/types, `Vec3` in canonicalise, `TrajState` in no_holes, `Vec8` + the
+whole unused `rotate.js` import in inverse); non-null assertions on loop-index
+tuple reads in five test listings; the landmark test's `rhoT`/`lambdaT` typed
+`as const` and its reconstructed `r` actually asserted on. All folded back into
+`milestones/M2_decoder_atlas.md`; the committed code is semantically identical
+to the doc.
+
+### D2.3 — `no_holes.ts` stays out of the barrel (doc-faithful)
+The doc's `index.ts` deliberately omits `no_holes.js` (its `safeguardDecode` is
+an internal guard, first consumed in M3's dispatch path). Kept the barrel
+exactly as the doc lists it rather than "completing" it.
+
+---
+
 ## M1 — CPU reference integrator
 
 Branch `feat/m1-cpu-integrator` off `webgpu-rewrite`. Acceptance gate
