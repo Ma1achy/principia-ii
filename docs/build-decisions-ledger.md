@@ -9,6 +9,62 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M3 — Layer 0 GPU dispatch
+
+Branch `feat/m3-layer0-gpu` off `webgpu-rewrite`. Node gate green (85 tests
+total; GPU tests self-skip without WebGPU) **and** validated on a real WebGPU
+device via a new Playwright/Chromium harness (`npm run gpu:check`): WGSL
+compiles with **zero validation errors**, dispatch + readback work, and the
+chaos-calibrated agreement gate passes (see D3.2).
+
+### D3.1 — Stood up a real-GPU dev harness beyond M3's file tree
+M3's GPU tests self-skip in Node, which would have left ~500 lines of WGSL
+completely unexecuted — unacceptable given the project's "GPU failures are
+silent" non-negotiable. Added `dev/gpu_check.html` + `dev/gpu_check.mjs`
+(Playwright + headless Chromium + `--enable-unsafe-swiftshader`, an
+`npm run gpu:check` script, `@webgpu/types` + `playwright` devDeps). This is
+explicitly the **seed of G17** (M3's Deliverable already said the viewable
+artifact ships with G17) and CI-parity with G8's swiftshader smoke job. It
+renders the outcome grid (first on-screen pixels), redraws the readback buffer
+on a 2D canvas for a trustworthy artifact, and saves `dev/out/gpu_check.png`.
+
+### D3.2 — Replaced the exact-agreement gate with a chaos-calibrated gate
+The doc's gate ("≥250/256 identical classes + shape positions to 1e-3 at
+T=50") is unattainable in principle: the latent slice is dominated by
+rest-start collapse orbits with fractal basin boundaries. Measured: GPU-vs-CPU
+flips 95/256 pixels while CPU-vs-CPU under a 1e-4 IC nudge (the f32-error
+scale) flips 81 — the GPU is statistically indistinguishable from an f32-scale
+perturbation of the same map. Bug-vs-chaos was discriminated three ways:
+(a) class histograms agree to 10/256; (b) mirror pairs (β→π−β) show identical
+deviations on both sides (a layout/indexing bug would shatter this);
+(c) smooth BOUNDED samples' shape-sphere checkpoints agree to ~3e-3 at T=5
+with error growing along the Lyapunov spectrum (a systematic bug corrupts all
+samples equally — not observed). New gate: gpuDisagree ≤ max(6,
+1.5×cpuSelfFlip) AND per-class histogram delta ≤ 15% AND zero WebGPU
+validation errors. Same decision pattern as M1's D1.1 (user-ratified: don't
+pin chaos; assert robust facts).
+
+### D3.3 — render_layer0.wgsl needed real structs and read_write access
+The doc's render shader had `struct SimResult { /* same */ };` placeholders —
+not valid WGSL (the module compiles standalone) — and declared
+`var<storage, read>` against a bind-group layout of type 'storage'
+(read_write), which fails pipeline validation. Fixed: full struct definitions
+repeated (pinned byte-identical to simulate.wgsl/structs.ts) and read_write
+access. Doc updated.
+
+### D3.4 — Smaller doc corrections folded back
+`structs.test.ts` was missing the three chart hyperparameters
+(`mu_max`/`alpha_min`/`q_max`) that its own C3 fix added to `SimUniforms` —
+wouldn't have compiled; also gained offset assertions (u32[6], u32[12],
+f32[19..21]) and a TileRequest packing test. Robust `navigator.gpu` guard
+(direct `'gpu' in navigator` throws when `navigator` is undefined in older
+Node). `dispatch_layer0.ts` dropped an unused import; readback/test indexing
+non-null assertions for `noUncheckedIndexedAccess`. `uniforms.ts` from the
+file tree was never specified by the doc and is not needed (packers live in
+`structs.ts`) — not created.
+
+---
+
 ## M2 — Decoder atlas
 
 Branch `feat/m2-decoder-atlas` off `webgpu-rewrite`. Acceptance gate

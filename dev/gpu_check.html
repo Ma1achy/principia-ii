@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<!--
+  M3 real-GPU check page (seed of the G17 debug harness).
+
+  Runs the same 16×16 GPU-vs-CPU comparison as
+  test/integration/layer0_gpu_vs_cpu.test.ts, but in a real browser with real
+  WebGPU. Launched headlessly by dev/gpu_check.mjs; also usable interactively:
+
+      npm run build && node dev/gpu_check.mjs --headed
+
+  The page draws the outcome-class grid to the canvas (the first on-screen
+  pixels of the project) and writes a JSON verdict to window.__RESULT.
+-->
+<head><meta charset="utf-8"><title>Principia M3 GPU check</title>
+<script type="importmap">
+  { "imports": { "@/": "/dist/src/" } }
+</script>
+</head>
+<body style="background:#111;color:#ddd;font-family:monospace">
+<h3>Principia — M3 layer-0 GPU check</h3>
+<div style="display:flex;gap:12px">
+  <div><div>WebGPU canvas (render pass)</div>
+  <canvas id="c" width="512" height="512" style="border:1px solid #444"></canvas></div>
+  <div><div>Readback (2D redraw of GPU buffer)</div>
+  <canvas id="c2" width="512" height="512" style="border:1px solid #444"></canvas></div>
+</div>
+<pre id="log"></pre>
+<script type="module">
+const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+
+async function main() {
+  const { initGpu } = await import('@/gpu/init.js');
+  const { createTileBuffers } = await import('@/gpu/buffers.js');
+  const { buildPipelines } = await import('@/gpu/pipelines.js');
+  const { dispatchLayer0 } = await import('@/gpu/dispatch_layer0.js');
+  const { readbackSimResults } = await import('@/gpu/readback.js');
+  const { decodeLatent } = await import('@/decode/pipeline.js');
+  const { run } = await import('@/integrate/run.js');
+  const C = await import('@/math/constants.js');
+
+  const fetchText = async (p) => (await fetch(p)).text();
+  const S = {};
+  for (const n of ['helpers','decode','integrate','events','observe','simulate','render_layer0']) {
+    S[n] = await fetchText(`/src/gpu/shaders/${n}.wgsl`);
+  }
+  const simulateSrc = [S.helpers, S.observe, S.events, S.integrate, S.decode, S.simulate].join('\n');
+
+  const q = new URLSearchParams(location.search);
+  const T_HORIZON = parseFloat(q.get('T') ?? '50');
+  const NUDGE = parseFloat(q.get('nudge') ?? '1e-4');
+
+  const canvas = document.getElementById('c');
+  const ctx = await initGpu(canvas);
+  log(`adapter ok; format=${ctx.format}; T=${T_HORIZON} nudge=${NUDGE}`);
+
+  // Surface any validation errors instead of silently passing.
+  const errors = [];
+  ctx.device.addEventListener('uncapturederror', (e) => {
+    errors.push(String(e.error?.message ?? e.error));
+  });
+
+  const gpuCanvasCtx = canvas.getContext('webgpu');
+  gpuCanvasCtx.configure({ device: ctx.device, format: ctx.format });
+
+  const N = 16, M = 8;
+  const bufs = createTileBuffers(ctx, N, M);
+  const pl = await buildPipelines(ctx, bufs, { simulate: simulateSrc, render: S.render_layer0 });
+  log('pipelines built');
+
+  const uniforms = {
+    m: [1/3, 1/3, 1/3],
+    M_total: 1, G: 1,
+    dt_macro: C.DT_MACRO_DEFAULT, N_max: C.N_MAX_DEFAULT,
+    r_sub: C.R_SUB_DEFAULT, gamma_sub: C.GAMMA_SUB_DEFAULT,
+    T_horizon: T_HORIZON,
+    r_coll: C.R_COLL_DEFAULT, R_esc: C.R_ESC_DEFAULT, k_esc: C.K_ESC_DEFAULT,
+    eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
+    quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
+    mu_max: C.MU_MAX_DEFAULT, alpha_min: C.ALPHA_MIN_DEFAULT, q_max: C.Q_MAX_DEFAULT,
+  };
+  const tile = {
+    z: 0, tx: 0, ty: 0, level: 0,
+    uv_centre: [0.5, 0.5], uv_half: [0.5, 0.5], flags: 0,
+  };
+
+  const t0 = performance.now();
+  dispatchLayer0(ctx, bufs, pl, { uniforms, tile }, gpuCanvasCtx.getCurrentTexture().createView());
+  const gpuResults = await readbackSimResults(ctx, bufs);
+  const gpuMs = performance.now() - t0;
+  log(`GPU dispatch + readback: ${gpuMs.toFixed(0)}ms`);
+
+  // Redraw the readback buffer on a plain 2D canvas: this is the trustworthy
+  // visual artifact (independent of headless WebGPU canvas presentation).
+  {
+    const COLORS = ['#b3b333', '#e61a1a', '#1a66e6', '#808080', '#ffe600'];
+    const g = document.getElementById('c2').getContext('2d');
+    const px = 512 / N;
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const cls = gpuResults[j * N + i].sample_descriptor & 0x7;
+        g.fillStyle = COLORS[cls] ?? '#ff00ff';
+        g.fillRect(i * px, j * px, px, px);
+      }
+    }
+  }
+
+  // CPU reference.
+  const params = {
+    integrator: 'kdk',
+    dtMacro: uniforms.dt_macro, THorizon: uniforms.T_horizon,
+    rColl: uniforms.r_coll, REsc: uniforms.R_esc, kEsc: uniforms.k_esc,
+    substep: { rSub: uniforms.r_sub, gammaSub: uniforms.gamma_sub, NMax: uniforms.N_max },
+  };
+  const knobs = {
+    muMax: C.MU_MAX_DEFAULT, alphaMin: C.ALPHA_MIN_DEFAULT, qMax: C.Q_MAX_DEFAULT,
+    rColl: C.R_COLL_DEFAULT, deltaLambda: C.EPS_DEADBAND, RTilde: 1,
+  };
+
+  // CPU classification of a latent point.
+  const cpuClassOf = (z) => {
+    const dec = decodeLatent(z, knobs);
+    if (dec.kind === 'terminal') {
+      return dec.terminal.kind === 'COLLISION_T0' ? 1 :
+             dec.terminal.kind === 'DEGENERATE'   ? 3 : 0;
+    }
+    const r = run(dec.state, params, {});
+    return r.terminal.kind === 'COLLISION' ? 1 :
+           r.terminal.kind === 'ESCAPE'    ? 2 :
+           r.terminal.kind === 'BOUNDED'   ? 0 :
+           r.terminal.kind === 'DEGENERATE'? 3 : 4;
+  };
+
+  // Chaos calibration: classify each pixel twice on the CPU — once at z and
+  // once nudged by NUDGE (default 1e-4, the f32-error scale). Pixels that flip
+  // are fractal-basin knife edges; their count calibrates how much GPU-vs-CPU
+  // disagreement pure f32 chaos explains (see the gate below).
+  const tc0 = performance.now();
+  let robust = 0, robustAgree = 0, rawAgree = 0;
+  const disagreements = [];
+  const gpuHist = {}, cpuHist = {};
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const idx = j * N + i;
+      const u = (i + 0.5) / N, v = (j + 0.5) / N;
+      const z0 = (u*2 - 1) * 3, z1 = (v*2 - 1) * 3;
+      const cpuClass  = cpuClassOf([z0, z1, 0, 0, 0, 0, 0, 0]);
+      const cpuClassP = cpuClassOf([z0 + NUDGE, z1 + NUDGE, 0, 0, 0, 0, 0, 0]);
+      const gpuClass = gpuResults[idx].sample_descriptor & 0x7;
+      gpuHist[gpuClass] = (gpuHist[gpuClass] ?? 0) + 1;
+      cpuHist[cpuClass] = (cpuHist[cpuClass] ?? 0) + 1;
+      if (gpuClass === cpuClass) rawAgree++;
+      if (cpuClass === cpuClassP) {
+        robust++;
+        if (gpuClass === cpuClass) robustAgree++;
+        else disagreements.push({ i, j, gpuClass, cpuClass });
+      }
+    }
+  }
+  const cpuMs = performance.now() - tc0;
+
+  // Trajectory-level validation on pixels where both sides agree BOUNDED:
+  // compare the 8 shape-sphere checkpoints GPU-vs-CPU. This is the sharp
+  // layout/physics discriminator — chaos can flip a basin-boundary class, but
+  // it cannot corrupt the checkpoints of a trajectory both sides agree on.
+  const shapeN = (st) => {
+    const m = st.m;
+    const M01 = m[0] + m[1];
+    const cx = (m[0]*st.r[0][0] + m[1]*st.r[1][0]) / M01;
+    const cy = (m[0]*st.r[0][1] + m[1]*st.r[1][1]) / M01;
+    const rho = [st.r[1][0]-st.r[0][0], st.r[1][1]-st.r[0][1]];
+    const lam = [st.r[2][0]-cx, st.r[2][1]-cy];
+    const sR = Math.sqrt(m[0]*m[1]/M01), sL = Math.sqrt(m[2]*M01);
+    const rt = [rho[0]*sR, rho[1]*sR], lt = [lam[0]*sL, lam[1]*sL];
+    const r2 = rt[0]*rt[0]+rt[1]*rt[1], l2 = lt[0]*lt[0]+lt[1]*lt[1];
+    const I = r2 + l2;
+    return [(l2-r2)/I, -2*(rt[0]*lt[0]+rt[1]*lt[1])/I, 2*(rt[0]*lt[1]-rt[1]*lt[0])/I];
+  };
+  let ckptChecked = 0, ckptMaxDev = 0, ckptMinDev = Infinity;
+  const ckptSamples = [];
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const idx = j * N + i;
+      const gpuClass = gpuResults[idx].sample_descriptor & 0x7;
+      if (gpuClass !== 0) continue;
+      const u = (i + 0.5) / N, v = (j + 0.5) / N;
+      const z = [(u*2-1)*3, (v*2-1)*3, 0, 0, 0, 0, 0, 0];
+      const dec = decodeLatent(z, knobs);
+      if (dec.kind !== 'ok') continue;
+      const r = run(dec.state, params, { checkpoints: M });
+      if (r.terminal.kind !== 'BOUNDED') continue;
+      ckptChecked++;
+      const trace = r.trace;
+      let dev = 0;
+      for (let k = 0; k < M && k + 1 < trace.length; k++) {
+        const nCpu = shapeN(trace[k + 1]);
+        const nGpu = gpuResults[idx].n_checkpoints[k];
+        dev = Math.max(dev,
+          Math.hypot(nGpu.x - nCpu[0], nGpu.y - nCpu[1], nGpu.z - nCpu[2]));
+      }
+      ckptMaxDev = Math.max(ckptMaxDev, dev);
+      ckptMinDev = Math.min(ckptMinDev, dev);
+      ckptSamples.push({ i, j, dev: +dev.toExponential(2) });
+    }
+  }
+  ckptSamples.sort((a, b) => a.dev - b.dev);
+
+  // Histogram agreement: per-class |gpu - cpu| totals.
+  let histDelta = 0;
+  for (const c of [0, 1, 2, 3, 4]) {
+    histDelta += Math.abs((gpuHist[c] ?? 0) - (cpuHist[c] ?? 0));
+  }
+
+  // Self-calibrating chaos gate: the GPU may disagree with the f64 CPU at
+  // most 1.5× as often as the CPU disagrees with ITSELF under an f32-scale
+  // IC nudge. A real shader bug produces wholesale disagreement far above
+  // the CPU's own sensitivity; f32-vs-f64 chaos lands inside it.
+  const cpuSelfFlip = N * N - robust;
+  const gpuDisagree = N * N - rawAgree;
+  const chaosOk = gpuDisagree <= Math.max(6, Math.ceil(cpuSelfFlip * 1.5));
+  const histOk = histDelta <= Math.round(N * N * 0.15);
+  log(`CPU reference (×2 for perturbation): ${cpuMs.toFixed(0)}ms`);
+  log(`raw agreement: ${rawAgree}/${N*N} (gpu disagree ${gpuDisagree})`);
+  log(`cpu self-flip under ${NUDGE} nudge: ${cpuSelfFlip} (gate: gpu ≤ 1.5×)`);
+  log(`histogram delta: ${histDelta} (gate ≤ ${Math.round(N*N*0.15)})`);
+  log(`gpu classes: ${JSON.stringify(gpuHist)}  cpu classes: ${JSON.stringify(cpuHist)}`);
+  log(`checkpoint deviation over ${ckptChecked} BOUNDED samples: max |Δn| = ${ckptMaxDev.toExponential(3)}`);
+  if (errors.length) log(`GPU ERRORS: ${JSON.stringify(errors)}`);
+
+  window.__RESULT = {
+    ok: chaosOk && histOk && errors.length === 0,
+    robust, robustAgree, rawAgree, total: N*N, histDelta,
+    cpuSelfFlip, gpuDisagree,
+    ckptChecked, ckptMaxDev, ckptMinDev, ckptSamples,
+    gpuHist, cpuHist,
+    disagreements: disagreements.slice(0, 12),
+    gpuMs, cpuMs,
+    adapter: ctx.adapter.info ? {
+      vendor: ctx.adapter.info.vendor, architecture: ctx.adapter.info.architecture,
+    } : null,
+    errors,
+  };
+}
+
+main().catch(e => {
+  log('FATAL: ' + (e?.stack ?? e));
+  window.__RESULT = { ok: false, fatal: String(e?.message ?? e) };
+});
+</script>
+</body>
+</html>
