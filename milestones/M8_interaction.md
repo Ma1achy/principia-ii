@@ -191,7 +191,8 @@ import type { Vec8 } from '@/math/types.js';
  */
 export function setSlider(v: ViewState, k: number, value: number): ViewState {
   if (k < 0 || k > 7) throw new RangeError(`slider index ${k} out of range`);
-  const z0: Vec8 = [...v.z0] as any;
+  const z0 = [...v.z0] as unknown as [number, number, number, number,
+                                      number, number, number, number];
   z0[k] = value;
   return { ...v, z0 };
 }
@@ -365,9 +366,11 @@ export function unlock(v: ViewState): ViewState {
  * lock-preservation logic when chart switches require re-encoding.
  */
 export function physicalToLatent(
-  m: ViewState['lockedPhysical']['m'],
-  r: ViewState['lockedPhysical']['r'],
-  p: ViewState['lockedPhysical']['p'],
+  // NonNullable: lockedPhysical is `{...} | undefined`, and indexed access
+  // through the undefined arm is a type error.
+  m: NonNullable<ViewState['lockedPhysical']>['m'],
+  r: NonNullable<ViewState['lockedPhysical']>['r'],
+  p: NonNullable<ViewState['lockedPhysical']>['p'],
 ): { z: ViewState['z0']; clamped: boolean } {
   const enc = inverseEncodeLatent({ m, r, p, t: 0 }, KNOBS);
   return { z: enc.z, clamped: enc.clamped };
@@ -485,7 +488,9 @@ function lookupFromPhysical(
             locked: true,
             lockedPhysical: { m: dec.state.m, r: dec.state.r, p: dec.state.p } },
     clamped: enc.clamped,
-    reason: enc.clamped ? 'lookup_clamped' : undefined,
+    // Conditional spread: `reason: undefined` is illegal under
+    // exactOptionalPropertyTypes.
+    ...(enc.clamped ? { reason: 'lookup_clamped' } : {}),
   };
 }
 ```
@@ -493,20 +498,16 @@ function lookupFromPhysical(
 ## `src/interact/named_directions.ts`
 
 ```ts
-import type { Vec8 } from '@/math/types.js';
-import { unitE8, normalize8, scale8, sub8 } from '@/math/vec.js';
+import type { Vec3, Vec8 } from '@/math/types.js';
+import { unitE8 } from '@/math/vec.js';
 import { logitsFromMasses } from '@/math/softmax.js';
-import { MU_MAX_DEFAULT } from '@/math/constants.js';
-import type { Vec3 } from '@/math/types.js';
 
 /**
  * Mass-perturbation direction from a Burrau mass triple toward equal masses.
  * The latent indices for masses are 6 and 7 (z_μ1, z_μ2); other
  * components zero.
  */
-export function massPerturbationFromBurrau(
-  burrauMass: Vec3, muMax = MU_MAX_DEFAULT,
-): Vec8 {
+export function massPerturbationFromBurrau(burrauMass: Vec3): Vec8 {
   const { mu1, mu2 } = logitsFromMasses(burrauMass);
   const norm = Math.hypot(mu1, mu2);
   if (norm === 0) {
@@ -796,14 +797,22 @@ describe('lookup', () => {
     expect(r.kind).toBe('ok');
     if (r.kind === 'ok') {
       const ic = r.view.lockedPhysical!;
-      // Burrau (3,4,5) re-indexed: m = (5/12, 4/12, 3/12).
+      // Burrau (3,4,5) re-indexed: m = (5/12, 4/12, 3/12). Masses survive
+      // the latent round trip exactly (softmax logits).
       expect(ic.m[0]).toBeCloseTo(5/12, 6);
       expect(ic.m[1]).toBeCloseTo(4/12, 6);
       expect(ic.m[2]).toBeCloseTo(3/12, 6);
-      // r2 = (a/c, 0) = (3/5, 0); but we lookup back through latent so
-      // expect a near match after canonicalise + decode.
-      const distFromExpected = Math.hypot(ic.r[1][0] - 0.6, ic.r[1][1]);
-      expect(distFromExpected).toBeLessThan(0.05);
+      // The requested triangle has sides d01 : d02 : d12 = 3/5 : 4/5 : 1
+      // with the right angle at body 0. Positions come back COM-projected
+      // and hyperradius-normalised (the chart has no scale dimension), so
+      // assert ratios and the right angle — never absolute coordinates.
+      const d = (i: number, j: number) =>
+        Math.hypot(ic.r[j]![0] - ic.r[i]![0], ic.r[j]![1] - ic.r[i]![1]);
+      expect(d(0, 2) / d(0, 1)).toBeCloseTo(4/3, 6);
+      expect(d(1, 2) / d(0, 1)).toBeCloseTo(5/3, 6);
+      const dot = (ic.r[1]![0] - ic.r[0]![0]) * (ic.r[2]![0] - ic.r[0]![0])
+                + (ic.r[1]![1] - ic.r[0]![1]) * (ic.r[2]![1] - ic.r[0]![1]);
+      expect(Math.abs(dot) / (d(0, 1) * d(0, 2))).toBeLessThan(1e-6);
     }
   });
 
@@ -825,21 +834,20 @@ describe('lookup', () => {
     expect(r.kind).toBe('ok');
     if (r.kind === 'ok') {
       const ic = r.view.lockedPhysical!;
-      // Triangle should be approximately equilateral after canonicalise.
-      const d01 = Math.hypot(ic.r[1][0]-ic.r[0][0], ic.r[1][1]-ic.r[0][1]);
-      const d02 = Math.hypot(ic.r[2][0]-ic.r[0][0], ic.r[2][1]-ic.r[0][1]);
-      const d12 = Math.hypot(ic.r[2][0]-ic.r[1][0], ic.r[2][1]-ic.r[1][1]);
-      // Allow some tolerance because canonicalise + COM project move things.
-      expect(d01).toBeCloseTo(d02, 1);
-      expect(d01).toBeCloseTo(d12, 1);
+      // Triangle shape is preserved (scale is not): all sides equal.
+      const d01 = Math.hypot(ic.r[1]![0]-ic.r[0]![0], ic.r[1]![1]-ic.r[0]![1]);
+      const d02 = Math.hypot(ic.r[2]![0]-ic.r[0]![0], ic.r[2]![1]-ic.r[0]![1]);
+      const d12 = Math.hypot(ic.r[2]![0]-ic.r[1]![0], ic.r[2]![1]-ic.r[1]![1]);
+      expect(d02 / d01).toBeCloseTo(1, 6);
+      expect(d12 / d01).toBeCloseTo(1, 6);
     }
   });
 
-  it('rejects on a degenerate latent (zero-mass corner)', () => {
-    // Push z_μ1 toward saturation; with muMax=5 the resulting m_0 is
-    // tiny but still positive, so decode succeeds. Test the flag plumbing
-    // by overriding to a saturated request that would clamp.
-    const z = [0, 0, 0, 0, 0, 0, 100, 0] as any;     // wildly out of range
+  it('handles a saturated latent without throwing (totality)', () => {
+    // Push z_μ1 wildly out of range; decode is total, so this either
+    // succeeds with a clamped mass or rejects with a terminal label —
+    // never throws.
+    const z = [0, 0, 0, 0, 0, 0, 100, 0] as any;
     const r = lookup({ kind: 'latent', z }, defaultViewState());
     expect(r.kind === 'ok' || r.kind === 'rejected').toBe(true);
   });
