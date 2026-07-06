@@ -9,6 +9,55 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G17 — Debugging & bring-up harness
+
+Branch `feat/g17-debug-harness` off `webgpu-rewrite`. Exit gate green first run
+(`npm test -- --run test/unit/debug`: **23 tests**, ≥18 required); full suite
+108 passed / 1 skipped; typecheck + lint clean; `npm run gpu:check` ok with
+numbers **identical to M3** (gpuDisagree 95, cpuSelfFlip 81, histDelta 10) —
+proving debug mode 0 is byte-for-byte the M3 colouring. The Vite dev page was
+exercised headlessly end-to-end (boot → dispatch → mode switch → pick-sample
+inspector → struct dump → NaN scan all verified via DOM assertions).
+
+### D17.1 — DebugUniform rides through M3's explicit pipeline layout
+The doc said "the harness creates its own debug buffer and a debug-aware
+render path", leaving M3's `buildPipelines` untouched. That cannot work: M3
+uses an **explicit** pipeline layout, and WebGPU rejects a pipeline whose
+shader statically uses a binding (`group(0) binding(2)`) absent from the
+layout. Fixed additively: `createTileBuffers` allocates a 16-byte `debug`
+uniform buffer (WebGPU zero-fills it → mode 0 → M3 colouring unchanged for
+every existing caller, including `dev/gpu_check.html`), and `buildPipelines`
+adds binding 2 (FRAGMENT, uniform) to the common layout + bind group. The
+harness writes modes via `bufs.debug`. Doc updated.
+
+### D17.2 — WGSL debug uniform named `dbg`, not `debug`
+Renamed the shader-side variable to `dbg` to steer clear of WGSL
+reserved-word ambiguity (`debugger` is reserved; implementations have varied
+on neighbours). Cosmetic; the TS side keeps the doc's names verbatim.
+
+### D17.3 — Reapplied D3.3 to the doc's render-shader listing
+The G17 doc's modified `render_layer0.wgsl` again showed placeholder structs
+(`struct SimResult { /* same */ };`) and `var<storage, read>` — both invalid
+against the standalone module + 'storage' layout (the exact M3 D3.3 defect).
+Built with full repeated structs and `read_write`; doc listing replaced with
+the real source.
+
+### D17.4 — Vite introduced for the dev page only
+Added `vite` (^8.1.3) devDep, root `vite.config.ts` (`@` → `src`, WGSL as
+`?raw`), and the `dev:debug` script, per the doc's "Run it" pinning. `dev/`
+and `vite.config.ts` stay outside the tsconfig/lint scope — dev-only DOM glue,
+consistent with M3's `dev/gpu_check` precedent; everything it calls into
+(`src/debug/*`) is unit-tested.
+
+### D17.5 — Headless canvas presentation glitch persists (known from M3)
+In headless Chromium/swiftshader the live WebGPU canvas presents corrupted
+blocks (M3-documented artifact); compute output underneath is correct (the
+inspector decodes real per-sample data; `gpu:check`'s 2D readback redraw
+matches). Visual confirmation of the canvas is the headed-browser
+`npm run dev:debug` — exactly this milestone's Deliverable.
+
+---
+
 ## M3 — Layer 0 GPU dispatch
 
 Branch `feat/m3-layer0-gpu` off `webgpu-rewrite`. Node gate green (85 tests

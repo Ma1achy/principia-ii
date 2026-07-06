@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Principia · M3 debug harness (G17)</title>
+    <style>
+      body { font: 13px/1.4 monospace; margin: 16px; display: flex; gap: 24px;
+             background: #111; color: #ddd; }
+      canvas { image-rendering: pixelated; border: 1px solid #444; cursor: crosshair; }
+      #controls { min-width: 320px; max-width: 480px; }
+      #controls button { margin: 2px; font: inherit; }
+      #inspector { border-collapse: collapse; margin-top: 8px; }
+      #inspector td { padding: 1px 8px; border-bottom: 1px solid #222; }
+      #log { max-height: 240px; overflow-y: auto; background: #000; padding: 4px;
+             white-space: pre-wrap; }
+      .legend span { display: inline-block; width: 12px; height: 12px; margin-right: 4px; }
+      label { display: block; margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <canvas id="grid"></canvas>
+    <div id="controls">
+      <div id="mode-buttons"></div>
+      <label>heat scale <input id="heat" type="number" step="1e-4" value="0.001" /></label>
+      <div>pick: x <input id="px" type="number" value="0" min="0" size="3" />
+                y <input id="py" type="number" value="0" min="0" size="3" />
+        <button id="pick">inspect</button> (or click the canvas)</div>
+      <button id="dump">struct dump</button>
+      <button id="scan">NaN scan</button>
+      <button id="capture">capture frame</button>
+      <table id="inspector"></table>
+      <pre id="log"></pre>
+    </div>
+    <!-- Vite resolves @/ via the alias in vite.config.ts; shaders import as ?raw. -->
+    <script type="module" src="./debug_harness.ts"></script>
+  </body>
+</html>

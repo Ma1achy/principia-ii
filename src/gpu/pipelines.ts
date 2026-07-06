@@ -22,6 +22,12 @@ export async function buildPipelines(
       { binding: 1, visibility:
         GPUShaderStage.COMPUTE,
         buffer: { type: 'uniform' } },
+      // G17 DebugUniform. The render shader statically uses it, so it must be
+      // in the explicit pipeline layout; a zero-filled buffer reads mode = 0
+      // (Outcome), which is byte-for-byte the M3 colouring.
+      { binding: 2, visibility:
+        GPUShaderStage.FRAGMENT,
+        buffer: { type: 'uniform' } },
     ],
   });
 
@@ -62,6 +68,7 @@ export async function buildPipelines(
     entries: [
       { binding: 0, resource: { buffer: bufs.uniforms } },
       { binding: 1, resource: { buffer: bufs.tileReq } },
+      { binding: 2, resource: { buffer: bufs.debug } },
     ],
   });
 

@@ -61,8 +61,11 @@ principia/
       inspector.ts           # NEW: pickSample → decoded table rows (uses readback/decodeBuffer)
       index.ts               # NEW: barrel
     gpu/
+      buffers.ts             # MODIFIED: TileBuffers gains `debug` (16B DebugUniform buffer)
+      pipelines.ts           # MODIFIED: common layout + bind group gain binding 2 (see D17.1)
       shaders/
         render_layer0.wgsl   # MODIFIED: + DebugUniform @group(0) @binding(2), debug fs branch
+  vite.config.ts             # NEW: @ → src alias, WGSL as ?raw (dev page only)
   dev/
     debug_harness.html       # NEW: Vite entry page (canvas + controls)
     debug_harness.ts         # NEW: wires initGpu+createTileBuffers+buildPipelines+dispatchLayer0
@@ -77,14 +80,16 @@ principia/
         logger.test.ts           # NEW
     integration/
       debug_harness.test.ts      # NEW: real dispatch + capture round-trip, skipped w/o WebGPU
+      layer0_struct_alignment.test.ts  # MODIFIED: pins bufs.debug.size === 16
 ```
 
 ## Depends on / pairs with
 
 - **M3** — the *only* dependency. Reuse surfaces, by exact name/path:
   - `src/gpu/readback.ts`: `readbackSimResults(ctx, bufs)`, `decodeBuffer`
-    (module-private — the inspector calls the public `readbackSimResults`), and
-    the `DecodedSimResult` interface; `sizeOfSimResult(8) = 208`.
+    (exported since M3 — the inspector still calls the higher-level
+    `readbackSimResults`), and the `DecodedSimResult` interface;
+    `sizeOfSimResult(8) = 208`.
   - `src/gpu/dispatch_layer0.ts`: `dispatchLayer0(ctx, bufs, pl, view, target)`,
     `DispatchView`.
   - `src/gpu/init.ts`: `initGpu(canvas)`, `GpuContext`.
@@ -677,18 +682,29 @@ export * from './inspector.js';
 ## `src/gpu/shaders/render_layer0.wgsl` (modified)
 
 Extend the M3 fragment shader with a `DebugUniform` at `group(0) @binding(2)`
-and branch on `debug.mode`. The default mode (`0` = Outcome) is **byte-for-byte
-the M3 colouring**, so existing M3 tests and `dispatchLayer0` callers that never
-bind a debug uniform still get the original picture (a zero-filled uniform reads
-`mode = 0`). The full modified source:
+and branch on `dbg.mode`. The default mode (`0` = Outcome) is **byte-for-byte
+the M3 colouring**: the `debug` buffer in `TileBuffers` is zero-filled at
+creation, and a zero-filled uniform reads `mode = 0`, so every existing caller
+gets the original picture (verified: `gpu:check` numbers identical to M3).
+
+Two as-built corrections to the original listing (D17.1–D17.3): the structs are
+repeated **in full** (the module compiles standalone — placeholders are invalid
+WGSL, M3's D3.3), `results` is `read_write` to match the 'storage' layout, the
+uniform variable is named `dbg` (reserved-word safety), and the binding rides
+through `buffers.ts`/`pipelines.ts` because M3's **explicit** pipeline layout
+rejects a shader that statically uses a binding absent from the layout. The
+modified source (structs elided here only for the doc — they are repeated in
+full in the file, byte-identical to `simulate.wgsl`/`structs.ts`):
 
 ```wgsl
 // Layer-0 fragment shader with debug render modes (G17).
 // mode 0 (Outcome) reproduces the original M3 colouring exactly.
 
-struct SimResult { /* same as in simulate.wgsl */ };
-struct SimUniforms { /* same */ };
+struct SimUniforms { /* full definition repeated in the real file */ };
+struct SimResult   { /* full definition repeated in the real file */ };
 
+// Three-place rule: this struct + packDebugUniform (src/debug/debug_modes.ts)
+// + the 16-byte pin in test/unit/debug/debug_modes.test.ts change together.
 struct DebugUniform {
   mode:             f32,   // DebugMode (see src/debug/debug_modes.ts)
   heat_scale:       f32,   // drift heatmaps: t = clamp(value / heat_scale, 0, 1)
@@ -697,8 +713,8 @@ struct DebugUniform {
 };
 
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
-@group(0) @binding(2) var<uniform> debug    : DebugUniform;
-@group(1) @binding(0) var<storage, read> results : array<SimResult>;
+@group(0) @binding(2) var<uniform> dbg      : DebugUniform;
+@group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vid : u32) -> @builtin(position) vec4<f32> {
@@ -748,12 +764,12 @@ fn fs_main(@builtin(position) frag : vec4<f32>) -> @location(0) vec4<f32> {
   let sx = u32(floor(frag.x / tile_pix));
   let sy = u32(floor(frag.y / tile_pix));
   let idx = clamp(sy * N + sx, 0u, N * N - 1u);
-  let r = results[idx];
+  var r = results[idx];   // var: mode 5 dynamically indexes r.n_checkpoints
   let d = r.sample_descriptor;
   let cls = outcome_class(d);
 
   var rgb: vec3<f32>;
-  let mode = u32(debug.mode + 0.5);
+  let mode = u32(dbg.mode + 0.5);
   switch mode {
     case 0u: { rgb = colour_outcome(cls); }                       // Outcome (M3 default)
     case 1u: { rgb = colour_category(detail_bits(d)); }           // Detail bits (3..4)
@@ -765,16 +781,16 @@ fn fs_main(@builtin(position) frag : vec4<f32>) -> @location(0) vec4<f32> {
       rgb = select(vec3<f32>(0.3, 0.3, 0.3), vec3<f32>(0.9, 0.2, 0.2), suspect);
     }
     case 4u: {                                                     // EnergyDriftHeat
-      rgb = heat(clamp(r.delta_E_max_abs / debug.heat_scale, 0.0, 1.0));
+      rgb = heat(clamp(r.delta_E_max_abs / dbg.heat_scale, 0.0, 1.0));
     }
     case 5u: {                                                     // CheckpointCompleteness
-      // fraction of non-zero checkpoints / M (debug.checkpoint_count = M).
+      // fraction of non-zero checkpoints / M (dbg.checkpoint_count = M).
       var written = 0u;
-      for (var m = 0u; m < debug.checkpoint_count; m = m + 1u) {
+      for (var m = 0u; m < dbg.checkpoint_count; m = m + 1u) {
         let c = r.n_checkpoints[m];
         if (any(c != vec4<f32>(0.0))) { written = written + 1u; }
       }
-      let frac = f32(written) / max(f32(debug.checkpoint_count), 1.0);
+      let frac = f32(written) / max(f32(dbg.checkpoint_count), 1.0);
       rgb = heat(clamp(frac, 0.0, 1.0));
     }
     default: { rgb = colour_outcome(cls); }
@@ -848,25 +864,22 @@ async function main(): Promise<void> {
   gpuCtx.configure({ device: ctx.device, format: ctx.format, alphaMode: 'opaque' });
 
   const bufs = createTileBuffers(ctx, N, M);
-  // Concatenated simulate module + the modified render module are produced by the
-  // M3 shader-concat helper; the dev server inlines them the same way the M3 test
-  // does (readFileSync + concat) — wired in debug_harness.html's import.meta.glob.
-  const pl = await buildPipelines(ctx, bufs, await loadShaders());
+  // Shaders arrive as Vite `?raw` static imports, concatenated in the same
+  // order as the M3 integration test (helpers, observe, events, integrate,
+  // decode, simulate) plus the standalone render module.
+  const pl = await buildPipelines(ctx, bufs, loadShaders());
 
-  // Add a third binding for the debug uniform on the common bind group. M3's
-  // pipelines.ts builds bindGroupCommon with bindings 0..1; the harness creates
-  // its own debug buffer and a debug-aware render path. (In M3 the render bind
-  // group only needs uniforms+results; binding(2) is added here for bring-up and
-  // formalised by G3.)
-  const debugBuf = ctx.device.createBuffer({
-    size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
+  // The DebugUniform buffer is `bufs.debug` — created zero-filled (mode 0 =
+  // M3 colouring) by createTileBuffers and bound at group(0) binding(2) by
+  // buildPipelines (D17.1: M3's explicit pipeline layout must carry the
+  // binding, so it cannot be a harness-local buffer). G3 later formalises the
+  // bind-group layout authority.
 
   let mode: DebugMode = DebugMode.Outcome;
   let heatScale = 1e-3;
 
   function frame(): void {
-    ctx.device.queue.writeBuffer(debugBuf, 0, packDebugUniform(mode, heatScale, M));
+    ctx.device.queue.writeBuffer(bufs.debug, 0, packDebugUniform(mode, heatScale, M));
     const view: DispatchView = { uniforms: DEFAULT_UNIFORMS, tile: DEFAULT_TILE };
     dispatchLayer0(ctx, bufs, pl, view, gpuCtx.getCurrentTexture().createView());
     log.debug(`dispatched mode=${debugModeLabel(mode)}`);
@@ -1237,9 +1250,14 @@ const simulate = [S('helpers.wgsl'), S('observe.wgsl'), S('events.wgsl'),
   S('integrate.wgsl'), S('decode.wgsl'), S('simulate.wgsl')].join('\n');
 const render = S('render_layer0.wgsl');
 
-const hasGpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
+// Robust guard (M3 D3.4): a bare `'gpu' in navigator` throws when `navigator`
+// itself is undefined in the Node test runner.
+function hasWebGPU(): boolean {
+  const nav = (globalThis as { navigator?: unknown }).navigator;
+  return !!nav && typeof nav === 'object' && 'gpu' in nav;
+}
 
-describe.skipIf(!hasGpu)('debug harness (real M3 dispatch)', () => {
+describe.skipIf(!hasWebGPU())('debug harness (real M3 dispatch)', () => {
   const N = 16, M = 8;
   const uniforms: SimUniforms = {
     m: [1 / 3, 1 / 3, 1 / 3], M_total: 1, G: 1,
@@ -1291,8 +1309,12 @@ describe.skipIf(!hasGpu)('debug harness (real M3 dispatch)', () => {
 
 ## Run it
 
-The dev page needs a Vite entry. Add to `package.json` scripts (and a minimal
-`vite.config.ts` that maps `@/` → `src/` and serves `dev/`):
+The dev page needs a Vite entry: a `vite` devDependency (as-built: ^8.1.3),
+the script below, and a minimal root `vite.config.ts` that maps `@/` → `src/`
+and serves `dev/`. Vite resolves the project's `.js`-suffixed TS imports
+natively; `dev/` and `vite.config.ts` stay outside the tsconfig/eslint scope
+(dev-only DOM glue — the logic it calls lives in `src/debug/*`, which is
+unit-tested).
 
 ```jsonc
 {
@@ -1330,8 +1352,8 @@ npm run dev:debug                              # opens the live M3 grid + toolbo
 npm test -- --run test/unit/debug
 ```
 
-returns green with at least **18** tests across the six `test/unit/debug/*`
-suites, AND `npm run dev:debug` opens a page that renders the M3 grid to a live
+returns green with at least **18** tests (as built: **23**) across the six
+`test/unit/debug/*` suites, AND `npm run dev:debug` opens a page that renders the M3 grid to a live
 canvas, lets you switch debug render modes, inspect any sample's decoded
 `SimResult` + `sample_descriptor` bitfields, dump struct offsets, scan for
 non-finite lanes, and capture/reload a frame. The harness integration test
@@ -1366,11 +1388,14 @@ sample.
 - **The logger is a seam, not a product.** Keep `LogSink` stable: G11 Telemetry
   replaces the sink (network/buffered) without touching call sites. Do not grow
   the logger here — that is G11's milestone.
-- **Bring-up bind group is provisional.** Binding the `DebugUniform` at
-  `group(0) binding(2)` is hand-rolled for the harness, exactly like M3's
-  provisional bind groups. **G3** later owns the bind-group layout authority and
-  **G18** folds the debug modes + inspector into the app HUD; until then the
-  harness creates its own debug buffer and render path.
+- **Bring-up bind group is provisional — but it lives in M3's layout (D17.1).**
+  M3's `buildPipelines` uses an *explicit* pipeline layout, and WebGPU rejects
+  a pipeline whose shader statically uses a binding absent from that layout —
+  so the `DebugUniform` cannot be a harness-local buffer. `createTileBuffers`
+  allocates `bufs.debug` (16 B, zero-filled → mode 0 → M3 colouring) and
+  `buildPipelines` carries binding 2 in the common layout/bind group. **G3**
+  later owns the bind-group layout authority and **G18** folds the debug modes
+  + inspector into the app HUD.
 - **G18 follow-on.** This milestone is deliberately standalone. G18 ("debug HUD,
   app-integrated") promotes `debug_modes`, the inspector table, and the
   frame-capture button into the real UI shell once it exists, reusing every pure
