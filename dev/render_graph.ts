@@ -76,7 +76,7 @@ function encodeRenderPass(
   pass.setPipeline(graph.pipeline);
   pass.setBindGroup(0, graph.bgTile);
   pass.setBindGroup(1, graph.bgStorage);
-  pass.setBindGroup(2, graph.bgEmpty);   // empty layout still must be set
+  pass.setBindGroup(2, graph.bgReduction);   // canonical reduction group (G3)
   pass.setBindGroup(3, graph.bgRenderParams);
   pass.draw(3, 1);
   pass.end();

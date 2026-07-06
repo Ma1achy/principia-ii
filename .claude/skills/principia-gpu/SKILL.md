@@ -126,9 +126,22 @@ CPU and pass a tile-local delta.
 
 - Pack per-tile constants into **one** uniform/storage record rather than many
   small bindings; keep bind-group counts modest.
-- The canonical layout: `group(0) binding(0)` = `SimUniforms`,
-  `binding(1)` = `TileRequest`, with `SimResult` and `ICDescriptor` as storage
-  buffers the fragment shader binds directly.
+- **The canonical layouts are one authority** (`buildLayouts(device)` in
+  `src/gpu/layouts.ts`, milestone G3, memoised per device). WebGPU bind-group
+  compatibility is **identity-based, not structural** — never create an
+  equivalent ad-hoc `createBindGroupLayout`; consume the authority. The group
+  table (an architectural contract — resist adding groups):
+  `group(0)` frame = SimUniforms(0), TileRequest(1), DebugUniform(2, G17),
+  ChartUniforms(3, G4 slot; 64-byte zero-filled placeholder until G4);
+  `group(1)` perTile = SimResult[](0), ICDescriptor[](1), both `storage`;
+  `group(2)` reduction = TileReduction(0); `group(3)` render = RenderParams(0).
+- **Access modes must match the layout exactly.** The shared perTile layout is
+  `storage` (read-write), so every shader binding group(1) declares
+  `var<storage, read_write>` even if it only reads — WGSL `var<storage, read>`
+  against a `storage`-type layout entry is a validation error, not a widening.
+- Bind groups are also canonical: `createTileBindGroups(ctx, layouts, bufs)`
+  (memoised per TileBuffers) — simulate, reduce, and render all receive the
+  same objects. The reduction buffer has one home, `bufs.reduction`.
 - **Only `TileReduction` crosses GPU->CPU during normal operation, and only in
   the adaptive refinement layer.** `SimResult` and `ICDescriptor` never leave
   the GPU — the fragment shader reads them in place. At Layer 0 (flat grid) and

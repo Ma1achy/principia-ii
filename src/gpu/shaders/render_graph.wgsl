@@ -89,8 +89,11 @@ struct RenderParams {
 
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform> tile_req : TileRequest;
-@group(1) @binding(0) var<storage, read> results : array<SimResult>;
-@group(1) @binding(1) var<storage, read> ics     : array<ICDescriptor>;
+// G3: read_write (not read) — the canonical shared perTile layout binds
+// these as type 'storage', and WebGPU requires the shader's access mode to
+// match the layout's buffer type (same rule as render_layer0.wgsl / G17).
+@group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
+@group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 @group(3) @binding(0) var<uniform>      rparams : RenderParams;
 
 @vertex

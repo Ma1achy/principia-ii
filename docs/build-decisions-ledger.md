@@ -9,6 +9,68 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G3 — Bind-group layout authority
+
+Branch `feat/g3-bind-group-layouts`. Acceptance gate
+(`npm test -- --run test/integration/layout_compat`) green (self-skips
+without WebGPU per project GPU-test policy); 385 passed / 1 skipped;
+typecheck + lint + build clean. Real-GPU proof: gpu:check (gpuDisagree
+95 = D3.2 calibration) + m5/m7/g17/depth-stress checks all pass —
+dev/render_graph.ts alone drives the shared bind-group set through the
+M3 compute, layer-0 render, and M7 render-graph pipelines in one page.
+
+### DG3.1 — doc's ChartUniforms slot collides with landed G17 DebugUniform
+The doc put ChartUniforms at group(0) binding(2). render_layer0.wgsl
+has statically read `dbg` at g0b2 since G17 (D17.1). As built: frame =
+SimUniforms(0), TileRequest(1), DebugUniform(2, G17), ChartUniforms(3)
+— the G4 slot reserved NOW with a 64-byte zero-filled `bufs.chart`
+placeholder (the D17.1 pattern), honouring the doc's own "the layout
+doesn't need to change when G4 lands" intent. G4's doc retargeted
+binding(2)→binding(3) and `chartUniforms`→the existing `bufs.chart`.
+
+### DG3.2 — doc's storage-access claim was false; shaders flipped to read_write
+The doc claimed a render shader can declare `var<storage, read>`
+against a 'storage'-type layout entry ("Validation passes"). WebGPU
+requires the shader's access mode to MATCH the layout's buffer type —
+M7's own landed render_layer0.wgsl comment states the rule; the doc
+contradicted it. Since cross-pipeline sharing needs ONE perTile layout,
+it is 'storage' (read-write) and reduce.wgsl + render_graph.wgsl
+flipped their group(1) declarations to `read_write` (render_layer0 was
+already correct). A unit test now sweeps every .wgsl file: any
+group(1) storage declaration must say read_write.
+
+### DG3.3 — layout AND bind-group identity via memoisation, no signature churn
+Bind-group compatibility is identity-based; if buildPipelines and
+buildReducePipeline each called a fresh buildLayouts they would get
+different objects and sharing would silently break. As built:
+buildLayouts memoised per GPUDevice (WeakMap) and createTileBindGroups
+memoised per TileBuffers — all three builders keep their (ctx, bufs,
+code) signatures and return the SAME canonical bind-group objects
+(asserted by identity in layout_compat). The doc's
+src/gpu/pipelines/{simulate,reduce,render,inspector_preview}.ts split
+was not adopted — landed modules refactored in place; the only renamed
+field is RenderGraph.bgEmpty → bgReduction (M7's empty-group(2) hack
+replaced by binding the real canonical reduction group, whose buffer
+moved to its one home, bufs.reduction).
+
+### DG3.4 — doc's unit test used the GPUShaderStage browser global
+`GPUShaderStage` does not exist in Node; referencing it at module scope
+in layouts.ts (or in the unit test) would crash every Node import of
+the gpu barrel. As built: layouts.ts defines `STAGE = {VERTEX: 0x1,
+FRAGMENT: 0x2, COMPUTE: 0x4}` (spec values, pinned by a test) and the
+descriptors use it.
+
+### DG3.5 — doc's integration test never dispatched; vacuous like D12.1
+setBindGroup alone validates nothing — bind-group/pipeline
+compatibility is checked at dispatch/draw. The doc's test set one group
+on a dummy pipeline, submitted without dispatching, and asserted
+`true`. As built: the real pipelines (wgslLink-linked shaders) over one
+TileBuffers, builder-identity assertions, then real dispatches of
+simulate + reduce and a real draw of the render graph (all four groups,
+real target texture) inside pushErrorScope('validation'), asserting
+popErrorScope() === null. inspector_preview pipeline doesn't exist (M9
+is CPU-f64) — kept only as a reserved pipeline-layout alias.
+
 ## G1 — Shader composition / WGSL linker
 
 Branch `feat/g1-shader-composition`. Acceptance gate
