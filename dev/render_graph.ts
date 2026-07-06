@@ -37,7 +37,9 @@ import combinerWgsl from '@/gpu/shaders/combiner.wgsl?raw';
 import cvdWgsl from '@/gpu/shaders/cvd.wgsl?raw';
 import renderGraphWgsl from '@/gpu/shaders/render_graph.wgsl?raw';
 
-const N = 16;
+// ?n=32 renders a higher-resolution grid (canvas = 32·N px); default 16.
+const N = Math.max(8, Math.min(64,
+  Number(new URLSearchParams(location.search).get('n') ?? 16) || 16));
 const M = 8;
 const TILE_PIX = 32;
 
