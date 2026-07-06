@@ -103,3 +103,22 @@ Each milestone file is structured the same way:
 
 If a milestone references the spec, the section number cited is from
 `../principia_spec_revised.tex`.
+
+## Design references
+
+The author's design/planning PDFs live in `../research/design/` with a triaged
+index (`../research/design/README.md`). Canonical sources still win (spec, ADRs,
+these milestones); the design docs are references. Key mappings:
+
+- **`principia_gui_spec.pdf`** — authoritative UI design (component inventory,
+  Layer 1/2 panels, keyboard scope + DAS/ARR, interaction flows, reactive store).
+  Reconcile into **G8, G12, G13, M8, M9** just-in-time when they are built.
+  **⚠ It says the latent is 10D (`Z0..Z9`); it is 8D (`Z0..Z7`, masses at
+  `Z6`/`Z7`) — see the design README correction.**
+- **`render_quadtree_design.pdf`** — architecture provenance for **M3–M7, G1,
+  G17** (confirms the render-graph + slippy quadtree; validates G17's
+  debug-shaders-first-class and G1's hot-reload).
+- **`com_projection_mini_spec.pdf`** — **M1** / `principia-numerics` (project COM,
+  monitor-don't-enforce E/`Lz`).
+- **`spherical_colour_map_spec.pdf`** — provenance for **M7**; its colour science
+  is already canonical in spec §21–24 (the extra pattern modes are out of scope).

@@ -75,6 +75,15 @@ to within rounding. It is cheap housekeeping that keeps the redundant modes from
 leaking back in. Do not skip it for speed — a drifting COM quietly poisons every
 downstream invariant.
 
+**Project COM, but only *monitor* energy and `Lz`.** The COM position and total
+momentum are *gauge* — redundant modes the decoder removed — so projecting them
+back to zero is physically innocent and unique. Energy and angular momentum are
+not: enforcing `E = E_0` after a drift is one scalar constraint on a
+many-DOF state with no unique, physically innocent correction, so it would
+manufacture a fake trajectory. Therefore **project away COM drift; never enforce
+E or `Lz` — track them as diagnostics only** (see the next section, and
+`research/design/com_projection_mini_spec.pdf` §6 "What should not be enforced").
+
 ## Adaptive substepping
 
 Close encounters need finer time resolution. Compute the substep count per macro
