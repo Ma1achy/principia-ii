@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "types": ["@webgpu/types", "node"],
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
