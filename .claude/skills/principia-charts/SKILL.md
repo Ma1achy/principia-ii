@@ -95,6 +95,21 @@ GPU struct layout. Terminal-with-state (canonicalise says terminal) uses
 `makeDescriptor(c.state)`; terminal-before-geometry uses
 `makeTerminal(label, m)`.
 
+## Burrau family (M11)
+
+The ν → triangle map has ONE home: `burrauTriangle` in
+`src/burrau/euclid.ts` (spec eq. `burrau_positions` — each mass opposite
+its OWN side: at ν = 1/2, mass 4/12 sits on the 0.6 leg, mass 3/12 on
+the 0.8 leg). M1's golden fixture is the legs-SWAPPED variant, kept only
+as an integrator regression (D11.1) — never copy its coordinates as
+"canonical Burrau". The canonical IC's f64 truth at project thresholds
+is COLLISION at t ≈ 4.905 (sub-`r_coll` encounter, tolerance-robust);
+the classical t ≈ 60 escape needs G19 regularization, and the
+non-regularized symplectic path blows up on it (drift ~1e+4) — never use
+it as the Burrau reference. Radial kinetic-energy seeds carry
+K = |p_ρ|²/(2μ_ρ): include the √μ_ρ factor or the K axis is silently off
+by 1/μ_ρ (D11.3).
+
 ## Registry discipline
 
 `registerChart` throws on duplicate ids; `src/chart_atlas/index.ts` is

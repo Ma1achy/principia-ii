@@ -19,7 +19,9 @@ function regularOrbit(): TrajState {
 }
 
 function burrauScattering(): TrajState {
-  // Burrau (3,4,5) at rest start. Indexed for our pipeline.
+  // Legs-swapped Burrau-family variant at rest (M1's regression fixture;
+  // see burrau.test.ts). Kept: any strongly chaotic IC serves this test,
+  // and this one's FTLE contrast is already calibrated.
   const m = [5/12, 4/12, 3/12] as const;
   return {
     m, r: [[0,0], [0.8, 0], [0, 0.6]],
