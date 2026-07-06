@@ -54,7 +54,7 @@ principia/
 ## `src/decode/types.ts`
 
 ```ts
-import type { Vec2, Vec3, Vec8, Triple, TerminalLabel, TrajState } from '@/math/types.js';
+import type { Vec2, Vec3, Vec8, TerminalLabel, TrajState } from '@/math/types.js';
 
 /**
  * Closed enumeration of decode-time degeneracy reasons (ADR 0007).
@@ -329,7 +329,7 @@ export function particleMomentaToJacobi(
 ## `src/decode/canonicalise.ts`
 
 ```ts
-import type { TrajState, Triple, Vec2, Vec3, TerminalLabel } from '@/math/types.js';
+import type { TrajState, Triple, Vec2, TerminalLabel } from '@/math/types.js';
 import { rotation, applyR, reflectX } from '@/math/rotate.js';
 import { particlePositionsToJacobi } from './jacobi_particle.js';
 import { signDeadband } from '@/math/scalar.js';
@@ -403,7 +403,7 @@ function closestPair(r: Triple<Vec2>): 0 | 1 | 2 {
 ## `src/decode/no_holes.ts`
 
 ```ts
-import type { TerminalLabel, TrajState } from '@/math/types.js';
+import type { TerminalLabel } from '@/math/types.js';
 import { DegenerateReason } from './types.js';
 
 /**
@@ -546,7 +546,7 @@ function makeDescriptor(s: TrajState): ICDescriptor {
 ## `src/decode/inverse.ts`
 
 ```ts
-import type { TrajState, Vec8 } from '@/math/types.js';
+import type { TrajState } from '@/math/types.js';
 import type { LatentZ } from './types.js';
 import { inverseMass } from './mass.js';
 import { inverseConfigCanonical } from './configuration.js';
@@ -555,7 +555,6 @@ import {
   particlePositionsToJacobi, particleMomentaToJacobi,
 } from './jacobi_particle.js';
 import { canonicalise } from './canonicalise.js';
-import { rotation, applyR, reflectX } from '@/math/rotate.js';
 
 /**
  * Invert the full pipeline: physical IC → latent z. Used by the lookup /
@@ -635,7 +634,7 @@ describe('decodeMassSoftmax / inverseMass', () => {
       expect(back.clamped).toBe(false);
       // Re-decode and compare masses.
       const m2 = decodeMassSoftmax(back.zMu1, back.zMu2, 100);
-      for (let i = 0; i < 3; i++) expect(m2[i]).toBeCloseTo(m[i], 9);
+      for (let i = 0; i < 3; i++) expect(m2[i]!).toBeCloseTo(m[i]!, 9);
     }
   });
 
@@ -727,7 +726,7 @@ describe('free Jacobi momenta', () => {
                     [number,number,number,number][]) {
       const jm = decodeFreeJacobiMomenta(z, 5);
       const inv = inverseFreeJacobiMomenta(jm, 5, 1e-6);
-      for (let i = 0; i < 4; i++) expect(inv.zq[i]).toBeCloseTo(z[i], 9);
+      for (let i = 0; i < 4; i++) expect(inv.zq[i]!).toBeCloseTo(z[i]!, 9);
     }
   });
 });
@@ -803,10 +802,10 @@ describe('canonicalise', () => {
     const a = canonicalise(s, { deltaLambda: 1e-12, rColl: 1e-4 }).state;
     const b = canonicalise(a, { deltaLambda: 1e-12, rColl: 1e-4 }).state;
     for (let i = 0; i < 3; i++) {
-      expect(b.r[i][0]).toBeCloseTo(a.r[i][0], 14);
-      expect(b.r[i][1]).toBeCloseTo(a.r[i][1], 14);
-      expect(b.p[i][0]).toBeCloseTo(a.p[i][0], 14);
-      expect(b.p[i][1]).toBeCloseTo(a.p[i][1], 14);
+      expect(b.r[i]![0]).toBeCloseTo(a.r[i]![0], 14);
+      expect(b.r[i]![1]).toBeCloseTo(a.r[i]![1], 14);
+      expect(b.p[i]![0]).toBeCloseTo(a.p[i]![0], 14);
+      expect(b.p[i]![1]).toBeCloseTo(a.p[i]![1], 14);
     }
   });
 
@@ -867,8 +866,8 @@ describe('latent encode/decode round-trip', () => {
       // Compare physical state, not z (z can have multiple representations
       // when α is near α_min, etc).
       for (let i = 0; i < 3; i++) {
-        if (Math.abs(r2.state.r[i][0] - r.state.r[i][0]) > 1e-9) mismatches++;
-        if (Math.abs(r2.state.r[i][1] - r.state.r[i][1]) > 1e-9) mismatches++;
+        if (Math.abs(r2.state.r[i]![0] - r.state.r[i]![0]) > 1e-9) mismatches++;
+        if (Math.abs(r2.state.r[i]![1] - r.state.r[i]![1]) > 1e-9) mismatches++;
       }
     }
     expect(mismatches).toBe(0);
@@ -903,10 +902,10 @@ describe('decodeLatent — totality', () => {
       expect(r.kind === 'ok' || r.kind === 'terminal').toBe(true);
       if (r.kind === 'ok') {
         for (let i = 0; i < 3; i++) {
-          expect(Number.isFinite(r.state.r[i][0])).toBe(true);
-          expect(Number.isFinite(r.state.r[i][1])).toBe(true);
-          expect(Number.isFinite(r.state.p[i][0])).toBe(true);
-          expect(Number.isFinite(r.state.p[i][1])).toBe(true);
+          expect(Number.isFinite(r.state.r[i]![0])).toBe(true);
+          expect(Number.isFinite(r.state.r[i]![1])).toBe(true);
+          expect(Number.isFinite(r.state.p[i]![0])).toBe(true);
+          expect(Number.isFinite(r.state.p[i]![1])).toBe(true);
         }
       }
     }
@@ -950,11 +949,14 @@ describe('decode landmarks', () => {
     // |ρ̃|² = (1/6)*1 = 1/6.  |λ̃|² = (2/9)*(3/4) = 1/6.  ✓
     const muRho    = (m[0]*m[1]) / (m[0]+m[1]);
     const muLambda = m[2]*(m[0]+m[1]);
-    const rhoT    = [1                  * Math.sqrt(muRho   ), 0];
-    const lambdaT = [0, Math.sqrt(3)/2  * Math.sqrt(muLambda)];
+    const rhoT    = [1 * Math.sqrt(muRho), 0] as const;
+    const lambdaT = [0, (Math.sqrt(3)/2) * Math.sqrt(muLambda)] as const;
     expect(rhoT[0]*rhoT[0] + rhoT[1]*rhoT[1])
       .toBeCloseTo(lambdaT[0]*lambdaT[0] + lambdaT[1]*lambdaT[1], 12);
     expect(rhoT[0]*lambdaT[0] + rhoT[1]*lambdaT[1]).toBeCloseTo(0, 12);
+    // Sanity: the reconstruction did produce a genuine triangle (not used
+    // further, but keeps the landmark tied to real positions).
+    expect(r.length).toBe(3);
   });
 });
 ```

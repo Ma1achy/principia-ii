@@ -163,7 +163,9 @@ export interface TrajState {
  */
 export type TerminalLabel =
   | { kind: 'NONE' }
-  | { kind: 'DEGENERATE'; reason: string }
+  // `reason` is a closed ADR-0007 `DegenerateReason` code (10..17, defined in
+  // `@/decode/types.js` — not imported here to keep math the base layer).
+  | { kind: 'DEGENERATE'; reason: number }
   | { kind: 'COLLISION_T0'; pair: 0 | 1 | 2 }
   | { kind: 'COLLISION'; pair: 0 | 1 | 2; t: number }
   | { kind: 'ESCAPE'; body: 0 | 1 | 2; t: number }
