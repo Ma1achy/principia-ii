@@ -6,7 +6,7 @@ one detailed file per milestone with copy-paste-runnable TypeScript and WGSL.
 | File | What it stands up | Depends on |
 |------|-------------------|------------|
 | [M0_foundations.md](M0_foundations.md) | Project bootstrap, math primitives, CI gate | — |
-| [M1_cpu_integrator.md](M1_cpu_integrator.md) | f64 KDK + Yoshida, COM projection, events, Burrau golden | M0 |
+| [M1_cpu_integrator.md](M1_cpu_integrator.md) | f64 KDK + Yoshida, COM projection, events, figure-8 precision golden + Burrau physical validation | M0 |
 | [M2_decoder_atlas.md](M2_decoder_atlas.md) | Mass / configuration / momentum decoders, canonicaliser, inverses | M0 (M1 only for golden tests) |
 | [M3_layer0_gpu.md](M3_layer0_gpu.md) | First WebGPU pass: simulate.wgsl, render.wgsl, struct contracts | M0, M1, M2 |
 | [M4_layer1_cache.md](M4_layer1_cache.md) | Tile cache, ancestor fallback, slippy-map navigation | M3 |
@@ -36,6 +36,7 @@ one detailed file per milestone with copy-paste-runnable TypeScript and WGSL.
 | [G16_documentation_onboarding.md](G16_documentation_onboarding.md) | User guide, architecture guide, ADR index, "add-a-chart" runbook, glossary, TypeDoc API; pure docs-completeness/link checker | most milestones |
 | [G17_debug_harness.md](G17_debug_harness.md) | Debugging & bring-up harness: standalone dev-harness page + buffer/struct dumpers, GPU readback helpers, headless capture so M3's first pass is inspectable the moment it exists | M3 |
 | [G18_debug_hud.md](G18_debug_hud.md) | Debug HUD integration: in-app overlay wiring G17's dumpers to live perf/error/telemetry feeds, toggleable diagnostics layer over the running shell | G17, G2, G8, G10, G11, M9 |
+| [G19_close_encounter_regularization.md](G19_close_encounter_regularization.md) | Levi-Civita/KS regularization for the f64 CPU integrator so Burrau-class encounters resolve to reference accuracy (upgrades the Burrau validation to a pinned precision golden); PLANNED, hardened just-in-time | M1 |
 
 The G-series files are gap-fill milestones written after v1 and
 project-wide planning self-reviews; they cover the load-bearing seams the

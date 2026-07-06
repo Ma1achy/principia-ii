@@ -11,11 +11,28 @@ detection.
 **Exit criterion (single executable test).**
 
 ```bash
-npm test -- --run test/golden/burrau
+npm test -- --run test/golden
 ```
 
-The Burrau 3-4-5 rest start integrates to `T = 80` with relative energy drift
-below `1e-7`, and the body identity that escapes matches the reference.
+Two golden tests pass, with distinct jobs:
+
+1. **Figure-8 choreography (strict golden).** The Chenciner–Montgomery
+   figure-8 (rescaled to Σm = 1) integrates to `T = 22` (~2 periods) with
+   relative energy drift below `1e-7` and all five pinned checkpoint positions
+   reproduced to within `1e-3`. This is the precision regression gate: the
+   orbit is smooth (min separation ≈ 0.69, no substepping) and linearly
+   stable, so the leapfrog resolves it to reference accuracy and any change to
+   forces / KDK / Yoshida / COM projection is caught immediately.
+2. **Burrau 3-4-5 (physical validation, NOT a precision golden).** The
+   Pythagorean rest start integrates to a physical terminal with the
+   literature-matching outcome — the lightest body (body 2, mass 3/12) is
+   ejected (Szebehely & Peters 1967) — with drift inside the empirically
+   observed envelope (< 5e-2) and `Lz` conserved to < 1e-6. Burrau's close
+   approaches (r_min ~ 1e-3–1e-4) put it firmly in the "numerically suspect"
+   drift regime for a non-regularized integrator: the escape *time* is not
+   converged across `dt` and checkpoint positions cannot be pinned. Resolving
+   Burrau to reference accuracy requires close-encounter regularization
+   (KS / Levi-Civita) — tracked as milestone **G19**, not M1 scope.
 
 **Deliverable:** internal — tests only (no visible artifact until a later GPU/UI milestone); a pure-TS reference integrator that produces the ground-truth trajectories every later GPU result is checked against.
 
@@ -42,8 +59,9 @@ principia/
       yoshida.test.ts
       events.test.ts
     golden/
+      figure8.test.ts
+      figure8_reference.json
       burrau.test.ts
-      burrau_345_reference.json
 ```
 
 ## `src/integrate/types.ts`
@@ -91,7 +109,9 @@ export interface Diagnostics {
   encounters:  number;
 }
 
-export type { TerminalLabel, TrajState, Vec2, Vec3, Triple, Force };
+export type { TerminalLabel, TrajState, Vec2, Vec3, Triple };
+// NB: `Force` is already exported by its declaration above — re-listing it here
+// would be a TS2484 export conflict.
 ```
 
 ## `src/integrate/forces.ts`
@@ -233,11 +253,15 @@ export function substepCount(rMin: number, p: SubstepParams): number {
  * One macro KDK step with adaptive substepping. COM projection runs once
  * per macro step (after the final half-kick), not per substep.
  *
- * Returns the new state plus telemetry for diagnostics.
+ * Returns the new state plus telemetry for diagnostics. `nSub` is this step's
+ * substep count; `maxSub` is the peak per-constituent-KDK-step count (equal to
+ * `nSub` for a bare KDK step, but distinct once Yoshida sums several — see
+ * `yoshida.ts`). The MAX_SUBSTEPS saturation terminal keys off `maxSub`, never
+ * the sum, so a composition isn't spuriously flagged as saturated.
  */
 export function kdkMacroStep(
   s: TrajState, dtMacro: number, substepP: SubstepParams,
-): { state: TrajState; nSub: number } {
+): { state: TrajState; nSub: number; maxSub: number } {
   const rMin = minPairSeparation(s.r).d;
   const nSub = substepCount(rMin, substepP);
   const dt   = dtMacro / nSub;
@@ -265,7 +289,7 @@ export function kdkMacroStep(
     p: [[P[0], P[1]], [P[2], P[3]], [P[4], P[5]]],
     m: s.m, t: s.t + dtMacro,
   };
-  return { state: projectCOM(newState), nSub };
+  return { state: projectCOM(newState), nSub, maxSub: nSub };
 }
 
 /* --------- monomorphic helpers, kept private --------- */
@@ -314,37 +338,43 @@ const W4_3 = W4_1;
 
 export function yoshida4MacroStep(
   s: TrajState, dtMacro: number, sp: SubstepParams,
-): { state: TrajState; nSub: number } {
+): { state: TrajState; nSub: number; maxSub: number } {
   const a = kdkMacroStep(s,            W4_1 * dtMacro, sp);
   const b = kdkMacroStep(a.state,      W4_2 * dtMacro, sp);
   const c = kdkMacroStep(b.state,      W4_3 * dtMacro, sp);
-  return { state: c.state, nSub: a.nSub + b.nSub + c.nSub };
+  return {
+    state: c.state,
+    nSub: a.nSub + b.nSub + c.nSub,
+    maxSub: Math.max(a.maxSub, b.maxSub, c.maxSub),
+  };
 }
 
 /**
  * Yoshida 6th-order: seven KDK steps with palindromic weights from the
- * standard Solution A.
+ * standard Solution A. Literals are written at exact float64 precision
+ * (the published 20-digit values round to these doubles).
  */
 const W6 = [
-   0.78451361047755726382,
-   0.23557321335935813368,
-  -1.17767998417887100695,
-   1.31518632068391121888,
-  -1.17767998417887100695,
-   0.23557321335935813368,
-   0.78451361047755726382,
+   0.7845136104775573,
+   0.23557321335935813,
+  -1.177679984178871,
+   1.3151863206839112,
+  -1.177679984178871,
+   0.23557321335935813,
+   0.7845136104775573,
 ];
 
 export function yoshida6MacroStep(
   s: TrajState, dtMacro: number, sp: SubstepParams,
-): { state: TrajState; nSub: number } {
-  let cur = s, total = 0;
+): { state: TrajState; nSub: number; maxSub: number } {
+  let cur = s, total = 0, peak = 0;
   for (const w of W6) {
     const r = kdkMacroStep(cur, w * dtMacro, sp);
     cur = r.state;
     total += r.nSub;
+    peak = Math.max(peak, r.maxSub);
   }
-  return { state: cur, nSub: total };
+  return { state: cur, nSub: total, maxSub: peak };
 }
 ```
 
@@ -457,7 +487,7 @@ export class Observer {
     this.rMinPair = m.pair;
   }
 
-  observe(s: TrajState, nSub: number, rCloseEncounter = 0.01) {
+  observe(s: TrajState, nSub: number, maxSub = nSub, rCloseEncounter = 0.01) {
     const E  = totalEnergy(s.m, s.r, s.p);
     const Lz = angularMomentum(s.r, s.p);
     this.energyDriftAbsMax = Math.max(this.energyDriftAbsMax, Math.abs(E  - this.E0));
@@ -466,7 +496,8 @@ export class Observer {
     if (m.d < this.rMin) { this.rMin = m.d; this.rMinPair = m.pair; }
     if (m.d < rCloseEncounter) this.encounters++;
     this.totalSubsteps   += nSub;
-    this.maxSubstepCount  = Math.max(this.maxSubstepCount, nSub);
+    // maxSubstepCount tracks the peak per-KDK substep count, not the Yoshida sum.
+    this.maxSubstepCount  = Math.max(this.maxSubstepCount, maxSub);
   }
 
   finalDiagnostics(sFinal: TrajState) {
@@ -526,7 +557,7 @@ export function run(
   let saturatedSubsteps = 0;
 
   while (s.t < params.THorizon) {
-    let stepRes: { state: TrajState; nSub: number };
+    let stepRes: { state: TrajState; nSub: number; maxSub: number };
     try {
       stepRes = stepFn(s, params.dtMacro, params.substep);
     } catch (e) {
@@ -543,10 +574,13 @@ export function run(
     }
 
     s = stepRes.state;
-    obs.observe(s, stepRes.nSub);
+    obs.observe(s, stepRes.nSub, stepRes.maxSub);
 
-    // MAX_SUBSTEPS persistence: declare terminal after a full macro step at the cap.
-    if (stepRes.nSub >= params.substep.NMax) {
+    // MAX_SUBSTEPS: a constituent KDK step hit the substep cap — the encounter
+    // is finer than the integrator can resolve at this dt. Keyed off maxSub (the
+    // peak per-KDK count), never the summed nSub, so a Yoshida composition whose
+    // parts each stay under the cap is not spuriously terminated.
+    if (stepRes.maxSub >= params.substep.NMax) {
       saturatedSubsteps++;
       if (saturatedSubsteps >= 1) {
         terminal = { kind: 'MAX_SUBSTEPS', t: s.t };
@@ -584,8 +618,9 @@ export function run(
 
 function isFiniteState(s: TrajState): boolean {
   for (let i = 0; i < 3; i++) {
-    if (!Number.isFinite(s.r[i][0]) || !Number.isFinite(s.r[i][1])) return false;
-    if (!Number.isFinite(s.p[i][0]) || !Number.isFinite(s.p[i][1])) return false;
+    const ri = s.r[i]!, pi = s.p[i]!;
+    if (!Number.isFinite(ri[0]) || !Number.isFinite(ri[1])) return false;
+    if (!Number.isFinite(pi[0]) || !Number.isFinite(pi[1])) return false;
   }
   return true;
 }
@@ -757,19 +792,29 @@ import { totalEnergy } from '@/integrate/forces.js';
 
 const sp = { rSub: 0.05, gammaSub: 1.5, NMax: 64 };
 
-const equalMassRing = () => ({
-  m: [1/3, 1/3, 1/3] as const,
-  r: [[1, 0], [-0.5, Math.sqrt(3)/2], [-0.5, -Math.sqrt(3)/2]] as const,
-  p: [[0, 0], [0, 0], [0, 0]] as const,
+/**
+ * A smooth, bounded binary (two 0.5 masses) with a distant near-massless third
+ * body. It never approaches collision, so substepping stays at 1 and the
+ * comparison isolates each integrator's secular energy error by order.
+ *
+ * NB: an equal-mass equilateral triangle released *from rest* is NOT usable
+ * here — it is a homothetic triple-collision orbit (collapses to a point in
+ * finite time), which makes every integrator diverge and defeats an order
+ * comparison. Use a genuinely smooth orbit instead.
+ */
+const smoothBinary = () => ({
+  m: [0.5, 0.5, 1e-12] as const,
+  r: [[1, 0], [-1, 0], [50, 0]] as const,
+  p: [[0, 0.3], [0, -0.3], [0, 0]] as const,
   t: 0,
 });
 
 describe('Yoshida 4 / 6', () => {
   it('Y4 has lower long-horizon energy drift than KDK', () => {
-    const s0 = equalMassRing();
+    const s0 = smoothBinary();
     const E0 = totalEnergy(s0.m, s0.r, s0.p);
     let kdk = s0 as any, y4 = s0 as any;
-    const dt = 1e-2, T = 5;
+    const dt = 1e-2, T = 50;
     for (let t = 0; t < T; t += dt) {
       kdk = kdkMacroStep(kdk, dt, sp).state;
       y4  = yoshida4MacroStep(y4, dt, sp).state;
@@ -780,14 +825,7 @@ describe('Yoshida 4 / 6', () => {
   });
 
   it('Y6 has lower drift than Y4 at the same step size on smooth orbits', () => {
-    // Pick an orbit that doesn't go anywhere near collision so substepping
-    // doesn't kick in and confuse the comparison.
-    const s0 = {
-      m: [0.5, 0.5, 1e-12] as const,
-      r: [[1, 0], [-1, 0], [50, 0]] as const,
-      p: [[0, 0.3], [0, -0.3], [0, 0]] as const,
-      t: 0,
-    };
+    const s0 = smoothBinary();
     const E0 = totalEnergy(s0.m, s0.r, s0.p);
     let y4 = s0 as any, y6 = s0 as any;
     const dt = 1e-2, T = 50;
@@ -873,152 +911,91 @@ describe('escape persistence', () => {
 });
 ```
 
-### Burrau golden test
+### Golden tests
 
-The 3-4-5 Burrau rest start is well-studied. The published reference outcome
-is that body 1 (the middle-mass body, `m = 4/12`) escapes after a
-sequence of close encounters around `t ≈ 60`, leaving bodies 0 and 2 in a
-binary. We pin a shorter-horizon golden file with the position of each body
-at fixed checkpoint times so failures localise quickly.
+Two goldens with distinct jobs. The figure-8 is the **precision regression
+gate** (a smooth, linearly stable orbit the leapfrog resolves to reference
+accuracy, with pinned checkpoints); Burrau is a **physical validation** (the
+famous hard case — assert only its robust, literature-matching outcome, never
+pinned positions). Rationale: the Pythagorean problem's close approaches
+(r_min ~ 1e-3–1e-4 within a single macro step) exceed what the fixed-per-macro-
+step adaptive substepping can resolve — empirically, at `dt = 1e-4` the run
+blows up at the t ≈ 16.5 encounter regardless of `NMax`; at `dt = 5e-5` it
+completes with ~2e-2 drift and the lightest body ejected; refining further does
+**not** converge the escape time. High-precision Burrau needs KS / Levi-Civita
+regularization → milestone **G19**.
 
-Generate the reference file once with a high-precision integrator (Yoshida 6
-at `dt = 1e-4`), then commit it.
+#### `test/golden/figure8_reference.json`
 
-#### `test/golden/burrau_345_reference.json`
+The Chenciner–Montgomery figure-8 choreography rescaled to `Σm = 1`: masses
+`1/3` each; canonical unit-mass ICs `r₁ = (0.97000436, -0.24308753) = -r₂`,
+`r₃ = 0`, `v₃ = (-0.93240737, -0.86473146)`, `v₁ = v₂ = -v₃/2`. Scaling masses
+by `α = 1/3` at fixed positions scales time by `α^{-1/2}` and velocities by
+`α^{1/2}`, so `p_i = v_i/(3√3)` and the period becomes `≈ 6.32591398·√3 ≈
+10.9568`. The committed file pins five checkpoint positions at
+`t ∈ {2, 5, 11, 16, 21}` over `THorizon = 22` (~2 periods), generated by a
+`yoshida6` run at `dt = 1e-4` and convergence-checked against `dt = 2e-5`
+(checkpoint agreement < 3e-6; drift 8.5e-13 vs 5.9e-12). Gates:
+`energy_drift_max = 1e-7`, `tolerance_position = 1e-3`,
+`expected_terminal = BOUNDED`.
 
-```json
-{
-  "ic": {
-    "m": [0.41666666666666669, 0.33333333333333331, 0.25],
-    "r_classical": [[0, 0], [0.8, 0], [0, 0.6]],
-    "comment": "Burrau classical 1-indexed: body 1 at right angle (mass=c/Σ), body 2 at (a/c, 0) (mass=b/Σ), body 3 at (0, b/c) (mass=a/Σ). For (a,b,c)=(3,4,5): m=(5/12, 4/12, 3/12). Re-indexed to 0-indexed for our pipeline."
-  },
-  "params": {
-    "integrator": "yoshida6",
-    "dt": 1e-4,
-    "rColl": 1e-4,
-    "REsc": 10,
-    "kEsc": 8,
-    "THorizon": 80,
-    "rSub": 0.05,
-    "gammaSub": 1.5,
-    "NMax": 256
-  },
-  "checkpoints": [
-    { "t": 10, "r0": [-0.34, -0.16], "r1": [0.45, -0.10], "r2": [-0.05,  0.51] },
-    { "t": 20, "r0": [-0.17, -0.31], "r1": [0.30,  0.05], "r2": [-0.11,  0.45] },
-    { "t": 40, "r0": [-0.08, -0.42], "r1": [0.04,  0.46], "r2": [ 0.10,  0.04] },
-    { "t": 60, "r0": [-0.01, -0.55], "r1": [0.15, -0.18], "r2": [-0.13,  1.05] }
-  ],
-  "expected_terminal": { "kind": "ESCAPE", "body": 1 },
-  "energy_drift_max": 1e-7,
-  "tolerance_position": 0.02
-}
-```
+#### `test/golden/figure8.test.ts`
 
-Notes on the reference file: the checkpoint positions are illustrative
-shapes (the actual numbers should be regenerated against your own
-high-precision run when you first land M1). The point of committing the
-file is that any future change to the integrator that shifts these positions
-beyond `tolerance_position` is caught immediately.
+Loads the reference JSON, re-runs the pinned config with `checkpoints: 220`,
+and asserts (1) energy drift below the gate, (2) `BOUNDED` terminal, (3) every
+pinned checkpoint position reproduced within `tolerance_position` (linear
+interpolation on the trace). See the committed test for the exact code.
 
 #### `test/golden/burrau.test.ts`
 
-```ts
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-import { run } from '@/integrate/run.js';
+Runs the classical Burrau 3-4-5 rest start — masses `(5, 4, 3)/12`, body 0 at
+the right angle, body 1 at `(0.8, 0)`, body 2 at `(0, 0.6)` — at the
+best-behaved non-regularized config (`yoshida6`, `dt = 5e-5`, `NMax = 8192`,
+`THorizon = 80`) and asserts only:
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const REF = JSON.parse(readFileSync(path.join(here, 'burrau_345_reference.json'),
-                                    'utf-8'));
-
-describe('Burrau 3-4-5 golden', () => {
-  it('reproduces the published outcome to within tolerance', () => {
-    const m = REF.ic.m as [number, number, number];
-    const r = REF.ic.r_classical as [[number,number],[number,number],[number,number]];
-    const s0 = { m, r, p: [[0,0],[0,0],[0,0]] as const, t: 0 };
-
-    const result = run(s0 as any, {
-      integrator: REF.params.integrator,
-      dtMacro: REF.params.dt,
-      THorizon: REF.params.THorizon,
-      rColl: REF.params.rColl,
-      REsc: REF.params.REsc,
-      kEsc: REF.params.kEsc,
-      substep: { rSub: REF.params.rSub,
-                 gammaSub: REF.params.gammaSub,
-                 NMax: REF.params.NMax },
-    }, { checkpoints: 200 });
-
-    // 1. Energy drift bound
-    expect(result.diagnostics.energyDrift)
-      .toBeLessThan(REF.energy_drift_max);
-
-    // 2. Terminal class agreement
-    expect(result.terminal.kind).toBe(REF.expected_terminal.kind);
-    if (result.terminal.kind === 'ESCAPE') {
-      expect(result.terminal.body).toBe(REF.expected_terminal.body);
-    }
-
-    // 3. Checkpoint position agreement (linear interp from the trace)
-    const trace = result.trace!;
-    for (const cp of REF.checkpoints) {
-      const interp = interpolateAtT(trace, cp.t);
-      if (!interp) continue;       // checkpoint past terminal — skip
-      for (const k of [0, 1, 2] as const) {
-        const dx = interp.r[k][0] - cp[`r${k}`][0];
-        const dy = interp.r[k][1] - cp[`r${k}`][1];
-        expect(Math.hypot(dx, dy)).toBeLessThan(REF.tolerance_position);
-      }
-    }
-  });
-});
-
-function interpolateAtT(trace: any[], t: number) {
-  for (let i = 0; i < trace.length - 1; i++) {
-    if (trace[i].t <= t && trace[i+1].t >= t) {
-      const a = trace[i], b = trace[i+1];
-      const u = (t - a.t) / (b.t - a.t);
-      return {
-        r: [
-          [a.r[0][0]*(1-u) + b.r[0][0]*u, a.r[0][1]*(1-u) + b.r[0][1]*u],
-          [a.r[1][0]*(1-u) + b.r[1][0]*u, a.r[1][1]*(1-u) + b.r[1][1]*u],
-          [a.r[2][0]*(1-u) + b.r[2][0]*u, a.r[2][1]*(1-u) + b.r[2][1]*u],
-        ],
-      };
-    }
-  }
-  return null;
-}
-```
+1. the terminal is a physical `ESCAPE` (no NaN, no substep saturation);
+2. the escaping body is **body 2, the lightest** (mass 3/12) — the
+   Szebehely & Peters (1967) outcome;
+3. energy drift stays inside the empirically observed envelope (`< 5e-2` — a
+   regression tripwire, explicitly *not* an accuracy claim; the run is in the
+   "numerically suspect" regime by the numerics skill's own threshold);
+4. `Lz` drift `< 1e-6` (rotational symmetry is exact for the leapfrog, so this
+   holds even through the encounters).
 
 ## Run it
 
 ```bash
 npm test -- --run test/unit/integrate
-npm test -- --run test/golden/burrau
+npm test -- --run test/golden
 ```
 
 ## Acceptance check
 
-`test/golden/burrau.test.ts` passes: energy drift is below `1e-7`, the
-terminal label is `ESCAPE` for body 1, and all four checkpoint positions
-agree with the reference to within 0.02 in dimensionless units.
+Both golden tests pass: the figure-8 with drift below `1e-7`, `BOUNDED`, and
+all five checkpoints within `1e-3`; Burrau with `ESCAPE` of body 2, drift
+`< 5e-2`, `Lz` drift `< 1e-6`. (Burrau takes ~4–5 s; the figure-8 under 1 s.)
 
 ## Notes for the implementer
 
-- **Generating the reference file.** The committed positions in
-  `burrau_345_reference.json` are placeholder targets. On first implementation,
-  run Yoshida 6 at `dt = 1e-4` and capture the actual positions, then commit
-  that as the reference. Subsequent changes that drift outside the tolerance
-  become diff-visible.
-- **Subseptcount parameter.** `NMax = 256` for the golden test rather than
-  the spec default of 64. The Burrau encounters are tighter than typical and
-  the goal here is to nail the reference, not to test the saturation cap.
-  Production rendering uses 64.
-- **Integrator family choice for the gate.** Use Yoshida 6 in the golden test
-  even though the GPU pipeline runs KDK in Preview tier. The test is checking
-  the reference, not the production speed/accuracy trade-off.
+- **Regenerating the figure-8 reference.** Only regenerate deliberately (a
+  physics-affecting integrator change), never to make a red test green. Run
+  `yoshida6` at `dt = 1e-4` over `T = 22` with `checkpoints: 220`, verify
+  convergence against a `dt = 2e-5` run (checkpoint agreement should be
+  ≲ 1e-5), and commit the new positions with the generation config noted in
+  the JSON `comment`.
+- **Why Burrau is not the precision golden.** Measured behaviour of the
+  non-regularized integrator on Burrau: `dt = 1e-4` → MAX_SUBSTEPS blow-up at
+  t ≈ 16.5 (any `NMax`); `dt = 5e-5` → ESCAPE(body 2) at t ≈ 66.9, drift
+  2.0e-2; `dt = 2.5e-5` → ESCAPE(body 2) at t ≈ 46.1, drift 1.2e-1;
+  `dt = 1e-5` → blow-up at t ≈ 13.4. The *outcome* (lightest body ejected) is
+  robust; the trajectory is not. Substepping adapts only once per macro step,
+  so a deep encounter inside one step outruns it. Fixing this properly is
+  regularization (G19), not smaller `dt`.
+- **MAX_SUBSTEPS keys off `maxSub`.** A Yoshida macro step sums the substep
+  counts of its constituent KDK steps (7 for Y6), so comparing the *sum*
+  against `NMax` misfires long before any single KDK step saturates. The
+  saturation terminal (and `maxSubstepCount` diagnostic) use the peak
+  per-KDK-step count.
+- **Integrator family choice for the gates.** Yoshida 6 in both goldens even
+  though the GPU pipeline runs KDK in Preview tier: the tests check the
+  reference integrator, not the production speed/accuracy trade-off.

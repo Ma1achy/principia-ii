@@ -9,6 +9,58 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M1 — CPU reference integrator
+
+Branch `feat/m1-cpu-integrator` off `webgpu-rewrite`. Acceptance gate
+`npm test -- --run test/golden` — **green** (figure-8 strict golden + Burrau
+physical validation); 16 unit integrate tests also green; typecheck/lint clean.
+
+### D1.1 — Replaced the unachievable Burrau precision golden with a two-part golden (user-ratified)
+The M1 doc gated on Burrau 3-4-5 reaching escape with `< 1e-7` energy drift.
+Empirically (resolution sweep on the real integrator): `dt=1e-4` blows up at the
+t≈16.5 encounter regardless of `NMax`; `dt=5e-5` completes (ESCAPE body 2,
+t≈66.9) at 2e-2 drift; `dt=2.5e-5` gives a *different* escape time (t≈46) at
+1.2e-1; `dt=1e-5` blows up. Not converged — the Pythagorean problem's deep
+encounters need regularization the spec's per-macro-step adaptive substepping
+doesn't have. Per the fixture policy (pin only trustworthy high-precision runs),
+the golden was split: **(a)** figure-8 choreography as the strict 1e-7 pinned-
+checkpoint golden (drift 8.5e-13 measured, checkpoints convergence-verified
+1e-4 vs 2e-5 to <3e-6); **(b)** Burrau kept as physical validation asserting
+only the robust Szebehely–Peters outcome (lightest body ejected) + drift/Lz
+envelope; **(c)** new milestone `G19_close_encounter_regularization.md`
+(Levi-Civita/KS) as the future home of a true Burrau precision golden.
+Discussed with and approved by the user before implementing.
+
+### D1.2 — Fixed a real MAX_SUBSTEPS bug: Yoshida sums vs the per-step cap
+`run()` compared the macro step's substep count against `NMax`, but a Yoshida
+step returns the *sum* over its constituent KDK steps (7 for Y6) — so a Y6 step
+whose parts each used e.g. 60 substeps (< NMax=64) reported 420 and spuriously
+terminated MAX_SUBSTEPS. Every step function now also returns `maxSub` (peak
+per-constituent-KDK count); the saturation terminal and the `maxSubstepCount`
+diagnostic key off it. Folded into the M1 doc listings.
+
+### D1.3 — The doc's escaping body was wrong: body 2 (lightest), not body 1
+The M1 doc asserted body 1 (mass 4/12) escapes. The literature (Szebehely &
+Peters 1967) and both completed integrations agree it is the **lightest** body
+— body 2, mass 3/12 — that is ejected, leaving the two heavier bodies as a
+binary. The committed Burrau test asserts body 2. Doc corrected.
+
+### D1.4 — Fixed a defective unit-test IC: equilateral-at-rest is a triple-collision orbit
+The doc's Yoshida-vs-KDK drift comparison used three equal masses released from
+rest at an equilateral triangle — a homothetic orbit that collapses to a
+*triple collision* in finite time, so both integrators diverge (Y4 "drift" came
+out 1343). Replaced with a smooth bound binary (same family the Y6-vs-Y4 test
+already used). Both order-comparison tests now pass meaningfully. Doc updated
+with a warning note.
+
+### D1.5 — Strict-mode fixes in the doc's M1 source listings
+`types.ts` re-exported `Force` alongside its own declaration (TS2484 conflict) —
+removed from the re-export list. `run.ts:isFiniteState` indexed tuples by loop
+variable (fails `noUncheckedIndexedAccess`) — hoisted with non-null assertions.
+Both folded into the doc.
+
+---
+
 ## M0 — Foundations
 
 Branch `feat/m0-foundations` off `webgpu-rewrite`. Acceptance gate
