@@ -51,9 +51,7 @@ principia/
         brightness_modes.wgsl
         combiner.wgsl
         cvd.wgsl
-        physics_overlay.wgsl
         render_graph.wgsl
-      render_pipeline.ts
   test/
     unit/render/
       oklab.test.ts
@@ -68,8 +66,6 @@ principia/
 ## `src/render/types.ts`
 
 ```ts
-import type { Vec3 } from '@/math/types.js';
-
 export type ColourMode =
   | 'event_class'
   | 'energy'        | 'ang_momentum'  | 'kinetic'
@@ -172,21 +168,21 @@ export function linearToSrgb(c: number): number {
  * ============================================================ */
 
 const M1 = [
-  0.41222147079999996, 0.5363325363, 0.05144599826,
-  0.21190349577999998, 0.6806995450, 0.10739595388,
-  0.08830246189999998, 0.2817188376, 0.6299787005,
+  0.4122214708, 0.5363325363, 0.0514459983,
+  0.2119034958, 0.6806995450, 0.1073959539,
+  0.0883024619, 0.2817188376, 0.6299787005,
 ];
 const M2 = [
-   0.21045426824999999,  0.7936177850, -0.0040720468,
-   1.97799849510000000, -2.4285922050,  0.4505937099,
-   0.02590404246000000,  0.7827717662, -0.8086757660,
+   0.2104542683,  0.7936177850, -0.0040720468,
+   1.9779984951, -2.4285922050,  0.4505937099,
+   0.0259040425,  0.7827717662, -0.8086757660,
 ];
 
 function applyMat3(M: readonly number[], v: Vec3): Vec3 {
   return [
-    M[0]*v[0] + M[1]*v[1] + M[2]*v[2],
-    M[3]*v[0] + M[4]*v[1] + M[5]*v[2],
-    M[6]*v[0] + M[7]*v[1] + M[8]*v[2],
+    M[0]!*v[0] + M[1]!*v[1] + M[2]!*v[2],
+    M[3]!*v[0] + M[4]!*v[1] + M[5]!*v[2],
+    M[6]!*v[0] + M[7]!*v[1] + M[8]!*v[2],
   ];
 }
 
@@ -196,16 +192,25 @@ export function linearRgbToOklab(c: Vec3): Vec3 {
   return applyMat3(M2, cb);
 }
 
-const M1inv = [
-   4.07674166134799,    -3.30771159040597,    0.230969928729428,
-  -1.26843799600028,     2.60975740020587,   -0.341131342239416,
-  -0.00419608654558288, -0.703418816967143,   1.70761470242744,
-];
-const M2inv = [
-   0.999999999999999, 0.396337777878555,  0.215803757065654,
-   1.000000000000000, -0.105561345815734, -0.063854174771706,
-   1.000000000000000, -0.0894841779880559, -1.291485537864750,
-];
+/**
+ * Exact inverses derived from M1/M2 at module load. The published
+ * approximate inverses (4.0767…, 0.3963…) only close the round-trip to
+ * ~2e-6, which fails the pinned 1e-6 gate; deriving them numerically
+ * makes rgb → oklab → rgb exact to machine precision. (The WGSL mirror
+ * keeps the published constants — f32 precision dominates on the GPU.)
+ */
+function invertMat3(M: readonly number[]): number[] {
+  const [a, b, c, d, e, f, g, h, i] =
+    M as unknown as [number, number, number, number, number, number, number, number, number];
+  const A = e*i - f*h, B = c*h - b*i, C = b*f - c*e;
+  const D = f*g - d*i, E = a*i - c*g, F = c*d - a*f;
+  const G = d*h - e*g, H = b*g - a*h, I = a*e - b*d;
+  const det = a*A + b*D + c*G;
+  return [A/det, B/det, C/det, D/det, E/det, F/det, G/det, H/det, I/det];
+}
+
+const M1inv = invertMat3(M1);
+const M2inv = invertMat3(M2);
 
 export function oklabToLinearRgb(lab: Vec3): Vec3 {
   const cb = applyMat3(M2inv, lab);
@@ -229,7 +234,7 @@ export function oklchToOklab(lch: Vec3): Vec3 {
 
 ```ts
 import type { Vec3 } from '@/math/types.js';
-import { oklabToLinearRgb, oklchToOklab } from './oklab.js';
+import { oklabToLinearRgb } from './oklab.js';
 
 /**
  * Six poles at the axis directions ±x̂, ±ŷ, ±ẑ. Hue assignments depend
@@ -309,9 +314,9 @@ export function applyCvd(rgb: Vec3, mode: keyof typeof MATRICES | 'none'): Vec3 
   if (mode === 'none') return rgb;
   const M = MATRICES[mode]!;
   return [
-    M[0]*rgb[0] + M[1]*rgb[1] + M[2]*rgb[2],
-    M[3]*rgb[0] + M[4]*rgb[1] + M[5]*rgb[2],
-    M[6]*rgb[0] + M[7]*rgb[1] + M[8]*rgb[2],
+    M[0]!*rgb[0] + M[1]!*rgb[1] + M[2]!*rgb[2],
+    M[3]!*rgb[0] + M[4]!*rgb[1] + M[5]!*rgb[2],
+    M[6]!*rgb[0] + M[7]!*rgb[1] + M[8]!*rgb[2],
   ];
 }
 ```
@@ -500,13 +505,26 @@ import type { GpuContext } from '@/gpu/init.js';
 import type { TileBuffers } from '@/gpu/buffers.js';
 
 /**
- * Build the render pipeline plus its group(3) layout. `RenderParams`
- * lives in group(3) so palette swaps and overlay toggles only rebind
- * group 3 — groups 0, 1, 2 stay constant across mode changes.
+ * Build the render pipeline plus its bind groups. `RenderParams` lives
+ * alone in group(3) so palette swaps and overlay toggles only rewrite the
+ * 64-byte params buffer and rebind group 3 — groups 0, 1, 2 stay constant
+ * across mode changes.
+ *
+ * M7 owns its own bind-group layouts (unlike the M3 render pass, which
+ * shares the compute layouts): group 1 binds the sim buffers as
+ * read-only-storage, matching the shader's `var<storage, read>`. All four
+ * bind groups are created here and returned, because the caller must set
+ * ALL of them at draw time — WebGPU requires even the EMPTY group(2)
+ * layout to have an (empty) bind group bound, or the draw fails
+ * validation.
  */
 export interface RenderGraph {
-  pipeline:    GPURenderPipeline;
-  bgRenderParams: GPUBindGroup;
+  pipeline:       GPURenderPipeline;
+  bgTile:         GPUBindGroup;   // group 0: SimUniforms + TileRequest
+  bgStorage:      GPUBindGroup;   // group 1: SimResult[] + ICDescriptor[]
+  bgEmpty:        GPUBindGroup;   // group 2: reserved for M5 reduction (empty,
+                                  // but WebGPU still requires it set at draw)
+  bgRenderParams: GPUBindGroup;   // group 3: RenderParams uniform
   paramsBuffer:   GPUBuffer;
 }
 
@@ -515,35 +533,36 @@ export async function buildRenderGraph(
 ): Promise<RenderGraph> {
   const { device, format } = ctx;
 
+  // group 0 (uniforms / tile)
+  const groupTileLayout = device.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: 'uniform' } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: 'uniform' } },
+    ],
+  });
+  // group 1 (storage)
+  const groupStorageLayout = device.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: 'read-only-storage' } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT,
+        buffer: { type: 'read-only-storage' } },
+    ],
+  });
+  // group 2 (reduction storage — unused for static shading, reserved for M5+)
+  const groupEmptyLayout = device.createBindGroupLayout({ entries: [] });
   const groupParamsLayout = device.createBindGroupLayout({
     entries: [
       { binding: 0, visibility: GPUShaderStage.FRAGMENT,
         buffer: { type: 'uniform' } },
     ],
   });
+
   const layout = device.createPipelineLayout({
     bindGroupLayouts: [
-      // group 0 (uniforms / tile)
-      device.createBindGroupLayout({
-        entries: [
-          { binding: 0, visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform' } },
-          { binding: 1, visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform' } },
-        ],
-      }),
-      // group 1 (storage)
-      device.createBindGroupLayout({
-        entries: [
-          { binding: 0, visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: 'read-only-storage' } },
-          { binding: 1, visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: 'read-only-storage' } },
-        ],
-      }),
-      // group 2 (reduction storage – may be unused for static shading)
-      device.createBindGroupLayout({ entries: [] }),
-      groupParamsLayout,
+      groupTileLayout, groupStorageLayout, groupEmptyLayout, groupParamsLayout,
     ],
   });
 
@@ -560,19 +579,41 @@ export async function buildRenderGraph(
     size: 64,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
+
+  const bgTile = device.createBindGroup({
+    layout: groupTileLayout,
+    entries: [
+      { binding: 0, resource: { buffer: bufs.uniforms } },
+      { binding: 1, resource: { buffer: bufs.tileReq } },
+    ],
+  });
+  const bgStorage = device.createBindGroup({
+    layout: groupStorageLayout,
+    entries: [
+      { binding: 0, resource: { buffer: bufs.simResults } },
+      { binding: 1, resource: { buffer: bufs.icDesc } },
+    ],
+  });
+  const bgEmpty = device.createBindGroup({ layout: groupEmptyLayout, entries: [] });
   const bgRenderParams = device.createBindGroup({
     layout: groupParamsLayout,
     entries: [{ binding: 0, resource: { buffer: paramsBuffer } }],
   });
 
-  return { pipeline, bgRenderParams, paramsBuffer };
+  return { pipeline, bgTile, bgStorage, bgEmpty, bgRenderParams, paramsBuffer };
 }
 ```
 
 ## `src/gpu/shaders/render_helpers.wgsl`
 
 ```wgsl
-// Shared helpers used by colour, brightness, combiner, and CVD stages.
+// Shared helpers used by colour, brightness, combiner, and CVD stages (M7).
+//
+// The render module is composed by concatenating, in order:
+//   render_helpers.wgsl -> colour_modes.wgsl -> brightness_modes.wgsl
+//   -> combiner.wgsl -> cvd.wgsl -> render_graph.wgsl
+// It is NOT concatenated with helpers.wgsl (which owns its own PI), so PI
+// is declared here for the render module.
 const PI: f32 = 3.141592653589793;
 
 fn srgb_to_linear(c: vec3<f32>) -> vec3<f32> {
@@ -587,6 +628,11 @@ fn linear_to_srgb(c: vec3<f32>) -> vec3<f32> {
   return select(hi, lo, c <= vec3<f32>(0.0031308));
 }
 
+// OKLAB matrices, written in the same row-major reading order as
+// src/render/oklab.ts. The WGSL mat3x3 constructor is COLUMN-major, so
+// these constants are mathematically the transpose of the TS matrices —
+// they must be applied as `v * M` (row-vector product), never `M * v`
+// (which silently computes the transposed transform and rotates hues).
 const M1_TO_LMS = mat3x3<f32>(
    0.4122214708,  0.5363325363,  0.0514459826,
    0.2119034958,  0.6806995450,  0.1073959539,
@@ -609,17 +655,19 @@ const M1_INV = mat3x3<f32>(
 );
 
 fn linear_rgb_to_oklab(c: vec3<f32>) -> vec3<f32> {
-  let lms = M1_TO_LMS * c;
-  let cb  = vec3<f32>(pow(lms.x, 1.0/3.0),
-                      pow(lms.y, 1.0/3.0),
-                      pow(lms.z, 1.0/3.0));
-  return M2_TO_LAB * cb;
+  let lms = c * M1_TO_LMS;
+  // LMS is non-negative for in-gamut linear sRGB, but combiner lightness
+  // replacement can push intermediates slightly out of gamut: use a
+  // sign-safe cube root so negatives don't turn into NaN (pow is NaN for
+  // negative bases in WGSL).
+  let cb  = sign(lms) * pow(abs(lms), vec3<f32>(1.0/3.0));
+  return cb * M2_TO_LAB;
 }
 
 fn oklab_to_linear_rgb(lab: vec3<f32>) -> vec3<f32> {
-  let cb = M2_INV * lab;
-  let lms = vec3<f32>(cb.x*cb.x*cb.x, cb.y*cb.y*cb.y, cb.z*cb.z*cb.z);
-  return M1_INV * lms;
+  let cb = lab * M2_INV;
+  let lms = cb * cb * cb;
+  return lms * M1_INV;
 }
 ```
 
@@ -664,20 +712,34 @@ fn palette_seq(t: f32) -> vec3<f32> {
 
 fn palette_div_symlog(x: f32, eps: f32) -> vec3<f32> {
   let absx = abs(x);
-  let signed = sign(x) *
-               select(1.0 + log(absx / eps), absx / eps, absx > eps);
-  let t = clamp(0.5 + 0.5 * signed / 8.0, 0.0, 1.0);
+  // Linear inside |x| <= eps, logarithmic outside. NB WGSL select(f, t, cond)
+  // returns t when cond is TRUE: the log branch is the true arm here.
+  // ("signed" is a WGSL reserved word — hence "sym".)
+  let sym = sign(x) *
+            select(absx / eps, 1.0 + log(absx / eps), absx > eps);
+  let t = clamp(0.5 + 0.5 * sym / 8.0, 0.0, 1.0);
   return palette_seq(t);
 }
 
-// VMF blend (6-pole), Okabe–Ito hues (CB-safe).
-fn vmf_okabe_ito(n: vec3<f32>, kappa: f32, chroma: f32, L: f32) -> vec3<f32> {
+// VMF blend over the six shape-sphere landmark poles. `scheme` selects the
+// hue table: 0 = full-OKLAB hues (shape_sphere_vmf), 1 = Okabe-Ito CB-safe
+// hues (shape_sphere_okabe_ito, stability_x_hue). Mirrors src/render/vmf.ts
+// (HUE_OKLAB / HUE_OKABE_ITO) — the two modes are NOT the same colouring.
+const VMF_SCHEME_OKLAB:     u32 = 0u;
+const VMF_SCHEME_OKABE_ITO: u32 = 1u;
+
+fn vmf_blend6(n: vec3<f32>, kappa: f32, chroma: f32, L: f32, scheme: u32) -> vec3<f32> {
   let pole = array<vec3<f32>, 6>(
     vec3<f32>( 1.0, 0.0, 0.0), vec3<f32>(-1.0, 0.0, 0.0),
     vec3<f32>( 0.0, 1.0, 0.0), vec3<f32>( 0.0,-1.0, 0.0),
     vec3<f32>( 0.0, 0.0, 1.0), vec3<f32>( 0.0, 0.0,-1.0),
   );
-  let hue = array<f32, 6>(
+  let hue_oklab = array<f32, 6>(
+      0.0 * PI/180.0, 180.0 * PI/180.0,
+    120.0 * PI/180.0, 300.0 * PI/180.0,
+    240.0 * PI/180.0,  60.0 * PI/180.0,
+  );
+  let hue_okabe_ito = array<f32, 6>(
     250.0 * PI/180.0,  70.0 * PI/180.0,
      30.0 * PI/180.0, 210.0 * PI/180.0,
     170.0 * PI/180.0, 350.0 * PI/180.0,
@@ -691,9 +753,10 @@ fn vmf_okabe_ito(n: vec3<f32>, kappa: f32, chroma: f32, L: f32) -> vec3<f32> {
   for (var i = 0u; i < 6u; i = i + 1u) {
     let kd = kappa * dot(n, pole[i]);
     let w  = exp(kd - maxv);
+    let hue = select(hue_oklab[i], hue_okabe_ito[i], scheme == VMF_SCHEME_OKABE_ITO);
     Z = Z + w;
-    aSum = aSum + w * cos(hue[i]);
-    bSum = bSum + w * sin(hue[i]);
+    aSum = aSum + w * cos(hue);
+    bSum = bSum + w * sin(hue);
   }
   let a = chroma * aSum / Z;
   let b = chroma * bSum / Z;
@@ -704,8 +767,8 @@ fn vmf_okabe_ito(n: vec3<f32>, kappa: f32, chroma: f32, L: f32) -> vec3<f32> {
 fn stability_x_hue(
   n: vec3<f32>, diffusion: f32, kappa: f32, chroma: f32,
 ) -> vec3<f32> {
-  // Hue from n.
-  let base = vmf_okabe_ito(n, kappa, chroma, 0.7);
+  // Hue from n (CB-safe Okabe-Ito base).
+  let base = vmf_blend6(n, kappa, chroma, 0.7, VMF_SCHEME_OKABE_ITO);
   // Modulate L by proximity to binary collisions.
   let b1 = vec3<f32>(1.0, 0.0, 0.0);
   let b2 = vec3<f32>(-0.5,  0.866025, 0.0);
@@ -769,28 +832,31 @@ fn combine_multiply_rgb(rgb: vec3<f32>, L: f32) -> vec3<f32> {
 ## `src/gpu/shaders/cvd.wgsl`
 
 ```wgsl
+// Matrix literals are written in the same row-major reading order as
+// src/render/cvd.ts; the WGSL mat3x3 constructor is column-major, so they
+// are applied as `rgb * M` (row-vector product), matching render_helpers.
 fn apply_cvd(rgb: vec3<f32>, mode: u32) -> vec3<f32> {
   switch (mode) {
     case 1u: {       // protan
-      return mat3x3<f32>(
+      return rgb * mat3x3<f32>(
         0.567, 0.433, 0.0,
         0.558, 0.442, 0.0,
         0.0,   0.242, 0.758,
-      ) * rgb;
+      );
     }
     case 2u: {       // deutan
-      return mat3x3<f32>(
+      return rgb * mat3x3<f32>(
         0.625, 0.375, 0.0,
         0.700, 0.300, 0.0,
         0.0,   0.300, 0.700,
-      ) * rgb;
+      );
     }
     case 3u: {       // tritan
-      return mat3x3<f32>(
+      return rgb * mat3x3<f32>(
         0.950, 0.050, 0.0,
         0.0,   0.433, 0.567,
         0.0,   0.475, 0.525,
-      ) * rgb;
+      );
     }
     case 4u: {       // achrom
       let g = dot(rgb, vec3<f32>(0.299, 0.587, 0.114));
@@ -804,6 +870,24 @@ fn apply_cvd(rgb: vec3<f32>, mode: u32) -> vec3<f32> {
 ## `src/gpu/shaders/render_graph.wgsl`
 
 ```wgsl
+// This file is the tail of the render module (see render_helpers.wgsl for
+// the concat order). It compiles standalone from the compute module, so the
+// shared structs are repeated here in full, byte-identical to simulate.wgsl
+// and src/gpu/structs.ts (the D3.3/D5.2 standalone-module rule) — including
+// ICDescriptor with simulate.wgsl's field ORDER (m1..q_mass, rho*, then
+// K_0/V_0/virial_ratio/r_min_pair_0):
+//
+//   struct SimUniforms { ... };      // 20 fields, from simulate.wgsl
+//   struct TileRequest { ... };
+//   struct SimResult   { ... };      // M = 8
+//   struct ICDescriptor {
+//     m1: f32, m2: f32, m3: f32, q_mass: f32,
+//     rho1_mag: f32, rho2_mag: f32, rho_ratio: f32, rho_angle: f32,
+//     K_0: f32, V_0: f32, virial_ratio: f32, r_min_pair_0: f32,
+//   };
+
+// Three-place rule: this struct + packRenderParams (src/render/params.ts)
+// + the byte pin in render_graph_palette_swap.test.ts change together.
 struct RenderParams {
   colour_mode_id:    u32,
   brightness_mode_id:u32,
@@ -873,8 +957,8 @@ fn fs_main(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
     case 18u: { rgb = palette_seq(clamp(log(r.energy_drift + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
     case 19u: { rgb = palette_seq(clamp(log(r.delta_Lz_max_abs + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
     case 20u: { rgb = palette_seq(clamp(log(r.Lz_drift + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
-    case 21u: { rgb = vmf_okabe_ito(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness); }
-    case 22u: { rgb = vmf_okabe_ito(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness); }
+    case 21u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKLAB); }
+    case 22u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKABE_ITO); }
     default:  { rgb = stability_x_hue(n_last, r.diffusion, rparams.vmf_kappa, rparams.vmf_chroma); }
   }
 
@@ -915,8 +999,6 @@ import {
 } from '@/render/oklab.js';
 import type { Vec3 } from '@/math/types.js';
 
-const pretty = (v: Vec3) => v.map(x => x.toFixed(6));
-
 describe('sRGB transfer round-trip', () => {
   it('linearToSrgb ∘ srgbToLinear ≈ id', () => {
     for (const c of [0, 0.04, 0.1, 0.5, 0.9, 1.0]) {
@@ -932,7 +1014,7 @@ describe('OKLAB round-trip', () => {
     ] as Vec3[]) {
       const lab = linearRgbToOklab(c);
       const back = oklabToLinearRgb(lab);
-      for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(c[i], 6);
+      for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(c[i]!, 6);
     }
   });
 });
@@ -961,7 +1043,7 @@ describe('vmfBlend', () => {
                          { kappa: 8, chroma: 0.15, lightness: 0.7 });
     const lab = linearRgbToOklab(rgb);
     const angle = Math.atan2(lab[2], lab[1]);
-    expect(angle).toBeCloseTo(HUE_OKLAB[0], 1);   // ~ 0 rad
+    expect(angle).toBeCloseTo(HUE_OKLAB[0]!, 1);   // ~ 0 rad
   });
 
   it('opposite poles cancel toward neutral on the equator', () => {
@@ -1050,29 +1132,44 @@ import { DEFAULT_RENDER_PARAMS } from '@/render/types.js';
 
 /**
  * Palette swap should change the contents of the 64-byte RenderParams
- * uniform but leave every other resource untouched. We can't easily
- * dispatch a real GPU pass in unit tests, but we can verify the
- * contract: only the params buffer differs, and the rest of the
- * `ViewState`-derived buffers (uniforms, tile request, sim results)
- * are byte-identical between two renders that differ only in palette.
+ * uniform but leave every other resource untouched. We can't dispatch a
+ * real GPU pass in Node, but we can pin the contract at the packing
+ * layer: a palette swap changes EXACTLY the palette_id lane (bytes
+ * 16..19), and packing is deterministic, so two renders that differ only
+ * in palette differ only in that one 64-byte uniform — the sim-result
+ * storage and tile uniforms are never re-packed at all (the real-GPU
+ * side of this contract is exercised by the dev:render harness check).
  */
 describe('palette swap touches only RenderParams', () => {
-  it('packRenderParams differs after palette change', () => {
-    const a = packRenderParams(DEFAULT_RENDER_PARAMS);
-    const b = packRenderParams({ ...DEFAULT_RENDER_PARAMS, palette: 'cubehelix' });
-    expect(new Uint8Array(a)).not.toEqual(new Uint8Array(b));
+  it('changes exactly the palette_id bytes [16..19]', () => {
+    const a = new Uint8Array(packRenderParams(DEFAULT_RENDER_PARAMS));
+    const b = new Uint8Array(packRenderParams({
+      ...DEFAULT_RENDER_PARAMS, palette: 'cubehelix',
+    }));
+    expect(b).not.toEqual(a);
+    for (let i = 0; i < 64; i++) {
+      if (i >= 16 && i < 20) continue;      // palette_id lane
+      expect(b[i], `byte ${i}`).toBe(a[i]!);
+    }
+    // And the lane itself did change.
+    const laneA = new Uint32Array(packRenderParams(DEFAULT_RENDER_PARAMS))[4];
+    const laneB = new Uint32Array(packRenderParams({
+      ...DEFAULT_RENDER_PARAMS, palette: 'cubehelix',
+    }))[4];
+    expect(laneA).not.toBe(laneB);
   });
 
-  it('packRenderParams unchanged after toggling unrelated knobs', () => {
+  it('packing is deterministic — identical params give identical bytes', () => {
     const a = packRenderParams(DEFAULT_RENDER_PARAMS);
-    const b = packRenderParams({
-      ...DEFAULT_RENDER_PARAMS,
-      // Wall-clock changes every frame; assume the renderer ignores it
-      // for the cache-classification check (it lives in RenderParams,
-      // but it's not a "palette swap" in the user-facing sense).
-      wallClockTime: DEFAULT_RENDER_PARAMS.wallClockTime,
-    });
+    const b = packRenderParams({ ...DEFAULT_RENDER_PARAMS });
     expect(new Uint8Array(a)).toEqual(new Uint8Array(b));
+  });
+
+  it('the packed buffer is exactly 64 bytes with an untouched reserved tail', () => {
+    const a = packRenderParams(DEFAULT_RENDER_PARAMS);
+    expect(a.byteLength).toBe(64);
+    const bytes = new Uint8Array(a);
+    for (let i = 56; i < 64; i++) expect(bytes[i]).toBe(0);
   });
 });
 ```
@@ -1086,13 +1183,16 @@ import { linearRgbToOklab, oklabToLinearRgb } from '@/render/oklab.js';
 
 /**
  * CPU-side reference for the stability×hue mode. Every pixel:
- *   1. shape-sphere n  →  vmf_okabe_ito → base RGB
+ *   1. shape-sphere n  →  vmf (Okabe–Ito hues) → base RGB
  *   2. compute proximity-to-BC (max over 3 BC unit vectors)
  *   3. L = 0.25 + 0.55 * 0.5 * (1 - prox)
  *   4. replace L in OKLAB
  *
- * The integration test compares against this reference at hand-picked
- * landmark positions on the shape sphere.
+ * The test asserts light/dark in OKLAB lightness — the quantity the mode
+ * sets directly (0.25 at a BC, 0.525 at a Lagrange pole). Linear-sRGB
+ * luminance is NOT the right measuring stick here: OKLAB L is roughly the
+ * cube root of luminance, so even the brightest pixel this mode can
+ * produce (L = 0.525) has linear luminance ≈ 0.14.
  */
 function cpuStabilityHue(n: [number, number, number]): [number, number, number] {
   const base = vmfBlend(n, HUE_OKABE_ITO,
@@ -1101,32 +1201,34 @@ function cpuStabilityHue(n: [number, number, number]): [number, number, number] 
   const b2 = [-0.5,  Math.sqrt(3)/2, 0] as const;
   const b3 = [-0.5, -Math.sqrt(3)/2, 0] as const;
   const dot = (u: readonly number[], v: readonly number[]) =>
-    u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
+    u[0]!*v[0]! + u[1]!*v[1]! + u[2]!*v[2]!;
   const prox = Math.max(dot(n, b1), dot(n, b2), dot(n, b3));
   const L = 0.25 + 0.55 * 0.5 * (1 - prox);
   const lab = linearRgbToOklab(base);
-  return oklabToLinearRgb([L, lab[1], lab[2]]);
+  const out = oklabToLinearRgb([L, lab[1], lab[2]]);
+  return [out[0], out[1], out[2]];
 }
+
+const lightness = (c: [number, number, number]): number =>
+  linearRgbToOklab(c)[0];
 
 describe('stability × hue reference values', () => {
   it('binary collisions are dark', () => {
-    const c = cpuStabilityHue([1, 0, 0]);
-    const lum = 0.299*c[0] + 0.587*c[1] + 0.114*c[2];
-    expect(lum).toBeLessThan(0.5);
+    // prox = 1 at a BC → L = 0.25 exactly.
+    expect(lightness(cpuStabilityHue([1, 0, 0]))).toBeLessThan(0.30);
   });
 
   it('Lagrange poles are light', () => {
-    const c = cpuStabilityHue([0, 0, 1]);
-    const lum = 0.299*c[0] + 0.587*c[1] + 0.114*c[2];
-    expect(lum).toBeGreaterThan(0.5);
+    // prox = 0 at a pole → L = 0.525, the brightest this mode produces.
+    expect(lightness(cpuStabilityHue([0, 0, 1]))).toBeGreaterThan(0.50);
   });
 
-  it('mid-equator is intermediate', () => {
-    const cMid = cpuStabilityHue([0, 1, 0]);
-    const lumMid = 0.299*cMid[0] + 0.587*cMid[1] + 0.114*cMid[2];
-    const cBC  = cpuStabilityHue([1, 0, 0]);
-    const lumBC  = 0.299*cBC[0] + 0.587*cBC[1] + 0.114*cBC[2];
-    expect(lumMid).toBeGreaterThan(lumBC);
+  it('luminance ordering: pole > mid-equator > binary collision', () => {
+    const lPole = lightness(cpuStabilityHue([0, 0, 1]));
+    const lMid  = lightness(cpuStabilityHue([0, 1, 0]));
+    const lBC   = lightness(cpuStabilityHue([1, 0, 0]));
+    expect(lPole).toBeGreaterThan(lMid);
+    expect(lMid).toBeGreaterThan(lBC);
   });
 });
 ```
@@ -1167,12 +1269,23 @@ write. Entry point, called once on page load and again per control
 `change` event:
 
 ```ts
-const graph = await buildRenderGraph(ctx, bufs, RENDER_GRAPH_WGSL);
+const graph = await buildRenderGraph(ctx, bufs, RENDER_MODULE);
 function repaint() {
   ctx.device.queue.writeBuffer(graph.paramsBuffer, 0, packRenderParams(params));
   drawFrame(ctx, graph);   // one render pass; rebinds group 3 only
 }
 ```
+
+Built as `dev/render_graph.{html,ts}` (`npm run dev:render`), which also
+exposes `window.__m7RenderPixels(overrides)` — an offscreen-texture render +
+readback used by the headless Playwright check (canvas presentation is
+glitchy headless; real pixels are validated off the texture instead). Two
+gotchas learned on real GPU: (1) the draw must `setBindGroup(2, bgEmpty)`
+even though group 2's layout is empty; (2) the offscreen validation texture
+must use `ctx.format` (bgra8unorm on mac) — an `rgba8unorm` attachment
+mismatches the pipeline's colour target, fails validation, and yields
+all-black pixels with no console error unless an `uncapturederror` listener
+is installed.
 
 ## Notes for the implementer
 
