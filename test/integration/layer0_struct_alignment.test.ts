@@ -19,5 +19,6 @@ describe('GPU struct alignment', () => {
     expect(bufs.tileReq.size).toBe(48);
     expect(bufs.simResults.size).toBe(208 * 16 * 16);
     expect(bufs.icDesc.size).toBe(64 * 16 * 16);
+    expect(bufs.debug.size).toBe(16);      // G17 DebugUniform
   });
 });

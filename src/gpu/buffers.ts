@@ -7,6 +7,7 @@ export interface TileBuffers {
   simResults:  GPUBuffer;
   icDesc:      GPUBuffer;
   readback:    GPUBuffer;       // optional, M=8 size for one tile
+  debug:       GPUBuffer;       // G17 DebugUniform (16B); zero-filled = mode 0 (M3 colouring)
   N:           number;
   M:           number;
 }
@@ -34,5 +35,8 @@ export function createTileBuffers(
     size: sizeOfSimResult(M) * N * N,
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
 
-  return { uniforms, tileReq, simResults, icDesc, readback, N, M };
+  const debug      = device.createBuffer({
+    size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+
+  return { uniforms, tileReq, simResults, icDesc, readback, debug, N, M };
 }
