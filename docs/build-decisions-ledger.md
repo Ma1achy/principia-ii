@@ -9,6 +9,37 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M4 — Layer 1: tile cache and ancestor fallback
+
+Branch `feat/m4-layer1-cache` off `webgpu-rewrite`. All 40 M4 tests green
+first run (6 unit suites + both integration tests, including the acceptance
+gate `npm test -- --run test/integration/layer1`); full suite 148 passed / 1
+skipped; typecheck + lint clean. Pure-CPU milestone — no GPU/doc surprises.
+
+### D4.1 — zoomLevel doc tests contradicted the doc's own formula
+The doc pins `z_base = ⌊log₂(W / (T_pix × Δu_view))⌋` but its test expected
+`zoomLevel(1024, 1.0, 256) === 0` — the formula gives 2, and 2 is physically
+right (a 1024-px viewport of 256-px tiles needs 4×4 tiles fully zoomed out;
+z=0 would render one tile stretched 4×). Kept the spec formula, fixed the
+expectations (2 and 4), and added the true z=0 case (`zoomLevel(256, 1.0,
+256)`). Doc updated.
+
+### D4.2 — effectiveZ reuses pyramid.reachedF32Floor
+The doc's `camera.ts` duplicated the f32-floor logic in a private helper
+(`require_f32_floor_check_failure`) instead of importing `reachedF32Floor`
+from `pyramid.ts` — two copies of a precision threshold is exactly the drift
+the non-negotiables warn about. Implemented with the single shared function
+and added unit tests for `effectiveZ` (untested in the doc). Doc updated.
+
+### D4.3 — Strict/lint fixes to doc listings
+`pyramid.ts` imported `tileBounds` unused; `layer1_panning` had a write-only
+`frameNum` and an un-narrowed `split('/')` destructuring
+(`noUncheckedIndexedAccess`); `layer1_zoom_handoff` imported `tileKey`
+unused. Also added a `flush()` keeps-inflight test the doc's queue suite
+lacked. All folded back.
+
+---
+
 ## G17 — Debugging & bring-up harness
 
 Branch `feat/g17-debug-harness` off `webgpu-rewrite`. Exit gate green first run
