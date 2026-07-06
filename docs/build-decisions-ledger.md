@@ -9,6 +9,43 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M8 — Interaction
+
+Branch `feat/m8-interaction` off `webgpu-rewrite`. Acceptance gate
+(`npm test -- --run test/integration/interact`) green first run; 19 unit
++ 2 integration tests; full suite 249 passed / 1 skipped; typecheck +
+lint clean. Deliverable is internal (tests only) per the milestone doc.
+The `principia-interaction` skill was authored just-in-time, and carries
+the GUI-spec reconciliation notes (8D not 10D; keyboard/DAS/ARR stays in
+G12 — M8 is headless).
+
+### D8.1 — lookup tests asserted gauge-dependent absolute coordinates
+The doc's Pythag test expected the decoded `lockedPhysical.r[1]` to sit
+within 0.05 of the *requested* absolute position (0.6, 0). But the 8D
+chart is scale- and frame-gauged: configuration lives on the shape sphere
+at hyperradius R̃ = 1 and decode reconstructs in the canonical COM frame,
+so absolute positions shift (COM projection alone moves body 1 to
+(0.4, −0.2) — 0.28 away) and absolute scale is renormalised. What DOES
+survive: the mass tuple (exactly), distance ratios, and angles. As built,
+the tests assert those invariants (side ratios 4/3 and 5/3, right angle
+at body 0 to 1e-6; equilateral side-ratio 1 for the mass-only default) —
+the M1-ratified "don't pin the gauge, assert robust facts" pattern, now
+codified in the `principia-interaction` skill. The doc's misnamed
+"rejects on a degenerate latent" test (which rejected nothing) was
+renamed to what it pins: decode totality — saturated latents never throw.
+
+### D8.2 — strict-TS reconciliation in doc listings
+Same class as D4.3/D5.3: `ViewState['lockedPhysical']['m']` is an indexed
+access through an `| undefined` union (fixed with `NonNullable<…>`);
+`reason: enc.clamped ? … : undefined` is illegal under
+`exactOptionalPropertyTypes` (fixed with a conditional spread);
+`named_directions.ts` had unused imports (`normalize8`, `scale8`, `sub8`,
+`MU_MAX_DEFAULT`) and an unused `muMax` parameter (dropped); tuple
+indexing under `noUncheckedIndexedAccess` needs `!` in the r[i][j] loops.
+All folded back into the doc listings.
+
+---
+
 ## M7 — Render graph
 
 Branch `feat/m7-render-graph` off `webgpu-rewrite`. Acceptance gate
