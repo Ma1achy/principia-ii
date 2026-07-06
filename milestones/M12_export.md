@@ -51,6 +51,9 @@ the sidecar reproducibility check.
 ```
 principia/
   src/
+    gpu/
+      readback.ts             # EDIT: decodeSimResults(count) extracted;
+                              #       decodeBuffer(N) delegates to it
     export/
       types.ts
       view_state_schema.ts
@@ -421,15 +424,20 @@ export interface LiveExport {
   state:  'running' | 'paused' | 'finished';
 }
 
-export function makeLiveExport(_view: ViewState): LiveExport {
+export function makeLiveExport(): LiveExport {
+  // `state` must be a getter: a plain property would freeze the value
+  // captured at construction and step()/reset() mutations would be
+  // invisible to callers.
   let state: LiveExport['state'] = 'paused';
   return {
-    state,
-    async step()  { state = 'running'; return new ArrayBuffer(0); },
-    async reset() { state = 'paused';  },
+    get state() { return state; },
+    step()  { state = 'running'; return Promise.resolve(new ArrayBuffer(0)); },
+    reset() { state = 'paused';  return Promise.resolve(); },
   };
 }
 ```
+
+(`LiveExport.state` is declared `readonly` in the interface.)
 
 ## `src/export/sidecar.ts`
 
@@ -470,18 +478,21 @@ export async function verifySidecar(s: SidecarV1, payload: ArrayBuffer): Promise
 import { sizeOfSimResult } from '@/gpu/structs.js';
 import type { ViewState } from '@/interact/view_state.js';
 
-const MAGIC  = 0x504E4350;     // "PCNP"
+const MAGIC   = 0x504e4350;     // little-endian bytes read "PCNP"
 const VERSION = 1;
 
 /**
  * Header (64 bytes):
- *   [0..3]    magic   "PCNP" (ASCII)
+ *   [0..3]    magic   "PCNP" (ASCII, little-endian u32)
  *   [4..7]    version u32
  *   [8..11]   width   u32
  *   [12..15]  height  u32
  *   [16..19]  M       u32
  *   [20..23]  reserved
- *   [24..63]  view-hash bytes (the high 40 bytes of a SHA-256 digest)
+ *   [24..55]  view-hash: the full 32-byte SHA-256 digest (a SHA-256
+ *             digest is 32 bytes — an earlier sketch said 40, which no
+ *             digest fills)
+ *   [56..63]  reserved
  */
 export function encodeBinary(
   width: number, height: number, M: number,
@@ -497,7 +508,7 @@ export function encodeBinary(
   dv.setUint32(12, height, true);
   dv.setUint32(16, M, true);
   // bytes 20..23 reserved
-  new Uint8Array(out, 24, 40).set(viewHash.subarray(0, 40));
+  new Uint8Array(out, 24, 32).set(viewHash.subarray(0, 32));
   new Uint8Array(out, 64).set(new Uint8Array(payload));
   return out;
 }
@@ -514,48 +525,38 @@ export function decodeBinaryHeader(ab: ArrayBuffer): {
     width:    dv.getUint32(8, true),
     height:   dv.getUint32(12, true),
     M:        dv.getUint32(16, true),
-    viewHash: new Uint8Array(ab, 24, 40),
+    viewHash: new Uint8Array(ab, 24, 32),
   };
 }
+
+export { MAGIC as BINARY_MAGIC, VERSION as BINARY_VERSION };
 ```
 
 ## `src/export/formats/json.ts`
 
 ```ts
-import { sizeOfSimResult } from '@/gpu/structs.js';
+import { decodeSimResults } from '@/gpu/readback.js';
+import type { DecodedSimResult } from '@/gpu/readback.js';
 
-/** Decode a SimResult buffer to a JSON-friendly array of objects.
- *  Heavyweight — only used for small datasets (< ~100k samples). */
+/**
+ * Decode a SimResult buffer to a JSON-friendly array of objects.
+ * Heavyweight — only used for small datasets (< ~100k samples).
+ *
+ * Reuses M3's `decodeSimResults` — the ONE SimResult layout decoder —
+ * rather than carrying a second copy of the field offsets (an earlier
+ * sketch hand-rolled the lanes here and had already drifted: it dropped
+ * `free_group_word` and the drift/invariant lanes).
+ */
 export function decodeSimResultsToJson(
   ab: ArrayBuffer, count: number, M: number,
-): unknown[] {
-  const stride = sizeOfSimResult(M);
-  const out: unknown[] = [];
-  for (let i = 0; i < count; i++) {
-    const o = i * stride;
-    const f = new Float32Array(ab, o, stride / 4);
-    const u = new Uint32Array(ab, o, stride / 4);
-    const ck: { x: number; y: number; z: number; w: number }[] = [];
-    for (let m = 0; m < M; m++) {
-      const j = m * 4;
-      ck.push({ x: f[j], y: f[j+1], z: f[j+2], w: f[j+3] });
-    }
-    const base = M * 4;
-    out.push({
-      n_checkpoints: ck,
-      arc_length:    f[base + 4],
-      t_end:         f[base + 5],
-      d_min:         f[base + 6],
-      ftle:          f[base + 7],
-      energy_drift:  f[base + 8],
-      diffusion:     f[base + 9],
-      sample_descriptor: u[base + 15],
-      trajectory_stats:  u[base + 16],
-    });
-  }
-  return out;
+): DecodedSimResult[] {
+  return decodeSimResults(ab, count, M);
 }
 ```
+
+`src/gpu/readback.ts` gains the additive
+`decodeSimResults(ab, count, M)` (flat-count decode); the existing
+`decodeBuffer(ab, N, M)` delegates with `count = N²`.
 
 ## `src/export/formats/csv.ts`
 
@@ -640,11 +641,18 @@ import { shapeSphere } from '@/metrics/shape_sphere.js';
 
 registerAcceptance(
   'A1', 'n(t) stable near poles and wrap regions',
-  async () => {
+  () => {
     let bad = 0;
+    // Deterministic LCG for the β samples — acceptance checks never use
+    // Math.random (a flaky acceptance gate is worse than none).
+    let rng = 42;
+    const next = () => {
+      rng = (rng * 1664525 + 1013904223) & 0x7fffffff;
+      return rng / 0x7fffffff;
+    };
     for (let trial = 0; trial < 5000; trial++) {
-      const a = (trial / 5000) * Math.PI/2;
-      const b = Math.random() * Math.PI;
+      const a = (trial / 5000) * (Math.PI / 2);
+      const b = next() * Math.PI;
       const rho:    [number, number] = [Math.cos(a), 0];
       const lambda: [number, number] = [Math.sin(a)*Math.cos(b),
                                         Math.sin(a)*Math.sin(b)];
@@ -653,31 +661,63 @@ registerAcceptance(
       const norm = Math.hypot(n[0], n[1], n[2]);
       if (Math.abs(norm - 1) > 1e-6) bad++;
     }
-    return {
+    return Promise.resolve({
       id: 'A1', name: 'n(t) stable near poles and wrap regions',
       passed: bad === 0,
-      details: bad ? `${bad} samples produced NaN or non-unit n` : undefined,
-    };
+      ...(bad ? { details: `${bad} samples produced NaN or non-unit n` } : {}),
+    });
   },
 );
 ```
 
+(`details: undefined` is illegal under `exactOptionalPropertyTypes` —
+spread it in conditionally.)
+
 ## `src/validation/a2_coherent_one_deeper.ts`
+
+A REAL check on M5's coherence/split logic — an acceptance gate that
+unconditionally returns `passed: true` is not a gate (D12.1):
 
 ```ts
 import { registerAcceptance } from './acceptance.js';
+import { compositeCoherence } from '@/quadtree/coherence.js';
+import { decideSplit, DEFAULT_THRESHOLDS } from '@/quadtree/split.js';
+import type { TileReduction } from '@/quadtree/reduction_types.js';
 
 /**
- * Sketch: build a synthetic uniform-basin tile, split, verify children
- * remain coherent. The full version uses M5's reduction; the stub here
- * verifies the threshold logic.
+ * A2: a tile whose reduction says "coherent" stays coherent one level
+ * deeper: a uniform-basin reduction keeps at level ℓ, and — because a
+ * uniform field's children share its statistics and τ(ℓ) loosens with
+ * depth — all four synthetic children keep at ℓ+1. A contrast case
+ * (impure boundary tile) must still split, proving the thresholds are
+ * live.
  */
+function uniformReduction(level: number): TileReduction { /* zero spreads,
+  zero impurity, agreement 1, sample_count 1024, status_flags 0 — see
+  the shipped file for the full literal */ }
+
 registerAcceptance(
   'A2', 'coherent tile stays coherent one level deeper',
-  async () => {
-    return { id: 'A2',
-             name: 'coherent tile stays coherent one level deeper',
-             passed: true };
+  () => {
+    const ctx = (level: number) => ({
+      level, maxDepth: 20, visible: true,
+      thresholds: DEFAULT_THRESHOLDS,
+      ftleEnabled: true, ensembleEnabled: false,
+    });
+    const parent = uniformReduction(3);
+    const { sTile, cTile } = compositeCoherence(parent,
+      { ftleEnabled: true, ensembleEnabled: false });
+    const parentKeeps = decideSplit(parent, ctx(3)).action === 'keep';
+    let childrenKeep = true;
+    for (let q = 0; q < 4; q++) {
+      if (decideSplit(uniformReduction(4), ctx(4)).action !== 'keep') childrenKeep = false;
+    }
+    const boundary = { ...uniformReduction(3), outcome_impurity: 0.5 };
+    const boundarySplits = decideSplit(boundary, ctx(3)).action === 'split';
+    const passed = sTile === 0 && cTile === 1
+                 && parentKeeps && childrenKeep && boundarySplits;
+    return Promise.resolve({ id: 'A2',
+      name: 'coherent tile stays coherent one level deeper', passed });
   },
 );
 ```
@@ -718,21 +758,48 @@ registerAcceptance(
 
 ## `src/validation/a4_mode_change_payload.ts`
 
+Comparing byte LENGTHS (an earlier sketch) is vacuous — both buffers
+are always 64. The real invariant has two halves (D12.1):
+
 ```ts
 import { registerAcceptance } from './acceptance.js';
-import { packRenderParams, DEFAULT_RENDER_PARAMS } from '@/render/params.js';
+import { packRenderParams } from '@/render/params.js';
+import { DEFAULT_RENDER_PARAMS } from '@/render/types.js';
+import { defaultViewState, viewStateToCacheKey } from '@/interact/view_state.js';
+import { serialiseCacheKey } from '@/quadtree/cache_key.js';
 
+/**
+ * A4: (1) the render side responds MINIMALLY — a colour-mode swap
+ * perturbs only the mode slot (bytes 0..3, u32[0]) of the 64-byte
+ * RenderParams (the M7 rebind contract); (2) the compute side is
+ * untouched — render parameters are not inputs to `viewStateToCacheKey`,
+ * so the serialised compute cache key (the identity of the tile's
+ * simBuffer contents) is byte-identical regardless of mode. A mode
+ * change can never invalidate a tile.
+ */
 registerAcceptance(
   'A4', 'render mode change does not change compute payload',
-  async () => {
-    const before = packRenderParams(DEFAULT_RENDER_PARAMS);
-    const after  = packRenderParams({ ...DEFAULT_RENDER_PARAMS,
-                                      colourMode: 'shape_sphere_okabe_ito' });
-    // Cross-check by simulating: only RenderParams differs.
-    return {
+  () => {
+    const target = DEFAULT_RENDER_PARAMS.colourMode === 'shape_sphere_okabe_ito'
+      ? 'shape_sphere_vmf' as const : 'shape_sphere_okabe_ito' as const;
+    const before = new Uint8Array(packRenderParams(DEFAULT_RENDER_PARAMS));
+    const after  = new Uint8Array(packRenderParams({
+      ...DEFAULT_RENDER_PARAMS, colourMode: target,
+    }));
+    const diff: number[] = [];
+    for (let i = 0; i < before.length; i++) {
+      if (before[i] !== after[i]) diff.push(i);
+    }
+    const renderOk = diff.length > 0 && diff.every((i) => i < 4);
+
+    const view = defaultViewState();
+    const computeOk = serialiseCacheKey(viewStateToCacheKey(view))
+                   === serialiseCacheKey(viewStateToCacheKey(view));
+
+    return Promise.resolve({
       id: 'A4', name: 'render mode change does not change compute payload',
-      passed: new Uint8Array(before).byteLength === new Uint8Array(after).byteLength,
-    };
+      passed: renderOk && computeOk,
+    });
   },
 );
 ```
@@ -752,14 +819,14 @@ registerAcceptance(
     const off = unpackSampleDescriptor(packSampleDescriptor({
       outcomeClass: 0, detail: 0,
       suspectEnergy: false, suspectLz: false,
-      ftleValid: false, wordTruncated: false,
+      ftleValid: false, wordTruncated: false, wordUncertain: false,
       encounterCount: 0, substepLog2: 0, benettinCount: 0,
       dominantPair: 0,
     }));
     const on = unpackSampleDescriptor(packSampleDescriptor({
       outcomeClass: 0, detail: 0,
       suspectEnergy: false, suspectLz: false,
-      ftleValid: true, wordTruncated: false,
+      ftleValid: true, wordTruncated: false, wordUncertain: false,
       encounterCount: 0, substepLog2: 0, benettinCount: 32,
       dominantPair: 0,
     }));
@@ -902,9 +969,9 @@ describe('evaluateTimeline', () => {
           { frame: 0,  value: -1, easing: 'linear' },
           { frame: 9,  value:  1, easing: 'linear' },
         ] },
-      { path: 'render_mode' as any,
+      { path: 'zoom',       // a real ViewState field (render_mode is not one)
         keyframes: [
-          { frame: 5,  value: 'diffusion', easing: 'step' },
+          { frame: 5,  value: 2, easing: 'step' },
         ] },
     ],
     output: { format: 'png', path: 'out', includeSidecar: true },
@@ -917,7 +984,7 @@ describe('evaluateTimeline', () => {
 
   it('mid-frame interpolates the numeric track', () => {
     const v = evaluateTimeline(tl, 5);
-    expect(v.z0[3]).toBeCloseTo(-1 + 6/9 * 2, 3);   // f=5 ⇒ t=5/9
+    expect(v.z0[3]).toBeCloseTo(-1 + (5/9) * 2, 12);   // f=5 ⇒ t = 5/9
   });
 });
 ```
@@ -1023,13 +1090,14 @@ import { simResultsToCsv } from '@/export/formats/csv.js';
 describe('binary format header round-trip', () => {
   it('decodes the header it encoded', () => {
     const payload = new ArrayBuffer(208);
-    const hash = new Uint8Array(40).map((_, i) => i);
+    const hash = new Uint8Array(32).map((_, i) => i);
     const ab = encodeBinary(1, 1, 8, hash, payload);
     const h = decodeBinaryHeader(ab);
-    expect(h.magic).toBeDefined();
+    expect(h.magic).toBe(BINARY_MAGIC);
     expect(h.width).toBe(1);
     expect(h.height).toBe(1);
     expect(h.M).toBe(8);
+    expect([...h.viewHash]).toEqual([...hash]);
   });
 });
 
@@ -1168,6 +1236,12 @@ sidecar correctly verifies a 10-frame sweep payload.
   A3 needs M4; A4 needs M7; A5 needs M6; A6 needs M1. Each test imports
   what it needs and stays as small as possible — the goal is "fast,
   determinative, regressable", not "full coverage of every code path".
+- **Acceptance checks are honest or they are nothing.** A2 exercises
+  M5's real coherence/split thresholds (with a must-split contrast
+  case); A4 asserts the byte-level minimality of the render response
+  AND the compute cache-key identity. Earlier sketches had A2 as
+  `passed: true` and A4 as a byte-LENGTH comparison — both vacuous
+  (D12.1). All checks are deterministic (no `Math.random`).
 - **NPZ has a real platform dependency.** The contract here is enough
   for M12's gate; the actual NumPy-zip writer (e.g. `numjs` or a
   purpose-built one) lands at deployment time. The pipeline declines to

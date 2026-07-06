@@ -9,6 +9,63 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M12 — Export, data API, acceptance harness
+
+Branch `feat/m12-export`. Acceptance gate
+(`npm test -- --run test/integration/acceptance`) green — all six
+architectural checks pass; 6 unit + 8 integration suites, 35 tests;
+full suite 338 passed / 1 skipped; typecheck + lint + build clean.
+Deliverable: serialisable ViewState + URL round-trip + static/sweep/
+live export orchestration + PNG/JSON/binary/CSV/NPZ contracts +
+SHA-256 sidecars + the A1–A6 acceptance registry. This closes the
+M-series.
+
+### D12.1 — two acceptance checks in the doc were vacuous; made real
+The doc's A2 unconditionally returned `passed: true` ("stub verifies
+the threshold logic" — it verified nothing), and A4 compared byte
+LENGTHS of two packRenderParams buffers (always 64 = always passes).
+As built: A2 drives M5's real `compositeCoherence`/`decideSplit` — a
+uniform-basin reduction keeps at ℓ and all four synthetic children keep
+at ℓ+1 (τ(ℓ) loosens with depth), plus a must-split impure contrast
+case so the thresholds are proven live; A4 asserts a colour-mode swap
+perturbs ONLY bytes 0..3 of RenderParams (M7 rebind contract) and that
+the serialised compute cache key is untouched (render params are not
+inputs to `viewStateToCacheKey` — a mode change can never invalidate a
+tile). A1's `Math.random` became a deterministic LCG — a flaky
+acceptance gate is worse than none.
+
+### D12.2 — binary header hash field: SHA-256 is 32 bytes, not 40
+The doc's header reserved bytes [24..63] for "the high 40 bytes of a
+SHA-256 digest" — no such thing exists (the digest is 32 bytes; the
+doc's own hash-literal test padded with zeros silently). As built:
+[24..55] holds the full 32-byte digest, [56..63] reserved; the test
+round-trips the exact bytes and pins the "PCNP" magic in file order.
+
+### D12.3 — JSON export reuses the ONE SimResult decoder
+The doc's `decodeSimResultsToJson` hand-rolled the lane offsets — a
+second copy of the SimResult layout that had ALREADY drifted (it
+dropped `free_group_word` and all the drift/invariant lanes).
+`decodeSimResults(ab, count, M)` was extracted from M3's
+`decodeBuffer` (additive; `decodeBuffer` delegates with count = N²)
+and json.ts wraps it — same single-source rule as
+TILE_REDUCTION_FIELDS.
+
+### D12.4 — live-export `state` was captured by value
+The doc returned `{ state, step, reset }` where `state` is a local —
+the property froze at 'paused' forever while step()/reset() mutated an
+invisible variable. As built: a getter (`get state()`), with the
+interface field declared readonly.
+
+### D12.5 — listing/test hygiene
+Timeline test's mid-frame expectation used t = 6/9 for frame 5 of a
+0..9 bracket (it's 5/9); its second track targeted `render_mode`, which
+is not a ViewState field (render params are deliberately separate) —
+retargeted to `zoom`, which also exercises the single-keyframe snap.
+A5's descriptor literals were missing the `wordUncertain` field
+(ADR-0004 bit 9; type error). `details: undefined` returns violate
+exactOptionalPropertyTypes → conditional spreads. `registerAcceptance`
+now throws on duplicate ids.
+
 ## M11 — Burrau family progression
 
 Branch `feat/m11-burrau`. Acceptance gate
