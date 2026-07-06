@@ -9,6 +9,95 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M7 — Render graph
+
+Branch `feat/m7-render-graph` off `webgpu-rewrite`. Acceptance gate
+(`npm test -- --run test/integration/render_graph`) green; 14 unit + 6
+integration tests; full suite 225 passed / 1 skipped; typecheck + lint
+clean. Real-GPU validation: `dev:render` harness + Playwright check
+(dev/out/m7_render_check.mjs) — 10/10 checks pass (module compiles, all
+four stages respond independently, deterministic repaints, achrom is
+grey). The `principia-render` skill was authored just-in-time before this
+milestone, per the planning obligation.
+
+### D7.1 — doc's WGSL matrices computed the transposed transform
+The doc wrote the OKLAB (`M1_TO_LMS` …) and CVD matrices in row-major
+reading order, fed them to WGSL's **column-major** `mat3x3` constructor,
+and multiplied `M * v` — mathematically the transpose of the intended
+transform (silently rotates hues; the classic plausible-but-wrong render
+failure). As built, the constants keep the row-major reading order
+(matching the TS mirrors) and are applied as `v * M` (row-vector
+product), which is the correct composition. Folded back into the doc with
+a warning comment.
+
+### D7.2 — doc's `palette_div_symlog` had its select() arms swapped
+WGSL `select(f, t, cond)` returns `t` when cond is true; the doc's call
+put the log branch in the false arm, so values inside the linear window
+got `1 + log(x/eps)` (negative → sign flip) and values outside grew
+linearly unbounded. Swapped. Also renamed the local `signed` — a WGSL
+reserved word (same class as G17's D17.2 `debug` → `dbg`).
+
+### D7.3 — modes 21/22 were the same colouring in the doc's shader
+The doc's TS declares two hue tables (`HUE_OKLAB` for `shape_sphere_vmf`,
+`HUE_OKABE_ITO` for `shape_sphere_okabe_ito`) but its WGSL had a single
+`vmf_okabe_ito` used by both switch cases — collapsing two documented
+modes into one. As built, `vmf_blend6(…, scheme)` selects the hue table
+(scheme 0 = OKLAB, 1 = Okabe–Ito); case 21u/22u pass different schemes;
+`stability_x_hue` uses the Okabe–Ito base per its reference test. A unit
+test + the real-GPU check pin that the two modes differ.
+
+### D7.4 — OKLAB inverse matrices derived exactly, not pinned approximations
+The doc pinned Ottosson's published approximate inverses, which close the
+rgb→oklab→rgb round-trip only to ~2e-6 — failing the doc's own 1e-6
+acceptance line. As built, `invertMat3(M1)`/`invertMat3(M2)` are computed
+at module load: exact to machine precision, no fixture to maintain. The
+WGSL keeps the published constants (f32 dominates on GPU). The doc's
+over-precise M1/M2 literals also tripped `no-loss-of-precision`; rounded
+to the canonical published values (identical f64s).
+
+### D7.5 — stability×hue test asserted an impossible luminance
+The doc's "Lagrange poles are light" asserted linear-sRGB luminance
+> 0.5, but the mode's own formula caps OKLAB lightness at L = 0.525 —
+linear luminance ≈ 0.14 (OKLAB L ≈ cube root of luminance). The doc
+conflated the two scales. As built, the test measures OKLAB L, the
+quantity the mode actually sets (0.25 at BCs, 0.525 at poles), keeping
+the dark/light/ordering intent. Same reconciliation family as D4.1
+(doc test contradicting the doc's own formula — keep the formula).
+
+### D7.6 — palette-swap test strengthened from a tautology to a byte pin
+The doc's second test packed `{...defaults, wallClockTime: defaults.wallClockTime}`
+— asserting a buffer equals itself. As built: (1) a palette swap changes
+EXACTLY bytes 16..19 (the palette_id lane), (2) packing is deterministic,
+(3) the buffer is 64 bytes with a zero reserved tail. The real-GPU side
+(groups 0/1/2 untouched) is exercised by the harness check.
+
+### D7.7 — buildRenderGraph returns all four bind groups; empty group 2 must be set
+The doc's `RenderGraph` returned only the group-3 bind group, leaving the
+caller unable to draw: the doc creates the group-0/1 layouts inline (so
+M3's bind groups — built on different layouts, with the G17 debug binding
+and `'storage'` buffer type — are incompatible), and WebGPU requires even
+an EMPTY bind-group layout at index 2 to have an empty bind group set at
+draw time. As built, `buildRenderGraph` creates and returns
+`bgTile`/`bgStorage`/`bgEmpty`/`bgRenderParams`. Also applied the
+standalone-module rule (D3.3/D5.2): render_graph.wgsl repeats
+SimUniforms/TileRequest/SimResult/ICDescriptor verbatim from simulate.wgsl
+(the doc used them undeclared), with ICDescriptor in simulate.wgsl's field
+order, not the doc's re-ordered variant. Dropped from the doc's file tree:
+`physics_overlay.wgsl` (its own implementer note defers overlays to M10)
+and `src/gpu/render_pipeline.ts` (listed with no listing; superseded by
+`src/render/pipeline.ts`).
+
+### D7.8 — offscreen validation textures must match the pipeline's format
+Harness lesson (folded into the doc's dev-harness section): validating
+pixels off an `rgba8unorm` offscreen texture fails silently when the
+pipeline's colour target is the canvas-preferred `bgra8unorm` — the
+render pass fails validation, the readback is all-black, and nothing hits
+the console unless a `device.addEventListener('uncapturederror', …)`
+listener is installed. The harness now uses `ctx.format` for offscreen
+targets and installs the listener.
+
+---
+
 ## M6 — Stability metrics
 
 Branch `feat/m6-metrics` off `webgpu-rewrite`. Acceptance gate (the three
