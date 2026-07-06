@@ -9,6 +9,48 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## M6 — Stability metrics
+
+Branch `feat/m6-metrics` off `webgpu-rewrite`. Acceptance gate (the three
+goldens) green first run; 24 unit + 5 golden tests; full suite 205 passed /
+1 skipped; typecheck + lint clean. `metrics.wgsl` validated on a real GPU
+(compile + pipeline creation, zero errors). The `principia-metrics` skill was
+authored just-in-time before this milestone, per the planning obligation.
+
+### D6.1 — figure-8 word golden uses the rescaled IC, not the textbook one
+The doc's `figure8IC()` mis-halved the standard Chenciner–Montgomery
+velocities (its own comment contradicted the code) and used the unit-mass
+period 6.32 at m = 1/3 — dynamically wrong at Σm = 1, where velocities scale
+by 1/√3 and the period by √3 (≈ 10.9568): the M1 lesson, already pinned in
+`figure8_reference.json`. A non-periodic orbit never closes the word. As
+built, the test loads the M1 fixture, runs 4 true periods, accepts cyclic
+rotations of `abAB` in either orientation (the doc's 4-rotation list missed
+the inverse-orientation words), and asserts every 4-symbol block repeats the
+same base — strictly stronger than the doc's startsWith check. Passes with a
+clean word.
+
+### D6.2 — FTLE "regular" reference orbit was unbound
+The doc's binary had p = ±0.7071 at m ≈ ½ each and separation 1 — pair
+energy E = +0.75, an escaping (not regular) configuration. Circular momentum
+is p = m·v with v² = F·r/m → p = 0.25. Fixed; Burrau FTLE ≥ 10× the regular
+orbit's, as gated. Also removed the unused `totalEnergy` import.
+
+### D6.3 — pickEndpoint computed a wrong partial cross product
+The doc's `sin ∠(b̂, north)` used two hand-expanded (and mis-indexed) cross
+components, evaluating to |b_y| — so the equator basepoint (1,0,0) got the
+SOUTH endpoint while the doc's own unit test expects NORTH. As built it takes
+the norm of the full `cross3(b, NORTH)`, matching the WGSL `length(cross())`
+version, which was already correct.
+
+### D6.4 — Smaller strict/lint corrections folded back
+Unused imports in the doc's listings (`Vec2` in metrics/types, `normalize3`
+in free_group, `Checkpoint` in observe_extended), and dead confused lines in
+the diffusion sentinel test. `metrics.wgsl` is function-definitions-only
+(composes with helpers.wgsl for PI); validated by compiling
+helpers+metrics+a probe entry point on the real GPU.
+
+---
+
 ## M5 — Layer 2: GPU reduction + adaptive refinement
 
 Branch `feat/m5-layer2-refinement` off `webgpu-rewrite`. Acceptance gate
