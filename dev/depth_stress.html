@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Principia · quadtree depth-stress harness</title>
+    <style>
+      body { font: 13px/1.4 monospace; margin: 16px; display: flex; gap: 24px;
+             background: #111; color: #ddd; }
+      canvas { image-rendering: pixelated; border: 1px solid #444; }
+      #side { min-width: 420px; max-width: 560px; }
+      #log { max-height: 480px; overflow-y: auto; background: #000; padding: 4px;
+             white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <canvas id="map" width="680" height="1200"></canvas>
+    <div id="side">
+      <h3>Depth stress: N=32/tile, descend to the f32 floor</h3>
+      <p>Left column: boundary chase (max-impurity child). Right column:
+         uniform chase (min-impurity child). Fill = C_tile, border =
+         split(red)/keep(green).</p>
+      <pre id="log"></pre>
+    </div>
+    <script type="module" src="./depth_stress.ts"></script>
+  </body>
+</html>
