@@ -8,6 +8,7 @@ import { makeRealDispatcher } from '@/app/dispatcher.js';
 import { mountUI } from '@/ui/App.js';
 import { detectCapabilities } from '@/gpu/capability.js';
 import { initGpu, UnsupportedError } from '@/gpu/init.js';
+import { ErrorBoundary, Telemetry, InMemorySink, Level } from '@/error/index.js';
 import { defaultViewState } from '@/interact/view_state.js';
 import {
   SIMULATE_MODULE, RENDER_LAYER0_MODULE, REDUCE_MODULE, RENDER_GRAPH_MODULE,
@@ -78,6 +79,15 @@ async function main(): Promise<void> {
     return raf;
   };
 
+  // G11: every GPU/decode failure funnels through one boundary. Telemetry
+  // buffers in memory (a diagnostics HUD reads it in G18); the user-facing
+  // message — stack-free by construction — currently lands on the console.
+  const telemetrySink = new InMemorySink(500);
+  const boundary = new ErrorBoundary(
+    new Telemetry({ minLevel: Level.Info, sink: telemetrySink }),
+    { onUserError: (_app, message) => console.warn('[principia]', message) },
+  );
+
   const app = new AppCore(dispatcher, {
     now: () => performance.now(),
     schedule,
@@ -88,6 +98,7 @@ async function main(): Promise<void> {
     // G10: the dispatcher only times passes when initGpu enabled
     // timestamp-query on this device; tell the monitor the same thing.
     gpuTimingAvailable: ctx.device.features.has('timestamp-query'),
+    boundary,
   });
 
   mountUI(root, app, canvas);
@@ -95,7 +106,8 @@ async function main(): Promise<void> {
 
   for (const w of cap.warnings) console.warn('[principia]', w);
   // Expose for the headless shell check (dev/out/g8_shell_check.mjs).
-  (window as unknown as { __principia?: unknown }).__principia = { app, cap };
+  (window as unknown as { __principia?: unknown }).__principia =
+    { app, cap, telemetry: telemetrySink };
 }
 
 main().catch((err: unknown) => {

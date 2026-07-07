@@ -6,12 +6,22 @@ import { TileCache } from '@/quadtree/cache.js';
 import { transition } from '@/quadtree/lifecycle.js';
 import { ingestReduction } from '@/quadtree/scheduler.js';
 import { viewStateToCacheKey } from '@/interact/view_state.js';
+import type { ErrorBoundary } from '@/error/boundary.js';
+import { AppErrorKind } from '@/error/kinds.js';
+import { hasTileFailure } from '@/error/tile_status.js';
 
 interface InflightJob {
   tile:      TileID;
   key:       TileCacheKey;
   cancelled: boolean;
 }
+
+/** The slice of ErrorBoundary the ledger needs (G11). A no-op default
+ *  keeps G2's existing 3-arg construction compiling unchanged. */
+type CaptureFn = Pick<ErrorBoundary, 'capture'>;
+const NOOP_BOUNDARY: CaptureFn = {
+  capture: () => ({ kind: AppErrorKind.Generic, recoverable: false }),
+};
 
 /**
  * Owns the set of in-flight tile jobs. Tracks by tile-key string so
@@ -33,6 +43,9 @@ export class JobLedger {
     private cache:      TileCache,
     private opts: { maxInFlight: number;
                     ftleEnabled: boolean; ensembleEnabled: boolean },
+    /** G11: every failure funnels through here (classify + telemetry +
+     *  user surface). Optional so existing 3-arg callers are unchanged. */
+    private boundary: CaptureFn = NOOP_BOUNDARY,
   ) {}
 
   get inflightCount(): number { return this.inflight.size; }
@@ -77,11 +90,19 @@ export class JobLedger {
       ingestReduction(this.cache, key, tile, reduction,
                       this.opts.ftleEnabled, this.opts.ensembleEnabled);
       this.completed++;
+      // A dispatch can SUCCEED and still carry failure bits — that is
+      // data, not an exception (G11). Surface it as a TileFailure so
+      // the overlay layer can shade the tile.
+      if (hasTileFailure(reduction.status_flags)) {
+        this.boundary.capture(undefined,
+          { tileKey: k, statusFlags: reduction.status_flags });
+      }
     }).catch((err: unknown) => {
       this.inflight.delete(k);
       const entry = this.cache.get(tile, key);
       if (entry?.lifecycle === 'computing') transition(entry, 'unseen');
-      console.warn('GPU job failed', tile, err);
+      // G11: classify + log + surface instead of console.warn.
+      this.boundary.capture(err, { tileKey: k });
     });
     return true;
   }

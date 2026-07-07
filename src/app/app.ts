@@ -1,7 +1,7 @@
 import type { GpuDispatcher, FrameDeps } from './types.js';
 import { Store } from './store.js';
 import { InputHandlers } from './input.js';
-import { FrameLoop } from './frame_loop.js';
+import { FrameLoop, type FrameLoopOpts } from './frame_loop.js';
 import type { Viewport } from './view_bridge.js';
 import type { ViewState } from '@/interact/view_state.js';
 import { defaultViewState } from '@/interact/view_state.js';
@@ -18,6 +18,8 @@ export interface AppOpts {
   frameBudgetMs?:   number;
   perfWindow?:      number;
   gpuTimingAvailable?: boolean;
+  // --- G11 failure funnel (see FrameLoopOpts) ---
+  boundary?:        FrameLoopOpts['boundary'];
 }
 
 /** Top-level facade. The DOM bindings (canvas mounting, button clicks)
@@ -45,6 +47,7 @@ export class App {
       ...(opts.perfWindow !== undefined ? { perfWindow: opts.perfWindow } : {}),
       ...(opts.gpuTimingAvailable !== undefined
         ? { gpuTimingAvailable: opts.gpuTimingAvailable } : {}),
+      ...(opts.boundary ? { boundary: opts.boundary } : {}),
     });
 
     // Inspector lifecycle owns three signals: lock fired (kick the f64

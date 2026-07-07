@@ -294,9 +294,18 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     // the CPU decoder asserts. G7: the reduce propagates the request
     // flags it can observe — HAS_ENSEMBLE (bit 0) when E ≥ 2 and
     // DECODE_LINEAR (bit 1) mirroring the TileRequest flag.
+    // G11: failure roll-up bits live ABOVE the version field (8+), so the
+    // decoder's version strip (bits 6-7) leaves them intact:
+    //   bit 8  SIM_FAILED   — any sample with a suspect E/Lz drift bit
+    //   bit 9  MAX_SUBSTEPS — any TIMEOUT-class sample (class 4: the
+    //                         substep stall is the only class-4 producer)
+    //   bit 10 TIMEOUT      — reserved (no wall clock in the kernel)
     var status = TILE_REDUCTION_SCHEMA_VERSION << 6u;
     if (E >= 2u)                        { status = status | 1u; }
     if ((tile_req.flags & 1u) != 0u)    { status = status | 2u; }
+    let n_suspect = atomicLoad(&shared_suspect_e[0]) + atomicLoad(&shared_suspect_l[0]);
+    if (n_suspect > 0u)                          { status = status | 256u; }
+    if (atomicLoad(&shared_class_hist[4]) > 0u)  { status = status | 512u; }
     out.status_flags = status;
   }
 }

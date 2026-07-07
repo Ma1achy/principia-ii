@@ -8,6 +8,7 @@ import { visibleTiles } from '@/quadtree/visible.js';
 import { subrect } from '@/quadtree/tile.js';
 import { planFrame } from '@/quadtree/scheduler.js';
 import { PerfMonitor, type PerfRecommendation } from '@/perf/perf_monitor.js';
+import type { ErrorBoundary } from '@/error/boundary.js';
 
 export interface FrameLoopOpts {
   frameBudget:     number;    // max compute jobs per frame (tile-jobs, not ms)
@@ -21,6 +22,9 @@ export interface FrameLoopOpts {
   perfWindow?:     number;    // rolling window length in frames (default 120)
   /** From ctx.capability.features.includes('timestamp-query'). */
   gpuTimingAvailable?: boolean;
+  /** G11: failure funnel handed to the JobLedger (classify + telemetry
+   *  + user surface). Omitted ⇒ the ledger's silent no-op default. */
+  boundary?: Pick<ErrorBoundary, 'capture'>;
 }
 
 /**
@@ -64,7 +68,7 @@ export class FrameLoop {
       maxInFlight:     opts.maxInFlight,
       ftleEnabled:     opts.ftleEnabled,
       ensembleEnabled: opts.ensembleEnabled,
-    });
+    }, opts.boundary);
     this.perf = new PerfMonitor({
       windowFrames:  opts.perfWindow ?? 120,
       frameBudgetMs: opts.frameBudgetMs ?? 16,
