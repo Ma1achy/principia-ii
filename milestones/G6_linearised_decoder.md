@@ -6,27 +6,34 @@ The full nonlinear decoder is fine at shallow zoom but hits its `f32`
 precision floor around depth 20–23 — adjacent samples within a tile
 decode to bitwise-identical ICs because the decode chain (sigmoid →
 softmax → trig → canonicalise) loses significant digits faster than
-the tile narrows.
+the tile narrows. (In fact the INPUT already collapses: at depth 30 the
+per-sample latent offsets are ~2⁻³³ against O(1) latent values — far
+below one f32 ulp — so every sample in the tile is bitwise-identical
+before any decode arithmetic runs; the golden demonstrates this.)
 
 Spec §6.5 describes the fix: at the tile centre, evaluate the full
 decoder at `f64` on the CPU to get a reference IC `x_0`, plus its
-Jacobian `J_D = ∂D/∂(u,v)`. Pass both to the GPU as `f32` uniforms.
-The GPU shader then computes per-sample ICs as
+Jacobian. Pass both to the GPU as `f32` uniforms. The GPU shader then
+computes per-sample ICs as
 
 ```
-x(t_u, t_v) = x_0 + J_D · δ
-δ = (h_u (2 t_u − 1), h_v (2 t_v − 1))
+x(t) = x_0 + J · δ,     δ = (2 t_u − 1, 2 t_v − 1) ∈ [−1, 1]²
 ```
 
-`x_0` is the best `f32`-representable point near the tile centre
-(computed at `f64`), so per-sample positions stay within tile-width of
-that point — about 14 mantissa bits of headroom at depth 30 instead of
-the 0–1 bits the full nonlinear path leaves.
+**Convention (one artifact with the code):** `J` is stored in half-tile
+δ-units — `J = ∂D/∂δ = ∂D/∂(tile uv) / 2`, the spec's chart-space
+`J_D · h` at tile scale — so `δ = 2t − 1` reaches the tile edges at ±1
+with NO half-width factor at apply time. Both `applyLinearised` (CPU)
+and `decode_linear` (WGSL) use exactly this formula. (An earlier
+revision of this doc built J per tile-uv unit but applied it with
+δ = 2t − 1 — a factor-2 error its own affine round-trip test caught.)
 
-After G6: a `LinearisedDecoderUniforms` buffer carrying `x_0` and
-`J_D`; a `decode_linear` shader function that consumes them; a CPU
-side that builds them at `f64` via central differences; and a
-switchover policy at depth 20.
+After G6: a `LinearisedRef` uniform at group(0) binding(4) carrying
+`x_0` and `J`; a `decode_linear` shader unit selected by a
+`TileRequest.flags` bit; a CPU side that builds the reference at `f64`
+via Richardson-extrapolated central differences with a two-scale
+smoothness check; and a depth-20 switchover policy. The G2 frame loop
+wires the policy to dispatch.
 
 **Exit criterion.**
 
@@ -34,11 +41,13 @@ switchover policy at depth 20.
 npm test -- --run test/golden/linearised_decoder
 ```
 
-At depth 30 (tile half-width ≈ 5 × 10⁻¹⁰), the linearised decoder
-produces distinct ICs across a 16×16 tile (no two samples bitwise
-identical) and matches the full `f64` decoder to within 1e-13 in
-phase-space norm — versus the full `f32` decoder which produces
-identical bytes for >50% of samples at the same depth.
+At depth 30 (tile half-width 2⁻³¹), the linearised decoder produces
+≥240 distinct ICs across a 16×16 tile and matches the full `f64`
+decoder to within 1e-13 in phase-space norm; the golden also pins the
+motivating f32 floor (every per-sample latent offset in the tile rounds
+away at f32). The GPU side is proven by `npm run gpu:check`'s G6 A/B
+gate: a flag-selected `decode_linear` dispatch must agree with the CPU
+twin per-sample (max |ΔE₀| < 1e-2; measured ~4e-8).
 
 **Deliverable:** internal — tests only; a linearised decoder (`x_0` + Jacobian uniforms with a `decode_linear` shader path and a depth-20 switchover) keeps deep-zoom samples distinct past the `f32` precision floor, pinned by golden `test/golden/linearised_decoder`.
 
@@ -48,451 +57,143 @@ identical bytes for >50% of samples at the same depth.
 principia/
   src/
     decode/
-      linearised.ts             # CPU-side reference + Jacobian builder
-      linearised_uniforms.ts    # 256-byte uniform packing
+      linearised.ts              # CPU-side reference + Jacobian builder
     gpu/
+      linearised_uniforms.ts     # 256-byte uniform packing (beside chart_uniforms.ts)
+      layouts.ts                 # frame layout gains b4 (compute-only uniform)
+      buffers.ts                 # bufs.linearised + frame bind-group entry
+      structs.ts                 # TILE_REQUEST_FLAGS.DECODE_LINEAR
+      dispatch_layer0.ts         # DispatchView.linearised (+ flag/ref guard)
       shaders/
-        decode_linear.wgsl      # shader-side evaluation
-      pipelines/
-        simulate.ts             # adds DECODE_LINEAR flag handling
+        decode_linear.wgsl       # LinearisedRef struct + decode_linear + flag const
+        simulate.wgsl            # flag branch: decode_linear vs decode_full
     quadtree/
-      decode_mode.ts            # depth-driven switchover
+      decode_mode.ts             # depth-driven switchover
+    debug/
+      struct_dump.ts             # linearisedRefLayout (G17 companion)
+  dev/
+    gpu_check.html               # G6 A/B gate (flag dispatch vs CPU twin)
+    shader_modules.ts            # decode_linear.wgsl joins the simulate family
   test/
-    unit/decode/
-      linearised.test.ts
-      linearised_uniforms.test.ts
-    golden/
-      linearised_decoder.test.ts
+    unit/decode/linearised.test.ts
+    unit/gpu/linearised_uniforms.test.ts     # packer lanes + WGSL pin + flag pin
+    unit/quadtree/decode_mode.test.ts
+    integration/linearised_gpu.test.ts       # real-dispatch A/B (self-skips w/o GPU)
+    golden/linearised_decoder.test.ts
 ```
 
-## `src/decode/linearised.ts`
+## Building the reference (`src/decode/linearised.ts`)
 
-```ts
-import type { LatentZ, ICDescriptor } from './types.js';
-import type { TrajState, Triple, Vec2, Vec3 } from '@/math/types.js';
-import { decodeLatent } from './pipeline.js';
-import { add8, sub8, scale8 } from '@/math/vec.js';
+`buildLinearised(decodeAtUV, centreUV = [0.5, 0.5], fdStep = 0.25)`
+takes a closure mapping TILE-LOCAL uv to a decoded state (or null for
+terminal pixels) and returns `{ x0, descriptor0, J_r, J_p, J_m }` or
+null. Nine decoder evaluations per tile — centre, ±h and ±h/2 per axis
+— amortised over N² GPU samples.
 
-export interface LinearisedReference {
-  /** Reference IC at the tile centre, computed at f64. */
-  x0: TrajState;
-  descriptor0: ICDescriptor;
-  /**
-   * Jacobian J_D = ∂D/∂(u, v) evaluated at the centre. Shape:
-   *
-   *   J_r[i][k][a]  = ∂r_i_k / ∂axis_a   (i ∈ 0..2, k ∈ 0..1, a ∈ 0..1)
-   *   J_p[i][k][a]  = ∂p_i_k / ∂axis_a
-   *   J_m[i][a]     = ∂m_i / ∂axis_a
-   *
-   * a = 0 → ∂/∂u, a = 1 → ∂/∂v. Computed via central differences in f64.
-   */
-  J_r: number[][][];          // [3][2][2]
-  J_p: number[][][];          // [3][2][2]
-  J_m: number[][];            // [3][2]
-}
+- **The FD step is tile-scale, not chart-scale.** `fdStep` is in
+  tile-local units and defaults to 0.25 — probes INSIDE the tile. (An
+  earlier revision used 1e-6, which at depth 30 probes a ~1e-15-wide
+  physical interval: the f64 difference quotient on O(1) decode outputs
+  is then ~10% cancellation noise, and the linear reconstruction misses
+  the 1e-13 gate by five orders of magnitude. At deep zoom, a large
+  tile-relative step is MORE accurate: the decode is smooth across the
+  tile precisely because the tile is tiny.)
+- **Richardson extrapolation.** J combines central differences at h and
+  h/2 — `(4·C(h/2) − C(h))/3` — killing the O(h²) truncation term; the
+  probes double as the smoothness check's second scale for free.
+- **Two-scale smoothness check.** A smooth decode's forward/backward
+  asymmetry `|fwd − bwd|` is `h·|D''| + O(h³)` — it halves when the
+  step halves — while a kink (mirror deadband, feasibility projection,
+  sigmoid saturation edge) keeps a constant O(|slope jump|) asymmetry
+  at every scale. A lane is non-smooth when the half-step asymmetry
+  retains > 0.75 of the full-step asymmetry AND exceeds a rounding-noise
+  floor of `1e-12 · max(1, |lane values|) / h` (at deep zoom the true
+  differences approach f64 rounding noise, which neither decays nor
+  matters — without the floor every deep tile false-positives). A
+  single-scale fwd-vs-bwd comparison cannot make this distinction: a
+  smooth extremum (J ≈ 0, fwd ≈ −bwd) looks exactly like a kink.
+- **Bail semantics.** Terminal centre/probe or a detected kink returns
+  null; the caller falls back to the full nonlinear path. Decode stays
+  total either way. `descriptor0` comes from the one `makeDescriptor`
+  (D10.1) — per-tile descriptors are centre-point anyway.
 
-const FD_STEP_DEFAULT = 1e-6;        // central-difference step size in (u, v)
+`applyLinearised(ref, t)` is the CPU twin of the WGSL `decode_linear` —
+identical arithmetic, used by the golden and the A/B gates.
 
-/**
- * Build the linearised reference. `centreUV` is the tile centre in
- * normalised tile-local coordinates: (0, 0) corresponds to the bottom-
- * left of the tile, (1, 1) to the top-right.
- */
-export function buildLinearised(
-  decodeAtUV: (uv: [number, number]) => TrajState | null,
-  centreUV: [number, number] = [0.5, 0.5],
-  fdStep: number = FD_STEP_DEFAULT,
-): LinearisedReference | null {
-  const x0 = decodeAtUV(centreUV);
-  if (!x0) return null;
+## GPU surface
 
-  const J_r: number[][][] = [[[0,0],[0,0]],[[0,0],[0,0]],[[0,0],[0,0]]];
-  const J_p: number[][][] = [[[0,0],[0,0]],[[0,0],[0,0]],[[0,0],[0,0]]];
-  const J_m: number[][]   = [[0,0],[0,0],[0,0]];
-
-  for (const [axis, name] of [[0, 'u'], [1, 'v']] as const) {
-    const offUp:  [number, number] = [...centreUV] as any;
-    const offDn:  [number, number] = [...centreUV] as any;
-    offUp[axis] += fdStep;
-    offDn[axis] -= fdStep;
-    const xUp = decodeAtUV(offUp);
-    const xDn = decodeAtUV(offDn);
-    if (!xUp || !xDn) return null;
-    const inv2h = 1 / (2 * fdStep);
-    for (let i = 0; i < 3; i++) {
-      for (let k = 0; k < 2; k++) {
-        J_r[i]![k]![axis] = (xUp.r[i]![k]! - xDn.r[i]![k]!) * inv2h;
-        J_p[i]![k]![axis] = (xUp.p[i]![k]! - xDn.p[i]![k]!) * inv2h;
-      }
-      J_m[i]![axis] = (xUp.m[i]! - xDn.m[i]!) * inv2h;
-    }
-  }
-
-  return { x0, descriptor0: descriptorFromState(x0),
-           J_r, J_p, J_m };
-}
-
-/**
- * Apply the linearised approximation. Used by the CPU-side test path;
- * the GPU runs the equivalent code in `decode_linear.wgsl`.
- */
-export function applyLinearised(
-  ref: LinearisedReference, t: [number, number],
-): TrajState {
-  // δ = (2t_u − 1, 2t_v − 1) scaled by tile half-widths in caller.
-  const du = 2 * t[0] - 1;
-  const dv = 2 * t[1] - 1;
-  const r: Triple<Vec2> = [
-    [ref.x0.r[0][0] + ref.J_r[0]![0]![0]! * du + ref.J_r[0]![0]![1]! * dv,
-     ref.x0.r[0][1] + ref.J_r[0]![1]![0]! * du + ref.J_r[0]![1]![1]! * dv],
-    [ref.x0.r[1][0] + ref.J_r[1]![0]![0]! * du + ref.J_r[1]![0]![1]! * dv,
-     ref.x0.r[1][1] + ref.J_r[1]![1]![0]! * du + ref.J_r[1]![1]![1]! * dv],
-    [ref.x0.r[2][0] + ref.J_r[2]![0]![0]! * du + ref.J_r[2]![0]![1]! * dv,
-     ref.x0.r[2][1] + ref.J_r[2]![1]![0]! * du + ref.J_r[2]![1]![1]! * dv],
-  ];
-  const p: Triple<Vec2> = [
-    [ref.x0.p[0][0] + ref.J_p[0]![0]![0]! * du + ref.J_p[0]![0]![1]! * dv,
-     ref.x0.p[0][1] + ref.J_p[0]![1]![0]! * du + ref.J_p[0]![1]![1]! * dv],
-    [ref.x0.p[1][0] + ref.J_p[1]![0]![0]! * du + ref.J_p[1]![0]![1]! * dv,
-     ref.x0.p[1][1] + ref.J_p[1]![1]![0]! * du + ref.J_p[1]![1]![1]! * dv],
-    [ref.x0.p[2][0] + ref.J_p[2]![0]![0]! * du + ref.J_p[2]![0]![1]! * dv,
-     ref.x0.p[2][1] + ref.J_p[2]![1]![0]! * du + ref.J_p[2]![1]![1]! * dv],
-  ];
-  const m: Vec3 = [
-    ref.x0.m[0] + ref.J_m[0]![0]! * du + ref.J_m[0]![1]! * dv,
-    ref.x0.m[1] + ref.J_m[1]![0]! * du + ref.J_m[1]![1]! * dv,
-    ref.x0.m[2] + ref.J_m[2]![0]! * du + ref.J_m[2]![1]! * dv,
-  ];
-  return { r, p, m, t: 0 };
-}
-
-function descriptorFromState(_s: TrajState): ICDescriptor {
-  // Stub; full version lives in pipeline.ts. The linearised path
-  // doesn't change the descriptor since per-tile descriptors are
-  // computed once at the centre point anyway.
-  return null as any;
-}
-```
-
-## `src/decode/linearised_uniforms.ts`
-
-```ts
-import type { LinearisedReference } from './linearised.js';
-
-/**
- * The GPU consumes the linearised reference as a 256-byte uniform.
- * Layout:
- *
- *   [0..47]    x0 positions (3 vec2<f32> with 4 bytes vec3-pad each = 24 + 24 pad)
- *   [48..95]   x0 momenta   (3 vec2<f32>)
- *   [96..107]  x0 masses    (vec3<f32>)
- *   [108..111] tile_half_u  (f32)
- *   [112..115] tile_half_v  (f32)
- *   [116..127] padding to vec4
- *   [128..223] J_r (12 f32 = 48 bytes), J_p (12 f32 = 48 bytes)
- *   [224..255] J_m (6 f32 = 24 bytes), padding
- *
- * In practice we lay out as a single struct with WGSL-aligned vec4s;
- * the helper below packs into a 256-byte buffer.
- */
-export function packLinearisedUniforms(
-  ref: LinearisedReference, tileHalfU: number, tileHalfV: number,
-): ArrayBuffer {
-  const buf = new ArrayBuffer(256);
-  const f = new Float32Array(buf);
-  // x0 positions: r_0, r_1, r_2, each as vec2 padded to vec4.
-  for (let i = 0; i < 3; i++) {
-    f[i*4 + 0] = ref.x0.r[i]![0]!;
-    f[i*4 + 1] = ref.x0.r[i]![1]!;
-    // f[i*4 + 2..3] = 0
-  }
-  // x0 momenta at offset 12.
-  for (let i = 0; i < 3; i++) {
-    f[12 + i*4 + 0] = ref.x0.p[i]![0]!;
-    f[12 + i*4 + 1] = ref.x0.p[i]![1]!;
-  }
-  // x0 masses at offset 24.
-  f[24] = ref.x0.m[0]!;
-  f[25] = ref.x0.m[1]!;
-  f[26] = ref.x0.m[2]!;
-  // Tile half-widths at offset 27/28.
-  f[27] = tileHalfU;
-  f[28] = tileHalfV;
-  // J_r at offset 32 (4 f32 padding before to vec4-align).
-  // J_r[i][k][a]: i ∈ 0..2 body, k ∈ 0..1 component, a ∈ 0..1 axis.
-  // Pack as 3 mat2x2: J_r_body0, J_r_body1, J_r_body2, each 4 floats.
-  for (let i = 0; i < 3; i++) {
-    for (let k = 0; k < 2; k++) {
-      for (let a = 0; a < 2; a++) {
-        f[32 + i*4 + k*2 + a] = ref.J_r[i]![k]![a]!;
-      }
-    }
-  }
-  // J_p at offset 44.
-  for (let i = 0; i < 3; i++) {
-    for (let k = 0; k < 2; k++) {
-      for (let a = 0; a < 2; a++) {
-        f[44 + i*4 + k*2 + a] = ref.J_p[i]![k]![a]!;
-      }
-    }
-  }
-  // J_m at offset 56 (3 vec2).
-  for (let i = 0; i < 3; i++) {
-    f[56 + i*2 + 0] = ref.J_m[i]![0]!;
-    f[56 + i*2 + 1] = ref.J_m[i]![1]!;
-  }
-  return buf;
-}
-```
-
-## `src/gpu/shaders/decode_linear.wgsl`
-
-```wgsl
-// @export
-struct LinearisedRef {
-  // Three vec4: x0.r as (r0.x, r0.y, _, _), (r1.x, r1.y, _, _), (r2.x, r2.y, _, _)
-  r0r1: vec4<f32>,           // r0.x, r0.y, r1.x, r1.y
-  r2_padR: vec4<f32>,        // r2.x, r2.y, _, _
-  p0p1: vec4<f32>,
-  p2_padP: vec4<f32>,
-  m_h:  vec4<f32>,           // m.x, m.y, m.z, half_u
-  half_v_pad: vec4<f32>,     // half_v, _, _, _
-  Jr_b0: vec4<f32>,          // J_r body 0: (drx/du, drx/dv, dry/du, dry/dv)
-  Jr_b1: vec4<f32>,
-  Jr_b2: vec4<f32>,
-  Jp_b0: vec4<f32>,
-  Jp_b1: vec4<f32>,
-  Jp_b2: vec4<f32>,
-  Jm:   vec4<f32>,           // (dm0/du, dm0/dv, dm1/du, dm1/dv)
-  Jm_m2:vec4<f32>,           // (dm2/du, dm2/dv, _, _)
-};
-
-// @export
-fn decode_linear(t: vec2<f32>, ref: LinearisedRef) -> ICOut {
-  let du = 2.0 * t.x - 1.0;
-  let dv = 2.0 * t.y - 1.0;
-
-  var out: ICOut;
-
-  // r0
-  let r0x = ref.r0r1.x + ref.Jr_b0.x * du + ref.Jr_b0.y * dv;
-  let r0y = ref.r0r1.y + ref.Jr_b0.z * du + ref.Jr_b0.w * dv;
-  let r1x = ref.r0r1.z + ref.Jr_b1.x * du + ref.Jr_b1.y * dv;
-  let r1y = ref.r0r1.w + ref.Jr_b1.z * du + ref.Jr_b1.w * dv;
-  let r2x = ref.r2_padR.x + ref.Jr_b2.x * du + ref.Jr_b2.y * dv;
-  let r2y = ref.r2_padR.y + ref.Jr_b2.z * du + ref.Jr_b2.w * dv;
-  out.r = array<vec2<f32>, 3>(
-    vec2<f32>(r0x, r0y),
-    vec2<f32>(r1x, r1y),
-    vec2<f32>(r2x, r2y),
-  );
-
-  // p analogous
-  let p0x = ref.p0p1.x + ref.Jp_b0.x * du + ref.Jp_b0.y * dv;
-  let p0y = ref.p0p1.y + ref.Jp_b0.z * du + ref.Jp_b0.w * dv;
-  let p1x = ref.p0p1.z + ref.Jp_b1.x * du + ref.Jp_b1.y * dv;
-  let p1y = ref.p0p1.w + ref.Jp_b1.z * du + ref.Jp_b1.w * dv;
-  let p2x = ref.p2_padP.x + ref.Jp_b2.x * du + ref.Jp_b2.y * dv;
-  let p2y = ref.p2_padP.y + ref.Jp_b2.z * du + ref.Jp_b2.w * dv;
-  out.p = array<vec2<f32>, 3>(
-    vec2<f32>(p0x, p0y), vec2<f32>(p1x, p1y), vec2<f32>(p2x, p2y),
-  );
-
-  out.m = vec3<f32>(
-    ref.m_h.x + ref.Jm.x   * du + ref.Jm.y   * dv,
-    ref.m_h.y + ref.Jm.z   * du + ref.Jm.w   * dv,
-    ref.m_h.z + ref.Jm_m2.x * du + ref.Jm_m2.y * dv,
-  );
-  out.terminal = 0u;
-  return out;
-}
-```
-
-The `simulate.wgsl` entry-point reads a `DECODE_LINEAR` flag from
-`tile_req.flags` and chooses between `decode_full(z, chart)` and
-`decode_linear(t, ref)`.
+- **`decode_linear.wgsl`** exports the `LinearisedRef` struct (16
+  vec4<f32> lanes = 256 B, every member vec4 so offsets are index×16),
+  `decode_linear(t, lin, r_coll) -> ICOut`, and the flag constant
+  `TILE_REQ_DECODE_LINEAR = 1u`. It imports `ICOut` from decode.wgsl and
+  applies the SAME no-holes guard as `decode_full` (dmin < r_coll →
+  terminal 2u): the decode pipeline is total on this path too.
+- **`simulate.wgsl`** declares `@group(0) @binding(4) var<uniform>
+  linearised : LinearisedRef;` and branches on
+  `tile_req.flags & TILE_REQ_DECODE_LINEAR` (uniform control flow) —
+  linearised path or the M3 default-slice `decode_full` path. No
+  per-pixel mixing.
+- **`src/gpu/linearised_uniforms.ts`** packs the struct; it lives beside
+  chart_uniforms.ts in src/gpu (a GPU-byte-layout concern, not a decode
+  one). The doc's original packer and WGSL struct disagreed — the packer
+  padded each r_i to its own vec4 (r1 at f[4]) while the struct packed
+  r0/r1 into one vec4 (r1 at f[2]), and the struct summed to 224 B
+  against a 256 B buffer. Landed: the tight layout, 256 B with two
+  reserved vec4s, pinned three ways (packer-lane unit test, WGSL
+  field-order pin against `linearisedRefLayout()` in struct_dump, and
+  the real-GPU A/B in gpu_check).
+- **Layouts/buffers**: frame layout gains binding 4 (compute-only
+  uniform); `bufs.linearised` is zero-filled 256 B and only read when
+  the flag is set. `TILE_REQUEST_FLAGS` in structs.ts is the dispatch
+  request-flag namespace — distinct from the `TILE_STATUS` reduction
+  flags in quadtree/reduction_types.ts, which also have a DECODE_LINEAR
+  bit (the tile REPORTING it decoded linearised).
+- **`dispatchLayer0`** accepts `view.linearised` and THROWS when the
+  flag is set without a reference — a zero LinearisedRef would decode
+  every sample to the origin with zero masses, silently.
 
 ## `src/quadtree/decode_mode.ts`
 
 ```ts
-/** Switchover threshold. At depth >= this, the CPU precomputes the
- *  linearised reference and the GPU uses `decode_linear`. */
 export const LINEARISED_DECODER_DEPTH = 20;
-
-/** Adaptive override: even at shallow depth, use the linearised path
- *  when the tile would otherwise produce duplicate samples. */
-export function shouldLineariseAtDepth(depth: number): boolean {
-  return depth >= LINEARISED_DECODER_DEPTH;
+export function shouldLineariseAtDepth(depth: number, atF32Floor = false): boolean {
+  return atF32Floor || depth >= LINEARISED_DECODER_DEPTH;
 }
 ```
 
-The Layer-2 frame loop (G2) checks this when assembling tile dispatch
-flags:
-
-```ts
-if (shouldLineariseAtDepth(tile.z)) {
-  flags |= TILE_FLAGS.DECODE_LINEAR;
-  const ref = buildLinearised(uv =>
-    runFullDecodeAtUV(view, tile, uv), [0.5, 0.5]);
-  if (ref) {
-    device.queue.writeBuffer(linearisedUniformBuffer, 0,
-      packLinearisedUniforms(ref, halfU, halfV));
-  }
-}
-```
+`atF32Floor` is the adaptive override: a tile whose reduction reports
+`TILE_STATUS.AT_F32_FLOOR` (M5) linearises even above the threshold.
+The G2 frame loop calls this when assembling dispatch flags, builds the
+reference via `buildLinearised`, and hands both to `dispatchLayer0`.
 
 ## Tests
 
-### `test/unit/decode/linearised.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { buildLinearised, applyLinearised } from '@/decode/linearised.js';
-import type { TrajState } from '@/math/types.js';
-
-/** A trivial decoder that's exactly affine in (u, v): linearisation is
- *  perfect and the test verifies the FD reconstruction. */
-function affineDecoder(uv: [number, number]): TrajState {
-  const m = [1/3, 1/3, 1/3] as const;
-  return {
-    m, t: 0,
-    r: [
-      [uv[0],         uv[1] * 0.5],
-      [uv[0] * 2 - 1, uv[1]],
-      [-uv[0],        -uv[1]],
-    ],
-    p: [
-      [uv[0] * 0.1,  uv[1] * 0.1],
-      [-uv[0] * 0.1, -uv[1] * 0.1],
-      [0, 0],
-    ],
-  };
-}
-
-describe('linearised reference', () => {
-  it('reconstructs an affine decoder exactly', () => {
-    const ref = buildLinearised(affineDecoder, [0.5, 0.5]);
-    expect(ref).not.toBeNull();
-    if (!ref) return;
-    // Probe at the corners of [0, 1]² and compare to the true affine
-    // decoder.
-    for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1], [0.3, 0.7]]) {
-      const linear = applyLinearised(ref, [u, v]);
-      const truth  = affineDecoder([u, v]);
-      for (let i = 0; i < 3; i++) {
-        expect(linear.r[i][0]).toBeCloseTo(truth.r[i][0], 9);
-        expect(linear.r[i][1]).toBeCloseTo(truth.r[i][1], 9);
-      }
-    }
-  });
-
-  it('approximates a smooth nonlinear decoder to O(h²) error', () => {
-    // Deliberately nonlinear: r_0 = (sin(πu), cos(πv))
-    const decoder = (uv: [number, number]) => ({
-      m: [1/3, 1/3, 1/3] as any, t: 0,
-      r: [[Math.sin(Math.PI*uv[0]), Math.cos(Math.PI*uv[1])],
-          [0, 0], [0, 0]] as any,
-      p: [[0,0],[0,0],[0,0]] as any,
-    } as any);
-    const ref = buildLinearised(decoder, [0.5, 0.5]);
-    if (!ref) return;
-    const h = 1e-4;
-    const linear = applyLinearised(ref, [0.5 + h, 0.5]);
-    const truth  = decoder([0.5 + h, 0.5]);
-    expect(Math.abs(linear.r[0][0] - truth.r[0][0])).toBeLessThan(1e-7);
-  });
-});
-```
-
-### `test/unit/decode/linearised_uniforms.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { packLinearisedUniforms } from '@/decode/linearised_uniforms.js';
-
-const refStub = {
-  x0: { m: [1/3,1/3,1/3] as any, t: 0,
-        r: [[1,2],[3,4],[5,6]] as any, p: [[0.1,0.2],[0.3,0.4],[0.5,0.6]] as any },
-  descriptor0: null as any,
-  J_r: [[[0.1,0.2],[0.3,0.4]],[[0.5,0.6],[0.7,0.8]],[[0.9,1.0],[1.1,1.2]]],
-  J_p: [[[0.01,0.02],[0.03,0.04]],[[0.05,0.06],[0.07,0.08]],[[0.09,0.10],[0.11,0.12]]],
-  J_m: [[0.001,0.002],[0.003,0.004],[0.005,0.006]],
-};
-
-describe('linearised uniforms packing', () => {
-  it('produces a 256-byte buffer', () => {
-    expect(packLinearisedUniforms(refStub as any, 0.5, 0.5).byteLength).toBe(256);
-  });
-
-  it('places x0 positions in the leading slots', () => {
-    const f = new Float32Array(packLinearisedUniforms(refStub as any, 0.5, 0.5));
-    expect(f[0]).toBe(1);    expect(f[1]).toBe(2);     // r0
-    expect(f[4]).toBe(3);    expect(f[5]).toBe(4);     // r1
-    expect(f[8]).toBe(5);    expect(f[9]).toBe(6);     // r2
-  });
-});
-```
-
-### `test/golden/linearised_decoder.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { buildLinearised, applyLinearised } from '@/decode/linearised.js';
-import { decodeLatent } from '@/decode/pipeline.js';
-import {
-  ALPHA_MIN_DEFAULT, MU_MAX_DEFAULT, Q_MAX_DEFAULT,
-  R_COLL_DEFAULT, EPS_DEADBAND,
-} from '@/math/constants.js';
-
-const KNOBS = {
-  muMax: MU_MAX_DEFAULT, alphaMin: ALPHA_MIN_DEFAULT, qMax: Q_MAX_DEFAULT,
-  rColl: R_COLL_DEFAULT, deltaLambda: EPS_DEADBAND, RTilde: 1,
-};
-
-describe('linearised decoder at deep zoom', () => {
-  it('produces distinct samples across a 16x16 tile at depth 30', () => {
-    const halfWidth = Math.pow(2, -31);    // depth 30 half-width
-    const centre = [0.5, 0.5] as const;
-
-    // Decode at the tile centre via the full nonlinear path at f64.
-    const decodeAt = (uv: [number, number]) => {
-      // Mock: treat (u, v) as latent-slice coords mapped through the
-      // chart slice with mag = 1, q1 = e_0, q2 = e_1, z0 = 0.
-      const z = [0,0,0,0,0,0,0,0] as any;
-      z[0] = (uv[0] * 2 - 1) * 1;
-      z[1] = (uv[1] * 2 - 1) * 1;
-      const out = decodeLatent(z, KNOBS);
-      return out.kind === 'ok' ? out.state : null;
-    };
-
-    // Build linearised reference at the tile centre.
-    const ref = buildLinearised(decodeAt, centre);
-    expect(ref).not.toBeNull();
-    if (!ref) return;
-
-    // Sample 16×16 inside the tile via linearised decode.
-    const seen = new Set<string>();
-    for (let j = 0; j < 16; j++) {
-      for (let i = 0; i < 16; i++) {
-        const t: [number, number] = [(i + 0.5) / 16, (j + 0.5) / 16];
-        const ic = applyLinearised(ref, t);
-        const key = ic.r[0][0].toString() + ic.r[0][1].toString();
-        seen.add(key);
-      }
-    }
-    // At depth 30 with linearised decode, all 256 samples should be
-    // distinct (or nearly so — allow 5% slop for any stochastic
-    // f32 rounding when the test runs in mixed precision).
-    expect(seen.size).toBeGreaterThanOrEqual(240);
-  });
-});
-```
+- **unit/decode/linearised** — affine decoder reconstructed exactly at
+  the corners (pins the δ-convention end to end); smooth nonlinear
+  decoder approximated to second order; kink (|u − 0.5|) → null;
+  terminal centre/probe → null; FD_STEP_DEFAULT pinned at 0.25;
+  descriptor0 from makeDescriptor.
+- **unit/gpu/linearised_uniforms** — 256 B; x0/J/half lanes pinned;
+  reserved tail zero; WGSL struct field order == linearisedRefLayout()
+  (alignment pin); TILE_REQ_DECODE_LINEAR == TILE_REQUEST_FLAGS bit.
+- **unit/quadtree/decode_mode** — threshold 20 + AT_F32_FLOOR override.
+- **golden/linearised_decoder** — depth-30 tile at a generic centre:
+  the f32 floor demonstrated (fround collapses every sample offset);
+  ≥240 distinct samples across 16×16 at f64; 1e-13 phase-norm agreement
+  with the full decoder on a 5×5 grid; centre reproduces exactly.
+- **integration/linearised_gpu** (self-skips without WebGPU) — two real
+  dispatches over a depth-10 tile: flag=0 vs flag=1, comparing E₀
+  per-sample between the two GPU paths and against the CPU twin; plus
+  the dispatch flag/ref guard.
+- **gpu:check** — the page gained a G6 A/B gate (flag-selected dispatch
+  vs CPU twin, max |ΔE₀| < 1e-2) folded into its overall `ok`.
 
 ## Run it
 
 ```bash
 npm test -- --run test/unit/decode/linearised
 npm test -- --run test/golden/linearised_decoder
+npm run gpu:check
 ```
 
 ## Acceptance check
@@ -502,34 +203,30 @@ npm test -- --run test/golden/linearised_decoder
 ```
 
 At depth 30, the linearised decoder produces ≥240 distinct samples
-across a 16×16 tile (vs the full-decode path which produces ≤80
-distinct samples at the same depth due to f32 precision loss).
+across a 16×16 tile and matches the full f64 decoder to 1e-13 in
+phase-space norm, while the full path's f32 inputs are bitwise-constant
+across the same tile.
 
 ## Notes for the implementer
 
-- **Why central differences.** The decode chain has a few non-smooth
-  points (sigmoid saturation, mirror-rule deadband). Central
-  differences with `fdStep = 1e-6` stay well inside the smooth
-  interior of every chart away from those points. If the FD step
-  lands on a non-smooth boundary, the Jacobian is wrong locally;
-  detect this by comparing forward and backward differences and bail
-  to the full nonlinear path with a `DEGENERATE` tag.
-- **CPU cost is amortised.** Building one `LinearisedReference` is
-  ~3 full decoder evaluations (centre, +δ, −δ in each axis = 5 evals
-  total). For a `16 × 16` tile, that's 5 evals of decoder overhead
-  for 256 GPU evaluations of `decode_linear`. The breakeven is at any
-  reasonable tile size.
-- **Switchover policy.** Default depth-20 threshold from the spec is
-  generous; the adaptive override (G6's `shouldLineariseAtDepth`)
-  could also kick in earlier if a tile reduction reports
-  `AT_F32_FLOOR`. M5's status flag handles that hand-off.
+- **Why the f32 floor is an INPUT problem.** At depth d the per-sample
+  latent offset is ~2^(−d−4)·range against O(1) latent values; below
+  one f32 ulp (~1.2e-7 at |z| ≈ 1) all samples enter the decode
+  identical. The linearised path never forms `centre + tiny` at f32 on
+  the input side — t is tile-local (exactly representable) and the
+  J·δ products live at the offset scale, where f32 has full relative
+  precision. The reconstructed x = x0 + Jδ does collapse in ABSOLUTE
+  f32 terms, but the offsets themselves (what the dynamics of nearby
+  samples differ by) survive; distinctness at the IC level is the
+  f64-golden's claim, and the GPU-side value is that decode noise no
+  longer amplifies through the nonlinear chain.
+- **CPU cost is amortised.** Nine full f64 decodes per tile buys 256
+  GPU evaluations of a ~30-flop linear map. Breakeven is immediate at
+  any tile size.
 - **Charts that aren't smooth.** `(L_z, E)` near the feasibility
-  parabola: the chart's `Φ` projects out-of-range pixels into the
-  feasible region, which is a non-smooth operation. The linearised
-  path detects this via the FD discrepancy check above and falls back
-  to full decode for tiles straddling the parabola. That falls out of
-  the same code path, so no special case.
-- **No precision degradation at shallow depth.** Above depth 20 we
-  always use the linearised path; below, always the full nonlinear.
-  No mixing per pixel — that would require branching in the GPU
-  shader, which costs more than it saves at typical N = 16.
+  parabola, the mirror deadband, sigmoid saturation: all are caught by
+  the two-scale check because the probe interval spans the kink — the
+  tile falls back to full decode. No special cases per chart.
+- **No precision degradation at shallow depth.** The switchover is per
+  tile, never per pixel. Above the threshold always linearised; below,
+  always full. AT_F32_FLOOR can pull the switchover earlier per tile.

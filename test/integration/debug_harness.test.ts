@@ -22,7 +22,7 @@ const S = (f: string): string =>
 // G17-modified render module.
 const sources = Object.fromEntries(
   ['helpers.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
-   'decode.wgsl', 'simulate.wgsl'].map((f) => [f, S(f)]));
+   'decode.wgsl', 'decode_linear.wgsl', 'simulate.wgsl'].map((f) => [f, S(f)]));
 const simulate = wgslLink({ entryPath: 'simulate.wgsl', sources }).module;
 const render = S('render_layer0.wgsl');
 

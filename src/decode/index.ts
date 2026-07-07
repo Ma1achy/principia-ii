@@ -6,3 +6,4 @@ export * from './jacobi_particle.js';
 export * from './canonicalise.js';
 export * from './pipeline.js';
 export * from './inverse.js';
+export * from './linearised.js';

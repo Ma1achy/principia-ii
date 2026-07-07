@@ -10,6 +10,7 @@ import observeWgsl from '@/gpu/shaders/observe.wgsl?raw';
 import eventsWgsl from '@/gpu/shaders/events.wgsl?raw';
 import integrateWgsl from '@/gpu/shaders/integrate.wgsl?raw';
 import decodeWgsl from '@/gpu/shaders/decode.wgsl?raw';
+import decodeLinearWgsl from '@/gpu/shaders/decode_linear.wgsl?raw';
 import simulateWgsl from '@/gpu/shaders/simulate.wgsl?raw';
 import reduceWgsl from '@/gpu/shaders/reduce.wgsl?raw';
 import renderLayer0Wgsl from '@/gpu/shaders/render_layer0.wgsl?raw';
@@ -26,6 +27,7 @@ const SOURCES: Record<string, string> = {
   'events.wgsl': eventsWgsl,
   'integrate.wgsl': integrateWgsl,
   'decode.wgsl': decodeWgsl,
+  'decode_linear.wgsl': decodeLinearWgsl,
   'simulate.wgsl': simulateWgsl,
   'reduce.wgsl': reduceWgsl,
   'render_layer0.wgsl': renderLayer0Wgsl,

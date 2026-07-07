@@ -8,6 +8,7 @@ import {
   FRAME_LAYOUT_DESC, PER_TILE_LAYOUT_DESC,
   REDUCTION_LAYOUT_DESC, RENDER_LAYOUT_DESC,
 } from '@/gpu/layouts.js';
+import { LINEARISED_UNIFORMS_SIZE } from '@/gpu/linearised_uniforms.js';
 
 const entries = (d: GPUBindGroupLayoutDescriptor): GPUBindGroupLayoutEntry[] =>
   [...d.entries];
@@ -19,9 +20,9 @@ describe('layout descriptors (the canonical group table)', () => {
     expect(STAGE.COMPUTE).toBe(0x4);
   });
 
-  it('frame group is SimUniforms(0), TileRequest(1), Debug(2), ChartUniforms(3)', () => {
+  it('frame group is SimUniforms(0), TileRequest(1), Debug(2), ChartUniforms(3), LinearisedRef(4)', () => {
     const e = entries(FRAME_LAYOUT_DESC);
-    expect(e.map((x) => x.binding)).toEqual([0, 1, 2, 3]);
+    expect(e.map((x) => x.binding)).toEqual([0, 1, 2, 3, 4]);
     for (const x of e) expect(x.buffer?.type ?? 'uniform').toBe('uniform');
   });
 
@@ -46,6 +47,14 @@ describe('layout descriptors (the canonical group table)', () => {
     expect(chart.visibility & STAGE.COMPUTE).toBeTruthy();
     expect(chart.visibility & STAGE.FRAGMENT).toBeTruthy();
     expect(CHART_UNIFORMS_SIZE).toBe(64);
+  });
+
+  it('frame.LinearisedRef (binding 4, G6 slot) is compute-only; 256-byte contract', () => {
+    const lin = entries(FRAME_LAYOUT_DESC)[4]!;
+    expect(lin.binding).toBe(4);
+    expect(lin.visibility & STAGE.COMPUTE).toBeTruthy();
+    expect(lin.visibility & STAGE.FRAGMENT).toBeFalsy();
+    expect(LINEARISED_UNIFORMS_SIZE).toBe(256);
   });
 
   it('per-tile storage is read-write and visible to both compute and fragment', () => {

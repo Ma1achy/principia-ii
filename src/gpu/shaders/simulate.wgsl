@@ -1,4 +1,5 @@
 // @import { decode_full, ICOut, ChartUniforms }           from "./decode.wgsl"
+// @import { decode_linear, LinearisedRef, TILE_REQ_DECODE_LINEAR } from "./decode_linear.wgsl"
 // @import { State, kdk_macro_step }                       from "./integrate.wgsl"
 // @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
 // @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
@@ -64,6 +65,7 @@ struct ICDescriptor {
 @group(0) @binding(0) var<uniform>      uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform>      tile_req : TileRequest;
 @group(0) @binding(3) var<uniform>      chart    : ChartUniforms;   // G4
+@group(0) @binding(4) var<uniform>      linearised : LinearisedRef; // G6
 @group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 @group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 
@@ -73,18 +75,23 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   if (gid.x >= N || gid.y >= N) { return; }
   let idx = gid.y * N + gid.x;
 
-  // Tile-local UV → latent z (M3: latent chart, both axes are z[0] and z[1]).
   let t = (vec2<f32>(f32(gid.x), f32(gid.y)) + 0.5) / f32(N);
-  let uv = tile_req.uv_centre + tile_req.uv_half * (2.0 * t - 1.0);
-  // Map UV → 8D latent. For M3 we use a default slice: u → z[0], v → z[1].
-  var z: array<f32, 8>;
-  z[0] = (uv.x * 2.0 - 1.0) * 3.0;     // ±3 latent range
-  z[1] = (uv.y * 2.0 - 1.0) * 3.0;
-  z[2] = 0.0; z[3] = 0.0; z[4] = 0.0; z[5] = 0.0;       // rest start
-  z[6] = 0.0; z[7] = 0.0;                               // equal masses
 
-  // Decode.
-  let ic_out = decode_full(z, chart, uniforms.r_coll);
+  // Decode: linearised path at deep zoom (G6), full nonlinear otherwise.
+  var ic_out: ICOut;
+  if ((tile_req.flags & TILE_REQ_DECODE_LINEAR) != 0u) {
+    ic_out = decode_linear(t, linearised, uniforms.r_coll);
+  } else {
+    // Tile-local UV → latent z (M3: latent chart, axes are z[0] and z[1]).
+    let uv = tile_req.uv_centre + tile_req.uv_half * (2.0 * t - 1.0);
+    // Map UV → 8D latent. For M3 we use a default slice: u → z[0], v → z[1].
+    var z: array<f32, 8>;
+    z[0] = (uv.x * 2.0 - 1.0) * 3.0;     // ±3 latent range
+    z[1] = (uv.y * 2.0 - 1.0) * 3.0;
+    z[2] = 0.0; z[3] = 0.0; z[4] = 0.0; z[5] = 0.0;     // rest start
+    z[6] = 0.0; z[7] = 0.0;                             // equal masses
+    ic_out = decode_full(z, chart, uniforms.r_coll);
+  }
 
   if (ic_out.terminal != 0u) {
     write_terminal(idx, ic_out);

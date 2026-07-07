@@ -42,7 +42,7 @@ async function main() {
   const { wgslLink } = await import('@/gpu/wgsl/link.js');
   const fetchText = async (p) => (await fetch(p)).text();
   const S = {};
-  for (const n of ['helpers','decode','integrate','events','observe','simulate','render_layer0']) {
+  for (const n of ['helpers','decode','decode_linear','integrate','events','observe','simulate','render_layer0']) {
     S[`${n}.wgsl`] = await fetchText(`/src/gpu/shaders/${n}.wgsl`);
   }
   const simulateSrc = wgslLink({ entryPath: 'simulate.wgsl', sources: S }).module;
@@ -210,6 +210,44 @@ async function main() {
     histDelta += Math.abs((gpuHist[c] ?? 0) - (cpuHist[c] ?? 0));
   }
 
+  // G6: linearised-decode A/B. Build a depth-10 reference on the CPU,
+  // dispatch with the DECODE_LINEAR request flag, and compare per-sample
+  // E_0 against the f64 CPU twin — a LinearisedRef lane swap or a broken
+  // flag branch produces O(1) garbage here.
+  const { buildLinearised, applyLinearised } = await import('@/decode/linearised.js');
+  const { TILE_REQUEST_FLAGS } = await import('@/gpu/structs.js');
+  const { totalEnergy } = await import('@/integrate/forces.js');
+  const LIN_HALF = Math.pow(2, -11), LIN_CU = 0.31, LIN_CV = 0.57;
+  const linDecodeAt = (uv) => {
+    const gu = LIN_CU + LIN_HALF * (2*uv[0] - 1);
+    const gv = LIN_CV + LIN_HALF * (2*uv[1] - 1);
+    const dec = decodeLatent([(2*gu-1)*3, (2*gv-1)*3, 0, 0, 0, 0, 0, 0], knobs);
+    return dec.kind === 'ok' ? dec.state : null;
+  };
+  const linRef = buildLinearised(linDecodeAt);
+  let linMaxErr = Infinity;
+  if (linRef) {
+    dispatchLayer0(ctx, bufs, pl, {
+      uniforms: { ...uniforms, T_horizon: 0.05 },
+      tile: { z: 10, tx: 0, ty: 0, level: 0,
+              uv_centre: [LIN_CU, LIN_CV], uv_half: [LIN_HALF, LIN_HALF],
+              flags: TILE_REQUEST_FLAGS.DECODE_LINEAR },
+      linearised: linRef,
+    }, gpuCanvasCtx.getCurrentTexture().createView());
+    const linResults = await readbackSimResults(ctx, bufs);
+    linMaxErr = 0;
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const cpu = applyLinearised(linRef, [(i + 0.5) / N, (j + 0.5) / N]);
+        const eCpu = totalEnergy(cpu.m, cpu.r, cpu.p);
+        linMaxErr = Math.max(linMaxErr,
+          Math.abs(linResults[j * N + i].E_0 - eCpu));
+      }
+    }
+  }
+  const linOk = linRef !== null && linMaxErr < 1e-2;
+  log(`G6 linearised A/B: ref=${linRef ? 'built' : 'NULL'}, max |ΔE_0| = ${linMaxErr.toExponential(2)} (gate < 1e-2)`);
+
   // Self-calibrating chaos gate: the GPU may disagree with the f64 CPU at
   // most 1.5× as often as the CPU disagrees with ITSELF under an f32-scale
   // IC nudge. A real shader bug produces wholesale disagreement far above
@@ -227,9 +265,10 @@ async function main() {
   if (errors.length) log(`GPU ERRORS: ${JSON.stringify(errors)}`);
 
   window.__RESULT = {
-    ok: chaosOk && histOk && errors.length === 0,
+    ok: chaosOk && histOk && linOk && errors.length === 0,
     robust, robustAgree, rawAgree, total: N*N, histDelta,
     cpuSelfFlip, gpuDisagree,
+    linOk, linMaxErr,
     ckptChecked, ckptMaxDev, ckptMinDev, ckptSamples,
     gpuHist, cpuHist,
     disagreements: disagreements.slice(0, 12),

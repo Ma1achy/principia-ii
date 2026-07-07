@@ -110,6 +110,17 @@ export interface TileRequest {
   flags:       number;
 }
 
+/**
+ * TileRequest.flags bit assignments — dispatch-side REQUEST flags, a
+ * separate namespace from the TileReduction STATUS flags in
+ * quadtree/reduction_types.ts. WGSL twin: TILE_REQ_DECODE_LINEAR in
+ * decode_linear.wgsl (value pinned by test/unit/gpu/linearised_uniforms).
+ */
+export const TILE_REQUEST_FLAGS = {
+  /** G6: decode samples via the linearised path (LinearisedRef at g0b4). */
+  DECODE_LINEAR: 1 << 0,
+} as const;
+
 export function packTileRequest(t: TileRequest): ArrayBuffer {
   const buf = new ArrayBuffer(48);
   const f32 = new Float32Array(buf);
