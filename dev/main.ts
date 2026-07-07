@@ -8,6 +8,7 @@ import { makeRealDispatcher } from '@/app/dispatcher.js';
 import { mountUI } from '@/ui/App.js';
 import { RenderParamsStore } from '@/ui/render_params.js';
 import { detectCapabilities } from '@/gpu/capability.js';
+import { appEnv } from '@/env.js';
 import { initGpu, UnsupportedError } from '@/gpu/init.js';
 import { ErrorBoundary, Telemetry, InMemorySink, Level } from '@/error/index.js';
 import { defaultViewState } from '@/interact/view_state.js';
@@ -22,6 +23,22 @@ const UNSUPPORTED_COPY: Record<string, string> = {
   'no-adapter': 'WebGPU is present but no GPU adapter was offered (blocklisted driver or headless config?).',
   'no-device': 'The GPU adapter refused a device at the requested limits.',
 };
+
+/** G15: opt-in offline support. OFF unless VITE_ENABLE_SW=1; a failure
+ *  must never block startup — the SW is a progressive enhancement. */
+async function registerServiceWorker(): Promise<void> {
+  const env = appEnv();
+  if (!env.serviceWorker || !('serviceWorker' in navigator)) return;
+  try {
+    // vite.config.ts emits src/sw.ts as a stable, un-hashed sw.js at the
+    // site root (SW_FILE) so the registration URL survives deploys.
+    await navigator.serviceWorker.register(`${env.baseUrl}sw.js`, {
+      scope: env.baseUrl,
+    });
+  } catch {
+    // Unsupported/blocked SW: the app runs online-only, silently.
+  }
+}
 
 async function main(): Promise<void> {
   const root = document.getElementById('root');
@@ -142,6 +159,7 @@ async function main(): Promise<void> {
     debug: { perf: app.loop.perf, sink: telemetrySink, tileFlags, inspector: inspectorNow },
   });
   app.start();
+  void registerServiceWorker();
 
   for (const w of cap.warnings) console.warn('[principia]', w);
   // Expose for the headless shell check (dev/out/g8_shell_check.mjs) and

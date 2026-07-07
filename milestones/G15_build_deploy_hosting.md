@@ -1,32 +1,31 @@
 # G15 — Build, bundling, deploy & hosting
 
+*(Folded back as-built. The original plan predated several landed facts — the
+`build`/`build:web` script split, the `dev/main.ts` boot home, the `?raw`
+WGSL inlining that makes raw-shader precache impossible, and the Vite 8
+upgrade — see the reconciliation notes and `docs/build-decisions-ledger.md`
+DG15.x.)*
+
 ## Goal
 
-G8 shipped a *placeholder* `vite.config.ts` (`milestones/G8_ui_ci_perf.md`
-~line 393): a single `manualChunks: { gpu: ['src/gpu'] }`, `assetsInclude`
-for `**/*.wgsl`, and nothing about minification, content hashing, the project
-base path, shader compression, env injection, or an actual hosting pipeline.
-That is fine for `npm run dev`, but it cannot produce a deployable artifact:
-GitHub Pages serves from a subpath (`/principia-ii/`), the WGSL strings G1
-pulls in with `?raw` (`milestones/G1_shader_composition.md` ~line 448) ship
-uncompressed, and there is no workflow that builds and publishes the site.
+G8 shipped a *placeholder* `vite.config.ts`: alias + `assetsInclude` for
+`**/*.wgsl` and nothing else — fine for `npm run dev`, but it cannot produce
+a deployable artifact: GitHub Pages serves from a subpath
+(`/principia-ii/`), the bundle ships uncompressed, and no workflow builds
+and publishes the site.
 
-G15 turns the placeholder into a **real production build + a hosting pipeline**:
-a hardened `vite.config.ts` (minify, treeshake, content-hashed chunks, the
-`gpu` chunk preserved, `?raw` WGSL handling, configurable `base`), gzip/brotli
-compression of the bundled output (including the WGSL strings), `import.meta.env`
-prod/dev injection through a typed `env.ts`, a GitHub Pages deploy workflow that
-extends G14's CI, and an **optional** PWA/offline service worker (clearly marked
-optional, off by default) that caches the app shell + shaders.
+G15 turned the placeholder into a **real production build + a hosting
+pipeline**: a hardened `vite.config.ts` (minify, content-hashed chunks, the
+`gpu` chunk preserved, configurable `base`), a zero-dependency gzip/brotli
+post-build pass, `import.meta.env` injection through a typed `src/env.ts`,
+a GitHub Pages deploy workflow, and an **optional** offline service worker
+(off by default) that precaches the app shell.
 
-The deliverable that the exit test guards is a single source of truth —
-`build/build.config.ts` — that the Vite config, the deploy workflow, and the
-service worker all read. The exit test is a **pure manifest/config validator**:
-it asserts the chunk split, the `base` policy, the content-hash policy, the
-compression policy, and that **every** `src/gpu/shaders/*.wgsl` referenced by
-the shader registry is import-resolvable on disk. It never runs `vite build`,
-never touches a GPU, and never starts a browser — the real `vite build` runs in
-CI (and is gated behind the deploy job), mirroring how M3/G8 gate real-GPU work.
+The single source of truth is `build/build.config.ts` — the Vite config,
+the deploy workflow, and the service worker all read it. The exit test is a
+**pure manifest/config validator**: it never runs `vite build`, never
+touches a GPU, never starts a browser — the real `vite build` runs in CI's
+deploy workflow, mirroring how M3/G8 gate real-GPU work.
 
 **Exit criterion (single executable test).**
 
@@ -34,775 +33,219 @@ CI (and is gated behind the deploy job), mirroring how M3/G8 gate real-GPU work.
 npm test -- --run test/unit/build/build_config.test.ts
 ```
 
-passes with at least **18 green tests** covering: the canonical chunk split
-(`gpu` chunk present, vendor split, entry preserved), the `base` path policy
-(prod `/principia-ii/`, dev `/`, env override), the content-hash filename policy
-(`[name]-[hash]` for JS/CSS/assets, stable entry name), the compression policy
-(gzip + brotli, `.wgsl`/`.js`/`.css` included, threshold honoured), the typed
-`import.meta.env` contract (required keys, prod/dev defaults), and that every
-WGSL module named in the shader registry resolves to an existing file under
-`src/gpu/shaders/`.
+passes with at least **18 green tests** (30 as landed) covering: the
+canonical chunk split, the `base` path policy, the content-hash filename
+policy, the compression policy, the typed `import.meta.env` contract, the
+shader manifest ↔ disk sync (both directions), and the service-worker
+precache policy.
 
-**Deliverable:** a deployed site — a hardened production `vite build` (hashed chunks, gzip/brotli-compressed WGSL, configurable `base`) published to GitHub Pages at `/principia-ii/` by a CI deploy workflow, with an optional offline service worker; the `build.config.ts` source of truth is pinned by `test/unit/build/build_config.test.ts`.
+**Deliverable:** a deployable site — a hardened production `vite build`
+(hashed chunks, gzip+brotli output, configurable `base`) published to
+GitHub Pages at `/principia-ii/` by `deploy.yml` on push to
+`webgpu-rewrite`, with an optional offline service worker; the
+`build/build.config.ts` source of truth is pinned by
+`test/unit/build/build_config.test.ts`.
 
-## File tree
+## File tree (as landed)
 
 ```
 principia/
   build/
     build.config.ts          # NEW: single source of truth — chunks, base, hash, compression, env
-    shaders.manifest.ts      # NEW: the canonical list of src/gpu/shaders/*.wgsl (mirrors G1)
-    sw.config.ts             # NEW: service-worker precache policy (OPTIONAL feature, off by default)
+    shaders.manifest.ts      # NEW: the canonical list of src/gpu/shaders/*.wgsl (all 16)
+    sw.config.ts             # NEW: service-worker precache policy (OPTIONAL, off by default)
   src/
-    env.ts                   # NEW: typed import.meta.env accessor (prod/dev), AppEnv
-    sw.ts                    # NEW (OPTIONAL): app-shell + shader offline service worker
-    main.ts                  # MODIFIED (G8): optional registerServiceWorker() behind env flag
+    env.ts                   # NEW: typed import.meta.env accessor (safe structural cast)
+    sw.ts                    # NEW (OPTIONAL): app-shell offline service worker
+  dev/
+    main.ts                  # MODIFIED (G8 boot): registerServiceWorker() behind env flag
   vite.config.ts             # MODIFIED (G8): real production build, reads build/build.config.ts
-  .github/
-    workflows/
-      deploy.yml             # NEW: build + publish to GitHub Pages, extends G14 CI
-  test/
-    unit/
-      build/
-        build_config.test.ts # NEW: pure manifest/config validator (exit suite)
+  .github/workflows/
+    deploy.yml               # NEW: build + publish to GitHub Pages (webgpu-rewrite, NEVER main)
+  test/unit/build/
+    build_config.test.ts     # NEW: pure manifest/config validator (exit suite, 30 tests)
 ```
 
-## Depends on / pairs with
+## Reconciliations against the landed codebase
 
-- **G8** (`vite.config.ts`, `.github/workflows/`, `src/main.ts`) — G15 replaces
-  G8's placeholder build block and adds a deploy workflow; the UI shell and dev
-  flow are untouched. Patches against G8 are small and labelled, not rewrites.
-- **G8 / G14** (CI matrix: `unit` / `integration_no_gpu` / `golden`) —
-  `deploy.yml` reuses the `unit` job as a `needs:`-style gate, so a publish only
-  happens after the same checks CI enforces are green. (**G8** owns `ci.yml` and
-  the canonical `unit` job — lint→typecheck→test; **G14** adds the nightly
-  schedule + real-GPU Playwright job. G15 only adds `deploy.yml` and re-runs the
-  unit gate as a pre-publish guard.)
-- **G1** (`wgslLink` from `@/gpu/wgsl/link.js`, `?raw` shader imports,
-  `src/gpu/shaders/*.wgsl`) — `build/shaders.manifest.ts` is the canonical list
-  the build/SW/test read. G1 has no central registry: `wgslLink` is a per-entry
-  linker taking an explicit sources map. The validator only checks that every
-  manifest entry exists on disk (manifest→disk); to guard manifest↔G1 drift,
-  either import `SHADER_MODULES` into the dispatch/sources-map wiring, or add a
-  test diffing the manifest against the source-map keys.
-- **G9** (`CapabilityProfile`) — the service worker (optional) precaches the
-  shader bundle so a capable-but-offline device still resolves WGSL; it never
-  caches a *response* that depends on the GPU profile.
-- Contracts: honours the **cache/two-stage** contract — the build is
-  content-addressed (every chunk + asset is `[name]-[hash]`), so a deployed file
-  is immutable and the service worker can cache-first it safely; a shader change
-  bumps its hash and therefore its precache URL (mirrors the cache-signature
-  discipline in the architecture skill). No ratified ADR governs bundling; G15
-  introduces none.
+The original doc was written before several facts landed. Each defect below
+was reconciled with evidence, not silently patched (ledger DG15.1–DG15.6):
+
+1. **`npm run build` is `tsc`, not Vite.** The landed `build` script is
+   `tsc -p tsconfig.json`, and `npm run gpu:check` + the `dev/out/*.mjs`
+   page checks import its `dist/` output. The site build is the (already
+   landed) `build:web` script, and it emits to **`dist-web/`**
+   (`SITE_OUT_DIR`) — Vite's `emptyOutDir` on a shared `dist/` would
+   clobber the tsc output gpu:check needs.
+2. **`src/main.ts` does not exist.** The shell boot is `dev/main.ts`
+   (outside tsconfig's include, because the `?raw` shader imports have no
+   d.ts and `src/` must stay tsc-clean — G1 convention). The SW
+   registration patch lives there.
+3. **The doc's `deploy.yml` triggered on `main` — forbidden.** `main` is
+   the untouchable historical PoC (CLAUDE.md branch policy). The workflow
+   triggers on `webgpu-rewrite`.
+4. **Raw-WGSL precache would brick the SW install.** G1 inlines every
+   shader into the `gpu` chunk via `?raw`; production `dist-web/` contains
+   **no** `src/gpu/shaders/*.wgsl`, and `cache.addAll` of a 404 rejects the
+   whole install. `precacheList` is the shell only; the WGSL rides inside
+   the hashed gpu chunk, which the runtime cache-first strategy captures.
+5. **The doc's 9-module manifest was stale.** `src/gpu/shaders/` holds
+   **16** WGSL files. The manifest lists all 16, and the validator checks
+   **both directions** (manifest→disk and disk→manifest via `readdirSync`
+   equality), so the manifest can never silently drift.
+6. **`vite-plugin-compression` targets Vite 2/3; the repo is on Vite 8.**
+   The compression pass is ~30 lines of `node:zlib` in `vite.config.ts`
+   (walk `dist-web/`, gzip+brotli files matching `COMPRESSION_POLICY`),
+   with zero new dependencies.
 
 ## `build/shaders.manifest.ts`
 
-The single canonical list of WGSL modules used by the build. G1 has no central
-registry — `wgslLink` (`@/gpu/wgsl/link.js`, `milestones/G1_shader_composition.md`
-~line 456) is a per-entry linker taking an explicit sources map — so this manifest
-is the build's own canonical list, not a mirror of a G1 registry. The validator
-only checks that every manifest entry resolves on disk; guarding manifest↔G1 drift
-is a separate concern (import `SHADER_MODULES` into the sources-map wiring, or add
-a test diffing manifest entries against the source-map keys). Keeping the list here
-(not buried in a `?raw` import block) lets the build, the service-worker precache,
-and the test all read one array.
-
-```ts
-/**
- * Canonical WGSL module list for the build. G1 has no registry: `wgslLink`
- * (@/gpu/wgsl/link.js, G1 ~line 456) is a per-entry linker fed an explicit
- * sources map from `?raw` imports. This list is the build's own source of
- * truth; the build_config validator only asserts every entry resolves to an
- * existing file under src/gpu/shaders/ (manifest→disk). To guard manifest↔G1
- * drift, diff this against the source-map keys in a separate test.
- *
- * Order is irrelevant to linking (wgslLink resolves imports by graph), but kept
- * alphabetical so diffs are stable.
- */
-export const SHADER_DIR = 'src/gpu/shaders';
-
-/** File names only (no directory). Joined with SHADER_DIR to resolve on disk. */
-export const SHADER_MODULES = [
-  'decode.wgsl',
-  'events.wgsl',
-  'helpers.wgsl',
-  'integrate.wgsl',
-  'metrics.wgsl',
-  'observe.wgsl',
-  'reduce.wgsl',
-  'render_layer0.wgsl',
-  'simulate.wgsl',
-] as const;
-
-export type ShaderModule = (typeof SHADER_MODULES)[number];
-
-/** POSIX-joined repo-relative path for a module (used by the validator + SW). */
-export function shaderPath(mod: ShaderModule): string {
-  return `${SHADER_DIR}/${mod}`;
-}
-
-/** All shader paths, repo-relative. */
-export function allShaderPaths(): string[] {
-  return SHADER_MODULES.map(shaderPath);
-}
-```
+The canonical WGSL module list (all 16 on-disk files, alphabetical). G1 has
+no central registry — `wgslLink` is a per-entry linker fed an explicit
+sources map (`dev/shader_modules.ts`) — so this manifest is the build's own
+source of truth, and the validator's two-directional disk sync is the drift
+guard. Exports: `SHADER_DIR`, `SHADER_MODULES`, `shaderPath()`,
+`allShaderPaths()`.
 
 ## `build/build.config.ts`
 
-The single source of truth. `vite.config.ts`, `deploy.yml` (via a tiny
-`--base` echo), and `sw.config.ts` all derive from these constants and pure
-functions, so the policy lives in exactly one place and the validator can assert
-it without importing Vite.
+The single source of truth. Landed surface:
 
-```ts
-import { SHADER_MODULES } from './shaders.manifest.js';
+- `PROJECT_BASE = '/principia-ii/'`, `resolveBase(mode, override?)`,
+  `normaliseBase(base)` — prod base is the project-pages subpath, dev is
+  `/`, `VITE_BASE` overrides (normalised to leading+trailing slash).
+- `SITE_OUT_DIR = 'dist-web'` — never `dist/` (tsc owns it, see above).
+- `manualChunks(id)` — `node_modules` → `vendor`, `src/gpu/**` → `gpu`
+  (the shader-bearing chunk), else Rollup decides. OS-path-independent.
+- `HASH_POLICY` — `assets/[name]-[hash]` for entry/chunk/asset names.
+- `SW_FILE = 'sw.js'` — the one **un-hashed** emission: a hashed SW URL
+  could never be found again across deploys.
+- `COMPRESSION_POLICY` + `shouldCompress(ext)` — gzip + brotli over
+  `js/css/html/svg/json/wgsl` above 1024 bytes; originals kept.
+- `REQUIRED_ENV_KEYS = ['VITE_APP_VERSION', 'VITE_ENABLE_SW']` +
+  `envDefaults(mode)` — SW defaults `'0'` in every mode.
+- `SHADER_MODULE_COUNT` — manifest count pin.
 
-/** Build mode. Mirrors Vite's `mode` ('production' | anything-else = dev). */
-export type BuildMode = 'production' | 'development';
+## `vite.config.ts` (as landed)
 
-/**
- * Project base path. GitHub Project Pages serve from /<repo>/, so the prod
- * build must emit asset URLs under that prefix. Overridable via VITE_BASE
- * (e.g. '/' for a user/org page or a custom domain).
- */
-export const PROJECT_BASE = '/principia-ii/';
+Reads `build/build.config.ts`; G8's alias + `assetsInclude` kept verbatim.
 
-/** Resolve the base href for a mode, honouring a VITE_BASE override. */
-export function resolveBase(mode: BuildMode, override?: string): string {
-  if (override && override.length > 0) return normaliseBase(override);
-  return mode === 'production' ? PROJECT_BASE : '/';
-}
-
-/** A base must start and end with '/' so relative asset URLs resolve. */
-export function normaliseBase(base: string): string {
-  let b = base.startsWith('/') ? base : `/${base}`;
-  if (!b.endsWith('/')) b = `${b}/`;
-  return b;
-}
-
-/**
- * manualChunks policy. The `gpu` chunk (G8) is preserved so the shader-bearing
- * GPU code splits out of the entry; everything in node_modules collapses into a
- * single long-cached `vendor` chunk. Returning undefined lets Rollup decide.
- */
-export function manualChunks(id: string): string | undefined {
-  // Normalise Windows separators so the policy is OS-independent.
-  const p = id.replace(/\\/g, '/');
-  if (p.includes('/node_modules/')) return 'vendor';
-  if (/\/src\/gpu\//.test(p)) return 'gpu';
-  return undefined;
-}
-
-/** Content-hash filename policy. Every emitted file is immutable + cache-bustable. */
-export const HASH_POLICY = {
-  /** Code-split + entry chunks. Entry keeps a stable [name] ('index'). */
-  entryFileNames: 'assets/[name]-[hash].js',
-  chunkFileNames: 'assets/[name]-[hash].js',
-  /** Static assets (incl. emitted .css and any copied .wgsl). */
-  assetFileNames: 'assets/[name]-[hash][extname]',
-} as const;
-
-/**
- * Compression policy for the post-build pass (vite-plugin-compression or
- * equivalent). gzip AND brotli are emitted; only files above the threshold and
- * matching the extension allow-list are compressed.
- */
-export const COMPRESSION_POLICY = {
-  algorithms: ['gzip', 'brotli'] as const,
-  /** Extensions worth compressing — text-ish bundle output incl. WGSL strings. */
-  extensions: ['js', 'css', 'html', 'svg', 'json', 'wgsl'] as const,
-  /** Bytes; files at/under this are left uncompressed (overhead not worth it). */
-  thresholdBytes: 1024,
-  /** Keep the original alongside the compressed copy (servers negotiate). */
-  deleteOriginalAssets: false,
-} as const;
-
-export type CompressionAlgorithm = (typeof COMPRESSION_POLICY.algorithms)[number];
-
-/** True iff a file with this extension should be compressed. */
-export function shouldCompress(ext: string): boolean {
-  const e = ext.replace(/^\./, '').toLowerCase();
-  return (COMPRESSION_POLICY.extensions as readonly string[]).includes(e);
-}
-
-/**
- * Required import.meta.env keys (beyond Vite's built-ins). Validated at build
- * config level and surfaced typed by src/env.ts.
- */
-export const REQUIRED_ENV_KEYS = ['VITE_APP_VERSION', 'VITE_ENABLE_SW'] as const;
-export type RequiredEnvKey = (typeof REQUIRED_ENV_KEYS)[number];
-
-/** Prod/dev defaults for the required keys when not supplied by the environment. */
-export function envDefaults(mode: BuildMode): Record<RequiredEnvKey, string> {
-  return {
-    VITE_APP_VERSION: '0.0.0-dev',
-    // Service worker is OFF by default everywhere; opt in with VITE_ENABLE_SW=1.
-    VITE_ENABLE_SW: '0',
-  };
-}
-
-/** Number of shader modules the precache list must contain (sync guard). */
-export const SHADER_MODULE_COUNT = SHADER_MODULES.length;
-```
-
-## `vite.config.ts` (modified from G8)
-
-G8's config is replaced — not extended inline — by one that reads
-`build/build.config.ts`. The labelled diff below shows exactly what changed:
-`base`, `minify`, `treeshake`, `manualChunks` (now a function), the
-content-hash `output` names, and the optional compression plugins. The
-`resolve.alias` and `?raw` WGSL handling from G8/G1 are preserved verbatim.
-
-```ts
-import { defineConfig, type PluginOption } from 'vite';
-import path from 'node:path';
-import {
-  resolveBase, manualChunks, HASH_POLICY, COMPRESSION_POLICY,
-  type BuildMode,
-} from './build/build.config.js';
-
-// OPTIONAL: only loaded if installed. Kept dynamic so the dev flow has no
-// hard dependency on the compression plugin.
-async function compressionPlugins(): Promise<PluginOption[]> {
-  try {
-    const { default: compression } = await import('vite-plugin-compression');
-    return COMPRESSION_POLICY.algorithms.map(algo =>
-      compression({
-        // vite-plugin-compression spells brotli 'brotliCompress'.
-        algorithm: algo === 'brotli' ? 'brotliCompress' : 'gzip',
-        ext: algo === 'brotli' ? '.br' : '.gz',
-        threshold: COMPRESSION_POLICY.thresholdBytes,
-        deleteOriginFile: COMPRESSION_POLICY.deleteOriginalAssets,
-        filter: /\.(js|css|html|svg|json|wgsl)$/i,
-      }),
-    );
-  } catch {
-    // Plugin absent (dev install): skip compression, build still succeeds.
-    return [];
-  }
-}
-
-export default defineConfig(async ({ mode }) => {
-  const buildMode: BuildMode = mode === 'production' ? 'production' : 'development';
-  const base = resolveBase(buildMode, process.env.VITE_BASE);
-
-  return {
-    base,                                       // + base path for project pages
-    resolve: { alias: { '@': path.resolve(__dirname, 'src') } },  // (G8, kept)
-    assetsInclude: ['**/*.wgsl'],               // (G8/G1, kept) raw shader text
-    plugins: await compressionPlugins(),        // + gzip + brotli (optional)
-    build: {
-      target: 'esnext',                         // (G8, kept)
-      minify: 'esbuild',                         // + minify production output
-      sourcemap: buildMode === 'production' ? 'hidden' : true,
-      rollupOptions: {
-        treeshake: { moduleSideEffects: false }, // + aggressive tree-shake
-        output: {
-          // - manualChunks: { gpu: ['src/gpu'] }   (G8 placeholder)
-          // + function form: gpu chunk + vendor split (build.config.ts)
-          manualChunks,
-          entryFileNames: HASH_POLICY.entryFileNames,   // + content hashing
-          chunkFileNames: HASH_POLICY.chunkFileNames,   // +
-          assetFileNames: HASH_POLICY.assetFileNames,   // +
-        },
-      },
-    },
-  };
-});
-```
+- `base` from `resolveBase(mode, process.env.VITE_BASE)`.
+- `define`: `__APP_VERSION__` / `__APP_BASE__` / `__APP_SW_ENABLED__` /
+  `__APP_PROD__` as **bare identifiers** — the one env channel into the
+  bundle, consumed by `src/env.ts` and `src/sw.ts` (define never rewrites
+  property accesses, and bare `import.meta.env` is never populated — the
+  doc's patterns for both would have silently produced dev defaults).
+- `build.outDir = SITE_OUT_DIR`; `minify: 'esbuild'`; sourcemaps `hidden`
+  in production.
+- `rollupOptions.input`: `index.html` **plus `src/sw.ts` as a second
+  entry**, with `entryFileNames` a function that emits the sw chunk as the
+  stable root-scoped `sw.js` and everything else hashed.
+- `treeshake.moduleSideEffects: 'no-external'` — NOT the doc's `false`,
+  which would have dropped the side-effect `import '@/ui/styles.css'` and
+  shipped an unstyled shell.
+- `principia:compress` plugin — the zlib walk in `closeBundle`.
 
 ## `src/env.ts`
 
-Typed `import.meta.env` accessor. The rest of the app reads `appEnv()` instead
-of touching `import.meta.env` directly, so the prod/dev contract is enforced in
-one place and the validator can assert the required-key set against
-`build.config.ts`.
+Typed accessor: `appEnv(raw?) → AppEnv { version, serviceWorker, prod,
+dev, baseUrl }` with empty-string-counts-as-unset fallbacks, plus
+`ENV_KEYS` re-export. The default source is **NOT `import.meta.env`**:
+Vite only statically replaces `import.meta.env.KEY` property accesses — a
+bare `import.meta.env` survives the build verbatim and is `undefined` at
+runtime (verified on the emitted bundle: the flag-on build silently never
+registered the SW until this was fixed). Instead, `vite.config.ts`
+`define` injects `__APP_VERSION__` / `__APP_BASE__` / `__APP_SW_ENABLED__`
+/ `__APP_PROD__` as bare identifiers (build AND dev server), and `rawEnv()`
+reads them behind `typeof` guards so plain tsc / Node / vitest runs fall
+back to dev values. The `raw` parameter keeps the accessor testable
+without any Vite runtime.
 
-```ts
-import { REQUIRED_ENV_KEYS, type RequiredEnvKey } from '../build/build.config.js';
+## `build/sw.config.ts` + `src/sw.ts` (OPTIONAL feature)
 
-export interface AppEnv {
-  /** Build version string (VITE_APP_VERSION), e.g. a git short-sha. */
-  version: string;
-  /** Service worker opt-in (VITE_ENABLE_SW === '1'). OFF by default. */
-  serviceWorker: boolean;
-  /** Vite's own flags, surfaced so callers never read import.meta.env raw. */
-  prod: boolean;
-  dev: boolean;
-  /** Base href the bundle was built with (import.meta.env.BASE_URL). */
-  baseUrl: string;
-}
+Off by default — nothing registers the worker unless `VITE_ENABLE_SW=1`.
 
-/**
- * Read a key from import.meta.env with a fallback. Indirected through a function
- * so tests can inject a synthetic env object without a Vite runtime.
- */
-function readEnv(
-  env: Record<string, unknown>,
-  key: RequiredEnvKey,
-  fallback: string,
-): string {
-  const v = env[key];
-  return typeof v === 'string' && v.length > 0 ? v : fallback;
-}
-
-/** Build the typed AppEnv from a raw env record (defaults to import.meta.env). */
-export function appEnv(
-  raw: Record<string, unknown> = import.meta.env as unknown as Record<string, unknown>,
-): AppEnv {
-  return {
-    version: readEnv(raw, 'VITE_APP_VERSION', '0.0.0-dev'),
-    serviceWorker: readEnv(raw, 'VITE_ENABLE_SW', '0') === '1',
-    prod: raw.PROD === true,
-    dev: raw.DEV === true,
-    baseUrl: typeof raw.BASE_URL === 'string' ? (raw.BASE_URL as string) : '/',
-  };
-}
-
-/** The required keys, re-exported so callers/tests have one import. */
-export const ENV_KEYS: readonly RequiredEnvKey[] = REQUIRED_ENV_KEYS;
-```
-
-## `build/sw.config.ts` (OPTIONAL feature)
-
-Precache policy for the offline service worker. Off by default — nothing
-registers the worker unless `VITE_ENABLE_SW=1`. The precache list is the app
-shell plus every shader path from the manifest, so a capable device that goes
-offline still resolves its WGSL. Cache-first is safe because every entry is
-content-hashed (cache/two-stage contract): a changed file has a new URL.
-
-```ts
-import { allShaderPaths } from './shaders.manifest.js';
-
-/** Cache name is version-stamped so a deploy invalidates stale precaches. */
-export function cacheName(version: string): string {
-  return `principia-shell-${version}`;
-}
-
-/**
- * App-shell precache list (repo-relative, base-prefixed at runtime). The HTML
- * entry and the WGSL modules; hashed JS/CSS are runtime-cached (stale-while-
- * revalidate) because their names are only known post-build.
- */
-export function precacheList(base: string): string[] {
-  const b = base.endsWith('/') ? base : `${base}/`;
-  return [
-    `${b}`,                       // index.html (the shell)
-    ...allShaderPaths().map(p => `${b}${p}`),
-  ];
-}
-
-/** Runtime-cache strategy per request kind. */
-export const RUNTIME_STRATEGY = {
-  /** Hashed, immutable assets → cache-first (safe: content-addressed). */
-  assets: 'cache-first',
-  /** Navigations → network-first, falling back to the cached shell offline. */
-  navigation: 'network-first',
-} as const;
-```
-
-## `src/sw.ts` (OPTIONAL feature)
-
-The worker itself. Plain service-worker globals (no Workbox dependency). Kept
-small and dependency-free; registered only behind the env flag. Cache-first for
-precached/hashed assets, network-first for navigations with a shell fallback.
-
-```ts
-/// <reference lib="webworker" />
-import { cacheName, precacheList, RUNTIME_STRATEGY } from '../build/sw.config.js';
-
-declare const self: ServiceWorkerGlobalScope;
-
-// Injected at build time (define) — falls back to a dev constant.
-const VERSION = (self as unknown as { __APP_VERSION__?: string }).__APP_VERSION__ ?? '0.0.0-dev';
-const BASE = (self as unknown as { __APP_BASE__?: string }).__APP_BASE__ ?? '/';
-const CACHE = cacheName(VERSION);
-
-self.addEventListener('install', (event: ExtendableEvent) => {
-  event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(precacheList(BASE))).then(() => self.skipWaiting()),
-  );
-});
-
-self.addEventListener('activate', (event: ExtendableEvent) => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  );
-});
-
-self.addEventListener('fetch', (event: FetchEvent) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-
-  if (req.mode === 'navigate' && RUNTIME_STRATEGY.navigation === 'network-first') {
-    event.respondWith(
-      fetch(req).catch(() => caches.match(`${BASE}`).then(r => r ?? Response.error())),
-    );
-    return;
-  }
-
-  // cache-first for everything else (hashed assets are immutable).
-  event.respondWith(
-    caches.match(req).then(cached =>
-      cached ?? fetch(req).then(resp => {
-        const copy = resp.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-        return resp;
-      }),
-    ),
-  );
-});
-```
-
-## `src/main.ts` (G8 integration patch)
-
-G8's `main()` gains an opt-in registration call behind the env flag. Minimal,
-labelled diff — the rest of `main.ts` is unchanged.
-
-```ts
-// + import at top:
-import { appEnv } from '@/env.js';
-
-// + helper, defined near main():
-async function registerServiceWorker(): Promise<void> {
-  const env = appEnv();
-  // OFF unless VITE_ENABLE_SW=1; never registers in dev or unsupported browsers.
-  if (!env.serviceWorker || !('serviceWorker' in navigator)) return;
-  try {
-    // Vite emits the worker at a hashed URL; ?worker handling resolves it.
-    await navigator.serviceWorker.register(new URL('./sw.ts', import.meta.url), {
-      type: 'module',
-      scope: env.baseUrl,
-    });
-  } catch {
-    // SW is a progressive enhancement — a failure must never block startup.
-  }
-}
-
-// inside main(), AFTER mountUI(...) / app.start():
-//   await registerServiceWorker();   // + opt-in offline support
-```
+- `cacheName(version)` — version-stamped so a deploy invalidates stale
+  precaches. `precacheList(base)` — **the shell only** (see reconciliation
+  4). `RUNTIME_STRATEGY` — hashed assets cache-first (safe: every emitted
+  file is content-addressed and immutable), navigations network-first with
+  the cached shell as offline fallback.
+- `src/sw.ts` is typed **structurally** (local `ExtendableEventLike` /
+  `FetchEventLike` / `SwScope` interfaces) instead of
+  `/// <reference lib="webworker" />` — lib references are program-wide and
+  the DOM and WebWorker libs declare conflicting globals. Only `resp.ok`
+  responses are runtime-cached. Version/base arrive via the `define`
+  identifiers with `typeof` guards for dev/tsc runs.
+- Registration (`dev/main.ts`): `navigator.serviceWorker.register(
+  `${env.baseUrl}sw.js`, { scope: env.baseUrl })` behind the env flag, in a
+  try/catch — a pure progressive enhancement that never blocks startup.
 
 ## `.github/workflows/deploy.yml`
 
-Builds the production bundle and publishes it to GitHub Pages. Gates on the
-`unit` job G8 owns in `ci.yml` (referenced by name; `workflow_run`-style `needs`
-is not cross-workflow, so we re-run the same checks here as a fast pre-publish
-guard and document the dependency). The real `vite build` lives here — never in
-the unit test.
+`on: push: branches: [webgpu-rewrite]` + `workflow_dispatch`; Pages
+permissions; `concurrency: pages` with cancel-in-progress. Jobs:
 
-```yaml
-name: deploy
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-# Pages deploy needs these scoped permissions.
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Never run two deploys at once; cancel an in-flight one on a newer push.
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
-jobs:
-  # Pre-publish guard: the same unit gate G8's ci.yml enforces (lint→typecheck
-  # →test). A red unit suite must never publish. (G8 owns the canonical job;
-  # this mirrors it.)
-  guard:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test -- --run test/unit
-
-  build:
-    needs: guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - name: Production build (content-hashed, compressed, base=/principia-ii/)
-        env:
-          VITE_BASE: /principia-ii/
-          VITE_APP_VERSION: ${{ github.sha }}
-          VITE_ENABLE_SW: '0'          # offline SW stays opt-in even on Pages
-        run: npm run build
-      - name: SPA fallback (Pages serves 404.html for deep links)
-        run: cp dist/index.html dist/404.html
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
-```
+- **guard** — mirrors G8's canonical unit gate (lint → typecheck →
+  `npm test -- --run test/unit`); a red suite must never publish (`needs:`
+  cannot reach across workflows, so it is re-run here).
+- **build** — `npm run build:web` with `VITE_BASE=/principia-ii/`,
+  `VITE_APP_VERSION=${{ github.sha }}`, `VITE_ENABLE_SW='0'`; copies
+  `index.html` → `404.html` (SPA fallback); uploads `dist-web/`.
+- **publish** — `actions/deploy-pages@v4` into the `github-pages`
+  environment.
 
 ## Tests
 
-### `test/unit/build/build_config.test.ts`
-
-Pure validator. No Vite, no GPU, no browser, no `vite build`. It imports the
-build-config constants/functions and asserts the policy; for the shader sync
-check it stats files on disk with `node:fs`. (If the `src/gpu/shaders/`
-directory does not yet exist in a fresh checkout, the on-disk assertions use
-`existsSync` and the suite documents the expectation rather than failing the
-whole run — see the `dirReady` gate, which mirrors M3/G8's `skipIf`.)
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
-  resolveBase, normaliseBase, manualChunks, HASH_POLICY, COMPRESSION_POLICY,
-  shouldCompress, REQUIRED_ENV_KEYS, envDefaults, PROJECT_BASE,
-  SHADER_MODULE_COUNT, type BuildMode,
-} from '@/../build/build.config.js';
-import {
-  SHADER_MODULES, shaderPath, allShaderPaths, SHADER_DIR,
-} from '@/../build/shaders.manifest.js';
-import { appEnv, ENV_KEYS } from '@/env.js';
-import { precacheList, cacheName } from '@/../build/sw.config.js';
-
-const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), '../../../../');
-
-describe('chunk split policy', () => {
-  it('routes src/gpu/** into the gpu chunk', () => {
-    expect(manualChunks('/abs/principia/src/gpu/init.ts')).toBe('gpu');
-    expect(manualChunks('/abs/principia/src/gpu/shaders/link.ts')).toBe('gpu');
-  });
-
-  it('routes node_modules/** into the vendor chunk', () => {
-    expect(manualChunks('/abs/principia/node_modules/three/index.js')).toBe('vendor');
-  });
-
-  it('leaves app entry code unchunked (Rollup decides)', () => {
-    expect(manualChunks('/abs/principia/src/main.ts')).toBeUndefined();
-    expect(manualChunks('/abs/principia/src/ui/App.ts')).toBeUndefined();
-  });
-
-  it('is OS-path-independent (handles Windows separators)', () => {
-    expect(manualChunks('C:\\repo\\src\\gpu\\init.ts')).toBe('gpu');
-    expect(manualChunks('C:\\repo\\node_modules\\x\\i.js')).toBe('vendor');
-  });
-});
-
-describe('base path policy', () => {
-  it('prod base is the project-pages subpath', () => {
-    expect(resolveBase('production')).toBe('/principia-ii/');
-    expect(resolveBase('production')).toBe(PROJECT_BASE);
-  });
-
-  it('dev base is root', () => {
-    expect(resolveBase('development')).toBe('/');
-  });
-
-  it('VITE_BASE override wins and is normalised', () => {
-    expect(resolveBase('production', '/custom')).toBe('/custom/');
-    expect(resolveBase('production', 'custom/')).toBe('/custom/');
-  });
-
-  it('normaliseBase enforces leading + trailing slash', () => {
-    expect(normaliseBase('foo')).toBe('/foo/');
-    expect(normaliseBase('/foo/')).toBe('/foo/');
-  });
-});
-
-describe('content-hash filename policy', () => {
-  it('entry, chunk, and asset names all carry a content hash', () => {
-    expect(HASH_POLICY.entryFileNames).toMatch(/\[hash\]/);
-    expect(HASH_POLICY.chunkFileNames).toMatch(/\[hash\]/);
-    expect(HASH_POLICY.assetFileNames).toMatch(/\[hash\]/);
-  });
-
-  it('keeps a stable [name] segment for long-term caching', () => {
-    expect(HASH_POLICY.entryFileNames).toMatch(/\[name\]-\[hash\]/);
-    expect(HASH_POLICY.assetFileNames).toMatch(/\[name\]-\[hash\]\[extname\]/);
-  });
-
-  it('emits all output under assets/', () => {
-    for (const n of Object.values(HASH_POLICY)) {
-      expect(n.startsWith('assets/')).toBe(true);
-    }
-  });
-});
-
-describe('compression policy', () => {
-  it('emits both gzip and brotli', () => {
-    expect([...COMPRESSION_POLICY.algorithms]).toEqual(['gzip', 'brotli']);
-  });
-
-  it('compresses text-ish bundle output including WGSL strings', () => {
-    expect(shouldCompress('js')).toBe(true);
-    expect(shouldCompress('.css')).toBe(true);
-    expect(shouldCompress('wgsl')).toBe(true);
-  });
-
-  it('does not compress already-compressed binary assets', () => {
-    expect(shouldCompress('png')).toBe(false);
-    expect(shouldCompress('woff2')).toBe(false);
-  });
-
-  it('keeps the original alongside the compressed copy', () => {
-    expect(COMPRESSION_POLICY.deleteOriginalAssets).toBe(false);
-    expect(COMPRESSION_POLICY.thresholdBytes).toBeGreaterThan(0);
-  });
-});
-
-describe('import.meta.env contract', () => {
-  it('env.ts and build.config.ts agree on the required keys', () => {
-    expect([...ENV_KEYS]).toEqual([...REQUIRED_ENV_KEYS]);
-  });
-
-  it('service worker defaults OFF in every mode', () => {
-    for (const mode of ['production', 'development'] as BuildMode[]) {
-      expect(envDefaults(mode).VITE_ENABLE_SW).toBe('0');
-    }
-  });
-
-  it('appEnv reads a synthetic env without a Vite runtime', () => {
-    const env = appEnv({
-      VITE_APP_VERSION: 'abc123', VITE_ENABLE_SW: '1',
-      PROD: true, DEV: false, BASE_URL: '/principia-ii/',
-    });
-    expect(env.version).toBe('abc123');
-    expect(env.serviceWorker).toBe(true);
-    expect(env.prod).toBe(true);
-    expect(env.baseUrl).toBe('/principia-ii/');
-  });
-
-  it('appEnv falls back to dev defaults on an empty env', () => {
-    const env = appEnv({});
-    expect(env.version).toBe('0.0.0-dev');
-    expect(env.serviceWorker).toBe(false);
-  });
-});
-
-describe('shader manifest ↔ disk sync', () => {
-  const dirReady = existsSync(path.join(REPO_ROOT, SHADER_DIR));
-
-  it('manifest count matches build.config SHADER_MODULE_COUNT', () => {
-    expect(SHADER_MODULES.length).toBe(SHADER_MODULE_COUNT);
-  });
-
-  it('every manifest path is SHADER_DIR-prefixed and .wgsl', () => {
-    for (const m of SHADER_MODULES) {
-      expect(shaderPath(m)).toBe(`${SHADER_DIR}/${m}`);
-      expect(m.endsWith('.wgsl')).toBe(true);
-    }
-    expect(allShaderPaths()).toHaveLength(SHADER_MODULES.length);
-  });
-
-  it.skipIf(!dirReady)('every shader module resolves to a file on disk', () => {
-    for (const p of allShaderPaths()) {
-      expect(existsSync(path.join(REPO_ROOT, p)), `${p} must exist`).toBe(true);
-    }
-  });
-});
-
-describe('service-worker precache policy', () => {
-  it('precaches the shell plus every shader, base-prefixed', () => {
-    const list = precacheList('/principia-ii/');
-    expect(list[0]).toBe('/principia-ii/');                 // the shell
-    expect(list).toContain('/principia-ii/src/gpu/shaders/simulate.wgsl');
-    // shell + one entry per shader module
-    expect(list).toHaveLength(SHADER_MODULES.length + 1);
-  });
-
-  it('version-stamps the cache name so a deploy invalidates it', () => {
-    expect(cacheName('deadbee')).toBe('principia-shell-deadbee');
-    expect(cacheName('a')).not.toBe(cacheName('b'));
-  });
-});
-```
+`test/unit/build/build_config.test.ts` — 30 tests: chunk split (4), base
+policy (4), hash policy incl. `SW_FILE`/`SITE_OUT_DIR` pins (5),
+compression (4), env contract (5), shader manifest ↔ disk **both
+directions** (4, disk checks `skipIf`-gated on the shader dir existing),
+SW precache policy (4). Pure: the only filesystem touch is
+`existsSync`/`readdirSync` for the shader sync.
 
 ## Run it
 
 ```bash
-npm test -- --run test/unit/build/build_config.test.ts   # pure validator, ≥18 tests
-npm run build                                             # real prod build (CI does this)
-npm run preview                                           # serve dist/ locally to sanity-check base
+npm test -- --run test/unit/build/build_config.test.ts  # pure validator, 30 tests
+npm run build:web                                        # real prod build → dist-web/
+npm run preview                                          # serve dist-web/ under /principia-ii/
+node dev/out/g15_site_check.mjs                          # boot the BUILT bundle on a real GPU
 ```
-
-The validator is headless and dependency-light (only `node:fs`/`node:path`).
-`npm run build` and the GitHub Pages publish run in CI (`deploy.yml`), never in
-the unit suite.
 
 ## Acceptance check
 
-`test/unit/build/build_config.test.ts` passes with ≥18 green tests (24 as
-written): the `gpu` + `vendor` chunk split is asserted OS-independently; `base`
-is `/principia-ii/` in prod, `/` in dev, and overridable via `VITE_BASE`; every
-emitted filename is `assets/[name]-[hash]`; gzip+brotli cover `.wgsl`/`.js`/`.css`
-above the threshold and skip binaries; `src/env.ts` and `build.config.ts` agree
-on the required env keys and the service worker defaults OFF; and every shader
-named in `build/shaders.manifest.ts` resolves to a file on disk (skipped cleanly
-if the shader dir is absent in a fresh checkout). `vite build` succeeds in CI and
-the Pages deploy publishes `dist/` (with `404.html` SPA fallback) under
-`/principia-ii/`.
+30/30 validator tests green (gate ≥18). Verified beyond the gate, on Metal:
+`npm run build:web` emits hashed entry + `gpu` chunk + stable `sw.js` +
+`.gz`/`.br` pairs; `vite preview` serves the shell, gpu chunk, and sw.js
+(200s) under `/principia-ii/`; the **built production bundle** boots headed
+on a real GPU, converges the frontier at research tier with zero console
+errors; with `VITE_ENABLE_SW=1` the worker registers at
+`/principia-ii/sw.js` with the correct scope and the version-stamped
+precache appears. Full regression battery green: 715 unit tests, unpiped
+lint, typecheck, gpu:check, all four page checks, headless test:gpu floor,
+and the full `PW_REAL_GPU=1` headed suite 10/10.
 
 ## Notes for the implementer
 
-- **One source of truth.** `build/build.config.ts` is read by `vite.config.ts`,
-  `sw.config.ts`, `src/env.ts`, and the validator. Do not duplicate the base
-  path, the chunk rule, or the env-key list anywhere else — the validator's whole
-  job is to catch a drift between them. `deploy.yml` echoes `VITE_BASE` because
-  GitHub Actions cannot import TS; keep that literal in sync with `PROJECT_BASE`
-  (the validator asserts `resolveBase('production') === PROJECT_BASE`, so a typo
-  in the constant is caught even though the YAML literal is not).
+- **One source of truth.** `build/build.config.ts` is read by
+  `vite.config.ts`, `sw.config.ts`, `src/env.ts`, and the validator.
+  `deploy.yml` echoes `VITE_BASE` because Actions cannot import TS; the
+  validator asserts `resolveBase('production') === PROJECT_BASE` so a typo
+  in the constant is caught even though the YAML literal is not.
 - **Content hashing is the cache contract.** Every chunk/asset is
-  `[name]-[hash]`, so a deployed file is immutable and a changed shader gets a new
-  URL. That is *why* the service worker can be cache-first without a manual
-  invalidation step — a shader edit changes its hash, which changes its precache
-  URL, which the next install picks up. Never serve an un-hashed asset
-  `cache-first`.
-- **The service worker is optional and off.** `VITE_ENABLE_SW` defaults to `'0'`
-  everywhere, including the Pages build. Registration is wrapped in a try/catch
-  and gated on `'serviceWorker' in navigator`, so it is a pure progressive
-  enhancement — a failure never blocks startup. Ship v1 with it off; flip the flag
-  once the precache list and update-flow have been exercised on real hardware.
-- **Compression is a post-build pass, dynamically loaded.** `vite-plugin-compression`
-  is imported with a `try/catch` so a dev install without it still builds (just
-  uncompressed). In CI it must be present (it is a `devDependency`); the `.gz`/`.br`
-  files sit beside the originals and GitHub Pages / any static host negotiates via
-  `Accept-Encoding`. The WGSL strings are part of the bundled JS (G1 inlines them
-  via `?raw`), so they ride along in the compressed `gpu` chunk; the explicit
-  `.wgsl` extension in the policy covers any host that copies raw `.wgsl` assets.
-- **CI ownership vs G15 boundary.** **G8** owns `ci.yml` and the canonical `unit`
-  job (lint→typecheck→test); **G14** adds the nightly schedule + real-GPU
-  Playwright job (it does not "un-gate §7" — G8 already runs §7 CPU-only and
-  un-gated). `deploy.yml` re-runs the unit gate (lint + typecheck + unit) as a
-  fast pre-publish guard rather than reaching across workflows; if G8 later
-  exposes a reusable workflow, replace the `guard` job with a
-  `uses: ./.github/workflows/ci.yml` call. Do not duplicate the
-  integration/golden jobs here — a deploy gates on lint + typecheck + unit only,
-  by design, so publishing stays fast.
-- **Keep the validator pure.** It must never import `vite`, spawn a build, or
-  touch the GPU/DOM — that is what makes it the headless exit criterion. The only
-  filesystem touch is `existsSync` for the shader-sync check, and that is gated by
-  `dirReady` so a fresh checkout without the `src/gpu/shaders/` tree still runs
-  green (mirroring the `skipIf` discipline in M3/G8/G9).
+  `[name]-[hash]`, so a deployed file is immutable and a changed shader
+  gets a new gpu-chunk URL. That is *why* the SW can be cache-first without
+  manual invalidation. Never serve an un-hashed asset cache-first — the SW
+  itself (`sw.js`) is deliberately un-hashed and therefore **never**
+  runtime-cached by the cache-first arm on a fresh install (the browser's
+  SW update machinery owns its freshness).
+- **The service worker is optional and off.** `VITE_ENABLE_SW` defaults to
+  `'0'` everywhere including the Pages build. Ship v1 with it off; flip the
+  flag once the update flow has been exercised on real hardware.
+- **`build/` sits outside tsconfig's include but inside the program** —
+  tsc follows the `src/env.ts` → `../build/build.config.js` import. The
+  inferred rootDir was already the repo root (include spans `src/` and
+  `test/`), so `dist/` layout is unchanged and gpu:check is unaffected.
+- **Keep the validator pure.** It must never import `vite`, spawn a build,
+  or touch the GPU/DOM. The `skipIf(dirReady)` gate mirrors the M3/G8/G9
+  discipline so a fresh checkout still runs green.

@@ -1,13 +1,11 @@
 # Dependencies
 node_modules/
 .pnpm-store/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Build outputs
+# Build outputs (build/ is SOURCE — the G15 build-policy configs live there)
 dist/
-build/
 *.tsbuildinfo
 
 # Environment
@@ -67,3 +65,4 @@ dev/out/
 test-results/
 playwright-report/
 test/fixtures/golden/*.diff.png
+dist-web/

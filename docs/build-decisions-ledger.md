@@ -9,6 +9,100 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G15 — Build, bundling, deploy & hosting
+
+Branch `feat/g15-build-deploy`. 715 passed / 8 skipped (+30: build_config
+30 [gate ≥18]); typecheck + unpiped lint clean; gpu:check + all four page
+checks green; headless test:gpu floor green; full PW_REAL_GPU=1 headed run
+10/10; `npm run build:web` emits hashed entry + gpu chunk + stable sw.js +
+.gz/.br pairs; `vite preview` probes 200; the BUILT production bundle
+booted headed on Metal (research tier, frontier converged, zero console
+errors) via dev/out/g15_site_check.mjs. Milestone doc folded back as-built.
+
+### DG15.1 — the site build gets its own outDir (`dist-web/`)
+The landed `build` script is `tsc -p tsconfig.json` and `npm run
+gpu:check` + the dev/out page checks import its `dist/` output. The doc's
+`vite build` → `dist/` would have let Vite's emptyOutDir clobber the tsc
+output. `SITE_OUT_DIR = 'dist-web'` (pinned by a test), deploy uploads it,
+`.gitignore` covers it. The site build uses the already-landed `build:web`
+script — the doc's `npm run build` in deploy.yml would have run tsc and
+published nothing.
+
+### DG15.2 — deploy.yml triggers on webgpu-rewrite, never main
+The doc's workflow had `on: push: branches: [main]`. `main` is the
+untouchable historical PoC (CLAUDE.md branch policy) and must never drive
+a deploy; the trigger is the integration branch.
+
+### DG15.3 — SW precache is the shell only; raw-WGSL precache would brick it
+The doc precached `src/gpu/shaders/*.wgsl` "so an offline device still
+resolves WGSL" — but G1 inlines every shader into the gpu chunk via ?raw;
+production dist has NO such files, and cache.addAll of a single 404
+rejects the whole install. precacheList(base) = [base]. Offline shader
+resolution comes free: the WGSL rides inside the hashed gpu chunk, which
+the runtime cache-first strategy captures on first load.
+
+### DG15.4 — shader manifest = all 16 on-disk modules, two-directional sync
+The doc listed 9 modules; src/gpu/shaders/ holds 16. The manifest lists
+all 16 and the validator asserts BOTH directions: every entry exists on
+disk AND readdirSync of the shader dir equals the manifest — a new .wgsl
+file that isn't manifested fails the suite.
+
+### DG15.5 — compression is ~30 lines of node:zlib, not vite-plugin-compression
+The doc's optional plugin targets Vite 2/3; this repo is on Vite 8. A
+`principia:compress` closeBundle plugin in vite.config.ts walks dist-web
+and emits .gz/.br per COMPRESSION_POLICY. Zero new dependencies, no
+compatibility bet, same policy source of truth.
+
+### DG15.6 — strict-TS/landed-boot listing fixes
+(a) `src/main.ts` doesn't exist — SW registration lives in dev/main.ts
+(the G8 boot; src/ must stay tsc-clean of ?raw). (b) see DG15.8 — the
+env channel is define identifiers, not import.meta.env. (c) src/sw.ts is
+typed structurally — `/// <reference lib="webworker" />` is program-wide
+and collides with the DOM lib. (d) define injects the constants as BARE
+identifiers with typeof guards — the doc's `(self as …).__APP_VERSION__`
+property access defeats define. (e) sw.ts is a second rollup input
+emitted as stable root `sw.js` (SW_FILE) — the doc's
+`new URL('./sw.ts', import.meta.url)` registration doesn't compile a
+service worker in Vite, and a hashed SW URL could never be found across
+deploys. (f) treeshake moduleSideEffects 'no-external', not the doc's
+`false` — that would have dropped `import '@/ui/styles.css'` and shipped
+an unstyled shell.
+
+### DG15.9 — .gitignore was silently eating build/ AND the CI lockfile
+The first G15 commit landed 8 files instead of 12: M0's boilerplate
+.gitignore had a generic `build/` rule (matched the new build-policy
+source dir at any level, including test/unit/build/) and ignored
+package-lock.json — yet every landed workflow (ci.yml, acceptance.yml,
+now deploy.yml) uses `npm ci` + setup-node `cache: 'npm'`, BOTH of which
+hard-fail without a committed lockfile; no CI job could ever have run
+green on GitHub. Removed both rules, committed the lockfile (verified
+`npm ci --dry-run` clean). `dist/` stays ignored; the comment now marks
+build/ as source.
+
+### DG15.8 — bare `import.meta.env` is NEVER populated in the bundle
+Caught live, not by any test: the first env.ts read import.meta.env
+through a structural cast (`(import.meta as … ).env ?? {}`) because src/
+compiles without vite/client ambient types. Type-clean, unit-green — and
+silently broken in production: Vite only statically replaces
+`import.meta.env.KEY` property-access expressions; the bare form survives
+the build verbatim and is undefined at runtime, so every field fell back
+to dev defaults and the flag-on build never registered the SW. Verified
+by grepping the emitted bundle. Fix: vite.config `define` injects
+__APP_VERSION__/__APP_BASE__/__APP_SW_ENABLED__/__APP_PROD__ as bare
+identifiers (the same channel sw.ts already used); rawEnv() reads them
+behind typeof guards. SW then proven live end-to-end on the built bundle:
+activated at /principia-ii/sw.js, correct scope, version-stamped cache,
+shell precached. (Probe gotcha en route: an orphaned `vite preview` from
+a killed check kept port 5199 and served a stale build's SPA fallback for
+sw.js — text/html MIME. `--strictPort` + lsof before trusting a probe.)
+
+### DG15.7 — known flake: perf gate's gpu:reduce_spreads vs 0.02ms baseline
+Seen once during G15 verification (observed 0.236ms vs baseline 0.02ms,
+just over checkPerf's 0.2ms noise floor); passed twice immediately after
+and the next full run was 10/10. Not G15's doing (no GPU code touched).
+Remedy if it recurs: raise noiseFloorMs for sub-ms passes or re-baseline
+on a dedicated runner (G14's own tighten-later note).
+
 ## Fix — overlay noise + comically low resolution (user report)
 
 Branch `fix/overlay-noise-and-resolution`. User: the "needed more substeps"
