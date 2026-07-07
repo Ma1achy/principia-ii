@@ -88,7 +88,11 @@ export class JobLedger {
         return;
       }
       ingestReduction(this.cache, key, tile, reduction,
-                      this.opts.ftleEnabled, this.opts.ensembleEnabled);
+                      this.opts.ftleEnabled, this.opts.ensembleEnabled,
+                      // Live refinement: floor/ceiling derived from the
+                      // view that dispatched this tile (DS.1 wiring).
+                      { samplesPerAxis: view.samplesPerAxis,
+                        maxDepth: view.maxDepth });
       this.completed++;
       // A dispatch can SUCCEED and still carry failure bits — that is
       // data, not an exception (G11). Surface it as a TileFailure so

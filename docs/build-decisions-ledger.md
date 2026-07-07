@@ -9,6 +9,72 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## R — Live quadtree depth refinement + DS.1 AT_F32_FLOOR wiring
+
+Branch `feat/live-depth-refinement`. Closes deferred DS.1 (only the
+depth-stress harness ever set AT_F32_FLOOR) and the long-term resolution
+fix flagged in F.2: the live loop now allocates compute where the dynamics
+are complex, which is the project's founding mandate.
+
+### DR.1 — ingestReduction grew an optional RefineOpts (DS.1)
+M5's `ingestReduction` left every tile at plain 'ready' — planFrame's
+whole split path was dead in the live loop. It now (a) stamps
+`AT_F32_FLOOR` CPU-side via `reachedF32Floor(z, samplesPerAxis)` (the GPU
+kernel has no depth context — same rule the harness used), and (b)
+promotes to 'readyRefinable' iff not at the floor and z < maxDepth. The
+new `RefineOpts` arg is OPTIONAL: harness/older callers keep the exact M5
+terminal state. JobLedger threads `{samplesPerAxis, maxDepth}` from the
+dispatching ViewState. Two gpu_jobs pins updated to the new terminal
+state deliberately.
+
+### DR.2 — planFrame recurses through ready children (REFINE_LEVELS_MAX=2)
+The old planFrame only evaluated the visible frontier, so refinement
+could never pass one level. It now walks refinement chains: a refinable
+tile that decideSplit approves evaluates its children — computed children
+recurse, missing ones become candidates (with `parent` provenance). The
+descent is capped at REFINE_LEVELS_MAX=2 below zBase: each level
+quadruples worst-case tile count, and two levels already give 4× sample
+density at fixed zoom (16 px/sample at the default tier). decideSplit's
+floor/maxDepth/coherence guards are unchanged — they now simply bind.
+
+### DR.3 — refined children draw ON TOP of their parent (progressive)
+tickOnce's render plan appends ready descendants after the parent entry
+(entries render in order), so each child pops in as it completes and a
+partially-computed split shows no seams — the parent still covers the
+gaps. All-or-nothing swapping was rejected: it holds finished children
+hostage to the slowest sibling. New `FrameStats.refined` counts overlay
+draws. TileCache default capacity 256→512 (a working set of
+1+4+16 per visible tile above 256 would evict-thrash and recompute
+forever); matches the dispatcher's RETAINED_TILE_CAP.
+
+### DR.4 — every Playwright spec pins ?maxdepth=2; goldens stay unrefined
+Refinement multiplies tile count ~×3–20 and SwiftShader pays seconds per
+tile, so shell.spec and perf_capture.spec pin `&maxdepth=2` (= their boot
+frontier depth ⇒ refinement off): the smoke keeps its historical ~16-tile
+workload and the perf baseline stays comparable. visual_regression pins
+it too — for a harder reason (DR.5) — so the committed goldens are the
+UNREFINED frame, byte-identical to the pre-refinement set (restored from
+webgpu-rewrite, not regenerated). bootConverged additionally waits for
+full quiescence (jobsDispatched===0 AND jobsCompleted===0 AND
+inflight===0), which is the correct wait either way. Refinement's live
+verification is 12 unit tests + dev/out/refine_probe.mjs (headed A/B:
+refined stat >0, refined frame differs from unrefined).
+
+### DR.5 — refined frames are deterministic only up to reduce-order noise
+First attempt regenerated goldens WITH refinement at quiescence; a second
+boot then failed 4/7 with 14–21% diffs confined to corner-tile blocks.
+Diagnosis: the final refinement SET is a fixed point of decideSplit over
+per-tile coherence scores, and tiles near τ flip across boots because the
+reduce pass's parallel float accumulation is not order-stable at the ulp
+level on real hardware. The frame content per computed tile IS bit-stable
+(proven by DF.6); only borderline split/keep decisions wander. So refined
+frames cannot be goldens; if flicker-on-recompute ever matters in the
+product, the fix is hysteresis around τ in decideSplit (deferred).
+PROCESS GOTCHA (second occurrence, see G12's lint one): piping playwright
+through `| tail` masks its exit code — the failing runs looked green in
+the chained command. Verification runs now keep the full log and check
+the summary line, not the pipe's exit.
+
 ## F — Fix: GPU chart decode ignored the view (latent slicing / charts dead)
 
 Branch `fix/gpu-chart-decode`. User bug: "the latent slicing and charts

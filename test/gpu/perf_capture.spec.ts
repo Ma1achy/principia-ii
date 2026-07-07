@@ -19,7 +19,9 @@ const BASELINE_PATH = 'test/fixtures/perf/baseline.json';
 test('frame-loop perf does not regress vs baseline', async ({ page }) => {
   test.skip(!REAL_GPU, 'baseline is runner-specific — real-GPU project only');
 
-  await page.goto('/index.html?thorizon=20&n=16');
+  // &maxdepth=2 keeps live depth refinement off so the measured workload
+  // stays comparable with the committed baseline (captured pre-refinement).
+  await page.goto('/index.html?thorizon=20&n=16&maxdepth=2');
   await page.waitForFunction(
     () => (window as { __principia?: unknown }).__principia !== undefined,
     null, { timeout: 60_000 });

@@ -48,17 +48,34 @@ function hasPixels(img: RasterImage): boolean {
 
 async function bootConverged(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1400, height: 1000 });
-  await page.goto('/index.html?thorizon=20&n=16');
+  // &maxdepth=2 pins the goldens to the UNREFINED frame. Live depth
+  // refinement is deterministic only up to reduce-order float noise:
+  // borderline tiles flip split/keep across boots (measured: corner-tile
+  // diffs 14–21% between two quiescent boots), so a refined frame cannot
+  // be a golden. Refinement is verified by unit tests + a headed probe.
+  await page.goto('/index.html?thorizon=20&n=16&maxdepth=2');
   await page.waitForFunction(
     () => (window as { __principia?: unknown }).__principia !== undefined,
     null, { timeout: 60_000 });
+  // Wait for full QUIESCENCE, not just frontier convergence: live depth
+  // refinement keeps landing children after the frontier fills, and a
+  // screenshot mid-refinement is timing-dependent. Once a tick dispatches
+  // nothing with nothing in flight, the cache can no longer change — the
+  // frame is deterministic from here on.
   await page.waitForFunction(() => {
     const p = (window as unknown as {
-      __principia: { app: { loop: { lastStats: {
-        visible: number; cacheHits: number } | null } } };
+      __principia: { app: { loop: {
+        lastStats: { visible: number; cacheHits: number;
+                     jobsDispatched: number; jobsCompleted: number } | null;
+        ledger: { inflightCount: number };
+      } } };
     }).__principia;
     const s = p.app.loop.lastStats;
-    return !!s && s.visible > 0 && s.cacheHits === s.visible;
+    // jobsCompleted === 0 too: a completion racing this poll would mean
+    // the tick's planFrame ran against a cache that has since changed.
+    return !!s && s.visible > 0 && s.cacheHits === s.visible
+        && s.jobsDispatched === 0 && s.jobsCompleted === 0
+        && p.app.loop.ledger.inflightCount === 0;
   }, null, { timeout: 240_000, polling: 2_000 });
   await page.waitForTimeout(500);
 }

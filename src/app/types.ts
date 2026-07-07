@@ -63,4 +63,7 @@ export interface FrameStats {
   gpuMs?:          number;          // total GPU ms (sum of resolved passes)
   gpuPassMs?:      GpuPassTimings;  // per-pass GPU timings, one frame late
   overBudget?:     boolean;         // rolling window currently over frameBudgetMs
+  /** Refined-descendant tiles drawn on top of their parents this frame
+   *  (live depth refinement; absent = 0). */
+  refined?:        number;
 }
