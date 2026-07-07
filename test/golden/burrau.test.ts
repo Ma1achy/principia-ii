@@ -11,7 +11,8 @@ import { run } from '@/integrate/run.js';
  * (0, 0.8) — each mass opposite its own side. The CANONICAL IC at f64
  * dips below r_coll = 1e-4 at t ≈ 4.90 (a converged, tolerance-robust
  * COLLISION at project thresholds — see test/golden/burrau_family_345);
- * the famous t ≈ 60 escape needs close-encounter regularization (G19).
+ * the famous escape needs close-encounter regularization — landed as
+ * G19's LogH path; the precision golden is test/golden/burrau_regularized.
  * The non-regularized symplectic path blows up on it (drift ~1e+4).
  *
  * This swapped variant is KEPT as an integrator regression because its

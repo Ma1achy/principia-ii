@@ -6,3 +6,4 @@ export * from './yoshida.js';
 export * from './events.js';
 export * from './observe.js';
 export * from './run.js';
+export * from './regularize.js';
