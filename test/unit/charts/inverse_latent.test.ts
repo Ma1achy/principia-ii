@@ -64,13 +64,12 @@ describe('mixed_axis inverseEncode (factory, not registered)', () => {
     expect(inv.z).toBeDefined();
   });
 
-  it('non-latent axis pairings stay projected (unconstructible in M10)', () => {
-    const chart = makeMixedAxisChart({
+  it('non-latent axis pairings are rejected at construction (totality guard)', () => {
+    // Stage 3: the factory throws up front instead of letting a registered
+    // chart throw from decode() per pixel. Stage 4 makes these constructible.
+    expect(() => makeMixedAxisChart({
       hAxis: { kind: 'mass', parameter: 'm1', range: [0.1, 0.9] },
       vAxis: { kind: 'latent', index: 0, range: [-1, 1] },
-    });
-    const inv = chart.inverseEncode(decodeOk([0.5, 0.5]));
-    expect(inv.kind).toBe('projected');
-    expect(inv.reason).toMatch(/factory args/);
+    })).toThrow(/not constructible/);
   });
 });

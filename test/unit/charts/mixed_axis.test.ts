@@ -34,11 +34,27 @@ describe('mixed-axis factory', () => {
     expect(a.state.m[0]).not.toBeCloseTo(b.state.m[0], 6);
   });
 
-  it('mass-axis sets requires_per_pixel_mass', () => {
-    const c = makeMixedAxisChart({
+  it('unconstructible axis kinds throw at CONSTRUCTION, never per pixel', () => {
+    // Decode totality: the factory rejects unsupported pairings up front,
+    // so no registered mixed-axis chart can ever throw from decode().
+    // (Stage 4 makes mass/lz/energy/shape constructible and restores the
+    // requires_per_pixel_mass flag assertion for mass axes.)
+    expect(() => makeMixedAxisChart({
       hAxis: { kind: 'mass', parameter: 'm1', range: [0.1, 0.9] },
       vAxis: { kind: 'latent', index: 0, range: [-1, 1] },
+    })).toThrow(/not constructible/);
+  });
+
+  it('decode on a constructed chart is total across the whole UV square', () => {
+    const c = makeMixedAxisChart({
+      hAxis: { kind: 'latent', index: 0, range: [-4, 4] },
+      vAxis: { kind: 'latent', index: 6, range: [-6, 6] },
     });
-    expect(c.flags.requires_per_pixel_mass).toBe(true);
+    for (let i = 0; i <= 4; i++) {
+      for (let j = 0; j <= 4; j++) {
+        const out = c.decode([i / 4, j / 4], view);   // must not throw
+        expect(out.kind === 'ok' || out.kind === 'terminal').toBe(true);
+      }
+    }
   });
 });
