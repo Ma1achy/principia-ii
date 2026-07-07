@@ -9,6 +9,63 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G10 — Performance budgeting & profiling
+
+Branch `feat/g10-perf-monitor`. 543 passed / 8 skipped (+30: stats 8,
+perf_monitor 17 [gate ≥15], frame_loop_perf 5; probe self-skips in Node);
+typecheck + lint clean; gpu:check + all four page checks green; shell
+spec green headless (SwiftShader advertises timestamp-query, so the
+timing path runs live in CI) and headed on Metal. Milestone doc
+rewritten as-built.
+
+### DG10.1 — the draft's GpuTimer resolve layout was invalid WebGPU
+`resolveQuerySet`'s destination offset must be 256-byte aligned; the
+draft used one query set per pass resolved into tightly-packed 16-byte
+slots (offsets 16/32/48). Every submission carrying the resolve
+validated as an error and was silently dropped — caught live by the
+shell spec via the uncapturederror listener ("Invalid CommandBuffer
+from CommandEncoder 'perf-resolve'"). Landed: ONE query set with a
+(begin,end) pair per pass at indices (2i, 2i+1) and a single resolve at
+offset 0 — no padding needed. Also added (not in the draft): only
+passes actually written since the last resolve are reported (blind
+resolves attribute stale timestamps to passes that never ran), and
+resolve() refuses while a read() has the buffer mapped (drop-tolerant
+sampling).
+
+### DG10.2 — the doc never opted the device into timestamp-query
+A GPUQuerySet cannot be created unless `timestamp-query` was requested
+at requestDevice time; the draft built timers against a device that
+could never have the feature. Landed: initGpu requests it iff the live
+adapter advertises it (never `required` — a post-TDR fallback adapter
+may lack it), and the dispatcher gates the timer on `device.features`,
+not the detection-time profile (the profile may describe a different
+adapter than the one initGpu got).
+
+### DG10.3 — back-pressure scales frameBudget, not maxInFlight
+The draft's frame-loop patch clamped planFrame's `maxInFlight` — but in
+the landed scheduler that field is an INPUT count ("jobs already
+running": budget = frameBudget − maxInFlight), so scaling it down would
+have RAISED the dispatch budget under pressure. Landed: the perf cap
+scales the `frameBudget` argument (the actual dispatches-per-frame
+knob), floors at 1, and snaps back to the configured ceiling the moment
+the window is under budget.
+
+### DG10.4 — takeGpuTimings is an optional GpuDispatcher member
+The draft had the loop reach into dispatcher internals for "pendingGpu".
+Landed: `takeGpuTimings?()` on the GpuDispatcher interface — optional so
+G2's mocked dispatchers and CPU-only devices need no stub; the loop
+calls it with `?.` and records one-frame-late timings (async readback;
+invisible to a 120-frame rolling window).
+
+### DG10.5 — hot-path BufferPool patches rejected against the tree
+The draft shipped M1/M5/M6 pooling patches "consolidating G8's sketch"
+— but G8 already rejected pooling by measurement (DG8.4), and the
+patch targets don't exist: kdk.ts has zero Float64Array allocations
+(flat-tuple since M1), src/quadtree/reduce_host.ts is a phantom file
+(reduction finalises on the GPU in reduce.wgsl), and metricsTick is the
+CPU twin, not a production path. Nothing pooled; G8's perf_baseline
+stays the regression gate.
+
 ## G8 — UI shell, CI, performance baselines
 
 Branch `feat/g8-ui-ci-perf`. 513 passed / 7 skipped (+11: viewport_nav,

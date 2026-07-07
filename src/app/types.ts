@@ -3,6 +3,7 @@ import type { ViewState } from '@/interact/view_state.js';
 import type { TileID } from '@/quadtree/types.js';
 import type { TileReduction } from '@/quadtree/reduction_types.js';
 import type { InspectorResult } from '@/inspector/types.js';
+import type { GpuPassTimings } from '@/perf/gpu_timing.js';
 
 /** Per-frame timing/scheduling hooks. Callers fill these from real
  *  hardware (performance.now / requestAnimationFrame); tests fill them
@@ -30,6 +31,11 @@ export interface GpuDispatcher {
 
   /** Run one IC through the inspector pipeline at f64. */
   inspect(view: ViewState, ic: TrajState): Promise<InspectorResult>;
+
+  /** G10: hand over (and clear) the most recently resolved per-pass GPU
+   *  timings. Optional — mocked dispatchers and CPU-only devices omit it.
+   *  Timings are one-frame-late by design (async timestamp readback). */
+  takeGpuTimings?(): GpuPassTimings | undefined;
 }
 
 export interface RenderPlanEntry {
@@ -53,4 +59,8 @@ export interface FrameStats {
   jobsDispatched:  number;
   jobsCompleted:   number;
   cpuMs:           number;
+  // --- G10 additions (absent when timestamp-query is unavailable) ---
+  gpuMs?:          number;          // total GPU ms (sum of resolved passes)
+  gpuPassMs?:      GpuPassTimings;  // per-pass GPU timings, one frame late
+  overBudget?:     boolean;         // rolling window currently over frameBudgetMs
 }
