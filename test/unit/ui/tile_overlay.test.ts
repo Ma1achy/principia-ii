@@ -72,7 +72,9 @@ describe('TileOverlay — CPU quadtree/decode overlay', () => {
   const tile = (z: number, tx: number, ty: number, flags = 0): CachedTile => ({
     id: { z, tx, ty }, simBuffer: null, icBuffer: null,
     lifecycle: 'ready', cacheAge: 0, lastUsed: 0, computeCostMs: 0,
-    reduction: flags ? ({ status_flags: flags } as CachedTile['reduction']) : null,
+    reduction: flags
+      ? ({ status_flags: flags } as NonNullable<CachedTile['reduction']>)
+      : null,
   });
 
   it('mounts an overlay canvas + control and cleans up on dispose', () => {
