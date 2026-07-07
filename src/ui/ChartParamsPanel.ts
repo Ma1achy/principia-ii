@@ -35,6 +35,20 @@ const CHART_FIELDS: Record<string, FieldSpec[]> = {
   burrau_euclid: [
     { key: 'nu', label: 'ν', step: 0.01, dflt: 1 / 3 },
   ],
+  jacobi_position: [
+    { key: 'rhoMin', label: '|ρ| min', step: 0.05, dflt: 0.05 },
+    { key: 'rhoMax', label: '|ρ| max', step: 0.05, dflt: 2 },
+    { key: 'lambdaMin', label: '|λ| min', step: 0.05, dflt: 0.05 },
+    { key: 'lambdaMax', label: '|λ| max', step: 0.05, dflt: 3 },
+    { key: 'rhoAngle', label: 'ρ–λ angle', step: 0.01, dflt: Math.PI / 2 },
+  ],
+  jacobi_momentum: [
+    { key: 'pMax', label: 'p max', step: 0.1, dflt: 2 },
+    { key: 'alpha', label: 'α (frozen)', step: 0.01, dflt: Math.PI / 4 },
+    { key: 'beta', label: 'β (frozen)', step: 0.01, dflt: Math.PI / 2 },
+    { key: 'pRhoAngle', label: 'p_ρ angle', step: 0.01, dflt: Math.PI / 2 },
+    { key: 'pLambdaAngle', label: 'p_λ angle', step: 0.01, dflt: Math.PI / 2 },
+  ],
 };
 
 const AXIS_KIND_LABELS: Record<AxisSpec['kind'], string> = {

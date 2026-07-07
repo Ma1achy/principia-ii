@@ -112,7 +112,9 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
 
   it('selecting the mixed-axis chart mounts the custom-chart axis editor', () => {
     const { root, app } = mount();
-    expect(root.querySelectorAll('#chart option')).toHaveLength(7);
+    expect(root.querySelectorAll('#chart option')).toHaveLength(9);
+    expect(root.querySelector('#chart option[value="jacobi_position"]')).not.toBeNull();
+    expect(root.querySelector('#chart option[value="jacobi_momentum"]')).not.toBeNull();
     app.store.update((v) => ({ ...v, chartType: 'mixed_axis' }));
     // Two axis editors with kind selects + range fields appear.
     expect(root.querySelectorAll('.axis-editor')).toHaveLength(2);

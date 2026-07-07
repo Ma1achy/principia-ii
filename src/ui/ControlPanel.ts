@@ -262,6 +262,8 @@ const CHARTS: readonly { id: string; label: string }[] = [
   { id: 'shape_sphere', label: 'Shape sphere' },
   { id: 'mass_simplex', label: 'Mass simplex' },
   { id: 'burrau_euclid', label: 'Burrau Euclid' },
+  { id: 'jacobi_position', label: 'Jacobi |ρ| × |λ| (position)' },
+  { id: 'jacobi_momentum', label: 'Jacobi p_ρ × p_λ (momentum)' },
   { id: 'mixed_axis', label: 'Mixed axis (custom)' },
 ];
 const INTEGRATORS: readonly { id: IntegratorId; label: string }[] = [

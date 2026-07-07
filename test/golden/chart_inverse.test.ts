@@ -45,11 +45,16 @@ const VIEW_FOR: Record<string, ChartView> = {
   },
   burrau_euclid: { ...base, chartParams: {} },
   mixed_axis: { ...base, chartParams: {} },
+  jacobi_position: { ...base, m: [1 / 3, 1 / 3, 1 / 3], chartParams: {} },
+  jacobi_momentum: { ...base, m: [1 / 3, 1 / 3, 1 / 3], chartParams: {} },
 };
 
 /** Charts with no declared pixel redundancy: the inverse must also recover
  *  the original pixel, not just an equivalent one. */
-const NO_REDUNDANCY = new Set(['latent_slice', 'lz_e', 'lz_k', 'mass_simplex', 'mixed_axis']);
+const NO_REDUNDANCY = new Set([
+  'latent_slice', 'lz_e', 'lz_k', 'mass_simplex', 'mixed_axis',
+  'jacobi_position', 'jacobi_momentum',
+]);
 
 function lcg(seed: number): () => number {
   let s = seed >>> 0;
