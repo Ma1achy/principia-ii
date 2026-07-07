@@ -9,6 +9,45 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G11 — Error handling & telemetry
+
+Branch `feat/g11-error-telemetry`. 573 passed / 8 skipped (+30:
+boundary 26 [gate ≥15], ledger_boundary 4); typecheck + lint clean;
+gpu:check + all four page checks green (reduce.wgsl gained the failure
+roll-up); shell e2e green — and the funnel fired FOR REAL during it: a
+SwiftShader tile at T=20 carried MAX_SUBSTEPS and the boundary printed
+the stack-free catalogue message. Milestone doc rewritten as-built.
+
+### DG11.1 — the doc's failure bits collided with the schema version
+The draft put TILE_STATUS_FAIL at bits 6–8, claiming "M5 owns 0–5" —
+but bits 6–7 carry TILE_REDUCTION_SCHEMA_VERSION (D5.2), which
+decodeTileReduction asserts and STRIPS: SIM_FAILED/MAX_SUBSTEPS would
+have corrupted the version check and then been erased before any
+consumer saw them. Landed at bits 8–10; the boundary suite pins
+non-collision with both TILE_STATUS (0–5) and the version mask (6–7).
+
+### DG11.2 — failure-bit producers grounded in landed signals
+The draft asked the reduce shader to OR bits from per-sample "detail
+bits" that don't exist. Landed producers use what reduce.wgsl already
+gathers: SIM_FAILED = any sample with a suspect E/Lz drift bit
+(descriptor bits 5/6 — NOT broad class 3, which is an expected
+terminal); MAX_SUBSTEPS = any class-4 sample (in landed simulate.wgsl
+the substep stall is the only class-4 producer; horizon completion is
+BOUNDED). TIMEOUT (1<<10) is reserved but producer-less — the kernel
+has no wall clock — and documented as such; it needs a producer before
+it can ever be set. No struct change, no schema bump.
+
+### DG11.3 — tile failures surface from the SUCCESS path
+A dispatch can succeed and still carry failure bits — data, not an
+exception. Landed: JobLedger's completion handler calls
+boundary.capture(undefined, {tileKey, statusFlags}) after ingest when
+hasTileFailure(); the classifier checks the hint first so an undefined
+throwable still yields TileFailure. The boundary rides as an OPTIONAL
+4th JobLedger param (no-op default; G2 3-arg construction unchanged),
+threaded via FrameLoopOpts.boundary/AppOpts.boundary; dev/main.ts
+wires the real one (InMemorySink(500) exposed at
+__principia.telemetry, onUserError → console.warn until G18's HUD).
+
 ## G10 — Performance budgeting & profiling
 
 Branch `feat/g10-perf-monitor`. 543 passed / 8 skipped (+30: stats 8,
