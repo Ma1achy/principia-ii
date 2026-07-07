@@ -1,0 +1,68 @@
+# G15: build the production bundle and publish it to GitHub Pages.
+# Triggers on the INTEGRATION branch — `main` is the untouchable historical
+# PoC (CLAUDE.md branch policy) and must never drive a deploy.
+name: deploy
+on:
+  push:
+    branches: [webgpu-rewrite]
+  workflow_dispatch:
+
+# Pages deploy needs these scoped permissions.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; cancel an in-flight one on a newer push.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # Pre-publish guard: the same unit gate G8's ci.yml enforces (lint →
+  # typecheck → test). A red unit suite must never publish. (G8 owns the
+  # canonical job; `needs:` cannot reach across workflows, so this mirrors it.)
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --run test/unit
+
+  build:
+    needs: guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Production build (content-hashed, compressed, base=/principia-ii/)
+        env:
+          VITE_BASE: /principia-ii/
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_ENABLE_SW: '0'          # offline SW stays opt-in even on Pages
+        run: npm run build:web
+      - name: SPA fallback (Pages serves 404.html for deep links)
+        run: cp dist-web/index.html dist-web/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-web
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
