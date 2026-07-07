@@ -56,7 +56,11 @@ test('frame-loop perf does not regress vs baseline', async ({ page }) => {
   // 2× ceiling: the reference "runner" is a dev laptop whose convergence-window
   // GPU p95 jitters ±50% run-to-run. Still catches the 3× disasters this gate
   // exists for; tighten toward the checkPerf default (+25%) on a dedicated
-  // self-hosted runner.
-  const result = checkPerf(snapshot, baseline, { allowedRegression: 1.0 });
+  // self-hosted runner. noiseFloorMs 0.5: sub-ms passes (reduce 0.02ms,
+  // reduce_spreads 0.02ms, render 0.42ms) flake on pure scheduling jitter —
+  // seen live at 0.236ms/11.8× (DG15.7) — while any real blow-up clears
+  // half a millisecond easily.
+  const result = checkPerf(snapshot, baseline,
+    { allowedRegression: 1.0, noiseFloorMs: 0.5 });
   expect(result.passed, JSON.stringify(result.regressions)).toBe(true);
 });
