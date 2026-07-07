@@ -22,7 +22,7 @@ export interface TelemetrySink {
 /** Default sink: discards everything (a build with no observability
  *  stack is silent and zero-cost). */
 export class NoopSink implements TelemetrySink {
-  emit(_record: TelemetryRecord): void { /* intentionally empty */ }
+  emit(): void { /* intentionally empty */ }
 }
 
 /** Buffers records in memory (diagnostics panel, tests). */

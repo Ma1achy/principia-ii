@@ -9,6 +9,56 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G12 — UI/UX shell (full)
+
+Branch `feat/g12-ui-shell-full`. 605 passed / 8 skipped (+32: shell 25
+[gate ≥15], shell_dom 7); typecheck + lint clean; gpu:check + all four
+page checks green; e2e shell spec green headless (~2.2 min) and headed
+on Metal (~6 s) with the full shell mounted — screenshot (render-only
+controls + live G11 error overlay) sent to the user. Milestone doc
+rewritten as-built.
+
+### DG12.1 — gesture-gate history coalescing, not a store bypass
+The draft added `panTransient` to InputHandlers — a second write path
+around the Store whose updates the history funnel must somehow not see.
+Landed: a `GestureGate` (begin at pointerdown, end at pointerup) owned
+by the same mountUI code that owns the funnel: while suspended, view
+updates replace history.present without pushing; at end the funnel
+rewinds to the gesture anchor and pushes the final view ONCE. A long
+drag = one undo entry; click-lock coalesces identically; no
+Store/InputHandlers semantics change.
+
+### DG12.2 — zoom keys are viewport zoom; uvHalfWidth is undoable
+The draft wired '='/'-' to input.zoom — mag (slice recompute, cache
+discard) — while the wheel and Zoom buttons do cache-preserving
+viewport zoom (DG8.2). Landed: zoomIn/zoomOut dispatch zoomViewport
+(0.5/2 about the window centre); mag stays an explicit panel control.
+Also: the draft's isComputeChange omitted uvHalfWidth, so a centre
+zoom (which changes only the half-width) would not have been undoable
+— added alongside uvCentre.
+
+### DG12.3 — ShellDeps slimmed; no double-packing of RenderParams
+mountUI's deps are all optional (the G8-era 3-arg call keeps working in
+tests/embeds); ledger + perf are read off app.loop instead of being
+injected. RenderParamsStore does NOT pack — its onRebind hands the
+params to the dispatcher's setRenderParams, which owns M7's 64-byte
+packing (the draft packed in the store AND the dispatcher).
+
+### DG12.4 — ErrorBoundary.addUserErrorListener (no private-hooks cast)
+The draft's Chrome assigned into the boundary's private hooks field via
+an unknown-cast. Landed: a public addUserErrorListener() multi-listener
+API on ErrorBoundary (G11 constructor hook untouched); Chrome registers
+as a secondary listener and unsubscribes on unmount. Warnings/errors
+render via textContent, never innerHTML.
+
+### DG12.5 — bind/bindInput generalised to Subscribable<V>
+The draft cast RenderParamsStore `as any` into the Store-typed bind.
+Landed: reactive.ts is generic over Subscribable<V> (subscribe +
+update); both stores bind with no casts and zero call-site changes.
+Also fixed here: a lint error (NoopSink unused param) masked since G11
+by `| tail` swallowing eslint's exit code — verification pipelines now
+run lint unpiped.
+
 ## G11 — Error handling & telemetry
 
 Branch `feat/g11-error-telemetry`. 573 passed / 8 skipped (+30:

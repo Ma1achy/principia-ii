@@ -1,7 +1,84 @@
 import type { App } from '@/app/app.js';
 import type { QualityTier } from '@/interact/view_state.js';
+import type { ColourMode, CvdMode, PaletteId } from '@/render/types.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
+import type { RenderParamsStore } from './render_params.js';
+
+/** Render-only selectors (G12): a curated slice of M7's mode space. Bound
+ *  to the RenderParamsStore, NEVER the view Store — a palette/mode/CVD
+ *  change rebinds group 3 only (no recompute, no history entry). */
+const COLOUR_MODES: readonly { id: ColourMode; label: string }[] = [
+  { id: 'event_class', label: 'Event class' },
+  { id: 'energy', label: 'Energy' },
+  { id: 'ang_momentum', label: 'Angular momentum' },
+  { id: 'escape_time', label: 'Escape time' },
+  { id: 'min_pair_dist', label: 'Min pair distance' },
+  { id: 'shape_sphere_vmf', label: 'Shape sphere (vMF)' },
+  { id: 'stability_x_hue', label: 'Stability × hue' },
+];
+const PALETTES: readonly PaletteId[] = [
+  'viridis', 'cividis', 'plasma', 'magma', 'inferno',
+  'twilight', 'cool_warm', 'principia', 'cubehelix',
+];
+const CVD_MODES: readonly { id: CvdMode; label: string }[] = [
+  { id: 'none', label: 'None' },
+  { id: 'protan', label: 'Protanopia' },
+  { id: 'deutan', label: 'Deuteranopia' },
+  { id: 'tritan', label: 'Tritanopia' },
+  { id: 'achrom', label: 'Achromatopsia' },
+];
+
+/** Mount ONLY the render-only controls (called by mountControlPanel when a
+ *  RenderParamsStore is supplied). */
+export function mountRenderControls(
+  root: HTMLElement, render: RenderParamsStore,
+): () => void {
+  const section = document.createElement('div');
+  section.className = 'panel render-controls';
+  section.innerHTML = `
+    <h3>Render (no recompute)</h3>
+    <div class="row">
+      <label>Colour mode</label>
+      <select id="colourMode">
+        ${COLOUR_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row">
+      <label>Palette</label>
+      <select id="palette">
+        ${PALETTES.map((p) => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row">
+      <label>CVD sim</label>
+      <select id="cvd">
+        ${CVD_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
+      </select>
+    </div>
+  `;
+  root.appendChild(section);
+
+  const offs: (() => void)[] = [];
+
+  const colour = section.querySelector<HTMLSelectElement>('#colourMode')!;
+  offs.push(bind(colour, render, (el, p) => { el.value = p.colourMode; }));
+  colour.addEventListener('change', () =>
+    render.update(p => ({ ...p, colourMode: colour.value as ColourMode })));
+
+  const palette = section.querySelector<HTMLSelectElement>('#palette')!;
+  offs.push(bind(palette, render, (el, p) => { el.value = p.palette; }));
+  palette.addEventListener('change', () =>
+    render.update(p => ({ ...p, palette: palette.value as PaletteId })));
+
+  const cvd = section.querySelector<HTMLSelectElement>('#cvd')!;
+  offs.push(bind(cvd, render, (el, p) => { el.value = p.cvdMode; }));
+  cvd.addEventListener('change', () =>
+    render.update(p => ({ ...p, cvdMode: cvd.value as CvdMode })));
+
+  offs.push(() => section.remove());
+  return () => offs.forEach(off => off());
+}
 
 const CHARTS: readonly { id: string; label: string }[] = [
   { id: 'latent_slice', label: 'Latent slice' },
@@ -12,7 +89,9 @@ const CHARTS: readonly { id: string; label: string }[] = [
   { id: 'burrau_euclid', label: 'Burrau Euclid' },
 ];
 
-export function mountControlPanel(root: HTMLElement, app: App): () => void {
+export function mountControlPanel(
+  root: HTMLElement, app: App, render?: RenderParamsStore,
+): () => void {
   root.innerHTML = `
     <div class="panel">
       <h3>View</h3>
@@ -115,6 +194,9 @@ export function mountControlPanel(root: HTMLElement, app: App): () => void {
   quality.addEventListener('change', () => {
     app.store.update((v) => ({ ...v, qualityTier: quality.value as QualityTier }));
   });
+
+  // Render-only section (G12): group-3 rebind, never the view store.
+  if (render) offs.push(mountRenderControls(root, render));
 
   return () => offs.forEach((off) => off());
 }
