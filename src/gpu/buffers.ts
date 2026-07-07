@@ -171,11 +171,13 @@ export function createTileWindowBuffer(ctx: { device: GPUDevice }): GPUBuffer {
 /**
  * group(3) stays separate so palette / CVD-mode swaps rebind ONLY this
  * group (M7's 64-byte rebind contract) — never the per-tile or frame groups.
- * G8 adds the TileWindow at binding 1 (per-draw screen rect + UV window).
+ * G8 adds the TileWindow at binding 1 (per-draw screen rect + UV window);
+ * Stage 3 adds the EventPalette at binding 2 (customisable event colours,
+ * still render-only).
  */
 export function createRenderParamsBindGroup(
   ctx: { device: GPUDevice }, layouts: PipelineLayouts, paramsBuffer: GPUBuffer,
-  windowBuffer: GPUBuffer,
+  windowBuffer: GPUBuffer, eventPaletteBuffer: GPUBuffer,
 ): GPUBindGroup {
   return ctx.device.createBindGroup({
     label: 'principia.bg.renderParams',
@@ -183,6 +185,7 @@ export function createRenderParamsBindGroup(
     entries: [
       { binding: 0, resource: { buffer: paramsBuffer } },
       { binding: 1, resource: { buffer: windowBuffer } },
+      { binding: 2, resource: { buffer: eventPaletteBuffer } },
     ],
   });
 }

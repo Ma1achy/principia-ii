@@ -27,7 +27,7 @@ import { jitterOffsets, ENSEMBLE_E_MAX } from '@/quadtree/ensemble_jitter.js';
 import { shouldLineariseAtDepth } from '@/quadtree/decode_mode.js';
 import { buildLinearised } from '@/decode/linearised.js';
 import { buildRenderGraph, type RenderGraph } from '@/render/pipeline.js';
-import { packRenderParams } from '@/render/params.js';
+import { packRenderParams, packEventPalette } from '@/render/params.js';
 import { DEFAULT_RENDER_PARAMS, type RenderParams } from '@/render/types.js';
 import { getChart } from '@/chart_atlas/index.js';
 import type { ChartView } from '@/chart_atlas/types.js';
@@ -208,6 +208,7 @@ export async function makeRealDispatcher(
         entries: [
           { binding: 0, resource: { buffer: graph.paramsBuffer } },
           { binding: 1, resource: { buffer: buf } },
+          { binding: 2, resource: { buffer: graph.eventPaletteBuffer } },
         ],
       });
       windowPool.push({ buf, bg });
@@ -474,6 +475,7 @@ export async function makeRealDispatcher(
 
     setRenderParams(p: RenderParams): void {
       device.queue.writeBuffer(graph.paramsBuffer, 0, packRenderParams(p));
+      device.queue.writeBuffer(graph.eventPaletteBuffer, 0, packEventPalette(p));
     },
 
     lastDispatch(): LastDispatch | null {

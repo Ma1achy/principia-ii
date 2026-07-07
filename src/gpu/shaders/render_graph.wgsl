@@ -6,7 +6,7 @@
 // and src/gpu/structs.ts.
 
 // @import { PI, linear_to_srgb }                       from "./render_helpers.wgsl"
-// @import { colour_event_class, palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
+// @import { palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
 // @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift } from "./brightness_modes.wgsl"
 // @import { combine_replace_lightness, combine_modulate_lightness, combine_multiply_rgb } from "./combiner.wgsl"
 // @import { apply_cvd }                                from "./cvd.wgsl"
@@ -107,6 +107,32 @@ struct TileWindow {
 };
 @group(3) @binding(1) var<uniform> window : TileWindow;
 
+// Event-classification colours (linear sRGB), user-customisable. Entry order
+// mirrors EVENT_CLASS_KEYS: bounded, collision 0-1/0-2/1-2, escape body
+// 0/1/2, degenerate, timeout; slot 9 reserved. Three-place rule: this struct
+// + packEventPalette (src/render/params.ts) + the pin in
+// event_palette.test.ts change together.
+struct EventPalette {
+  entries: array<vec4<f32>, 10>,
+};
+@group(3) @binding(2) var<uniform> event_palette : EventPalette;
+
+// Palette lookup keyed off the sample_descriptor's class + detail bits.
+// Collision pairs and escape bodies get DISTINCT colours (the pair/body is
+// already in the detail bits; the old fixed palette collapsed all collisions
+// to one red).
+fn event_colour(cls: u32, detail: u32) -> vec3<f32> {
+  var idx: u32;
+  switch (cls) {
+    case 0u: { idx = 0u; }                        // bounded
+    case 1u: { idx = 1u + min(detail, 2u); }      // collision pair 0-1/0-2/1-2
+    case 2u: { idx = 4u + min(detail, 2u); }      // escape body 0/1/2
+    case 3u: { idx = 7u; }                        // degenerate
+    default: { idx = 8u; }                        // timeout / max-substeps
+  }
+  return event_palette.entries[idx].rgb;
+}
+
 struct VSOut {
   @builtin(position) pos: vec4<f32>,
   @location(0)       uv:  vec2<f32>,   // tile-local UV (v down)
@@ -189,7 +215,7 @@ fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
   let n_last = r.n_checkpoints[7].xyz;     // M=8
 
   switch (rparams.colour_mode_id) {
-    case 0u:  { rgb = colour_event_class(cls, detail); }
+    case 0u:  { rgb = event_colour(cls, detail); }
     case 1u:  { rgb = palette_div_symlog(ic.K_0 + ic.V_0, 1e-3); }
     case 2u:  { rgb = palette_div_symlog(r.Lz_0,           1e-3); }
     case 3u:  { rgb = palette_seq(ic.K_0 / 4.0); }

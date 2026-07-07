@@ -1,8 +1,10 @@
 import type { App } from '@/app/app.js';
 import type { IntegratorId, QualityTier, ViewState } from '@/interact/view_state.js';
 import type {
-  BrightnessMode, ColourMode, CombinerMode, CvdMode, PaletteId,
+  BrightnessMode, ColourMode, CombinerMode, CvdMode, EventClassKey, PaletteId,
 } from '@/render/types.js';
+import { DEFAULT_EVENT_PALETTE, EVENT_CLASS_KEYS } from '@/render/types.js';
+import { linearToSrgb, srgbToLinear } from '@/render/oklab.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
@@ -56,6 +58,27 @@ const PALETTES: readonly PaletteId[] = [
   'viridis', 'cividis', 'plasma', 'magma', 'inferno',
   'twilight', 'cool_warm', 'principia', 'cubehelix',
 ];
+const EVENT_CLASS_LABELS: Record<EventClassKey, string> = {
+  bounded: 'Bounded', timeout: 'Timeout', degenerate: 'Degenerate',
+  collision01: 'Collision 1–2', collision02: 'Collision 1–3', collision12: 'Collision 2–3',
+  escape0: 'Escape body 1', escape1: 'Escape body 2', escape2: 'Escape body 3',
+};
+
+/** Linear-sRGB triple ↔ `<input type=color>` hex (which is gamma sRGB). */
+function linearToHex(rgb: readonly [number, number, number]): string {
+  const h = (c: number): string =>
+    Math.round(Math.min(Math.max(linearToSrgb(c), 0), 1) * 255)
+      .toString(16).padStart(2, '0');
+  return `#${h(rgb[0])}${h(rgb[1])}${h(rgb[2])}`;
+}
+function hexToLinear(hex: string): readonly [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [
+    srgbToLinear(((n >> 16) & 0xff) / 255),
+    srgbToLinear(((n >> 8) & 0xff) / 255),
+    srgbToLinear((n & 0xff) / 255),
+  ];
+}
 
 /** Mount ONLY the render-only controls (called by mountControlPanel when a
  *  RenderParamsStore is supplied). Every knob here is a group-3 rebind. */
@@ -128,6 +151,16 @@ export function mountRenderControls(
         ${DEBUG_MODES.map((m) => `<option value="${m.mode}">${m.label}</option>`).join('')}
       </select>
     </div>
+    <details class="panel event-colours">
+      <summary><h3>Event colours</h3></summary>
+      ${EVENT_CLASS_KEYS.map((k) => `
+        <div class="row">
+          <label for="ec_${k}">${EVENT_CLASS_LABELS[k]}</label>
+          <input type="color" id="ec_${k}">
+        </div>
+      `).join('')}
+      <div class="row"><button id="ecReset" type="button">Reset to defaults</button></div>
+    </details>
   `;
   root.appendChild(section);
 
@@ -197,6 +230,21 @@ export function mountRenderControls(
   offs.push(bind(dbg, render, (el, p) => { el.value = String(p.debugMode); }));
   dbg.addEventListener('change', () =>
     render.update((p) => ({ ...p, debugMode: Number(dbg.value) })));
+
+  // Event-classification colours (render-only): per-class pickers over the
+  // EventPalette uniform. Pickers speak gamma-sRGB hex; the store holds
+  // linear sRGB (the render graph gamma-encodes at the very end).
+  for (const key of EVENT_CLASS_KEYS) {
+    const el = q<HTMLInputElement>(`#ec_${key}`);
+    offs.push(bind(el, render, (e, p) => {
+      if (e.ownerDocument.activeElement !== e) e.value = linearToHex(p.eventPalette[key]);
+    }));
+    el.addEventListener('input', () => render.update((p) => ({
+      ...p, eventPalette: { ...p.eventPalette, [key]: hexToLinear(el.value) },
+    })));
+  }
+  q<HTMLButtonElement>('#ecReset').addEventListener('click', () =>
+    render.update((p) => ({ ...p, eventPalette: DEFAULT_EVENT_PALETTE })));
 
   offs.push(() => section.remove());
   return () => offs.forEach((off) => off());
