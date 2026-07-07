@@ -64,6 +64,23 @@ export function chartUniformsLayout(): StructLayout {
   };
 }
 
+/** LinearisedRef layout — mirrors packLinearisedUniforms (256 bytes, G6).
+ *  Every member is a vec4<f32>, so offsets are index × 16 with no implicit
+ *  padding; the WGSL struct lives in decode_linear.wgsl. */
+export function linearisedRefLayout(): StructLayout {
+  const names = [
+    'r0r1', 'r2_pad', 'p0p1', 'p2_pad', 'm_h', 'half_v_pad',
+    'Jr_b0', 'Jr_b1', 'Jr_b2', 'Jp_b0', 'Jp_b1', 'Jp_b2',
+    'Jm_01', 'Jm_2', 'reserved0', 'reserved1',
+  ];
+  return {
+    struct: 'LinearisedRef',
+    totalSize: 256,
+    fields: names.map((name, i) =>
+      ({ name, offset: i * 16, size: 16, wgslType: 'vec4<f32>' })),
+  };
+}
+
 /**
  * SimResult layout at the given M. Field order/offsets mirror the decode in
  * readback.ts decodeBuffer: M vec4 checkpoints, one vec4<u32> free-group word,
@@ -105,5 +122,6 @@ export function formatLayout(layout: StructLayout): string {
 export function dumpStructLayouts(M = M_DEFAULT, sink: (s: string) => void = console.log): void {
   sink(formatLayout(simUniformsLayout()));
   sink(formatLayout(chartUniformsLayout()));
+  sink(formatLayout(linearisedRefLayout()));
   sink(formatLayout(simResultLayout(M)));
 }

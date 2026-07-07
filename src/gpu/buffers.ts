@@ -2,6 +2,7 @@ import type { GpuContext } from './init.js';
 import { sizeOfSimResult, sizeOfICDescriptor, sizeOfTileReduction } from './structs.js';
 import type { PipelineLayouts } from './layouts.js';
 import { CHART_UNIFORMS_SIZE } from './layouts.js';
+import { LINEARISED_UNIFORMS_SIZE } from './linearised_uniforms.js';
 
 export interface TileBuffers {
   uniforms:    GPUBuffer;
@@ -11,6 +12,7 @@ export interface TileBuffers {
   readback:    GPUBuffer;       // optional, M=8 size for one tile
   debug:       GPUBuffer;       // G17 DebugUniform (16B); zero-filled = mode 0 (M3 colouring)
   chart:       GPUBuffer;       // G4 ChartUniforms slot (64B); zero-filled until G4 packs it
+  linearised:  GPUBuffer;       // G6 LinearisedRef (256B); zero-filled — only read when the flag is set
   reduction:   GPUBuffer;       // G3: canonical TileReduction output (one home; M5 writes, render binds)
   N:           number;
   M:           number;
@@ -46,13 +48,17 @@ export function createTileBuffers(
     size: CHART_UNIFORMS_SIZE,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
+  const linearised = device.createBuffer({
+    size: LINEARISED_UNIFORMS_SIZE,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+
   const reduction  = device.createBuffer({
     size: sizeOfTileReduction(M),
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
 
   return {
     uniforms, tileReq, simResults, icDesc, readback,
-    debug, chart, reduction, N, M,
+    debug, chart, linearised, reduction, N, M,
   };
 }
 
@@ -89,6 +95,7 @@ export function createTileBindGroups(
       { binding: 1, resource: { buffer: bufs.tileReq } },
       { binding: 2, resource: { buffer: bufs.debug } },     // G17
       { binding: 3, resource: { buffer: bufs.chart } },     // G4 slot
+      { binding: 4, resource: { buffer: bufs.linearised } },// G6 slot
     ],
   });
   const perTile = ctx.device.createBindGroup({

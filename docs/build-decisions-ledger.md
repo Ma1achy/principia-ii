@@ -9,6 +9,73 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G6 — Linearised decoder for deep zoom
+
+Branch `feat/g6-linearised-decoder`. Acceptance gate
+(`npm test -- --run test/golden/linearised_decoder`) green; 450 passed
+/ 3 skipped; typecheck + lint + build clean. Real-GPU proof: gpu:check
+ok with gpuDisagree = 95 unchanged (flag=0 path behaviour-identical)
+AND a new G6 A/B gate — a flag-selected decode_linear dispatch agrees
+with the CPU f64 twin at max |ΔE₀| = 4.1e-8 (gate 1e-2) — plus
+g17/m5/m7/depth-stress page checks all passing.
+
+### DG6.1 — the doc's apply/build pair had a factor-2 convention bug
+The doc built J as ∂D/∂(tile uv) (central differences over uv offsets)
+but applied it with δ = 2t − 1, which spans ±1 — HALF-TILE units. Its
+own affine round-trip test fails against its own listing (corners land
+2× too far from the centre). Landed convention: J is stored in δ-units
+(J_uv / 2 — the spec's chart-space J_D·h at tile scale), and both
+applyLinearised and the WGSL decode_linear use x = x0 + J·(2t − 1)
+verbatim. The affine corner test now pins the convention end to end.
+
+### DG6.2 — FD step 0.25 tile-local, not the doc's 1e-6 (+ Richardson)
+The doc's fdStep = 1e-6 reads as a chart-scale habit, but buildLinearised
+differentiates a TILE-LOCAL closure: at depth 30 a 1e-6 tile-local step
+probes a ~1e-15-wide physical interval and the f64 quotient on O(1)
+decode outputs is ~10% cancellation noise — the golden's 1e-13 gate
+fails by ~5 orders. Landed: FD_STEP_DEFAULT = 0.25 (probes inside the
+tile, where smoothness is guaranteed by the tile being tiny) with
+Richardson extrapolation (4·C(h/2) − C(h))/3 for O(h⁴) truncation.
+
+### DG6.3 — smoothness check: two scales, with a rounding-noise floor
+The doc's notes call for a forward-vs-backward-difference bail but the
+listing omitted it, and a single-scale comparison cannot distinguish a
+smooth extremum (J ≈ 0, fwd ≈ −bwd) from a genuine kink — it rejected
+the doc's own smooth sin/cos test decoder. Landed: asymmetry measured
+at h and h/2; smooth asymmetry (h·|D''|) halves, kink asymmetry is
+scale-constant → flag when the half-step asymmetry retains > 0.75 of
+the full-step one. The floor is 1e-12·max(1, lane scale)/h — scaled to
+f64 rounding on the LANE VALUES, not the Jacobian, because at deep zoom
+the true differences approach rounding noise and a derivative-scaled
+floor false-positives every deep tile (found by the depth-30 golden).
+
+### DG6.4 — doc's packer contradicted its own WGSL struct
+The doc's packLinearisedUniforms padded each r_i/p_i to its own vec4
+(r1 at f[4]) while its WGSL LinearisedRef packed pairs tightly (r0r1 =
+r0.x, r0.y, r1.x, r1.y → r1 at f[2]); the struct also summed to 224 B
+against the packer's 256. Same defect class as DG4.1. Landed: the tight
+16-vec4 256 B layout with two reserved lanes, pinned three ways — packer
+lane test, WGSL field-order pin against struct_dump's new
+linearisedRefLayout(), and the real-GPU A/B in gpu_check (a lane swap
+produces O(1) E₀ garbage there).
+
+### DG6.5 — totality, guards, and homes beyond the doc
+(a) decode_linear takes r_coll and applies decode_full's no-holes guard
+(doc set terminal = 0 unconditionally; every pixel gets a label on this
+path too). (b) descriptorFromState null-stub replaced by the one
+makeDescriptor (D10.1). (c) The packer lives at src/gpu/
+linearised_uniforms.ts beside chart_uniforms.ts — GPU byte layout is a
+gpu/ concern (doc had it in src/decode/). (d) TILE_REQUEST_FLAGS in
+structs.ts is a new REQUEST-flag namespace, deliberately separate from
+quadtree TILE_STATUS (whose own DECODE_LINEAR bit is the tile REPORTING
+its decode mode); the WGSL twin constant is source-pinned. (e)
+dispatchLayer0 throws on flag-without-reference — a zero LinearisedRef
+decodes every sample to the origin with zero masses, silently. (f) The
+LinearisedRef binding is g0b4 compute-only; buffers stay zero-filled
+when unused, so every pre-G6 dispatch is bit-identical (gpuDisagree 95).
+
+---
+
 ## G5 — Closed-form chart inverses
 
 Branch `feat/g5-inverses`. Acceptance gate

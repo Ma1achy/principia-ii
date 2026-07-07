@@ -22,7 +22,7 @@ const shaderDir = path.join(here, '../../src/gpu/shaders');
 const RENDER = readFileSync(path.join(shaderDir, 'render_layer0.wgsl'), 'utf-8');
 const SIM_SOURCES = Object.fromEntries(
   ['helpers.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
-   'decode.wgsl', 'simulate.wgsl']
+   'decode.wgsl', 'decode_linear.wgsl', 'simulate.wgsl']
     .map((f) => [f, readFileSync(path.join(shaderDir, f), 'utf-8')]));
 
 // G1: linked by wgslLink (replaces the M3 stub concatShaders()).
