@@ -9,6 +9,45 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## Fix — overlay noise + comically low resolution (user report)
+
+Branch `fix/overlay-noise-and-resolution`. User: the "needed more substeps"
+red box permanently over the canvas is annoying (fine in a debug GUI), and
+the resolution is comically low. 685 unit tests, typecheck + unpiped lint,
+gpu:check + all four page checks, headless test:gpu, and the full
+PW_REAL_GPU=1 headed run (10/10) all green.
+
+### F.1 — TileFailure no longer notifies the shell overlay
+`ErrorBoundary.capture` now skips `onUserError` + listeners for
+`AppErrorKind.TileFailure`. On fractal regions MAX_SUBSTEPS fires on most
+tiles, so the G12 error overlay was pinned over the canvas permanently.
+Tile failures remain per-tile diagnostics: still logged to telemetry at
+Warn, still rendered by the G18 dev HUD's errors tab. All other kinds
+(Unsupported, DeviceLost, Decode, Generic) surface exactly as before.
+
+### F.2 — the real resolution ceiling was N_STAGING, not the tier table
+`simUniformsOf` clamps `samples_per_axis` to the dispatcher's staging
+capacity: `Math.min(view.samplesPerAxis, N_STAGING)`. With N_STAGING=32,
+every view was silently capped at 32×32 per tile regardless of tier.
+Raised N_STAGING to 64 (staging + readback ≈ 27 MiB shared, allocated
+once; N=64 proven through simulate+reduce by the depth-stress harness)
+and the research tier's `samplesPerTileAxis` 32 → 64. Verified live at
+true defaults: tier research, N=64, visibly finer fractal detail. The
+long-term fix for arbitrary zoom remains live quadtree depth refinement
+(M5 scheduler wiring — deferred backlog).
+
+### F.3 — goldens regenerated: old ones had the error overlay baked in
+After the fix, all 7 visual goldens failed at the identical
+diffRatio≈0.0250 in every colour mode. Root-caused before regenerating:
+the diff masks are blank except one bottom-left rectangle — the error
+overlay box. Playwright element screenshots capture overlapping DOM, so
+the G14 goldens (captured while the overlay was pinned) had HTML chrome
+contaminating the canvas comparison; the GPU pixels are unchanged (the
+spec pins ?n=16, and simulate/reduce/render_graph all bound their loops
+on `uniforms.samples_per_axis`, not staging capacity). Regenerated via
+the documented PW_UPDATE_GOLDENS flow; perf baseline untouched (dispatch
+shape at n=16 unchanged — gate passed as-is).
+
 ## G14 — Real-GPU e2e & regression CI
 
 Branch `feat/g14-regression-ci`. 685 passed / 8 skipped (+23: image_diff

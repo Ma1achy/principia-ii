@@ -35,8 +35,11 @@ import {
   MU_MAX_DEFAULT, ALPHA_MIN_DEFAULT, Q_MAX_DEFAULT, EPS_DEADBAND,
 } from '@/math/constants.js';
 
-/** Staging capacity: the richest tier's caps (G9). */
-const N_STAGING = 32;
+/** Staging capacity: the richest tier's caps (G9). N=64 is the research
+ *  tier's per-tile resolution (proven through sim+reduce by the depth-stress
+ *  harness's N=64 smoke); the staging + readback pair costs
+ *  2 × 208B × 64² × E_MAX ≈ 27 MiB — shared, allocated once. */
+const N_STAGING = 64;
 const M_STAGING = 8;          // SimResult carries 8 checkpoint lanes (fixed)
 const RETAINED_TILE_CAP = 512;
 
