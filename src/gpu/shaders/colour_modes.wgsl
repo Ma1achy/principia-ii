@@ -7,6 +7,24 @@
 // colours here collapsed collision pairs and diverged from the historical
 // classifier on `main`.)
 
+// Free-group word colouring (spec §free_group "render-by-word"): reduced
+// words are categorical — hash the packed symbols into a hue (nearby pixels
+// with the same word render identically; different words jump hue), and let
+// the word LENGTH set lightness (long words = deep scattering = bright).
+// @export
+fn colour_free_group_word(word: vec4<u32>, chroma: f32) -> vec3<f32> {
+  let len = (word.w >> 26u) & 0x3fu;
+  if (len == 0u) { return vec3<f32>(0.02, 0.02, 0.025); }   // empty word
+  var h: u32 = word.x;
+  h = h ^ (word.y * 2654435761u);
+  h = h ^ (word.z * 2246822519u);
+  h = h ^ ((word.w & 0x03ffffffu) * 3266489917u);
+  h = h ^ (h >> 15u);
+  let hue = 2.0 * PI * (f32(h & 0xfffu) / 4096.0);
+  let L = 0.35 + 0.45 * min(f32(len) / 32.0, 1.0);
+  return oklab_to_linear_rgb(vec3<f32>(L, chroma * cos(hue), chroma * sin(hue)));
+}
+
 // @export
 fn palette_seq(t: f32) -> vec3<f32> {
   // Inline 5-stop viridis sample. Production reads from a 1D texture.

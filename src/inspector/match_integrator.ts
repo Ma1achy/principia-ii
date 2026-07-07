@@ -48,6 +48,7 @@ export function inspectorMatch(
     deltaEMax: result.diagnostics.energyDriftAbsMax,
     ftle: 0,
     freeGroupWord: '',
+    diffusion: -1,   // the match integrator skips derived metrics
     ic: { m: s0.m, r: s0.r, p: s0.p },
     nSteps: trace.length, nReject: 0,
     cpuMs: performance.now() - t0,

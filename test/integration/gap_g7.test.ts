@@ -24,7 +24,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const shaderDir = path.join(here, '../../src/gpu/shaders');
 const S = (f: string): string => readFileSync(path.join(shaderDir, f), 'utf-8');
 const sources = Object.fromEntries(
-  ['helpers.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
+  ['helpers.wgsl', 'free_group.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
    'decode.wgsl', 'decode_linear.wgsl', 'simulate.wgsl'].map((f) => [f, S(f)]));
 const SIMULATE = wgslLink({ entryPath: 'simulate.wgsl', sources }).module;
 const RENDER = S('render_layer0.wgsl');

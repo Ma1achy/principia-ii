@@ -117,7 +117,7 @@ describe('errorOverlayVM: telemetry rows + tile-failure roll-up', () => {
 describe('validationVM: M9 validation slot', () => {
   const base = (over: Partial<InspectorResult> = {}): InspectorResult => ({
     t: [], r: [], p: [], nShape: [], energy: [], lz: [],
-    outcome: 'bounded', tEnd: 5, dMin: 0.1, deltaEMax: 0, ftle: 0,
+    outcome: 'bounded', tEnd: 5, dMin: 0.1, deltaEMax: 0, ftle: 0, diffusion: -1,
     freeGroupWord: '', ic: { m: [1, 1, 1] as any, r: [] as any, p: [] as any },
     nSteps: 0, nReject: 0, cpuMs: 0,
     ...over,

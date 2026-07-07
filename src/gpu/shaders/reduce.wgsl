@@ -121,6 +121,7 @@ var<workgroup> shared_diff:      array<f32, 64>;
 var<workgroup> shared_diff_n:    array<f32, 64>;
 var<workgroup> shared_ftle:      array<f32, 64>;
 var<workgroup> shared_ftle_n:    array<f32, 64>;
+var<workgroup> shared_wlen:      array<f32, 64>;
 var<workgroup> shared_ckpt:      array<array<vec4<f32>, 8>, 64>;   // G7
 var<workgroup> shared_class_hist: array<atomic<u32>, 5>;
 var<workgroup> shared_suspect_e: array<atomic<u32>, 1>;
@@ -174,6 +175,7 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   var diff_count: f32 = 0.0;
   var ftle_sum:  f32 = 0.0;
   var ftle_count: f32 = 0.0;
+  var wlen_sum:  f32 = 0.0;
   var ckpt_sum: array<vec4<f32>, 8>;          // G7: checkpoint means
   for (var m = 0u; m < 8u; m = m + 1u) { ckpt_sum[m] = vec4<f32>(0.0); }
 
@@ -196,6 +198,7 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
       ftle_sum   = ftle_sum + r.ftle;
       ftle_count = ftle_count + 1.0;
     }
+    wlen_sum = wlen_sum + f32((r.free_group_word.w >> 26u) & 0x3fu);
 
     let cls = r.sample_descriptor & 0x7u;
     if (cls < 5u) {
@@ -220,6 +223,7 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   shared_diff_n[lane] = diff_count;
   shared_ftle[lane]   = ftle_sum;
   shared_ftle_n[lane] = ftle_count;
+  shared_wlen[lane]   = wlen_sum;
   for (var m = 0u; m < 8u; m = m + 1u) { shared_ckpt[lane][m] = ckpt_sum[m]; }
   workgroupBarrier();
 
@@ -241,6 +245,7 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   let sumDiffN = parallel_sum(&shared_diff_n, lane);
   let sumFtle  = parallel_sum(&shared_ftle,   lane);
   let sumFtleN = parallel_sum(&shared_ftle_n, lane);
+  let sumWlen  = parallel_sum(&shared_wlen,   lane);
 
   if (lane == 0u) {
     let n = f32(total);
@@ -295,8 +300,9 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     out.spread_energy_drift   = 0.0;
     out.spread_diffusion      = 0.0;
 
-    // Free-group / trajectory fields are M6 producers.
-    out.mean_word_length   = 0.0;
+    out.mean_word_length   = sumWlen / n;
+    // Spread filled by the second pass; agreement/dominant-hash need a
+    // cross-lane vote — still open (they read 0 until then).
     out.spread_word_length = 0.0;
     out.word_agreement     = 0.0;
     out.dominant_word_hash = 0u;
@@ -356,6 +362,7 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
   var diff_count: f32 = 0.0;
   var acc_ftle:  f32 = 0.0;
   var ftle_count: f32 = 0.0;
+  var acc_wlen:  f32 = 0.0;
   var ang_max:   f32 = 0.0;
 
   var i = lane;
@@ -376,6 +383,8 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
       acc_ftle   = acc_ftle + dfl * dfl;
       ftle_count = ftle_count + 1.0;
     }
+    let dwl = f32((r.free_group_word.w >> 26u) & 0x3fu) - out.mean_word_length;
+    acc_wlen = acc_wlen + dwl * dwl;
     for (var m = 0u; m < uniforms.checkpoint_count; m = m + 1u) {
       let nm = out.mean_n_checkpoints[m].xyz;
       let len = length(nm);
@@ -395,6 +404,7 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
   shared_diff_n[lane] = diff_count;
   shared_ftle[lane]   = acc_ftle;
   shared_ftle_n[lane] = ftle_count;
+  shared_wlen[lane]   = acc_wlen;
   workgroupBarrier();
   let sum_arc   = parallel_sum(&shared_arc,    lane);
   let sum_tend  = parallel_sum(&shared_t_end,  lane);
@@ -404,6 +414,7 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
   let sum_diffn = parallel_sum(&shared_diff_n, lane);
   let sum_ftle  = parallel_sum(&shared_ftle,   lane);
   let sum_ftlen = parallel_sum(&shared_ftle_n, lane);
+  let sum_wlen  = parallel_sum(&shared_wlen,   lane);
   workgroupBarrier();
   shared_arc[lane] = ang_max;
   workgroupBarrier();
@@ -425,6 +436,7 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
     } else {
       out.spread_ftle = 0.0;
     }
+    out.spread_word_length = sqrt(sum_wlen / n);
     out.spread_n = spread_ang;
   }
   workgroupBarrier();

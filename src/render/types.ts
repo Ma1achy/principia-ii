@@ -10,7 +10,8 @@ export type ColourMode =
   | 'lz_drift_abs'  | 'lz_drift_rel'
   | 'shape_sphere_vmf' | 'shape_sphere_okabe_ito'
   | 'stability_x_hue'
-  | 'none';                         // constant mid-grey: brightness carries everything
+  | 'none'                          // constant mid-grey: brightness carries everything
+  | 'free_group_word';              // symbolic dynamics: hash hue, length lightness
 
 export type BrightnessMode =
   | 'flat'                          // "none": L = 1, colour carries everything

@@ -31,6 +31,7 @@ export const COLOUR_SOURCES: Record<ColourMode, string> = {
   shape_sphere_okabe_ito: 'SimResult.n_checkpoints[last]',
   stability_x_hue:    'SimResult.n_checkpoints[last] + diffusion',
   none:               '',                    // constant grey; brightness carries all
+  free_group_word:    'SimResult.free_group_word (hash hue, length lightness)',
 };
 
 export const BRIGHTNESS_SOURCES: Record<BrightnessMode, string> = {

@@ -4,6 +4,7 @@
 // @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
 // @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
 // @import { cross_z, EPS_BOLT, PI }                       from "./helpers.wgsl"
+// @import { FreeWord, empty_word, free_group_tick }       from "./free_group.wgsl"
 //
 // Entry-owned structs: SimUniforms / TileRequest / SimResult / ICDescriptor
 // are declared HERE and referenced by the imported units without an import
@@ -228,6 +229,18 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   var theta_tilde: f32 = 0.0;
   var arc: f32 = 0.0;
 
+  // Free-group word (spec §free_group). Branch cuts at the equal-mass BC
+  // basepoints (TS twin: DEFAULT_BRANCH_CUTS in metrics/observe_extended.ts).
+  // ADR-0004: off the equal-mass ε band the word is computed-but-untrusted
+  // (WORD_UNCERTAIN, descriptor bit 9).
+  let FG_B1 = vec3<f32>(1.0, 0.0, 0.0);
+  let FG_B2 = vec3<f32>(-0.5, 0.8660254037844386, 0.0);
+  var word = empty_word();
+  let m_mean = (s.m.x + s.m.y + s.m.z) / 3.0;
+  let word_uncertain = select(0u, 1u,
+    abs(s.m.x - m_mean) > 1e-6 || abs(s.m.y - m_mean) > 1e-6
+    || abs(s.m.z - m_mean) > 1e-6);
+
   // Benettin shadow trajectory for FTLE (research tier only — it doubles
   // the integration cost). f32 CONSTRAINT: the CPU reference seeds at
   // δ0 = 1e-8, but 1 + 1e-8 == 1 in f32 — the perturbation would vanish.
@@ -305,6 +318,7 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     if (dph < -PI) { dph += 2.0 * PI; }
     theta_tilde += dph;
     arc += acos(clamp(dot(prev_n, n), -1.0, 1.0));
+    word = free_group_tick(word, prev_n, n, FG_B1, FG_B2);
     prev_n = n; prev_phase = ph;
 
     // Checkpoint capture: n(t_m) in .xyz, unwrapped phase θ̃(t_m) in .w
@@ -359,10 +373,12 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     ftle_valid = 1u;
   }
 
-  // Write SimResult.
+  // Write SimResult. Word length rides in .w bits 26–31 (symbol slots
+  // reach only bit 19 of .w — spec §free_group packing).
   var r: SimResult;
   r.n_checkpoints   = checkpoints;
-  r.free_group_word = vec4<u32>(0u, 0u, 0u, 0u);     // Stage 5: symbolic dynamics
+  r.free_group_word = vec4<u32>(word.bits.x, word.bits.y, word.bits.z,
+                                word.bits.w | (min(word.length, 58u) << 26u));
   r.arc_length_n    = arc;
   r.t_end           = s.t;
   r.d_min           = dmin;
@@ -376,6 +392,8 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   r.sample_descriptor = (terminal_kind & 0x7u)
                        | ((terminal_detail & 0x3u) << 3u)
                        | (ftle_valid << 7u)
+                       | (word.truncated << 8u)         // WORD_TRUNCATED
+                       | (word_uncertain << 9u)         // WORD_UNCERTAIN (ADR-0004)
                        | (min(renorms, 127u) << 23u);
   r.trajectory_stats  = 0u;
   results[idx] = r;
