@@ -71,11 +71,38 @@ struct EnsembleOffsets {
   offsets: array<vec4<f32>, 16>,
 };
 
+// Affine (u,v) → z slice for latent-affine charts: z = z0 + su·q1 + sv·q2
+// with su = (2u−1)·mag, sv = (2v−1)·mag. This is uniform DATA, not chart
+// identity — the shader stays chart-agnostic. TS twin: packSliceUniforms
+// in src/gpu/slice_uniforms.ts (pin: test/unit/gpu/slice_uniforms.test.ts).
+struct SliceUniforms {
+  z0a: vec4<f32>, z0b: vec4<f32>,
+  q1a: vec4<f32>, q1b: vec4<f32>,
+  q2a: vec4<f32>, q2b: vec4<f32>,
+  mag_pad: vec4<f32>,               // x = mag
+};
+
+// CPU-decoded per-sample IC for charts that are not affine in latent
+// space; the shader just reads (m, r, p). TS twin: packUploadedICs in
+// src/gpu/uploaded_ics.ts (pin: test/unit/gpu/uploaded_ics.test.ts).
+struct UploadedIC {
+  m_t:  vec4<f32>,                  // m1, m2, m3, terminal (0/1/2)
+  r01:  vec4<f32>,                  // r0.xy, r1.xy
+  r2p0: vec4<f32>,                  // r2.xy, p0.xy
+  p12:  vec4<f32>,                  // p1.xy, p2.xy
+};
+
+// TS twin: TILE_REQUEST_FLAGS.DECODE_UPLOADED in src/gpu/structs.ts
+// (value pinned by test/unit/gpu/uploaded_ics.test.ts).
+const TILE_REQ_DECODE_UPLOADED : u32 = 2u;
+
 @group(0) @binding(0) var<uniform>      uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform>      tile_req : TileRequest;
 @group(0) @binding(3) var<uniform>      chart    : ChartUniforms;   // G4
 @group(0) @binding(4) var<uniform>      linearised : LinearisedRef; // G6
 @group(0) @binding(5) var<uniform>      ensemble   : EnsembleOffsets; // G7
+@group(0) @binding(6) var<uniform>      slice      : SliceUniforms;
+@group(0) @binding(7) var<storage, read> uploaded  : array<UploadedIC>;
 @group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 @group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 
@@ -90,19 +117,29 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   let t = (vec2<f32>(f32(gid.x), f32(gid.y)) + 0.5) / f32(N)
         + ensemble.offsets[gid.z].xy / f32(N);
 
-  // Decode: linearised path at deep zoom (G6), full nonlinear otherwise.
+  // Decode: linearised path at deep zoom (G6); CPU-uploaded ICs for
+  // charts that are not affine in latent space; affine slice otherwise.
   var ic_out: ICOut;
   if ((tile_req.flags & TILE_REQ_DECODE_LINEAR) != 0u) {
     ic_out = decode_linear(t, linearised, uniforms.r_coll);
+  } else if ((tile_req.flags & TILE_REQ_DECODE_UPLOADED) != 0u) {
+    let up = uploaded[idx];
+    ic_out.m = up.m_t.xyz;
+    ic_out.terminal = u32(up.m_t.w);
+    ic_out.r[0] = up.r01.xy;  ic_out.r[1] = up.r01.zw;  ic_out.r[2] = up.r2p0.xy;
+    ic_out.p[0] = up.r2p0.zw; ic_out.p[1] = up.p12.xy;  ic_out.p[2] = up.p12.zw;
   } else {
-    // Tile-local UV → latent z (M3: latent chart, axes are z[0] and z[1]).
+    // Tile-local UV → global UV → 8D latent via the view's slice:
+    // z = z0 + mag·((2u−1)·q1 + (2v−1)·q2), the exact CPU map in
+    // chart_atlas/charts/latent_slice.ts.
     let uv = tile_req.uv_centre + tile_req.uv_half * (2.0 * t - 1.0);
-    // Map UV → 8D latent. For M3 we use a default slice: u → z[0], v → z[1].
+    let su = (uv.x * 2.0 - 1.0) * slice.mag_pad.x;
+    let sv = (uv.y * 2.0 - 1.0) * slice.mag_pad.x;
+    let za = slice.z0a + su * slice.q1a + sv * slice.q2a;
+    let zb = slice.z0b + su * slice.q1b + sv * slice.q2b;
     var z: array<f32, 8>;
-    z[0] = (uv.x * 2.0 - 1.0) * 3.0;     // ±3 latent range
-    z[1] = (uv.y * 2.0 - 1.0) * 3.0;
-    z[2] = 0.0; z[3] = 0.0; z[4] = 0.0; z[5] = 0.0;     // rest start
-    z[6] = 0.0; z[7] = 0.0;                             // equal masses
+    z[0] = za.x; z[1] = za.y; z[2] = za.z; z[3] = za.w;
+    z[4] = zb.x; z[5] = zb.y; z[6] = zb.z; z[7] = zb.w;
     ic_out = decode_full(z, chart, uniforms.r_coll);
   }
 

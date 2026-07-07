@@ -1,6 +1,7 @@
 import type { Vec2, Vec3, Vec8, TerminalLabel, TrajState } from '@/math/types.js';
 import type { ICDescriptor } from '@/decode/types.js';
 import type { ChartUniforms } from '@/gpu/chart_uniforms.js';
+import type { SliceUniformsValue } from '@/gpu/slice_uniforms.js';
 
 export type ChartId =
   | 'latent_slice'
@@ -63,6 +64,13 @@ export interface Chart {
   /** Per-chart decoder knobs for the GPU (G4): packed into the
    *  ChartUniforms buffer at group(0) binding(3) on dispatch. */
   chartUniforms(view: ChartView): ChartUniforms;
+  /** Charts whose decode is `z = z0 + mag((2u−1)q1 + (2v−1)q2)` followed by
+   *  the standard latent decoder return that affine map here; the
+   *  dispatcher uploads it as SliceUniforms (g0b6) and the GPU decodes via
+   *  decode_full. Charts that return null (or omit the method) get every
+   *  sample CPU-decoded and uploaded instead (g0b7, DECODE_UPLOADED) — the
+   *  shader stays chart-agnostic either way. */
+  affineSlice?(view: ChartView): SliceUniformsValue | null;
   /** Optional: chart-specific WGSL fragment to inline at dispatch time. */
   wgsl?: string;
 }

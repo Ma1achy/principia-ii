@@ -124,6 +124,11 @@ export interface TileRequest {
 export const TILE_REQUEST_FLAGS = {
   /** G6: decode samples via the linearised path (LinearisedRef at g0b4). */
   DECODE_LINEAR: 1 << 0,
+  /** Chart-decode fix: read CPU-decoded per-sample ICs from the UploadedIC
+   *  storage buffer at g0b7 (charts not affine in latent space). WGSL twin:
+   *  TILE_REQ_DECODE_UPLOADED in simulate.wgsl (value pinned by
+   *  test/unit/gpu/uploaded_ics). */
+  DECODE_UPLOADED: 1 << 1,
 } as const;
 
 export function packTileRequest(t: TileRequest): ArrayBuffer {

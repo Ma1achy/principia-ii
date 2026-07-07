@@ -18,6 +18,11 @@ import { makeGpuTimer, type GpuPassTimings } from '@/perf/gpu_timing.js';
 import { packChartUniforms } from '@/gpu/chart_uniforms.js';
 import { packLinearisedUniforms } from '@/gpu/linearised_uniforms.js';
 import { packEnsembleOffsets } from '@/gpu/ensemble.js';
+import { packSliceUniforms, DEFAULT_SLICE } from '@/gpu/slice_uniforms.js';
+import {
+  packUploadedICs, buildUploadedICs, type UploadedICSample,
+} from '@/gpu/uploaded_ics.js';
+import type { ChartDecodeOut } from '@/chart_atlas/types.js';
 import { jitterOffsets, ENSEMBLE_E_MAX } from '@/quadtree/ensemble_jitter.js';
 import { shouldLineariseAtDepth } from '@/quadtree/decode_mode.js';
 import { buildLinearised } from '@/decode/linearised.js';
@@ -83,6 +88,21 @@ function chartViewOf(view: ViewState): ChartView {
     z0: view.z0, q1: view.q1, q2: view.q2, mag: view.mag,
     alphaMin: ALPHA_MIN_DEFAULT, muMax: MU_MAX_DEFAULT, qMax: Q_MAX_DEFAULT,
     rColl: R_COLL_DEFAULT, deltaLambda: EPS_DEADBAND,
+  };
+}
+
+/** Map a chart decode result onto the GPU's UploadedIC lanes. Terminal
+ *  codes match ICOut in decode.wgsl: 1 = degenerate, 2 = collision at t=0
+ *  (the decode pipeline is total — every sample gets one of ok/1/2). */
+function toUploadedSample(out: ChartDecodeOut): UploadedICSample {
+  if (out.kind === 'ok') {
+    return { terminal: 0, m: out.state.m, r: out.state.r, p: out.state.p };
+  }
+  const zero: [number, number] = [0, 0];
+  return {
+    terminal: out.terminal.kind === 'COLLISION_T0' ? 2 : 1,
+    m: [1 / 3, 1 / 3, 1 / 3],
+    r: [zero, zero, zero], p: [zero, zero, zero],
   };
 }
 
@@ -220,6 +240,20 @@ export async function makeRealDispatcher(
       if (linearised) flags |= TILE_REQUEST_FLAGS.DECODE_LINEAR;
     }
 
+    // Chart decode inputs (the chart/latent-slicing fix). Latent-affine
+    // charts hand the GPU their (u,v)→z map as SliceUniforms; every other
+    // chart is CPU-decoded per sample and uploaded — the shader reads
+    // (m, r, p) and never learns which chart produced them.
+    const offsets = jitterOffsets(patternId, E);
+    const slice = linearised ? null : (chart.affineSlice?.(cView) ?? null);
+    let uploadedSamples: UploadedICSample[] | null = null;
+    if (!linearised && !slice) {
+      uploadedSamples = buildUploadedICs(
+        (u, v) => toUploadedSample(chart.decode([u, v], cView)),
+        { uv_centre: centre, uv_half: half }, N, offsets);
+      flags |= TILE_REQUEST_FLAGS.DECODE_UPLOADED;
+    }
+
     const tile: TileRequest = {
       z: tileId.z, tx: tileId.tx, ty: tileId.ty, level: tileId.z,
       uv_centre: centre, uv_half: half, flags,
@@ -230,11 +264,16 @@ export async function makeRealDispatcher(
     device.queue.writeBuffer(staging.uniforms, 0, packSimUniforms(uniforms));
     device.queue.writeBuffer(staging.tileReq, 0, packTileRequest(tile));
     device.queue.writeBuffer(staging.chart, 0, packChartUniforms(chartU));
+    device.queue.writeBuffer(staging.slice, 0,
+      packSliceUniforms(slice ?? DEFAULT_SLICE));
+    if (uploadedSamples) {
+      device.queue.writeBuffer(staging.uploaded, 0,
+        packUploadedICs(uploadedSamples));
+    }
     // Snapshot for the dev HUD's capture button (all three are fresh
     // objects per job — safe to retain by reference).
     last = { N, M: uniforms.checkpoint_count, uniforms, tile, chart: chartU };
-    device.queue.writeBuffer(staging.ensemble, 0,
-      packEnsembleOffsets(jitterOffsets(patternId, E)));
+    device.queue.writeBuffer(staging.ensemble, 0, packEnsembleOffsets(offsets));
     if (linearised) {
       device.queue.writeBuffer(staging.linearised, 0,
         packLinearisedUniforms(linearised, half[0], half[1]));

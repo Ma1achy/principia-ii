@@ -70,6 +70,11 @@ export const latentSliceChart: Chart = {
     return CHART_UNIFORMS_DEFAULTS;
   },
 
+  affineSlice(view) {
+    // decode() above IS the affine map — hand the GPU the same slice.
+    return { z0: view.z0, q1: view.q1, q2: view.q2, mag: view.mag };
+  },
+
   validate([u, v]) {
     if (u < 0 || u > 1 || v < 0 || v > 1) {
       return { kind: 'reject', reason: 'uv out of [0, 1]² range' };

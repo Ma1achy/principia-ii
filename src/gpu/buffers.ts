@@ -4,6 +4,8 @@ import type { PipelineLayouts } from './layouts.js';
 import { CHART_UNIFORMS_SIZE, TILE_WINDOW_SIZE } from './layouts.js';
 import { LINEARISED_UNIFORMS_SIZE } from './linearised_uniforms.js';
 import { ENSEMBLE_OFFSETS_SIZE } from './ensemble.js';
+import { SLICE_UNIFORMS_SIZE, DEFAULT_SLICE, packSliceUniforms } from './slice_uniforms.js';
+import { sizeOfUploadedICs } from './uploaded_ics.js';
 
 export interface TileBuffers {
   uniforms:    GPUBuffer;
@@ -15,6 +17,8 @@ export interface TileBuffers {
   chart:       GPUBuffer;       // G4 ChartUniforms slot (64B); zero-filled until G4 packs it
   linearised:  GPUBuffer;       // G6 LinearisedRef (256B); zero-filled — only read when the flag is set
   ensemble:    GPUBuffer;       // G7 EnsembleOffsets (256B); zero-filled = no jitter
+  slice:       GPUBuffer;       // SliceUniforms (112B); seeded with DEFAULT_SLICE (= the M3 mapping)
+  uploaded:    GPUBuffer;       // UploadedIC[] (64B × N² × EMax); only read when DECODE_UPLOADED is set
   reduction:   GPUBuffer;       // G3: canonical TileReduction output (one home; M5 writes, render binds)
   N:           number;
   M:           number;
@@ -61,13 +65,25 @@ export function createTileBuffers(
     size: ENSEMBLE_OFFSETS_SIZE,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
+  // Seeded with the default slice so every harness/test that never writes
+  // it keeps the M3 bring-up mapping (u → z[0], v → z[1], ±3) bit-exactly.
+  const slice      = device.createBuffer({
+    size: SLICE_UNIFORMS_SIZE,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(slice, 0, packSliceUniforms(DEFAULT_SLICE));
+
+  const uploaded   = device.createBuffer({
+    size: sizeOfUploadedICs(N, copies),
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+
   const reduction  = device.createBuffer({
     size: sizeOfTileReduction(M),
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
 
   return {
     uniforms, tileReq, simResults, icDesc, readback,
-    debug, chart, linearised, ensemble, reduction, N, M, EMax: copies,
+    debug, chart, linearised, ensemble, slice, uploaded,
+    reduction, N, M, EMax: copies,
   };
 }
 
@@ -106,6 +122,8 @@ export function createTileBindGroups(
       { binding: 3, resource: { buffer: bufs.chart } },     // G4 slot
       { binding: 4, resource: { buffer: bufs.linearised } },// G6 slot
       { binding: 5, resource: { buffer: bufs.ensemble } },  // G7 slot
+      { binding: 6, resource: { buffer: bufs.slice } },     // slice map
+      { binding: 7, resource: { buffer: bufs.uploaded } },  // uploaded ICs
     ],
   });
   const perTile = ctx.device.createBindGroup({
