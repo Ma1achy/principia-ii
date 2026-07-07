@@ -88,7 +88,7 @@ export function deriveCaps(limits: DeviceLimits, features: string[]): TierCaps {
   const byTier: Record<QualityTier, Omit<TierCaps, 'tier' | 'maxFullRetentionViewport'>> = {
     preview:  { samplesPerTileAxis: 16, checkpoints: 8,  ensembleMax: 0,  maxDepth: 16, ftle: false },
     balanced: { samplesPerTileAxis: 32, checkpoints: 8,  ensembleMax: 4,  maxDepth: 23, ftle: false },
-    research: { samplesPerTileAxis: 32, checkpoints: 16, ensembleMax: 16, maxDepth: 30, ftle: true  },
+    research: { samplesPerTileAxis: 64, checkpoints: 16, ensembleMax: 16, maxDepth: 30, ftle: true  },
   };
   return {
     tier,

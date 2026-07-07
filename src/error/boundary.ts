@@ -99,8 +99,14 @@ export class ErrorBoundary {
       // Stringify the cause for the sink; this never reaches the user.
       cause: causeSummary(app.cause),
     });
-    this.hooks.onUserError?.(app, message);
-    for (const fn of this.listeners) fn(app, message);
+    // Tile failures are per-tile diagnostics, not user-actionable events:
+    // on fractal regions MAX_SUBSTEPS fires on most tiles, so notifying the
+    // shell would pin the error overlay permanently over the canvas. They
+    // stay in telemetry — the G18 dev HUD's errors tab renders them.
+    if (app.kind !== AppErrorKind.TileFailure) {
+      this.hooks.onUserError?.(app, message);
+      for (const fn of this.listeners) fn(app, message);
+    }
     return app;
   }
 
