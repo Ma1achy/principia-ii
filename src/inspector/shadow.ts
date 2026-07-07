@@ -17,8 +17,14 @@ export function inspectorWithShadow(
   let renorms = 0;
   let stepsSinceRenorm = 0;
   const RENORM_EVERY = 50;
+  // Backstop: unlike runInspector, the shadow loop has no event termination,
+  // so a near-singular orbit could crawl at tiny h. Cap total iterations and
+  // report invalid if exhausted — no caller can hang this.
+  const MAX_STEPS = 2_000_000;
+  let iters = 0;
 
   while (base.t < opts.THorizon) {
+    if (++iters > MAX_STEPS) return { lambda: 0, renorms, valid: false };
     const a = tryStep(base, h, opts);
     if (!a.accepted) {
       if (h <= opts.hMin) return { lambda: 0, renorms, valid: false };

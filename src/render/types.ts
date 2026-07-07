@@ -48,6 +48,12 @@ export interface RenderParams {
   overlayStrength: number;                // 0..1
   playbackTau:     number;                // simulation time for animation
   wallClockTime:   number;                // for time-varying effects
+  /** Debug recolour mode (render-only; -1 = off, else DebugMode 0..5). It
+   *  pre-empts the colour switch to recolour the SAME SimResult buffer, so
+   *  toggling a diagnostic never recomputes — it is a group-3 rebind like
+   *  every other render param. */
+  debugMode:       number;
+  debugHeatScale:  number;                // drift heat: t = value / heatScale
 }
 
 export const DEFAULT_RENDER_PARAMS: RenderParams = {
@@ -64,4 +70,6 @@ export const DEFAULT_RENDER_PARAMS: RenderParams = {
   overlayStrength: 0.6,
   playbackTau:    0,
   wallClockTime:  0,
+  debugMode:      -1,          // off: production colour switch runs
+  debugHeatScale: 1e-3,
 };

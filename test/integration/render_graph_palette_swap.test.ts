@@ -37,10 +37,22 @@ describe('palette swap touches only RenderParams', () => {
     expect(new Uint8Array(a)).toEqual(new Uint8Array(b));
   });
 
-  it('the packed buffer is exactly 64 bytes with an untouched reserved tail', () => {
+  it('the packed buffer is exactly 64 bytes and pins the debug tail', () => {
     const a = packRenderParams(DEFAULT_RENDER_PARAMS);
     expect(a.byteLength).toBe(64);
-    const bytes = new Uint8Array(a);
-    for (let i = 56; i < 64; i++) expect(bytes[i]).toBe(0);
+    // Tail [56..63] carries the render-only debug fields (three-place rule
+    // with render_graph.wgsl's RenderParams + packRenderParams).
+    const dv = new DataView(a);
+    expect(dv.getInt32(56, true)).toBe(-1);            // debug_mode: off by default
+    // f32 round-trip: compare against the exact stored value, not the f64 literal.
+    expect(dv.getFloat32(60, true)).toBe(new Float32Array([1e-3])[0]); // debug_heat_scale
+  });
+
+  it('a debug-mode change moves only the debug tail, not the production bytes', () => {
+    const off = new Uint8Array(packRenderParams(DEFAULT_RENDER_PARAMS));
+    const on = new Uint8Array(packRenderParams({ ...DEFAULT_RENDER_PARAMS, debugMode: 4 }));
+    // Bytes [0..55] (the production render pipeline) are untouched.
+    for (let i = 0; i < 56; i++) expect(on[i]).toBe(off[i]);
+    expect(new DataView(on.buffer).getInt32(56, true)).toBe(4);
   });
 });

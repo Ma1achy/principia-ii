@@ -2,6 +2,7 @@ import type { TrajState, TerminalLabel } from '@/math/types.js';
 import type { InspectorResult, RK45Opts } from './types.js';
 import { RK45_DEFAULTS } from './types.js';
 import { tryStep } from './adaptive.js';
+import { inspectorWithShadow } from './shadow.js';
 import { diagnosticsAt } from './diagnostics.js';
 import { collisionCheck, makeEscapeState, tickEscapeGates } from '@/integrate/events.js';
 import { wordToString } from '@/metrics/free_group.js';
@@ -91,12 +92,22 @@ export function runInspector(
 
   if (terminal.kind === 'NONE' && s.t >= o.THorizon) outcome = 'bounded';
 
+  // FTLE via a Benettin shadow trajectory (ADR-0003: full phase-space seed).
+  // Only meaningful for BOUNDED orbits (spec §4.3.3, research tier): an
+  // escape/collision/failed outcome has no finite-time Lyapunov exponent, and
+  // — critically — the shadow integrator has no event termination, so running
+  // it through a collision would grind to the horizon at the singularity.
+  // Gating on `bounded` keeps it both correct and bounded-cost.
+  const shadow = outcome === 'bounded'
+    ? inspectorWithShadow(s0, o)
+    : { lambda: 0, valid: false };
+
   return {
     t: tArr, r: rArr, p: pArr,
     nShape: nArr,
     energy: energyArr, lz: lzArr,
     outcome, tEnd: s.t, dMin, deltaEMax,
-    ftle: 0,                            // shadow.ts populates this
+    ftle: shadow.valid ? shadow.lambda : 0,
     freeGroupWord: wordToString(metrics.word),
     ic: { m: s0.m, r: s0.r, p: s0.p },
     nSteps, nReject,

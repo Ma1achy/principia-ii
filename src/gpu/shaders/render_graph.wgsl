@@ -84,6 +84,8 @@ struct RenderParams {
   palette_range_max: f32,
   playback_tau:      f32,
   wall_clock:        f32,
+  debug_mode:        i32,   // -1 = off; else DebugMode 0..5 (recolour path)
+  debug_heat_scale:  f32,   // drift heatmaps: t = value / debug_heat_scale
 };
 
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
@@ -123,6 +125,46 @@ fn vs_main(@builtin(vertex_index) vid: u32) -> VSOut {
   return out;
 }
 
+// --- Debug recolour path (mirror of render_layer0.wgsl's diagnostic modes).
+// Active when rparams.debug_mode >= 0; recolours the SAME SimResult buffer so
+// a diagnostic toggle is a group-3 rebind, never a recompute. Kept OUT of the
+// 24-mode colour switch so the production modes stay byte-identical.
+fn dbg_heat(t: f32) -> vec3<f32> {
+  let c = clamp(t, 0.0, 1.0);
+  return vec3<f32>(c, 0.4 * (1.0 - abs(2.0 * c - 1.0)), 1.0 - c);
+}
+fn dbg_outcome(cls: u32) -> vec3<f32> {
+  if (cls == 0u) { return vec3<f32>(0.7, 0.7, 0.2); }
+  else if (cls == 1u) { return vec3<f32>(0.9, 0.1, 0.1); }
+  else if (cls == 2u) { return vec3<f32>(0.1, 0.4, 0.9); }
+  else if (cls == 3u) { return vec3<f32>(0.5, 0.5, 0.5); }
+  else { return vec3<f32>(1.0, 0.9, 0.0); }
+}
+fn dbg_category(k: u32) -> vec3<f32> {
+  let h = f32(k) * 0.61803398875;
+  return dbg_heat(h - floor(h));
+}
+fn debug_colour(r: SimResult, mode: i32, heat_scale: f32) -> vec3<f32> {
+  let d = r.sample_descriptor;
+  let cls = d & 0x7u;
+  switch (mode) {
+    case 0:  { return dbg_outcome(cls); }                                   // Outcome
+    case 1:  { return dbg_category((d >> 3u) & 0x3u); }                     // Detail bits
+    case 2:  { return select(vec3<f32>(0.3), vec3<f32>(0.2, 0.9, 0.3),      // FTLE_VALID (bit 7)
+                              ((d >> 7u) & 1u) == 1u); }
+    case 3:  { return select(vec3<f32>(0.3), vec3<f32>(0.9, 0.2, 0.2),      // Suspect (bit 5|6)
+                              (((d >> 5u) & 1u) | ((d >> 6u) & 1u)) == 1u); }
+    case 4:  { return dbg_heat(r.delta_E_max_abs / max(heat_scale, 1e-30)); } // Energy-drift heat
+    default: {                                                              // Checkpoint completeness
+      var written = 0u;
+      for (var m = 0u; m < 8u; m = m + 1u) {
+        if (any(r.n_checkpoints[m] != vec4<f32>(0.0))) { written = written + 1u; }
+      }
+      return dbg_heat(f32(written) / 8.0);
+    }
+  }
+}
+
 @fragment
 fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
   let N = uniforms.samples_per_axis;
@@ -134,6 +176,13 @@ fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
   let ic = ics[idx];
   let cls    = r.sample_descriptor & 0x7u;
   let detail = (r.sample_descriptor >> 3u) & 0x3u;
+
+  // Debug recolour pre-empts the production pipeline (CVD still applies so the
+  // diagnostic stays colour-vision-legible).
+  if (rparams.debug_mode >= 0) {
+    let dc = debug_colour(r, rparams.debug_mode, rparams.debug_heat_scale);
+    return vec4<f32>(linear_to_srgb(apply_cvd(dc, rparams.cvd_id)), 1.0);
+  }
 
   // 1. Colour node.
   var rgb: vec3<f32>;

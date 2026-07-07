@@ -44,7 +44,7 @@ import type { QuadtreeView, TileCacheKey, TileID } from '@/quadtree/types.js';
 
 import {
   SIMULATE_MODULE, RENDER_LAYER0_MODULE, REDUCE_MODULE,
-} from './shader_modules.js';
+} from '@/gpu/shaders/modules.js';
 
 const N = 32;              // 1024 samples per tile — 4× the M5 harness
 const N_HIRES = 64;        // one-tile smoke at 4096 samples
