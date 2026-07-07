@@ -1,6 +1,8 @@
 import type { App } from '@/app/app.js';
-import type { QualityTier } from '@/interact/view_state.js';
-import type { ColourMode, CvdMode, PaletteId } from '@/render/types.js';
+import type { IntegratorId, QualityTier, ViewState } from '@/interact/view_state.js';
+import type {
+  BrightnessMode, ColourMode, CombinerMode, CvdMode, PaletteId,
+} from '@/render/types.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
@@ -9,37 +11,80 @@ import { panelAria } from './a11y/aria.js';
 import { rovingTabindex, advanceRoving } from './a11y/keyboard.js';
 import type { Announcement } from './a11y/live_region.js';
 
-/** Render-only selectors (G12): a curated slice of M7's mode space. Bound
- *  to the RenderParamsStore, NEVER the view Store — a palette/mode/CVD
- *  change rebinds group 3 only (no recompute, no history entry). */
-const COLOUR_MODES: readonly { id: ColourMode; label: string }[] = [
-  { id: 'event_class', label: 'Event class' },
-  { id: 'energy', label: 'Energy' },
-  { id: 'ang_momentum', label: 'Angular momentum' },
-  { id: 'escape_time', label: 'Escape time' },
-  { id: 'min_pair_dist', label: 'Min pair distance' },
-  { id: 'shape_sphere_vmf', label: 'Shape sphere (vMF)' },
-  { id: 'stability_x_hue', label: 'Stability × hue' },
+/** Render-only selectors (G12): the FULL M7 mode space, grouped. Bound to
+ *  the RenderParamsStore, NEVER the view Store — a colour/brightness/combiner/
+ *  palette/vMF/CVD change rebinds group 3 only (no recompute, no history). */
+const COLOUR_MODE_GROUPS: readonly { group: string; modes: readonly { id: ColourMode; label: string }[] }[] = [
+  { group: 'Basin', modes: [{ id: 'event_class', label: 'Event classification' }] },
+  { group: 'Invariants', modes: [
+    { id: 'energy', label: 'Energy' }, { id: 'ang_momentum', label: 'Angular momentum' },
+    { id: 'kinetic', label: 'Kinetic' }, { id: 'potential', label: 'Potential' },
+    { id: 'virial', label: 'Virial ratio' },
+  ] },
+  { group: 'Geometry', modes: [
+    { id: 'mass_ratio_12', label: 'Mass ratio 1:2' }, { id: 'mass_ratio_13', label: 'Mass ratio 1:3' },
+    { id: 'mass_fraction', label: 'Mass fraction' }, { id: 'jacobi_rho1', label: 'Jacobi |ρ1|' },
+    { id: 'jacobi_rho2', label: 'Jacobi |ρ2|' }, { id: 'jacobi_ratio', label: 'Jacobi ratio' },
+    { id: 'jacobi_angle', label: 'Jacobi angle' }, { id: 'min_pair_dist', label: 'Min pair distance' },
+  ] },
+  { group: 'Trajectory', modes: [
+    { id: 'escape_time', label: 'Escape time' }, { id: 'close_encounters', label: 'Close encounters' },
+    { id: 'min_approach', label: 'Min approach' },
+  ] },
+  { group: 'Diagnostics', modes: [
+    { id: 'energy_drift_abs', label: 'Energy drift (abs)' }, { id: 'energy_drift_rel', label: 'Energy drift (rel)' },
+    { id: 'lz_drift_abs', label: 'Lz drift (abs)' }, { id: 'lz_drift_rel', label: 'Lz drift (rel)' },
+  ] },
+  { group: 'Shape / stability', modes: [
+    { id: 'shape_sphere_vmf', label: 'Shape sphere (vMF)' },
+    { id: 'shape_sphere_okabe_ito', label: 'Shape sphere (Okabe–Ito)' },
+    { id: 'stability_x_hue', label: 'Stability × hue' },
+  ] },
+];
+const BRIGHTNESS_MODES: readonly { id: BrightnessMode; label: string }[] = [
+  { id: 'flat', label: 'Flat' }, { id: 'time_to_event', label: 'Time to event' },
+  { id: 'diffusion', label: 'Diffusion' }, { id: 'bc_proximity', label: 'BC proximity' },
+  { id: 'energy_drift', label: 'Energy drift' },
+];
+const COMBINER_MODES: readonly { id: CombinerMode; label: string }[] = [
+  { id: 'replace_lightness', label: 'Replace lightness' },
+  { id: 'modulate_lightness', label: 'Modulate lightness' },
+  { id: 'multiply_rgb', label: 'Multiply RGB' },
 ];
 const PALETTES: readonly PaletteId[] = [
   'viridis', 'cividis', 'plasma', 'magma', 'inferno',
   'twilight', 'cool_warm', 'principia', 'cubehelix',
 ];
+
 /** Mount ONLY the render-only controls (called by mountControlPanel when a
- *  RenderParamsStore is supplied). The CVD option list is G13's CVD_ORDER /
- *  cvdLabel — the single source shared with the Alt+C cycle shortcut. */
+ *  RenderParamsStore is supplied). Every knob here is a group-3 rebind. */
 export function mountRenderControls(
   root: HTMLElement, render: RenderParamsStore,
   liveSay?: (a: Announcement) => void,
 ): () => void {
-  const section = document.createElement('div');
+  const section = document.createElement('details');
   section.className = 'panel render-controls';
+  section.open = true;
   section.innerHTML = `
-    <h3>Render (no recompute)</h3>
+    <summary><h3>Render (no recompute)</h3></summary>
     <div class="row">
       <label for="colourMode">Colour mode</label>
       <select id="colourMode">
-        ${COLOUR_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
+        ${COLOUR_MODE_GROUPS.map((g) => `<optgroup label="${g.group}">${
+          g.modes.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')
+        }</optgroup>`).join('')}
+      </select>
+    </div>
+    <div class="row">
+      <label for="brightness">Brightness</label>
+      <select id="brightness">
+        ${BRIGHTNESS_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row">
+      <label for="combiner">Combiner</label>
+      <select id="combiner">
+        ${COMBINER_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
       </select>
     </div>
     <div class="row">
@@ -47,6 +92,27 @@ export function mountRenderControls(
       <select id="palette">
         ${PALETTES.map((p) => `<option value="${p}">${p}</option>`).join('')}
       </select>
+    </div>
+    <div class="row">
+      <label for="vmfKappa">vMF κ</label>
+      <input type="range" id="vmfKappa" min="0.5" max="12" step="0.1">
+      <span id="vmfKappa_v"></span>
+    </div>
+    <div class="row">
+      <label for="vmfChroma">vMF chroma</label>
+      <input type="range" id="vmfChroma" min="0.05" max="0.22" step="0.005">
+      <span id="vmfChroma_v"></span>
+    </div>
+    <div class="row">
+      <label for="vmfLightness">vMF lightness</label>
+      <input type="range" id="vmfLightness" min="0.35" max="0.90" step="0.01">
+      <span id="vmfLightness_v"></span>
+    </div>
+    <div class="row">
+      <label for="overlay">Physics overlay</label>
+      <input type="checkbox" id="overlay">
+      <input type="range" id="overlayStrength" min="0" max="1" step="0.05">
+      <span id="overlayStrength_v"></span>
     </div>
     <div class="row">
       <label for="cvd">CVD sim</label>
@@ -58,29 +124,66 @@ export function mountRenderControls(
   root.appendChild(section);
 
   const offs: (() => void)[] = [];
+  const q = <T extends Element>(sel: string): T => {
+    const el = section.querySelector<T>(sel);
+    if (!el) throw new Error(`RenderControls: missing ${sel}`);
+    return el;
+  };
 
-  const colour = section.querySelector<HTMLSelectElement>('#colourMode')!;
-  offs.push(bind(colour, render, (el, p) => { el.value = p.colourMode; }));
-  colour.addEventListener('change', () =>
-    render.update(p => ({ ...p, colourMode: colour.value as ColourMode })));
+  // Reactive select bound to a RenderParams field.
+  const sel = <V extends string>(
+    id: string, get: (p: ReturnType<RenderParamsStore['snapshot']>) => V,
+    set: (v: V) => void,
+  ): void => {
+    const el = q<HTMLSelectElement>(id);
+    offs.push(bind(el, render, (e, p) => { e.value = get(p); }));
+    el.addEventListener('change', () => set(el.value as V));
+  };
+  // Reactive range bound to a numeric RenderParams field.
+  const num = (
+    id: string, get: (p: ReturnType<RenderParamsStore['snapshot']>) => number,
+    set: (n: number) => void, fmt: (n: number) => string = (n) => n.toFixed(2),
+  ): void => {
+    const el = q<HTMLInputElement>(id);
+    const lab = q<HTMLSpanElement>(`${id}_v`);
+    offs.push(bind(el, render, (e, p) => {
+      if (e.ownerDocument.activeElement !== e) e.value = String(get(p));
+    }));
+    offs.push(bind(lab, render, (e, p) => { e.textContent = fmt(get(p)); }));
+    el.addEventListener('input', () => set(parseFloat(el.value) || 0));
+  };
 
-  const palette = section.querySelector<HTMLSelectElement>('#palette')!;
-  offs.push(bind(palette, render, (el, p) => { el.value = p.palette; }));
-  palette.addEventListener('change', () =>
-    render.update(p => ({ ...p, palette: palette.value as PaletteId })));
+  sel<ColourMode>('#colourMode', (p) => p.colourMode,
+    (v) => render.update((p) => ({ ...p, colourMode: v })));
+  sel<BrightnessMode>('#brightness', (p) => p.brightnessMode,
+    (v) => render.update((p) => ({ ...p, brightnessMode: v })));
+  sel<CombinerMode>('#combiner', (p) => p.combinerMode,
+    (v) => render.update((p) => ({ ...p, combinerMode: v })));
+  sel<PaletteId>('#palette', (p) => p.palette,
+    (v) => render.update((p) => ({ ...p, palette: v })));
+  num('#vmfKappa', (p) => p.vmfKappa, (n) => render.update((p) => ({ ...p, vmfKappa: n })), (n) => n.toFixed(1));
+  num('#vmfChroma', (p) => p.vmfChroma, (n) => render.update((p) => ({ ...p, vmfChroma: n })), (n) => n.toFixed(3));
+  num('#vmfLightness', (p) => p.vmfLightness, (n) => render.update((p) => ({ ...p, vmfLightness: n })));
+  num('#overlayStrength', (p) => p.overlayStrength,
+    (n) => render.update((p) => ({ ...p, overlayStrength: n })));
 
-  const cvd = section.querySelector<HTMLSelectElement>('#cvd')!;
+  const overlay = q<HTMLInputElement>('#overlay');
+  offs.push(bind(overlay, render, (e, p) => { e.checked = p.physicsOverlay; }));
+  overlay.addEventListener('change', () =>
+    render.update((p) => ({ ...p, physicsOverlay: overlay.checked })));
+
+  const cvd = q<HTMLSelectElement>('#cvd');
   cvd.setAttribute('aria-label', 'Colour-vision simulation');
   offs.push(bind(cvd, render, (el, p) => { el.value = p.cvdMode; }));
   cvd.addEventListener('change', () => {
     // RENDER-ONLY: setCvd edits RenderParams via the render store (group-3
     // rebind) — never the ViewState Store, the cache key, or undo history.
-    render.update(p => setCvd(p, cvd.value as CvdMode));
+    render.update((p) => setCvd(p, cvd.value as CvdMode));
     liveSay?.({ kind: 'cvd', mode: render.snapshot().cvdMode });
   });
 
   offs.push(() => section.remove());
-  return () => offs.forEach(off => off());
+  return () => offs.forEach((off) => off());
 }
 
 const CHARTS: readonly { id: string; label: string }[] = [
@@ -91,31 +194,64 @@ const CHARTS: readonly { id: string; label: string }[] = [
   { id: 'mass_simplex', label: 'Mass simplex' },
   { id: 'burrau_euclid', label: 'Burrau Euclid' },
 ];
+const INTEGRATORS: readonly { id: IntegratorId; label: string }[] = [
+  { id: 'kdk', label: 'KDK leapfrog' },
+  { id: 'yoshida4', label: 'Yoshida 4' },
+  { id: 'yoshida6', label: 'Yoshida 6' },
+  { id: 'rk4', label: 'RK4 (validation)' },
+];
+const LATENT_DIMS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
 export function mountControlPanel(
   root: HTMLElement, app: App, render?: RenderParamsStore,
   liveSay?: (a: Announcement) => void,
 ): () => void {
+  const dimOptions = LATENT_DIMS.map((k) => `<option value="${k}">z[${k}]</option>`).join('');
   root.innerHTML = `
-    <div class="panel">
-      <h3>View</h3>
+    <details class="panel" open>
+      <summary><h3>Chart</h3></summary>
       <div class="row">
         <label for="chart">Chart</label>
         <select id="chart">
           ${CHARTS.map((c) => `<option value="${c.id}">${c.label}</option>`).join('')}
         </select>
       </div>
-      ${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `
+    </details>
+    <details class="panel" open>
+      <summary><h3>Position (z₀)</h3></summary>
+      ${LATENT_DIMS.map((k) => `
         <div class="row">
           <label for="z${k}">z[${k}]</label>
           <input type="range" id="z${k}" min="-3" max="3" step="0.01">
           <span id="z${k}_v"></span>
         </div>
       `).join('')}
+    </details>
+    <details class="panel" open>
+      <summary><h3>Slice &amp; tilt</h3></summary>
       <div class="row">
-        <label for="tilt1">Tilt 1 (z<sub><span id="t1t"></span></sub>)</label>
+        <label for="tilt1">Tilt 1</label>
         <input type="range" id="tilt1" min="-1.5707" max="1.5707" step="0.01" value="0">
         <span id="tilt1_v"></span>
+      </div>
+      <div class="row">
+        <label for="tilt1Target">↳ into</label>
+        <select id="tilt1Target">${dimOptions}</select>
+      </div>
+      <div class="row">
+        <label for="tilt2">Tilt 2</label>
+        <input type="range" id="tilt2" min="-1.5707" max="1.5707" step="0.01" value="0">
+        <span id="tilt2_v"></span>
+      </div>
+      <div class="row">
+        <label for="tilt2Target">↳ into</label>
+        <select id="tilt2Target">${dimOptions}</select>
+      </div>
+      <div class="row"><span id="tiltOverlap" class="hint"></span></div>
+      <div class="row">
+        <label for="rotation">Rotation</label>
+        <input type="range" id="rotation" min="-3.1416" max="3.1416" step="0.01">
+        <span id="rotation_v"></span>
       </div>
       <div class="row">
         <button id="zoomIn" type="button">Zoom in</button>
@@ -127,6 +263,26 @@ export function mountControlPanel(
         <button id="magOut" type="button">mag ×2</button>
         <span id="mag_v"></span>
       </div>
+    </details>
+    <details class="panel">
+      <summary><h3>Integration</h3></summary>
+      <div class="row">
+        <label for="integrator">Integrator</label>
+        <select id="integrator">
+          ${INTEGRATORS.map((i) => `<option value="${i.id}">${i.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="row"><label for="THorizon">Horizon T</label>
+        <input type="number" id="THorizon" min="1" max="1000" step="1"></div>
+      <div class="row"><label for="dtMacro">dt macro</label>
+        <input type="number" id="dtMacro" min="1e-5" max="1e-1" step="1e-4"></div>
+      <div class="row"><label for="NMax">N substeps</label>
+        <input type="number" id="NMax" min="1" max="256" step="1"></div>
+      <div class="row"><label for="checkpoints">Checkpoints</label>
+        <input type="number" id="checkpoints" min="2" max="16" step="1"></div>
+    </details>
+    <details class="panel">
+      <summary><h3>Quality &amp; tiles</h3></summary>
       <div class="row">
         <label for="quality">Quality</label>
         <select id="quality">
@@ -135,83 +291,139 @@ export function mountControlPanel(
           <option value="research">Research</option>
         </select>
       </div>
-      <div class="row"><span id="status" role="status"></span></div>
-    </div>
+      <div class="row"><label for="samplesPerAxis">Samples/axis</label>
+        <input type="number" id="samplesPerAxis" min="1" max="64" step="1"></div>
+      <div class="row"><label for="maxDepth">Max depth</label>
+        <input type="number" id="maxDepth" min="0" max="24" step="1"></div>
+      <div class="row"><label for="ensembleCount">Ensemble E</label>
+        <input type="number" id="ensembleCount" min="0" max="16" step="1"></div>
+    </details>
+    <div class="row"><span id="status" role="status"></span></div>
   `;
 
   const offs: (() => void)[] = [];
+  const store = app.store;
   const q = <T extends Element>(sel: string): T => {
     const el = root.querySelector<T>(sel);
     if (!el) throw new Error(`ControlPanel: missing ${sel}`);
     return el;
   };
 
-  // Chart picker.
+  // A `type=number` input bound two-way to a numeric ViewState field.
+  const numField = (
+    id: string, get: (v: ViewState) => number, set: (v: ViewState, n: number) => ViewState,
+  ): void => {
+    offs.push(bindInput(q<HTMLInputElement>(id), store,
+      (v) => String(get(v)), (v, s) => set(v, Number(s) || 0)));
+  };
+  // A `<select>` bound two-way to a string ViewState field.
+  const selField = <V extends string>(
+    id: string, get: (v: ViewState) => V, set: (v: ViewState, val: V) => ViewState,
+  ): void => {
+    const el = q<HTMLSelectElement>(id);
+    offs.push(bind(el, store, (e, v) => { e.value = get(v); }));
+    el.addEventListener('change', () => store.update((v) => set(v, el.value as V)));
+  };
+  // A `type=range` bound to a ViewState field with a formatted readout.
+  const rangeField = (
+    id: string, get: (v: ViewState) => number, set: (v: ViewState, n: number) => ViewState,
+    fmt: (n: number) => string,
+  ): void => {
+    const el = q<HTMLInputElement>(id);
+    const lab = q<HTMLSpanElement>(`${id}_v`);
+    offs.push(bind(el, store, (e, v) => {
+      if (e.ownerDocument.activeElement !== e) e.value = String(get(v));
+    }));
+    offs.push(bind(lab, store, (e, v) => { e.textContent = fmt(get(v)); }));
+    el.addEventListener('input', () => store.update((v) => set(v, parseFloat(el.value) || 0)));
+  };
+
+  // Chart picker (goes through preserveLockAcrossChart).
   const chart = q<HTMLSelectElement>('#chart');
-  offs.push(bind(chart, app.store, (el, v) => { el.value = v.chartType; }));
+  offs.push(bind(chart, store, (el, v) => { el.value = v.chartType; }));
   chart.addEventListener('change', () => {
     const r = app.input.switchChart(chart.value);
     if (!r.ok) statusText(root, `chart switch refused: ${r.reason ?? ''}`);
     else if (r.reason) statusText(root, r.reason);
   });
 
-  // Per-dimension sliders.
-  for (let k = 0; k < 8; k++) {
-    const el = q<HTMLInputElement>(`#z${k}`);
-    const lab = q<HTMLSpanElement>(`#z${k}_v`);
-    offs.push(bindInput(el, app.store,
+  // Per-dimension z₀ sliders.
+  for (const k of LATENT_DIMS) {
+    offs.push(bindInput(q<HTMLInputElement>(`#z${k}`), store,
       (v) => (v.z0[k] ?? 0).toFixed(2),
       (v, value) => {
         const z0 = [...v.z0] as unknown as typeof v.z0;
         (z0 as unknown as number[])[k] = parseFloat(value) || 0;
         return { ...v, z0 };
       }));
-    offs.push(bind(lab, app.store,
+    offs.push(bind(q<HTMLSpanElement>(`#z${k}_v`), store,
       (e, v) => { e.textContent = (v.z0[k] ?? 0).toFixed(2); }));
   }
 
-  // Tilt slider.
+  // Tilt: angles + targets ALL route through app.input.setTilt so the basis
+  // (q1, q2) is recomputed from the chart base + Gram–Schmidt (never
+  // accumulated). Degrees shown, radians stored.
+  const deg = (rad: number): string => `${(rad * 180 / Math.PI).toFixed(1)}°`;
   const tilt1 = q<HTMLInputElement>('#tilt1');
-  offs.push(bind(q<HTMLSpanElement>('#t1t'), app.store,
-    (e, v) => { e.textContent = String(v.tilt1Target); }));
-  offs.push(bind(q<HTMLSpanElement>('#tilt1_v'), app.store,
-    (e, v) => { e.textContent = `${(v.tilt1 * 180 / Math.PI).toFixed(1)}°`; }));
-  tilt1.addEventListener('input', () => {
-    app.input.setTilt({ tilt1: parseFloat(tilt1.value) || 0 });
-  });
+  const tilt2 = q<HTMLInputElement>('#tilt2');
+  offs.push(bind(q<HTMLSpanElement>('#tilt1_v'), store, (e, v) => { e.textContent = deg(v.tilt1); }));
+  offs.push(bind(q<HTMLSpanElement>('#tilt2_v'), store, (e, v) => { e.textContent = deg(v.tilt2); }));
+  tilt1.addEventListener('input', () => app.input.setTilt({ tilt1: parseFloat(tilt1.value) || 0 }));
+  tilt2.addEventListener('input', () => app.input.setTilt({ tilt2: parseFloat(tilt2.value) || 0 }));
+  const t1t = q<HTMLSelectElement>('#tilt1Target');
+  const t2t = q<HTMLSelectElement>('#tilt2Target');
+  offs.push(bind(t1t, store, (e, v) => { e.value = String(v.tilt1Target); }));
+  offs.push(bind(t2t, store, (e, v) => { e.value = String(v.tilt2Target); }));
+  t1t.addEventListener('change', () => app.input.setTilt({ tilt1Target: Number(t1t.value) }));
+  t2t.addEventListener('change', () => app.input.setTilt({ tilt2Target: Number(t2t.value) }));
+  // Overlap indicator: both tilts targeting one dim leans on the degenerate
+  // fallback in reorthonormalise, so warn.
+  offs.push(bind(q<HTMLSpanElement>('#tiltOverlap'), store, (e, v) => {
+    e.textContent = v.tilt1Target === v.tilt2Target
+      ? `⚠ both tilts target z[${v.tilt1Target}]` : '';
+  }));
 
-  // Viewport zoom (slippy-map: same slice, deeper tiles).
+  rangeField('#rotation', (v) => v.rotation, (v, n) => ({ ...v, rotation: n }), deg);
+
+  // Viewport zoom (slippy-map: same slice, deeper tiles — no recompute key).
   q<HTMLButtonElement>('#zoomIn').addEventListener('click',
-    () => app.store.update((v) => zoomViewport(v, 0.5)));
+    () => store.update((v) => zoomViewport(v, 0.5)));
   q<HTMLButtonElement>('#zoomOut').addEventListener('click',
-    () => app.store.update((v) => zoomViewport(v, 2)));
+    () => store.update((v) => zoomViewport(v, 2)));
 
   // Slice extent (mag — recomputes: mag is in the cache key).
   q<HTMLButtonElement>('#magIn').addEventListener('click', () => app.input.zoom(1));
   q<HTMLButtonElement>('#magOut').addEventListener('click', () => app.input.zoom(-1));
-  offs.push(bind(q<HTMLSpanElement>('#mag_v'), app.store,
+  offs.push(bind(q<HTMLSpanElement>('#mag_v'), store,
     (e, v) => { e.textContent = v.mag.toExponential(1); }));
 
-  // Quality selector.
-  const quality = q<HTMLSelectElement>('#quality');
-  offs.push(bind(quality, app.store, (el, v) => { el.value = v.qualityTier; }));
-  quality.addEventListener('change', () => {
-    app.store.update((v) => ({ ...v, qualityTier: quality.value as QualityTier }));
-  });
+  // Integration. NOTE: the GPU sim honours only KDK today; the integrator
+  // select drives the CPU inspector + cache key now, and the GPU path in
+  // Stage 3. dt/N/horizon/checkpoints are live on both paths.
+  selField<IntegratorId>('#integrator', (v) => v.integrator, (v, val) => ({ ...v, integrator: val }));
+  numField('#THorizon', (v) => v.THorizon, (v, n) => ({ ...v, THorizon: n }));
+  numField('#dtMacro', (v) => v.dtMacro, (v, n) => ({ ...v, dtMacro: n }));
+  numField('#NMax', (v) => v.NMax, (v, n) => ({ ...v, NMax: Math.round(n) }));
+  numField('#checkpoints', (v) => v.checkpoints, (v, n) => ({ ...v, checkpoints: Math.round(n) }));
+
+  // Quality & tiles.
+  selField<QualityTier>('#quality', (v) => v.qualityTier, (v, val) => ({ ...v, qualityTier: val }));
+  numField('#samplesPerAxis', (v) => v.samplesPerAxis, (v, n) => ({ ...v, samplesPerAxis: Math.round(n) }));
+  numField('#maxDepth', (v) => v.maxDepth, (v, n) => ({ ...v, maxDepth: Math.round(n) }));
+  numField('#ensembleCount', (v) => v.ensembleCount, (v, n) => ({ ...v, ensembleCount: Math.round(n) }));
 
   // G13: the panel is a labelled landmark region for screen readers.
   for (const [k, v] of Object.entries(panelAria('View controls'))) {
     root.setAttribute(k, v);
   }
 
-  // G13: roving tabindex over the eight z-sliders + the tilt slider.
-  // Vertical arrows move focus within the group (one Tab stop for the whole
-  // stack); horizontal arrows keep the native value adjustment. The listener
-  // lives on the panel because the window-level keymap ignores events from
-  // editable elements (Keybindings' isEditable guard).
+  // G13: roving tabindex over the slice sliders (8 z + tilt1 + tilt2). One
+  // Tab stop for the stack; vertical arrows move focus, horizontal arrows
+  // keep native value adjustment. The listener lives on the panel because
+  // the window keymap ignores events from editable elements.
   const sliderEls = [
-    ...Array.from({ length: 8 }, (_, k) => q<HTMLInputElement>(`#z${k}`)),
-    tilt1,
+    ...LATENT_DIMS.map((k) => q<HTMLInputElement>(`#z${k}`)),
+    tilt1, tilt2,
   ];
   let activeSlider = 0;
   const reflowRoving = (): void => {
