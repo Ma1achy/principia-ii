@@ -12,3 +12,4 @@ export * from './Keybindings.js';
 export * from './LoadingIndicator.js';
 export * from './Chrome.js';
 export * from './ChartBrowser.js';
+export * from './a11y/index.js';

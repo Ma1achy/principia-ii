@@ -4,6 +4,8 @@ import { type PresetStore, applyPreset, savePreset, type Preset } from './preset
 export interface ChartBrowserHandle {
   open: () => void;
   close: () => void;
+  /** G13: lets the Escape handler know whether a dismiss consumed the key. */
+  isOpen: () => boolean;
   dispose: () => void;
 }
 
@@ -56,6 +58,7 @@ export function mountChartBrowser(
   return {
     open:  () => { panel.hidden = false; },
     close: () => { panel.hidden = true; },
+    isOpen: () => !panel.hidden,
     dispose: () => { root.innerHTML = ''; },
   };
 }

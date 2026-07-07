@@ -137,6 +137,26 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
     (window as unknown as PrincipiaWindow).__principia.app.store.snapshot());
   expect(afterHud).toEqual(beforeHud);
 
+  // G13 a11y: the canvas is an application region, the polite status region
+  // exists, and a CVD swap announces itself while leaving ViewState (and so
+  // the cache key) untouched — the render-only invariant, live.
+  await expect(page.locator('canvas')).toHaveAttribute('role', 'application');
+  await expect(page.locator('.a11y-status')).toHaveAttribute('aria-live', 'polite');
+  const beforeCvd = await page.evaluate(() =>
+    (window as unknown as PrincipiaWindow).__principia.app.store.snapshot());
+  await page.locator('#cvd').selectOption('deutan');
+  await expect(page.locator('.a11y-status')).toContainText('Deuteranopia');
+  const afterCvd = await page.evaluate(() =>
+    (window as unknown as PrincipiaWindow).__principia.app.store.snapshot());
+  expect(afterCvd).toEqual(beforeCvd);
+  await page.locator('#cvd').selectOption('none');
+
+  // Escape dismisses the open gallery (consumed) rather than falling through.
+  await page.keyboard.press('p');
+  await expect(page.locator('.gallery')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.gallery')).toBeHidden();
+
   expect(errors).toEqual([]);
 
   // Let the zoomed/panned frontier finish before the keepsake screenshots
