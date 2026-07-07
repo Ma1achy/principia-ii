@@ -1,7 +1,8 @@
-// Production shell boot (G8). Lives in dev/ because the Vite `?raw`
-// shader imports (via dev/shader_modules.ts) have no d.ts and src/ must
-// stay tsc-clean (G1 convention). Everything substantive is in src/:
-// this file only wires detection → GPU → dispatcher → App → UI.
+// Production shell boot. Wires detection → GPU → dispatcher → App → UI.
+// Formerly `dev/main.ts`: it lived under `dev/` only so its `?raw` shader
+// imports (via the old `dev/shader_modules.ts`) stayed out of `tsc`'s view.
+// With `src/vite-env.d.ts` declaring `*.wgsl?raw`/`*.css`, the boot is a
+// first-class `src/` entry and `index.html` points straight at it.
 import '@/ui/styles.css';
 import { App as AppCore } from '@/app/app.js';
 import { makeRealDispatcher } from '@/app/dispatcher.js';
@@ -17,7 +18,7 @@ import { tileKey } from '@/quadtree/index.js';
 import type { InspectorResult } from '@/inspector/types.js';
 import {
   SIMULATE_MODULE, RENDER_LAYER0_MODULE, REDUCE_MODULE, RENDER_GRAPH_MODULE,
-} from './shader_modules.js';
+} from '@/gpu/shaders/modules.js';
 
 const UNSUPPORTED_COPY: Record<string, string> = {
   'no-webgpu': 'This browser has no WebGPU (navigator.gpu). Use a current Chromium/Edge, or enable WebGPU.',

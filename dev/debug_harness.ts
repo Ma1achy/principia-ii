@@ -18,7 +18,7 @@ import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { Logger, consoleSink, type LogRecord } from '@/debug/logger.js';
 
 // Linked shader modules (G1 wgslLink; replaces the M3 hand concat).
-import { SIMULATE_MODULE, RENDER_LAYER0_MODULE } from './shader_modules.js';
+import { SIMULATE_MODULE, RENDER_LAYER0_MODULE } from '@/gpu/shaders/modules.js';
 
 const N = 16;
 const M = 8;

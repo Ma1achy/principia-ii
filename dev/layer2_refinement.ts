@@ -25,7 +25,7 @@ import type { QuadtreeView, TileCacheKey, TileID } from '@/quadtree/types.js';
 
 import {
   SIMULATE_MODULE, RENDER_LAYER0_MODULE, REDUCE_MODULE,
-} from './shader_modules.js';
+} from '@/gpu/shaders/modules.js';
 
 const N = 16;      // samples per tile axis
 const M = 8;

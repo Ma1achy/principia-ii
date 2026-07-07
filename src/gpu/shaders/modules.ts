@@ -1,7 +1,9 @@
-// Single dev-side shader glue (G1). Owns the Vite `?raw` imports (tsc never
-// sees this file — dev/ is outside tsconfig's include) and links each
-// pipeline's module with wgslLink. Replaces the per-page hand-ordered
-// `[...].join('\n')` concatenation from M3/M7.
+// Shader glue: owns the Vite `?raw` WGSL imports and links each pipeline's
+// module with wgslLink. Formerly `dev/shader_modules.ts` — it lived under
+// `dev/` only because the `?raw` imports had no ambient declaration and would
+// have broken `tsc` over `src/`. `src/vite-env.d.ts` now declares `*.wgsl?raw`,
+// so this belongs with the rest of the GPU layer (and manualChunks folds its
+// inlined WGSL strings into the `gpu` chunk, out of the entry bundle).
 
 import { wgslLink } from '@/gpu/wgsl/link.js';
 

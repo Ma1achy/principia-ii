@@ -23,7 +23,7 @@ import { COLOUR_SOURCES, BRIGHTNESS_SOURCES } from '@/render/mode_registry.js';
 // Linked shader modules (G1 wgslLink; replaces the M3/M7 hand concat orders).
 import {
   SIMULATE_MODULE, RENDER_LAYER0_MODULE, RENDER_GRAPH_MODULE,
-} from './shader_modules.js';
+} from '@/gpu/shaders/modules.js';
 
 // ?n=32 renders a higher-resolution grid (canvas = 32·N px); default 16.
 const N = Math.max(8, Math.min(64,
