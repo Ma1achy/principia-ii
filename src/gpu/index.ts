@@ -4,6 +4,7 @@ export * from './chart_uniforms.js';
 export * from './linearised_uniforms.js';
 export * from './ensemble.js';
 export * from './device_recovery.js';
+export * from './capability.js';
 export * from './init.js';
 export * from './buffers.js';
 export * from './pipelines.js';
