@@ -1,13 +1,21 @@
 import type { App } from '@/app/app.js';
 import { panViewport, zoomViewport } from '@/app/viewport_nav.js';
 
+/** G12: brackets a pointer gesture so the history funnel coalesces the
+ *  whole drag into ONE undo entry (begin at pointerdown, end at pointerup).
+ *  The store still updates live per pointermove — only history is gated. */
+export interface GestureGate {
+  begin(): void;
+  end(): void;
+}
+
 /**
  * Canvas gestures: drag pans the UV window, wheel zooms about the
  * pointer, a (non-drag) click locks the pixel. All three go through the
  * store — the canvas holds no view state of its own.
  */
 export function mountCanvas(
-  root: HTMLElement, app: App, canvas: HTMLCanvasElement,
+  root: HTMLElement, app: App, canvas: HTMLCanvasElement, gate?: GestureGate,
 ): () => void {
   root.appendChild(canvas);
 
@@ -25,6 +33,7 @@ export function mountCanvas(
 
   const onDown = (e: PointerEvent): void => {
     dragging = true; moved = false; last = screenUv(e);
+    gate?.begin();
     canvas.setPointerCapture(e.pointerId);
   };
   const onMove = (e: PointerEvent): void => {
@@ -50,6 +59,9 @@ export function mountCanvas(
       app.input.lock({ s: su, t: sv });
     }
     dragging = false;
+    // End the gesture AFTER the click/lock so the whole interaction —
+    // pan frames or lock — lands as one history entry.
+    gate?.end();
   };
   const onWheel = (e: WheelEvent): void => {
     e.preventDefault();

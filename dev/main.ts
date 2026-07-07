@@ -6,6 +6,7 @@ import '@/ui/styles.css';
 import { App as AppCore } from '@/app/app.js';
 import { makeRealDispatcher } from '@/app/dispatcher.js';
 import { mountUI } from '@/ui/App.js';
+import { RenderParamsStore } from '@/ui/render_params.js';
 import { detectCapabilities } from '@/gpu/capability.js';
 import { initGpu, UnsupportedError } from '@/gpu/init.js';
 import { ErrorBoundary, Telemetry, InMemorySink, Level } from '@/error/index.js';
@@ -101,7 +102,12 @@ async function main(): Promise<void> {
     boundary,
   });
 
-  mountUI(root, app, canvas);
+  // G12: render-only knobs rebind M7 group 3 through the dispatcher —
+  // never the view store, never the cache, never the undo history.
+  const renderStore = new RenderParamsStore(
+    undefined, (p) => dispatcher.setRenderParams(p));
+
+  mountUI(root, app, canvas, { boundary, capability: cap, renderStore });
   app.start();
 
   for (const w of cap.warnings) console.warn('[principia]', w);

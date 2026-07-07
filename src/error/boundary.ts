@@ -71,10 +71,19 @@ export interface ErrorBoundaryHooks {
  * the raw cause.
  */
 export class ErrorBoundary {
+  private readonly listeners = new Set<NonNullable<ErrorBoundaryHooks['onUserError']>>();
+
   constructor(
     private readonly telemetry: Telemetry,
     private readonly hooks: ErrorBoundaryHooks = {},
   ) {}
+
+  /** Register a secondary user-error listener (e.g. the G12 shell chrome,
+   *  mounted after the boundary wraps GPU init). Returns an unsubscriber. */
+  addUserErrorListener(fn: NonNullable<ErrorBoundaryHooks['onUserError']>): () => void {
+    this.listeners.add(fn);
+    return () => { this.listeners.delete(fn); };
+  }
 
   /** Classify + log + surface. Returns the AppError (handled, never rethrown). */
   capture(err: unknown, hints: ClassifyHints = {}): AppError {
@@ -91,6 +100,7 @@ export class ErrorBoundary {
       cause: causeSummary(app.cause),
     });
     this.hooks.onUserError?.(app, message);
+    for (const fn of this.listeners) fn(app, message);
     return app;
   }
 

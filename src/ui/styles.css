@@ -27,3 +27,68 @@ button:hover { filter: brightness(1.1); }
 #status { color: #fa5; font-size: 12px; }
 .boot-error { color: #f66; padding: 24px; white-space: pre-wrap;
               font-family: ui-monospace, monospace; }
+
+/* ── G12 shell layout ─────────────────────────────────────────────────
+   Grid areas + breakpoints. .shell comes after .layout so its grid wins;
+   the .layout rules remain for the G8-era minimal mount. */
+.shell {
+  display: grid;
+  height: 100vh;
+  gap: 1px;
+  grid-template-columns: 1fr 340px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "chrome   chrome"
+    "canvas   controls"
+    "canvas   inspector";
+  background: var(--bg);
+}
+.shell-chrome   { grid-area: chrome; }
+.shell .canvas-area    { grid-area: canvas; position: relative; min-width: 0; min-height: 0; }
+.shell .control-area   { grid-area: controls; background: var(--panel); padding: 12px; overflow-y: auto; }
+.shell .inspector-area { grid-area: inspector; background: var(--panel); padding: 12px; overflow-y: auto; }
+
+/* Gallery + loader float over the canvas; not part of the grid flow. */
+.gallery-area, .loader-area { grid-area: canvas; align-self: start; justify-self: end; z-index: 2; }
+.loader-area { align-self: end; justify-self: start; }
+.gallery { background: var(--panel); padding: 12px; border-radius: 6px; margin: 8px; }
+.gallery[hidden] { display: none; }
+.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.preset-card { text-align: left; }
+.preset-card.builtin { opacity: 0.9; }
+
+.loader { display: flex; gap: 8px; align-items: center; margin: 8px;
+          background: var(--panel); padding: 6px 10px; border-radius: 6px; }
+.loader[hidden] { display: none; }
+.spinner { width: 12px; height: 12px; border: 2px solid var(--accent);
+           border-top-color: transparent; border-radius: 50%;
+           animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.banner { padding: 6px 10px; font-size: 12px; }
+.banner-warn  { background: #3a2f12; color: #ffd479; }
+.banner-error { background: #3a1212; color: #ff8f8f; }
+.error-overlay { position: fixed; bottom: 12px; left: 12px;
+                 background: #3a1212; color: #ffd; padding: 10px 14px;
+                 border-radius: 6px; max-width: 420px; z-index: 3; }
+.error-overlay[hidden] { display: none; }
+
+/* Tablet: narrower right rail. */
+@media (max-width: 1100px) {
+  .shell { grid-template-columns: 1fr 300px; }
+}
+
+/* Mobile: stack; gallery becomes a full-width sheet. */
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 60vh auto auto;
+    grid-template-areas:
+      "chrome"
+      "canvas"
+      "controls"
+      "inspector";
+  }
+  .gallery-area { justify-self: stretch; }
+  .gallery-grid { grid-template-columns: 1fr; }
+}
