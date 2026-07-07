@@ -21,10 +21,13 @@ describe('layout descriptors (the canonical group table)', () => {
     expect(STAGE.COMPUTE).toBe(0x4);
   });
 
-  it('frame group is SimUniforms(0), TileRequest(1), Debug(2), Chart(3), LinearisedRef(4), Ensemble(5)', () => {
+  it('frame group is SimUniforms(0), TileRequest(1), Debug(2), Chart(3), LinearisedRef(4), Ensemble(5), Slice(6), UploadedIC(7)', () => {
     const e = entries(FRAME_LAYOUT_DESC);
-    expect(e.map((x) => x.binding)).toEqual([0, 1, 2, 3, 4, 5]);
-    for (const x of e) expect(x.buffer?.type ?? 'uniform').toBe('uniform');
+    expect(e.map((x) => x.binding)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    // b0..b6 are uniforms; b7 (UploadedIC[]) is the frame group's one
+    // storage slot — CPU-decoded per-sample ICs are too big for a uniform.
+    for (const x of e.slice(0, 7)) expect(x.buffer?.type ?? 'uniform').toBe('uniform');
+    expect(e[7]!.buffer?.type).toBe('read-only-storage');
   });
 
   it('frame.SimUniforms is visible to compute and fragment', () => {
@@ -64,6 +67,26 @@ describe('layout descriptors (the canonical group table)', () => {
     expect(ens.visibility & STAGE.COMPUTE).toBeTruthy();
     expect(ens.visibility & STAGE.FRAGMENT).toBeFalsy();
     expect(ENSEMBLE_OFFSETS_SIZE).toBe(256);
+  });
+
+  it('frame.SliceUniforms (binding 6) is compute-only; 112-byte contract', async () => {
+    const { SLICE_UNIFORMS_SIZE } = await import('@/gpu/slice_uniforms.js');
+    const s = entries(FRAME_LAYOUT_DESC)[6]!;
+    expect(s.binding).toBe(6);
+    expect(s.visibility & STAGE.COMPUTE).toBeTruthy();
+    expect(s.visibility & STAGE.FRAGMENT).toBeFalsy();
+    expect(SLICE_UNIFORMS_SIZE).toBe(112);
+  });
+
+  it('frame.UploadedIC (binding 7) is compute-only read-only storage; 64-byte stride', async () => {
+    const { UPLOADED_IC_SIZE, sizeOfUploadedICs } = await import('@/gpu/uploaded_ics.js');
+    const u = entries(FRAME_LAYOUT_DESC)[7]!;
+    expect(u.binding).toBe(7);
+    expect(u.visibility & STAGE.COMPUTE).toBeTruthy();
+    expect(u.visibility & STAGE.FRAGMENT).toBeFalsy();
+    expect(u.buffer?.type).toBe('read-only-storage');
+    expect(UPLOADED_IC_SIZE).toBe(64);
+    expect(sizeOfUploadedICs(16, 2)).toBe(64 * 16 * 16 * 2);
   });
 
   it('per-tile storage is read-write and visible to both compute and fragment', () => {

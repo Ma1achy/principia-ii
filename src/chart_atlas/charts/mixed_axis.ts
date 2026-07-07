@@ -47,6 +47,25 @@ export function makeMixedAxisChart(opts: {
     chartUniforms() {
       return CHART_UNIFORMS_DEFAULTS;
     },
+    affineSlice(view) {
+      // latent × latent is affine too: z[h] = hLo + (hHi − hLo)·u is
+      // midpoint + (2u − 1)·halfRange, so with mag = 1 the axes carry the
+      // half-ranges and z0 carries the midpoints (other lanes frozen at
+      // the view's z0, exactly as decode() below composes them).
+      if (opts.hAxis.kind !== 'latent' || opts.vAxis.kind !== 'latent') return null;
+      type Mut8 = [number, number, number, number, number, number, number, number];
+      const zero8 = (): Mut8 => [0, 0, 0, 0, 0, 0, 0, 0];
+      const z0 = [...view.z0] as Mut8;
+      const q1 = zero8();
+      const q2 = zero8();
+      const [hLo, hHi] = opts.hAxis.range;
+      const [vLo, vHi] = opts.vAxis.range;
+      z0[opts.hAxis.index] = (hLo + hHi) / 2;
+      z0[opts.vAxis.index] = (vLo + vHi) / 2;
+      q1[opts.hAxis.index] = (hHi - hLo) / 2;
+      q2[opts.vAxis.index] = (vHi - vLo) / 2;
+      return { z0: z0 as Vec8, q1: q1 as Vec8, q2: q2 as Vec8, mag: 1 };
+    },
     decode([u, v], view) {
       // Compose: write the per-axis derivation into the view's z0, then
       // decode the frozen point through the latent slice. M10 ships only

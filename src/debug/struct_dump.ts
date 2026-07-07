@@ -81,6 +81,31 @@ export function linearisedRefLayout(): StructLayout {
   };
 }
 
+/** SliceUniforms layout — mirrors packSliceUniforms (112 bytes). Every
+ *  member is a vec4<f32>, so offsets are index × 16; the WGSL struct lives
+ *  in simulate.wgsl (g0b6). */
+export function sliceUniformsLayout(): StructLayout {
+  const names = ['z0a', 'z0b', 'q1a', 'q1b', 'q2a', 'q2b', 'mag_pad'];
+  return {
+    struct: 'SliceUniforms',
+    totalSize: 112,
+    fields: names.map((name, i) =>
+      ({ name, offset: i * 16, size: 16, wgslType: 'vec4<f32>' })),
+  };
+}
+
+/** UploadedIC layout — mirrors packUploadedICs (64-byte stride). Every
+ *  member is a vec4<f32>; the WGSL struct lives in simulate.wgsl (g0b7). */
+export function uploadedIcLayout(): StructLayout {
+  const names = ['m_t', 'r01', 'r2p0', 'p12'];
+  return {
+    struct: 'UploadedIC',
+    totalSize: 64,
+    fields: names.map((name, i) =>
+      ({ name, offset: i * 16, size: 16, wgslType: 'vec4<f32>' })),
+  };
+}
+
 /**
  * SimResult layout at the given M. Field order/offsets mirror the decode in
  * readback.ts decodeBuffer: M vec4 checkpoints, one vec4<u32> free-group word,
@@ -123,5 +148,7 @@ export function dumpStructLayouts(M = M_DEFAULT, sink: (s: string) => void = con
   sink(formatLayout(simUniformsLayout()));
   sink(formatLayout(chartUniformsLayout()));
   sink(formatLayout(linearisedRefLayout()));
+  sink(formatLayout(sliceUniformsLayout()));
+  sink(formatLayout(uploadedIcLayout()));
   sink(formatLayout(simResultLayout(M)));
 }

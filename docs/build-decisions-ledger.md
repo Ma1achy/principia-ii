@@ -9,6 +9,79 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## F — Fix: GPU chart decode ignored the view (latent slicing / charts dead)
+
+Branch `fix/gpu-chart-decode`. User bug: "the latent slicing and charts
+don't work" / "even upon zoom / pan the latent slicing or chart changes
+don't update". Root cause: simulate.wgsl's non-linearised decode path
+hard-coded the M3 bring-up mapping (`z[0]=(2u−1)·3, z[1]=(2v−1)·3, rest 0`)
+and ignored the view's z0/q1/q2/mag AND chart identity entirely — every
+recompute of every chart produced the same default slice. The CPU side
+(store, cache keys, frame loop, retained-buffer keys) was verified correct.
+
+### DF.1 — two decode inputs, both chart-agnostic (no chart branch in WGSL)
+The architecture skill forbids the shader knowing which chart produced its
+samples. Landed accordingly: (a) **SliceUniforms** (g0b6, 112B, 7 vec4
+lanes: z0, q1, q2, mag) carries the affine `z = z0 + mag((2u−1)q1 +
+(2v−1)q2)` map — pure uniform DATA, the exact CPU formula in
+latent_slice.ts; (b) **UploadedIC[]** (g0b7, read-only storage, 64B/sample:
+m+terminal, r, p) carries CPU-decoded per-sample ICs for charts that are
+not affine in latent space (lz_e, lz_k, shape_sphere, mass_simplex,
+burrau_euclid), selected by a new `TILE_REQ_DECODE_UPLOADED` flag (bit 1) —
+the shader reads (m, r, p), the skill's literal contract. Charts declare
+which path via a new optional `Chart.affineSlice(view)` (latent_slice and
+mixed_axis latent×latent return a slice; the rest return null). Precedence
+in the shader: DECODE_LINEAR (G6, unchanged) → DECODE_UPLOADED → slice.
+
+### DF.2 — default-slice seeding keeps M3 harnesses and goldens bit-exact
+`createTileBuffers` seeds the slice buffer with DEFAULT_SLICE (z0=0, q1=e0,
+q2=e1, mag=3), which reproduces the old hard-coded mapping exactly (×1.0
+and +0.0 are exact in f32), and `defaultViewState()` carries the same
+slice — so every harness/test that never writes the buffer, and the
+default view itself, are pixel-identical. Evidence: gpu:check reproduces
+the D3.2 calibration numbers exactly (gpuDisagree 95, histDelta unchanged);
+visual goldens unchanged.
+
+### DF.3 — uploaded ICs are CPU-decoded at the shader's own sample points
+`buildUploadedICs` iterates idx = z·N²+gy·N+gx with t=(g+0.5)/N+jitter/N
+and uv = centre + half·(2t−1), reusing the same jitterOffsets table packed
+into EnsembleOffsets, so the CPU decodes exactly the points the GPU would
+have sampled (G7 ensembles included). Terminal decodes upload
+terminal=1/2 (degenerate / collision_t0) and the shader's existing
+write_terminal path classifies them — decode totality preserved on the
+GPU. Cost: one N²·E chart decode per non-affine tile job (the price of
+correctness; these charts previously rendered garbage).
+
+### DF.4 — three-place discipline + pins
+WGSL structs (simulate.wgsl) + packers (slice_uniforms.ts /
+uploaded_ics.ts) + pin tests (field order vs struct_dump layouts, flag-bit
+twins, DEFAULT_SLICE ≡ M3 mapping, sample-order maths) landed in one
+commit. Frame layout grew b6 (uniform) + b7 (read-only-storage), both
+compute-only; layouts.test.ts pins updated. New GPU-guarded integration
+test chart_decode_gpu.test.ts A/Bs slice-change-must-move-pixels and
+GPU-vs-CPU E_0 agreement for both paths.
+
+### DF.6 — goldens are bit-exact under the fix; one transient failure chased
+The FIRST full headed run on Metal failed event_class / ang_momentum /
+escape_time (diffRatio up to 0.79, flat-background pixels shifted).
+Chased properly: (1) baseline webgpu-rewrite passed all 7 → suspect the
+fix; (2) BUT regenerating goldens on the fix branch produced PNGs
+byte-identical to the committed ones (pngjs is deterministic, so
+byte-identical = pixel-identical frames), and two consecutive verify runs
+plus a full-suite re-run pass all 7 against the ORIGINAL goldens. So the
+fix's default-view frames are bit-exact with the old shader, as the
+DEFAULT_SLICE pin predicts, and the first run's failures were a transient
+screenshot/compositor condition (it ran immediately after the SwiftShader
+suite), not a compute change. Goldens unchanged in this PR.
+
+### DF.5 — known gaps flagged, not fixed here
+(a) `chartParams` (Kmax/gammaK/alpha/beta/poleBuffer) are not part of
+TileCacheKey or the retained-buffer key — a chartParams-only change would
+serve stale tiles. No UI mutates chartParams today; follow-up when M11's
+per-chart controls land. (b) FrameCaptureV2 doesn't record uploaded-IC
+buffers; replay re-derives them from the captured ViewState (CPU decode is
+pure, so replay stays deterministic).
+
 ## G19 — Close-encounter regularization
 
 Branch `feat/g19-regularization`. 746 passed / 8 skipped (+13: golden 3 +

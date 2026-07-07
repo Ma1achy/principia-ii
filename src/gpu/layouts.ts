@@ -9,7 +9,9 @@
  *   group(0) frame:     b0 SimUniforms, b1 TileRequest,
  *                       b2 DebugUniform (G17), b3 ChartUniforms (G4),
  *                       b4 LinearisedRef (G6, compute-only),
- *                       b5 EnsembleOffsets (G7, compute-only).
+ *                       b5 EnsembleOffsets (G7, compute-only),
+ *                       b6 SliceUniforms (compute-only),
+ *                       b7 UploadedIC[] (compute-only, read-only storage).
  *   group(1) perTile:   b0 SimResult[], b1 ICDescriptor[]  (storage).
  *   group(2) reduction: b0 TileReduction                   (storage).
  *   group(3) render:    b0 RenderParams, b1 TileWindow (G8) (uniform).
@@ -54,6 +56,10 @@ export const FRAME_LAYOUT_DESC: GPUBindGroupLayoutDescriptor = {
       buffer: { type: 'uniform' } },                     // LinearisedRef (G6)
     { binding: 5, visibility: STAGE.COMPUTE,
       buffer: { type: 'uniform' } },                     // EnsembleOffsets (G7)
+    { binding: 6, visibility: STAGE.COMPUTE,
+      buffer: { type: 'uniform' } },                     // SliceUniforms
+    { binding: 7, visibility: STAGE.COMPUTE,
+      buffer: { type: 'read-only-storage' } },           // UploadedIC[]
   ],
 };
 
