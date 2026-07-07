@@ -80,11 +80,16 @@ async function main(): Promise<void> {
   const qs = new URLSearchParams(location.search);
   const thorizon = Number(qs.get('thorizon')) || 0;
   const nOverride = Number(qs.get('n')) || 0;
+  // ?maxdepth= caps the quadtree ceiling. Setting it to the boot zoom's
+  // frontier depth disables live depth refinement entirely — CI's
+  // SwiftShader smoke uses this (refinement multiplies tile count, and
+  // SwiftShader pays ~seconds per tile).
+  const maxdepth = qs.get('maxdepth');
   const view = {
     ...defaultViewState(),
     qualityTier: cap.caps.tier,
     samplesPerAxis: nOverride > 0 ? nOverride : cap.caps.samplesPerTileAxis,
-    maxDepth: cap.caps.maxDepth,
+    maxDepth: maxdepth !== null ? Number(maxdepth) : cap.caps.maxDepth,
     ...(thorizon > 0 ? { THorizon: thorizon } : {}),
   };
 

@@ -1,12 +1,13 @@
 import type { FrameDeps, FrameStats, GpuDispatcher,
               RenderPlan, RenderPlanEntry } from './types.js';
 import type { Store } from './store.js';
+import type { TileID } from '@/quadtree/types.js';
 import { JobLedger } from './gpu_jobs.js';
 import { toQuadtreeView, DEFAULT_VIEWPORT, type Viewport } from './view_bridge.js';
 import { TileCache } from '@/quadtree/cache.js';
 import { visibleTiles } from '@/quadtree/visible.js';
-import { subrect } from '@/quadtree/tile.js';
-import { planFrame } from '@/quadtree/scheduler.js';
+import { subrect, children } from '@/quadtree/tile.js';
+import { planFrame, REFINE_LEVELS_MAX } from '@/quadtree/scheduler.js';
 import { PerfMonitor, type PerfRecommendation } from '@/perf/perf_monitor.js';
 import type { ErrorBoundary } from '@/error/boundary.js';
 
@@ -63,7 +64,12 @@ export class FrameLoop {
     private opts:       FrameLoopOpts,
   ) {
     this.viewport = opts.viewport ?? DEFAULT_VIEWPORT;
-    this.cache = new TileCache(opts.cacheCapacity ?? 256);
+    // 512, not M4's 256: live refinement holds up to two extra levels
+    // below the visible frontier (≤ 1+4+16 tiles per visible tile in the
+    // worst case), and a capacity below the working set would thrash —
+    // evicted descendants get re-proposed and recomputed forever. Matches
+    // the dispatcher's RETAINED_TILE_CAP.
+    this.cache = new TileCache(opts.cacheCapacity ?? 512);
     this.ledger = new JobLedger(dispatcher, this.cache, {
       maxInFlight:     opts.maxInFlight,
       ftleEnabled:     opts.ftleEnabled,
@@ -108,13 +114,27 @@ export class FrameLoop {
     stats.visible = visible.length;
 
     // Render plan: each visible tile draws itself when ready, else the
-    // nearest cached ancestor stretched over its footprint.
+    // nearest cached ancestor stretched over its footprint. Refined
+    // descendants draw ON TOP of their parent (entries render in order),
+    // so each child pops in as it completes — progressive, no seams when
+    // a split is only partially computed.
     const entries: RenderPlanEntry[] = [];
+    const overlayReady = (tile: TileID, depth: number): void => {
+      if (depth >= REFINE_LEVELS_MAX) return;
+      for (const c of children(tile)) {
+        const cc = this.cache.get(c, qview.cacheKey);
+        if (cc?.lifecycle !== 'ready' && cc?.lifecycle !== 'readyRefinable') continue;
+        entries.push({ tile: c, source: 'self' });
+        stats.refined = (stats.refined ?? 0) + 1;
+        overlayReady(c, depth + 1);
+      }
+    };
     for (const tile of visible) {
       const cached = this.cache.get(tile, qview.cacheKey);
       if (cached?.lifecycle === 'ready' || cached?.lifecycle === 'readyRefinable') {
         entries.push({ tile, source: 'self' });
         stats.cacheHits++;
+        overlayReady(tile, 0);
         continue;
       }
       const fb = this.cache.walkAncestors(tile, qview.cacheKey);

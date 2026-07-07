@@ -56,7 +56,12 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
     if (m.type() === 'error') errors.push(m.text());
   });
 
-  await page.goto('/index.html?thorizon=20&n=16');
+  // &maxdepth=2 pins the ceiling to the boot frontier: live depth
+  // refinement stays off, so SwiftShader CI computes the same ~16-tile
+  // workload it always has (refinement multiplies tile count and
+  // SwiftShader pays seconds per tile). Refinement itself is covered by
+  // unit tests + the real-GPU visual goldens.
+  await page.goto('/index.html?thorizon=20&n=16&maxdepth=2');
   await page.waitForFunction(
     () => (window as { __principia?: unknown }).__principia !== undefined,
     null, { timeout: 60_000 });

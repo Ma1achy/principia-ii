@@ -76,7 +76,9 @@ describe('JobLedger', () => {
     expect(ledger.inflightCount).toBe(0);
     expect(ledger.completedCount).toBe(1);
     const entry = cache.get(id, key)!;
-    expect(entry.lifecycle).toBe('ready');
+    // Below the f32 floor and the view's maxDepth, ingest promotes the
+    // tile to refinable (live depth refinement / DS.1 wiring).
+    expect(entry.lifecycle).toBe('readyRefinable');
     expect(entry.reduction?.sample_count).toBe(256);
   });
 
@@ -116,7 +118,7 @@ describe('JobLedger', () => {
     stub.resolveOne(stubReduction(child));
     await flush();
     expect(cache.get(offscreen, key)?.lifecycle).toBe('unseen');
-    expect(cache.get(child, key)?.lifecycle).toBe('ready');
+    expect(cache.get(child, key)?.lifecycle).toBe('readyRefinable');
     expect(ledger.completedCount).toBe(1);
   });
 });
