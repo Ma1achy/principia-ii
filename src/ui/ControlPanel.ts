@@ -6,6 +6,10 @@ import type {
 import { DEFAULT_EVENT_PALETTE, EVENT_CLASS_KEYS } from '@/render/types.js';
 import { linearToSrgb, srgbToLinear } from '@/render/oklab.js';
 import { mountChartParams } from './ChartParamsPanel.js';
+import {
+  massPerturbationFromBurrau, energyIncreaseAtFixedLz,
+} from '@/interact/named_directions.js';
+import { reorthonormalise, setTilts } from '@/interact/tilt.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
@@ -322,6 +326,14 @@ export function mountControlPanel(
       </div>
       <div class="row"><span id="tiltOverlap" class="hint"></span></div>
       <div class="row">
+        <label for="namedDir">Set q1 to</label>
+        <select id="namedDir">
+          <option value="">— axis basis —</option>
+          <option value="burrau_mass">Mass ⟂ from Burrau</option>
+          <option value="energy_lz">Energy ↑ @ fixed L_z</option>
+        </select>
+      </div>
+      <div class="row">
         <label for="rotation">Rotation</label>
         <input type="range" id="rotation" min="-3.1416" max="3.1416" step="0.01">
         <span id="rotation_v"></span>
@@ -459,6 +471,23 @@ export function mountControlPanel(
     e.textContent = v.tilt1Target === v.tilt2Target
       ? `⚠ both tilts target z[${v.tilt1Target}]` : '';
   }));
+
+  // Named compound directions (spec §named_directions): precomputed q
+  // vectors. v1 sets q1 to the chosen vector, re-orthonormalises q2 and
+  // resets the tilts — NOTE a later tilt-slider change recomputes the
+  // basis from the axis dims (the tilt model owns q1/q2); making named
+  // directions first-class tilt TARGETS is the follow-up.
+  const namedDir = q<HTMLSelectElement>('#namedDir');
+  namedDir.addEventListener('change', () => {
+    const dir = namedDir.value === 'burrau_mass'
+      ? massPerturbationFromBurrau([5 / 12, 4 / 12, 3 / 12])
+      : namedDir.value === 'energy_lz' ? energyIncreaseAtFixedLz() : null;
+    store.update((v) => {
+      if (!dir) return setTilts({ ...v, tilt1: 0, tilt2: 0 }, {});
+      const [q1n, q2n] = reorthonormalise(dir, v.q2);
+      return { ...v, q1: q1n, q2: q2n, tilt1: 0, tilt2: 0 };
+    });
+  });
 
   rangeField('#rotation', (v) => v.rotation, (v, n) => ({ ...v, rotation: n }), deg);
 

@@ -127,6 +127,21 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
     expect(h.kind).toBe('mass');
   });
 
+  it('a named compound direction lands in q1, orthonormal to q2', () => {
+    const { root, app } = mount();
+    const sel = root.querySelector<HTMLSelectElement>('#namedDir')!;
+    sel.value = 'burrau_mass';
+    fire(sel, 'change');
+    const v = app.store.snapshot();
+    // Burrau mass-perturbation lives in the logit lanes (6, 7) only.
+    expect(Math.hypot(v.q1[6]!, v.q1[7]!)).toBeCloseTo(1, 9);
+    expect(Math.hypot(...v.q1.slice(0, 6))).toBeCloseTo(0, 12);
+    // Basis stays orthonormal; tilts reset.
+    const dot = v.q1.reduce((s, x, i) => s + x * v.q2[i]!, 0);
+    expect(dot).toBeCloseTo(0, 9);
+    expect(v.tilt1).toBe(0);
+  });
+
   it('the diagnostic selector is a render-only recolour — never a recompute', () => {
     const { root, app, render } = mount();
     const viewBefore = JSON.stringify(app.store.snapshot());
