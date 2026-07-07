@@ -14,6 +14,9 @@ import { sizeOfTileReduction } from './structs.js';
  */
 export interface ReducePipeline {
   pipeline:    GPUComputePipeline;
+  /** G7 second pass: spreads + ensemble agreement (same module,
+   *  entryPoint 'reduce_spreads'; runs after `pipeline` every dispatch). */
+  spreads:     GPUComputePipeline;
   bgCommon:    GPUBindGroup;         // group 0 (canonical frame group)
   bgInput:     GPUBindGroup;         // group 1 (canonical perTile group)
   bgOutput:    GPUBindGroup;         // group 2 (canonical reduction group)
@@ -27,10 +30,16 @@ export async function buildReducePipeline(
   const { device } = ctx;
   const layouts = buildLayouts(device);
 
+  const module = device.createShaderModule({ code });
   const pipeline = device.createComputePipeline({
     label: 'principia.reduce',
     layout: layouts.pipelineReduce,
-    compute: { module: device.createShaderModule({ code }), entryPoint: 'reduce' },
+    compute: { module, entryPoint: 'reduce' },
+  });
+  const spreads = device.createComputePipeline({
+    label: 'principia.reduce_spreads',
+    layout: layouts.pipelineReduce,
+    compute: { module, entryPoint: 'reduce_spreads' },
   });
 
   const readbackBuf = device.createBuffer({
@@ -41,6 +50,7 @@ export async function buildReducePipeline(
   const bgs = createTileBindGroups(ctx, layouts, bufs);
   return {
     pipeline,
+    spreads,
     bgCommon: bgs.frame,
     bgInput: bgs.perTile,
     bgOutput: bgs.reduction,

@@ -9,6 +9,7 @@ import {
   REDUCTION_LAYOUT_DESC, RENDER_LAYOUT_DESC,
 } from '@/gpu/layouts.js';
 import { LINEARISED_UNIFORMS_SIZE } from '@/gpu/linearised_uniforms.js';
+import { ENSEMBLE_OFFSETS_SIZE } from '@/gpu/ensemble.js';
 
 const entries = (d: GPUBindGroupLayoutDescriptor): GPUBindGroupLayoutEntry[] =>
   [...d.entries];
@@ -20,9 +21,9 @@ describe('layout descriptors (the canonical group table)', () => {
     expect(STAGE.COMPUTE).toBe(0x4);
   });
 
-  it('frame group is SimUniforms(0), TileRequest(1), Debug(2), ChartUniforms(3), LinearisedRef(4)', () => {
+  it('frame group is SimUniforms(0), TileRequest(1), Debug(2), Chart(3), LinearisedRef(4), Ensemble(5)', () => {
     const e = entries(FRAME_LAYOUT_DESC);
-    expect(e.map((x) => x.binding)).toEqual([0, 1, 2, 3, 4]);
+    expect(e.map((x) => x.binding)).toEqual([0, 1, 2, 3, 4, 5]);
     for (const x of e) expect(x.buffer?.type ?? 'uniform').toBe('uniform');
   });
 
@@ -55,6 +56,14 @@ describe('layout descriptors (the canonical group table)', () => {
     expect(lin.visibility & STAGE.COMPUTE).toBeTruthy();
     expect(lin.visibility & STAGE.FRAGMENT).toBeFalsy();
     expect(LINEARISED_UNIFORMS_SIZE).toBe(256);
+  });
+
+  it('frame.EnsembleOffsets (binding 5, G7 slot) is compute-only; 256-byte contract', () => {
+    const ens = entries(FRAME_LAYOUT_DESC)[5]!;
+    expect(ens.binding).toBe(5);
+    expect(ens.visibility & STAGE.COMPUTE).toBeTruthy();
+    expect(ens.visibility & STAGE.FRAGMENT).toBeFalsy();
+    expect(ENSEMBLE_OFFSETS_SIZE).toBe(256);
   });
 
   it('per-tile storage is read-write and visible to both compute and fragment', () => {

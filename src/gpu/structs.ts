@@ -108,6 +108,11 @@ export interface TileRequest {
   uv_centre:   readonly [number, number];
   uv_half:     readonly [number, number];
   flags:       number;
+  /** G7 ensemble copies: 0/1 = single dispatch, 2..16 = E jittered
+   *  copies along the dispatch z axis. Optional — packs as 0. */
+  ensemble_e?: number;
+  /** G7 jitter pattern: 0 = none, 1 = stratified, 2 = Halton(2,3). */
+  sample_pattern_id?: number;
 }
 
 /**
@@ -129,6 +134,8 @@ export function packTileRequest(t: TileRequest): ArrayBuffer {
   f32[4] = t.uv_centre[0]; f32[5] = t.uv_centre[1];
   f32[6] = t.uv_half[0];   f32[7] = t.uv_half[1];
   i32[8] = t.flags >>> 0;
+  i32[9]  = (t.ensemble_e ?? 0) >>> 0;          // G7
+  i32[10] = (t.sample_pattern_id ?? 0) >>> 0;   // G7
   return buf;
 }
 

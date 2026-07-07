@@ -35,6 +35,8 @@ struct TileRequest {
   uv_centre: vec2<f32>,
   uv_half:   vec2<f32>,
   flags:     u32,
+  ensemble_e:        u32,   // G7: 0/1 = single, 2..16 = jittered copies
+  sample_pattern_id: u32,   // G7: 0 none, 1 stratified, 2 Halton(2,3)
 };
 
 struct SimResult {
@@ -62,10 +64,18 @@ struct ICDescriptor {
   K_0: f32, V_0: f32, virial_ratio: f32, r_min_pair_0: f32,
 };
 
+// G7: per-copy sub-pixel jitter offsets in pixel units, indexed by gid.z.
+// TS twin: packEnsembleOffsets in src/gpu/ensemble.ts. Zero-filled buffer
+// (the default) = every copy samples the pixel centre.
+struct EnsembleOffsets {
+  offsets: array<vec4<f32>, 16>,
+};
+
 @group(0) @binding(0) var<uniform>      uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform>      tile_req : TileRequest;
 @group(0) @binding(3) var<uniform>      chart    : ChartUniforms;   // G4
 @group(0) @binding(4) var<uniform>      linearised : LinearisedRef; // G6
+@group(0) @binding(5) var<uniform>      ensemble   : EnsembleOffsets; // G7
 @group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 @group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 
@@ -73,9 +83,12 @@ struct ICDescriptor {
 fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   let N = uniforms.samples_per_axis;
   if (gid.x >= N || gid.y >= N) { return; }
-  let idx = gid.y * N + gid.x;
+  // G7 ensemble: gid.z selects the copy — each writes its own N² slice of
+  // the SimResult buffer and jitters its sample point within the pixel.
+  let idx = gid.z * N * N + gid.y * N + gid.x;
 
-  let t = (vec2<f32>(f32(gid.x), f32(gid.y)) + 0.5) / f32(N);
+  let t = (vec2<f32>(f32(gid.x), f32(gid.y)) + 0.5) / f32(N)
+        + ensemble.offsets[gid.z].xy / f32(N);
 
   // Decode: linearised path at deep zoom (G6), full nonlinear otherwise.
   var ic_out: ICOut;

@@ -7,6 +7,8 @@ import type { ChartUniforms } from './chart_uniforms.js';
 import { packChartUniforms, CHART_UNIFORMS_DEFAULTS } from './chart_uniforms.js';
 import type { LinearisedReference } from '@/decode/linearised.js';
 import { packLinearisedUniforms } from './linearised_uniforms.js';
+import { packEnsembleOffsets } from './ensemble.js';
+import { jitterOffsets } from '@/quadtree/ensemble_jitter.js';
 
 export interface DispatchView {
   uniforms: SimUniforms;
@@ -18,6 +20,10 @@ export interface DispatchView {
    *  TILE_REQUEST_FLAGS.DECODE_LINEAR — a zero LinearisedRef would decode
    *  every sample to the origin with zero masses, silently. */
   linearised?: LinearisedReference;
+  /** G7: ensemble dispatch — E jittered copies along the dispatch z axis.
+   *  The tile request's ensemble_e / sample_pattern_id are derived from
+   *  this at dispatch (single source). */
+  ensemble?: { E: number; patternId: 0 | 1 | 2 };
 }
 
 /**
@@ -35,8 +41,21 @@ export function dispatchLayer0(
 ): void {
   const { device } = ctx;
 
+  const E = Math.max(1, view.ensemble?.E ?? 1);
+  if (E > bufs.EMax) {
+    throw new Error(
+      `dispatchLayer0: ensemble E=${E} exceeds buffer capacity EMax=${bufs.EMax}`);
+  }
+  const tile: TileRequest = view.ensemble
+    ? { ...view.tile, ensemble_e: E, sample_pattern_id: view.ensemble.patternId }
+    : view.tile;
+
   device.queue.writeBuffer(bufs.uniforms, 0, packSimUniforms(view.uniforms));
-  device.queue.writeBuffer(bufs.tileReq,  0, packTileRequest(view.tile));
+  device.queue.writeBuffer(bufs.tileReq,  0, packTileRequest(tile));
+  if (view.ensemble) {
+    device.queue.writeBuffer(bufs.ensemble, 0,
+      packEnsembleOffsets(jitterOffsets(view.ensemble.patternId, E)));
+  }
   device.queue.writeBuffer(bufs.chart,    0,
     packChartUniforms(view.chart ?? CHART_UNIFORMS_DEFAULTS));
 
@@ -56,7 +75,7 @@ export function dispatchLayer0(
     pass.setBindGroup(0, pl.bindGroupCommon);
     pass.setBindGroup(1, pl.bindGroupSim);
     const N = view.uniforms.samples_per_axis;
-    pass.dispatchWorkgroups(Math.ceil(N/8), Math.ceil(N/8), 1);
+    pass.dispatchWorkgroups(Math.ceil(N/8), Math.ceil(N/8), E);
     pass.end();
   }
   {

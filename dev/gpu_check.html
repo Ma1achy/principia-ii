@@ -42,7 +42,7 @@ async function main() {
   const { wgslLink } = await import('@/gpu/wgsl/link.js');
   const fetchText = async (p) => (await fetch(p)).text();
   const S = {};
-  for (const n of ['helpers','decode','decode_linear','integrate','events','observe','simulate','render_layer0']) {
+  for (const n of ['helpers','decode','decode_linear','integrate','events','observe','simulate','render_layer0','reduce']) {
     S[`${n}.wgsl`] = await fetchText(`/src/gpu/shaders/${n}.wgsl`);
   }
   const simulateSrc = wgslLink({ entryPath: 'simulate.wgsl', sources: S }).module;
@@ -248,6 +248,96 @@ async function main() {
   const linOk = linRef !== null && linMaxErr < 1e-2;
   log(`G6 linearised A/B: ref=${linRef ? 'built' : 'NULL'}, max |ΔE_0| = ${linMaxErr.toExponential(2)} (gate < 1e-2)`);
 
+  // ── G7 gates ────────────────────────────────────────────────────────
+  const { buildReducePipeline } = await import('@/gpu/reduce_pipeline.js');
+  const { dispatchReduce } = await import('@/gpu/reduce_dispatch.js');
+  const { readbackReduction } = await import('@/gpu/reduce_readback.js');
+  const { DeviceRecovery } = await import('@/gpu/device_recovery.js');
+  const { TileCache } = await import('@/quadtree/cache.js');
+
+  // Gate 1: spread second pass on the mixed M3 tile. Re-dispatch the
+  // baseline tile (the G6 section overwrote bufs), then reduce twice-pass.
+  dispatchLayer0(ctx, bufs, pl, { uniforms, tile }, gpuCanvasCtx.getCurrentTexture().createView());
+  const rp = await buildReducePipeline(ctx, bufs, S['reduce.wgsl']);
+  ctx.device.queue.submit([dispatchReduce(ctx, rp)]);
+  const red = await readbackReduction(rp, M);
+  const spreadsOk = red.spread_t_end > 0 && red.spread_d_min > 0 && red.spread_n > 0
+    && red.mean_n_checkpoints.some((c) => c.x !== 0 || c.y !== 0 || c.z !== 0);
+  log(`G7 spreads: t_end=${red.spread_t_end.toExponential(2)} d_min=${red.spread_d_min.toExponential(2)} n=${red.spread_n.toExponential(2)} (gate: all > 0)`);
+
+  // Gate 2: ensemble dispatch (E = 4, stratified) on E-sized buffers.
+  const bufsE = createTileBuffers(ctx, N, M, 4);
+  const plE = await buildPipelines(ctx, bufsE, { simulate: simulateSrc, render: S['render_layer0.wgsl'] });
+  dispatchLayer0(ctx, bufsE, plE,
+    { uniforms, tile, ensemble: { E: 4, patternId: 1 } },
+    gpuCanvasCtx.getCurrentTexture().createView());
+  const rpE = await buildReducePipeline(ctx, bufsE, S['reduce.wgsl']);
+  ctx.device.queue.submit([dispatchReduce(ctx, rpE)]);
+  const redE = await readbackReduction(rpE, M);
+  const ensembleOk = redE.ensemble_count === 4
+    && redE.ensemble_outcome_agreement > 0 && redE.ensemble_outcome_agreement < 1
+    && (redE.status_flags & 1) !== 0        // HAS_ENSEMBLE
+    && redE.sample_count === N * N * 4;
+  log(`G7 ensemble: count=${redE.ensemble_count} agreement=${redE.ensemble_outcome_agreement.toFixed(4)} samples=${redE.sample_count} (gate: count 4, 0 < agreement < 1)`);
+
+  // Gate 3: device-loss recovery. Destroy the device; DeviceRecovery
+  // acquires a fresh one, the cache keeps its reduction, and a fresh
+  // dispatch reproduces the pre-loss class histogram.
+  const cacheKey = {
+    chartId: 'latent_slice', z0: [0,0,0,0,0,0,0,0],
+    q1: [1,0,0,0,0,0,0,0], q2: [0,1,0,0,0,0,0,0], mag: 1,
+    integrator: 'kdk', dtMacro: uniforms.dt_macro, nMax: uniforms.N_max,
+    THorizon: uniforms.T_horizon, checkpoints: M,
+    muMax: 5, alphaMin: 0.05, qMax: 2,
+    rColl: uniforms.r_coll, REsc: uniforms.R_esc, kEsc: uniforms.k_esc,
+    enabledMetrics: 0, qualityTier: 'balanced', payloadVersion: 1,
+  };
+  const cache = new TileCache(8);
+  cache.put({ z: 0, tx: 0, ty: 0 }, cacheKey, {
+    id: { z: 0, tx: 0, ty: 0 },
+    simBuffer: bufs.simResults, icBuffer: bufs.icDesc,
+    lifecycle: 'ready', computeCostMs: 5, reduction: red,
+  });
+  let freshBufs = null, freshPl = null;
+  const rec = new DeviceRecovery(ctx, cache, {
+    rebuildPipelines: async (fresh) => {
+      freshBufs = createTileBuffers(fresh, N, M);
+      freshPl = await buildPipelines(fresh, freshBufs,
+        { simulate: simulateSrc, render: S['render_layer0.wgsl'] });
+    },
+    reallocateBuffers: () => {},
+  });
+  const tRec = performance.now();
+  ctx.device.destroy();
+  await ctx.device.lost;
+  while (rec.ctx() === ctx) { await new Promise((r) => setTimeout(r, 10)); }
+  const recoverMs = performance.now() - tRec;
+  const entry = cache.get({ z: 0, tx: 0, ty: 0 }, cacheKey);
+  const cacheOk = entry && entry.lifecycle === 'unseen'
+    && entry.simBuffer === null && entry.reduction === red;
+
+  const fresh = rec.ctx();
+  // fresh.format, NOT ctx.format: the canvas-less initGpu picks rgba8unorm,
+  // and a format mismatch invalidates the whole submission (silent zeros).
+  const freshTarget = fresh.device.createTexture({
+    size: { width: N, height: N }, format: fresh.format,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  }).createView();
+  dispatchLayer0(fresh, freshBufs, freshPl, { uniforms, tile }, freshTarget);
+  const afterLoss = await readbackSimResults(fresh, freshBufs);
+  const histAfter = {};
+  for (const r of afterLoss) {
+    const c = r.sample_descriptor & 0x7;
+    histAfter[c] = (histAfter[c] ?? 0) + 1;
+  }
+  let histMatch = true;
+  for (const c of [0, 1, 2, 3, 4]) {
+    if ((histAfter[c] ?? 0) !== (gpuHist[c] ?? 0)) histMatch = false;
+  }
+  const recoveryOk = !!cacheOk && histMatch && recoverMs < 10_000;
+  rec.dispose();
+  log(`G7 recovery: ${recoverMs.toFixed(0)}ms, cache intact=${!!cacheOk}, post-loss histogram match=${histMatch}`);
+
   // Self-calibrating chaos gate: the GPU may disagree with the f64 CPU at
   // most 1.5× as often as the CPU disagrees with ITSELF under an f32-scale
   // IC nudge. A real shader bug produces wholesale disagreement far above
@@ -265,10 +355,16 @@ async function main() {
   if (errors.length) log(`GPU ERRORS: ${JSON.stringify(errors)}`);
 
   window.__RESULT = {
-    ok: chaosOk && histOk && linOk && errors.length === 0,
+    ok: chaosOk && histOk && linOk && spreadsOk && ensembleOk && recoveryOk
+        && errors.length === 0,
     robust, robustAgree, rawAgree, total: N*N, histDelta,
     cpuSelfFlip, gpuDisagree,
     linOk, linMaxErr,
+    spreadsOk, spread_t_end: red.spread_t_end, spread_n: red.spread_n,
+    ensembleOk, ensembleAgreement: redE.ensemble_outcome_agreement,
+    ensembleCount: redE.ensemble_count, ensembleSamples: redE.sample_count,
+    ensembleStatus: redE.status_flags,
+    recoveryOk, recoverMs, cacheOk: !!cacheOk, histMatch, histAfter,
     ckptChecked, ckptMaxDev, ckptMinDev, ckptSamples,
     gpuHist, cpuHist,
     disagreements: disagreements.slice(0, 12),

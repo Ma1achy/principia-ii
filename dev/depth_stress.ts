@@ -9,8 +9,10 @@
  *   - BOUNDARY chase: recurse into the max-impurity child each level.
  *     Basin boundaries are (near-)fractal, so this path should keep
  *     force-splitting on impurity until the f32 floor guard stops it.
- *   - UNIFORM chase: recurse into the min-impurity child. This should
- *     settle to keep('coherent') within a few levels.
+ *   - UNIFORM chase: recurse into the min-impurity child. With real
+ *     spread lanes (G7) the min-impurity child of this slice remains
+ *     honestly incoherent to great depth, so this path also reaches the
+ *     floor — but its final tile must be quiescent (S ≤ τ, low impurity).
  *
  * The AT_F32_FLOOR status bit is set CPU-side from pyramid.reachedF32Floor
  * (the camera clamp normally prevents requests below the floor; nothing on

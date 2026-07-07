@@ -8,6 +8,7 @@ export * from './compute_queue.js';
 export * from './visible.js';
 export * from './reduction_types.js';
 export * from './decode_mode.js';
+export * from './ensemble_jitter.js';
 export * from './lifecycle.js';
 export * from './coherence.js';
 export * from './split.js';

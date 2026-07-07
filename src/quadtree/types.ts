@@ -1,4 +1,5 @@
 import type { Vec2, Vec8 } from '@/math/types.js';
+import type { TileReduction } from './reduction_types.js';
 
 /**
  * Quadtree tile identity. Bodies live in IC space, not screen space:
@@ -25,6 +26,9 @@ export interface CachedTile {
   cacheAge:     number;       // monotonically increasing, set on insertion
   lastUsed:     number;       // updated on every cache hit
   computeCostMs:number;       // weighted-LRU input (filled in M5)
+  /** Last-known CPU-side reduction (G7). Survives device loss — the
+   *  ancestor-fallback baseline while the tile recomputes. */
+  reduction?:   TileReduction | null;
 }
 
 /**
