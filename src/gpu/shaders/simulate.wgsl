@@ -194,14 +194,15 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     ic_out.r[0] = up.r01.xy;  ic_out.r[1] = up.r01.zw;  ic_out.r[2] = up.r2p0.xy;
     ic_out.p[0] = up.r2p0.zw; ic_out.p[1] = up.p12.xy;  ic_out.p[2] = up.p12.zw;
   } else {
-    // Tile-local UV → global UV → 8D latent via the view's slice:
-    // z = z0 + mag·((2u−1)·q1 + (2v−1)·q2), the exact CPU map in
-    // chart_atlas/charts/latent_slice.ts.
-    let uv = tile_req.uv_centre + tile_req.uv_half * (2.0 * t - 1.0);
-    let su = (uv.x * 2.0 - 1.0) * slice.mag_pad.x;
-    let sv = (uv.y * 2.0 - 1.0) * slice.mag_pad.x;
-    let za = slice.z0a + su * slice.q1a + sv * slice.q2a;
-    let zb = slice.z0b + su * slice.q1b + sv * slice.q2b;
+    // TILE-LOCAL affine latent map (deep-zoom precision, spec
+    // §tile_local_precision): the CPU folds the tile centre into z0 and
+    // the tile half-extents (× mag) into q1/q2 at f64 (tileLocalSlice in
+    // slice_uniforms.ts), so this shader never reconstructs a global
+    // coordinate — the old global-uv rebuild cancelled catastrophically
+    // below tile widths of ~1e-7 (depth ~17) and quantised samples.
+    let d = 2.0 * t - 1.0;
+    let za = slice.z0a + d.x * slice.q1a + d.y * slice.q2a;
+    let zb = slice.z0b + d.x * slice.q1b + d.y * slice.q2b;
     var z: array<f32, 8>;
     z[0] = za.x; z[1] = za.y; z[2] = za.z; z[3] = za.w;
     z[4] = zb.x; z[5] = zb.y; z[6] = zb.z; z[7] = zb.w;

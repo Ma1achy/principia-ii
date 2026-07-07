@@ -4,7 +4,7 @@ import type { PipelineLayouts } from './layouts.js';
 import { CHART_UNIFORMS_SIZE, TILE_WINDOW_SIZE } from './layouts.js';
 import { LINEARISED_UNIFORMS_SIZE } from './linearised_uniforms.js';
 import { ENSEMBLE_OFFSETS_SIZE } from './ensemble.js';
-import { SLICE_UNIFORMS_SIZE, DEFAULT_SLICE, packSliceUniforms } from './slice_uniforms.js';
+import { SLICE_UNIFORMS_SIZE, DEFAULT_SLICE, packSliceUniforms, tileLocalSlice } from './slice_uniforms.js';
 import { sizeOfUploadedICs } from './uploaded_ics.js';
 
 export interface TileBuffers {
@@ -70,7 +70,10 @@ export function createTileBuffers(
   const slice      = device.createBuffer({
     size: SLICE_UNIFORMS_SIZE,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-  device.queue.writeBuffer(slice, 0, packSliceUniforms(DEFAULT_SLICE));
+  // Seed with the depth-0 FOLD of the default slice: under the tile-local
+  // shader map this reproduces the M3 whole-domain behaviour exactly.
+  device.queue.writeBuffer(slice, 0,
+    packSliceUniforms(tileLocalSlice(DEFAULT_SLICE, [0.5, 0.5], [0.5, 0.5])));
 
   const uploaded   = device.createBuffer({
     size: sizeOfUploadedICs(N, copies),

@@ -19,7 +19,7 @@ import { makeGpuTimer, type GpuPassTimings } from '@/perf/gpu_timing.js';
 import { packChartUniforms } from '@/gpu/chart_uniforms.js';
 import { packLinearisedUniforms } from '@/gpu/linearised_uniforms.js';
 import { packEnsembleOffsets } from '@/gpu/ensemble.js';
-import { packSliceUniforms, DEFAULT_SLICE } from '@/gpu/slice_uniforms.js';
+import { packSliceUniforms, tileLocalSlice, DEFAULT_SLICE } from '@/gpu/slice_uniforms.js';
 import {
   packUploadedICs, buildUploadedICs, type UploadedICSample,
 } from '@/gpu/uploaded_ics.js';
@@ -271,7 +271,12 @@ export async function makeRealDispatcher(
     device.queue.writeBuffer(staging.tileReq, 0, packTileRequest(tile));
     device.queue.writeBuffer(staging.chart, 0, packChartUniforms(chartU));
     device.queue.writeBuffer(staging.slice, 0,
-      packSliceUniforms(slice ?? DEFAULT_SLICE));
+      packSliceUniforms(slice
+        // Deep-zoom precision: fold this tile's centre/half into the slice
+        // at f64 so the shader's affine map is pure tile-local (the global
+        // reconstruction cancelled catastrophically below depth ~17).
+        ? tileLocalSlice(slice, centre, half)
+        : DEFAULT_SLICE));
     if (uploadedSamples) {
       device.queue.writeBuffer(staging.uploaded, 0,
         packUploadedICs(uploadedSamples));
