@@ -1,8 +1,15 @@
 import type { App } from '@/app/app.js';
 import type { IntegratorId, QualityTier, ViewState } from '@/interact/view_state.js';
 import type {
-  BrightnessMode, ColourMode, CombinerMode, CvdMode, PaletteId,
+  BrightnessMode, ColourMode, CombinerMode, CvdMode, EventClassKey, PaletteId,
 } from '@/render/types.js';
+import { DEFAULT_EVENT_PALETTE, EVENT_CLASS_KEYS } from '@/render/types.js';
+import { linearToSrgb, srgbToLinear } from '@/render/oklab.js';
+import { mountChartParams } from './ChartParamsPanel.js';
+import {
+  massPerturbationFromBurrau, energyIncreaseAtFixedLz,
+} from '@/interact/named_directions.js';
+import { reorthonormalise, setTilts } from '@/interact/tilt.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
@@ -41,11 +48,15 @@ const COLOUR_MODE_GROUPS: readonly { group: string; modes: readonly { id: Colour
     { id: 'shape_sphere_okabe_ito', label: 'Shape sphere (Okabe–Ito)' },
     { id: 'stability_x_hue', label: 'Stability × hue' },
   ] },
+  { group: 'None', modes: [
+    { id: 'none', label: 'None (brightness only)' },
+  ] },
 ];
 const BRIGHTNESS_MODES: readonly { id: BrightnessMode; label: string }[] = [
-  { id: 'flat', label: 'Flat' }, { id: 'time_to_event', label: 'Time to event' },
+  { id: 'flat', label: 'None (flat)' }, { id: 'time_to_event', label: 'Time to event' },
   { id: 'diffusion', label: 'Diffusion' }, { id: 'bc_proximity', label: 'BC proximity' },
   { id: 'energy_drift', label: 'Energy drift' },
+  { id: 'ftle', label: 'FTLE (research tier)' },
 ];
 const COMBINER_MODES: readonly { id: CombinerMode; label: string }[] = [
   { id: 'replace_lightness', label: 'Replace lightness' },
@@ -56,6 +67,27 @@ const PALETTES: readonly PaletteId[] = [
   'viridis', 'cividis', 'plasma', 'magma', 'inferno',
   'twilight', 'cool_warm', 'principia', 'cubehelix',
 ];
+const EVENT_CLASS_LABELS: Record<EventClassKey, string> = {
+  bounded: 'Bounded', timeout: 'Timeout', degenerate: 'Degenerate',
+  collision01: 'Collision 1–2', collision02: 'Collision 1–3', collision12: 'Collision 2–3',
+  escape0: 'Escape body 1', escape1: 'Escape body 2', escape2: 'Escape body 3',
+};
+
+/** Linear-sRGB triple ↔ `<input type=color>` hex (which is gamma sRGB). */
+function linearToHex(rgb: readonly [number, number, number]): string {
+  const h = (c: number): string =>
+    Math.round(Math.min(Math.max(linearToSrgb(c), 0), 1) * 255)
+      .toString(16).padStart(2, '0');
+  return `#${h(rgb[0])}${h(rgb[1])}${h(rgb[2])}`;
+}
+function hexToLinear(hex: string): readonly [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [
+    srgbToLinear(((n >> 16) & 0xff) / 255),
+    srgbToLinear(((n >> 8) & 0xff) / 255),
+    srgbToLinear((n & 0xff) / 255),
+  ];
+}
 
 /** Mount ONLY the render-only controls (called by mountControlPanel when a
  *  RenderParamsStore is supplied). Every knob here is a group-3 rebind. */
@@ -128,6 +160,16 @@ export function mountRenderControls(
         ${DEBUG_MODES.map((m) => `<option value="${m.mode}">${m.label}</option>`).join('')}
       </select>
     </div>
+    <details class="panel event-colours">
+      <summary><h3>Event colours</h3></summary>
+      ${EVENT_CLASS_KEYS.map((k) => `
+        <div class="row">
+          <label for="ec_${k}">${EVENT_CLASS_LABELS[k]}</label>
+          <input type="color" id="ec_${k}">
+        </div>
+      `).join('')}
+      <div class="row"><button id="ecReset" type="button">Reset to defaults</button></div>
+    </details>
   `;
   root.appendChild(section);
 
@@ -198,6 +240,21 @@ export function mountRenderControls(
   dbg.addEventListener('change', () =>
     render.update((p) => ({ ...p, debugMode: Number(dbg.value) })));
 
+  // Event-classification colours (render-only): per-class pickers over the
+  // EventPalette uniform. Pickers speak gamma-sRGB hex; the store holds
+  // linear sRGB (the render graph gamma-encodes at the very end).
+  for (const key of EVENT_CLASS_KEYS) {
+    const el = q<HTMLInputElement>(`#ec_${key}`);
+    offs.push(bind(el, render, (e, p) => {
+      if (e.ownerDocument.activeElement !== e) e.value = linearToHex(p.eventPalette[key]);
+    }));
+    el.addEventListener('input', () => render.update((p) => ({
+      ...p, eventPalette: { ...p.eventPalette, [key]: hexToLinear(el.value) },
+    })));
+  }
+  q<HTMLButtonElement>('#ecReset').addEventListener('click', () =>
+    render.update((p) => ({ ...p, eventPalette: DEFAULT_EVENT_PALETTE })));
+
   offs.push(() => section.remove());
   return () => offs.forEach((off) => off());
 }
@@ -209,6 +266,9 @@ const CHARTS: readonly { id: string; label: string }[] = [
   { id: 'shape_sphere', label: 'Shape sphere' },
   { id: 'mass_simplex', label: 'Mass simplex' },
   { id: 'burrau_euclid', label: 'Burrau Euclid' },
+  { id: 'jacobi_position', label: 'Jacobi |ρ| × |λ| (position)' },
+  { id: 'jacobi_momentum', label: 'Jacobi p_ρ × p_λ (momentum)' },
+  { id: 'mixed_axis', label: 'Mixed axis (custom)' },
 ];
 const INTEGRATORS: readonly { id: IntegratorId; label: string }[] = [
   { id: 'kdk', label: 'KDK leapfrog' },
@@ -232,6 +292,7 @@ export function mountControlPanel(
           ${CHARTS.map((c) => `<option value="${c.id}">${c.label}</option>`).join('')}
         </select>
       </div>
+      <div id="chartParamsHost"></div>
     </details>
     <details class="panel" open>
       <summary><h3>Position (z₀)</h3></summary>
@@ -264,6 +325,14 @@ export function mountControlPanel(
         <select id="tilt2Target">${dimOptions}</select>
       </div>
       <div class="row"><span id="tiltOverlap" class="hint"></span></div>
+      <div class="row">
+        <label for="namedDir">Set q1 to</label>
+        <select id="namedDir">
+          <option value="">— axis basis —</option>
+          <option value="burrau_mass">Mass ⟂ from Burrau</option>
+          <option value="energy_lz">Energy ↑ @ fixed L_z</option>
+        </select>
+      </div>
       <div class="row">
         <label for="rotation">Rotation</label>
         <input type="range" id="rotation" min="-3.1416" max="3.1416" step="0.01">
@@ -363,6 +432,10 @@ export function mountControlPanel(
     else if (r.reason) statusText(root, r.reason);
   });
 
+  // Per-chart parameters (incl. the mixed-axis custom-chart editor). Edits
+  // write chartParams, which is in the tile cache key — they recompute.
+  offs.push(mountChartParams(q<HTMLElement>('#chartParamsHost'), app));
+
   // Per-dimension z₀ sliders.
   for (const k of LATENT_DIMS) {
     offs.push(bindInput(q<HTMLInputElement>(`#z${k}`), store,
@@ -398,6 +471,23 @@ export function mountControlPanel(
     e.textContent = v.tilt1Target === v.tilt2Target
       ? `⚠ both tilts target z[${v.tilt1Target}]` : '';
   }));
+
+  // Named compound directions (spec §named_directions): precomputed q
+  // vectors. v1 sets q1 to the chosen vector, re-orthonormalises q2 and
+  // resets the tilts — NOTE a later tilt-slider change recomputes the
+  // basis from the axis dims (the tilt model owns q1/q2); making named
+  // directions first-class tilt TARGETS is the follow-up.
+  const namedDir = q<HTMLSelectElement>('#namedDir');
+  namedDir.addEventListener('change', () => {
+    const dir = namedDir.value === 'burrau_mass'
+      ? massPerturbationFromBurrau([5 / 12, 4 / 12, 3 / 12])
+      : namedDir.value === 'energy_lz' ? energyIncreaseAtFixedLz() : null;
+    store.update((v) => {
+      if (!dir) return setTilts({ ...v, tilt1: 0, tilt2: 0 }, {});
+      const [q1n, q2n] = reorthonormalise(dir, v.q2);
+      return { ...v, q1: q1n, q2: q2n, tilt1: 0, tilt2: 0 };
+    });
+  });
 
   rangeField('#rotation', (v) => v.rotation, (v, n) => ({ ...v, rotation: n }), deg);
 

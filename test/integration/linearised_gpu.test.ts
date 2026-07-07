@@ -69,7 +69,7 @@ describe.skipIf(!hasWebGPU())('linearised decode on the GPU (G6)', () => {
       T_horizon: 0.05,                 // decode-side test: barely integrate
       r_coll: R_COLL_DEFAULT, R_esc: R_ESC_DEFAULT, k_esc: K_ESC_DEFAULT,
       eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
-      quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
+      quality_tier: 1, checkpoint_count: M, samples_per_axis: N, integrator: 0,
     };
     const tileBase = {
       z: 10, tx: 0, ty: 0, level: 0,
@@ -140,7 +140,7 @@ describe.skipIf(!hasWebGPU())('linearised decode on the GPU (G6)', () => {
         r_sub: R_SUB_DEFAULT, gamma_sub: GAMMA_SUB_DEFAULT, T_horizon: 1,
         r_coll: R_COLL_DEFAULT, R_esc: R_ESC_DEFAULT, k_esc: K_ESC_DEFAULT,
         eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
-        quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
+        quality_tier: 1, checkpoint_count: M, samples_per_axis: N, integrator: 0,
       },
       tile: { z: 25, tx: 0, ty: 0, level: 0,
               uv_centre: [0.5, 0.5], uv_half: [0.5, 0.5],

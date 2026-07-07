@@ -28,3 +28,15 @@ fn brightness_energy_drift(drift: f32) -> f32 {
   let t = (log(max(drift, 1e-30)) - lo) / (hi - lo);
   return 1.0 - clamp(t, 0.0, 1.0);
 }
+
+// @export
+fn brightness_ftle(ftle: f32) -> f32 {
+  // Caller passes -1 when the sample's FTLE_VALID bit is clear (non-research
+  // tier / no renormalisation): neutral 0.5, same convention as diffusion.
+  if (ftle < 0.0) { return 0.5; }
+  // Log ramp over λ ∈ [F0, Fmax]: regular ≈ dark, strongly chaotic ≈ bright.
+  // Calibrated against the CPU Benettin reference at T=20 in canonical
+  // units: regular binary λ ≈ 0.32 → ~0.33, Burrau scattering λ ≈ 15 → ~0.95.
+  let F0 = 0.05;  let Fmax = 20.0;
+  return clamp(log(1.0 + ftle / F0) / log(1.0 + Fmax / F0), 0.0, 1.0);
+}

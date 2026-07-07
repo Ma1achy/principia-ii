@@ -6,8 +6,8 @@
 // and src/gpu/structs.ts.
 
 // @import { PI, linear_to_srgb }                       from "./render_helpers.wgsl"
-// @import { colour_event_class, palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
-// @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift } from "./brightness_modes.wgsl"
+// @import { palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
+// @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift, brightness_ftle } from "./brightness_modes.wgsl"
 // @import { combine_replace_lightness, combine_modulate_lightness, combine_multiply_rgb } from "./combiner.wgsl"
 // @import { apply_cvd }                                from "./cvd.wgsl"
 //
@@ -32,6 +32,7 @@ struct SimUniforms {
   quality_tier:     u32,
   checkpoint_count: u32,
   samples_per_axis: u32,
+  integrator:       u32,   // INTEGRATOR_INDEX: 0 kdk, 1 yoshida4, 2 yoshida6, 3 rk4
 };
 
 struct TileRequest {
@@ -106,6 +107,32 @@ struct TileWindow {
   uv:   vec4<f32>,   // u0, v0, u1, v1 in tile-local UV
 };
 @group(3) @binding(1) var<uniform> window : TileWindow;
+
+// Event-classification colours (linear sRGB), user-customisable. Entry order
+// mirrors EVENT_CLASS_KEYS: bounded, collision 0-1/0-2/1-2, escape body
+// 0/1/2, degenerate, timeout; slot 9 reserved. Three-place rule: this struct
+// + packEventPalette (src/render/params.ts) + the pin in
+// event_palette.test.ts change together.
+struct EventPalette {
+  entries: array<vec4<f32>, 10>,
+};
+@group(3) @binding(2) var<uniform> event_palette : EventPalette;
+
+// Palette lookup keyed off the sample_descriptor's class + detail bits.
+// Collision pairs and escape bodies get DISTINCT colours (the pair/body is
+// already in the detail bits; the old fixed palette collapsed all collisions
+// to one red).
+fn event_colour(cls: u32, detail: u32) -> vec3<f32> {
+  var idx: u32;
+  switch (cls) {
+    case 0u: { idx = 0u; }                        // bounded
+    case 1u: { idx = 1u + min(detail, 2u); }      // collision pair 0-1/0-2/1-2
+    case 2u: { idx = 4u + min(detail, 2u); }      // escape body 0/1/2
+    case 3u: { idx = 7u; }                        // degenerate
+    default: { idx = 8u; }                        // timeout / max-substeps
+  }
+  return event_palette.entries[idx].rgb;
+}
 
 struct VSOut {
   @builtin(position) pos: vec4<f32>,
@@ -189,7 +216,7 @@ fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
   let n_last = r.n_checkpoints[7].xyz;     // M=8
 
   switch (rparams.colour_mode_id) {
-    case 0u:  { rgb = colour_event_class(cls, detail); }
+    case 0u:  { rgb = event_colour(cls, detail); }
     case 1u:  { rgb = palette_div_symlog(ic.K_0 + ic.V_0, 1e-3); }
     case 2u:  { rgb = palette_div_symlog(r.Lz_0,           1e-3); }
     case 3u:  { rgb = palette_seq(ic.K_0 / 4.0); }
@@ -212,17 +239,24 @@ fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
     case 20u: { rgb = palette_seq(clamp(log(r.Lz_drift + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
     case 21u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKLAB); }
     case 22u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKABE_ITO); }
-    default:  { rgb = stability_x_hue(n_last, r.diffusion, rparams.vmf_kappa, rparams.vmf_chroma); }
+    case 23u: { rgb = stability_x_hue(n_last, r.diffusion, rparams.vmf_kappa, rparams.vmf_chroma); }
+    // 24 "none": constant mid-grey — the brightness node carries everything
+    // (colour none + replace-lightness combiner = a pure greyscale map).
+    default:  { rgb = vec3<f32>(0.5, 0.5, 0.5); }
   }
 
   // 2. Brightness node.
+  // FTLE validity: pass -1 when the sample's FTLE_VALID bit (7) is clear so
+  // brightness_ftle renders neutral instead of treating "not computed" as 0.
+  let ftle_v = select(-1.0, r.ftle, ((r.sample_descriptor >> 7u) & 1u) == 1u);
   var L: f32 = 1.0;
   switch (rparams.brightness_mode_id) {
-    case 0u: { L = 1.0; }
+    case 0u: { L = 1.0; }                     // "none": colour carries everything
     case 1u: { L = brightness_time_to_event(r.t_end, uniforms.T_horizon); }
     case 2u: { L = brightness_diffusion(r.diffusion); }
     case 3u: { L = brightness_bc_proximity(n_last); }
-    default: { L = brightness_energy_drift(r.energy_drift); }
+    case 4u: { L = brightness_energy_drift(r.energy_drift); }
+    default: { L = brightness_ftle(ftle_v); }
   }
 
   // 3. Combiner.

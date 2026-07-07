@@ -1,11 +1,12 @@
 import type { GpuContext } from '@/gpu/init.js';
 import type { GpuDispatcher, RenderPlan } from './types.js';
 import type { ViewState } from '@/interact/view_state.js';
+import { stableChartParams } from '@/interact/view_state.js';
 import type { TileID } from '@/quadtree/types.js';
 import type { TileReduction } from '@/quadtree/reduction_types.js';
 import type { SimUniforms, TileRequest } from '@/gpu/structs.js';
 import {
-  packSimUniforms, packTileRequest, TILE_REQUEST_FLAGS,
+  packSimUniforms, packTileRequest, TILE_REQUEST_FLAGS, INTEGRATOR_INDEX,
   sizeOfSimResult, sizeOfICDescriptor,
 } from '@/gpu/structs.js';
 import { createTileBuffers, createTileBindGroups, packTileWindow } from '@/gpu/buffers.js';
@@ -27,12 +28,14 @@ import { jitterOffsets, ENSEMBLE_E_MAX } from '@/quadtree/ensemble_jitter.js';
 import { shouldLineariseAtDepth } from '@/quadtree/decode_mode.js';
 import { buildLinearised } from '@/decode/linearised.js';
 import { buildRenderGraph, type RenderGraph } from '@/render/pipeline.js';
-import { packRenderParams } from '@/render/params.js';
+import { packRenderParams, packEventPalette } from '@/render/params.js';
 import { DEFAULT_RENDER_PARAMS, type RenderParams } from '@/render/types.js';
 import { getChart } from '@/chart_atlas/index.js';
 import type { ChartView } from '@/chart_atlas/types.js';
 import { tileBounds, tileCentreHalf, tileKey } from '@/quadtree/tile.js';
 import { runInspector } from '@/inspector/run.js';
+import { compareToGpu } from '@/inspector/compare.js';
+import { decodeSimResults, type DecodedSimResult } from '@/gpu/readback.js';
 import type { TrajState } from '@/math/types.js';
 import {
   R_COLL_DEFAULT, R_ESC_DEFAULT, K_ESC_DEFAULT,
@@ -120,6 +123,7 @@ function simUniformsOf(view: ViewState): SimUniforms {
     // until the struct grows (three-place change, out of G8 scope).
     checkpoint_count: Math.min(view.checkpoints, M_STAGING),
     samples_per_axis: Math.min(view.samplesPerAxis, N_STAGING),
+    integrator: INTEGRATOR_INDEX[view.integrator],
   };
 }
 
@@ -177,10 +181,11 @@ export async function makeRealDispatcher(
   function retainedKey(view: ViewState, id: TileID): string {
     // Tile payloads are keyed by tile AND chart identity — a chart/slice
     // change must not let stale buffers render. (The CPU TileCache keys
-    // the full 19-field TileCacheKey; the renderer only needs enough to
-    // avoid cross-view aliasing, and the frame loop only asks for tiles
-    // that are 'ready' under the CURRENT key.)
-    return `${view.chartType}|${view.z0.join(',')}|${view.q1.join(',')}|${view.q2.join(',')}|${view.mag}|${tileKey(id)}`;
+    // the full TileCacheKey; the renderer only needs enough to avoid
+    // cross-view aliasing, and the frame loop only asks for tiles that
+    // are 'ready' under the CURRENT key.) chartParams is included so a
+    // chart-knob change can't alias old buffers into the new view.
+    return `${view.chartType}|${stableChartParams(view.chartParams)}|${view.z0.join(',')}|${view.q1.join(',')}|${view.q2.join(',')}|${view.mag}|${tileKey(id)}`;
   }
 
   function evictRetained(): void {
@@ -206,6 +211,7 @@ export async function makeRealDispatcher(
         entries: [
           { binding: 0, resource: { buffer: graph.paramsBuffer } },
           { binding: 1, resource: { buffer: buf } },
+          { binding: 2, resource: { buffer: graph.eventPaletteBuffer } },
         ],
       });
       windowPool.push({ buf, bg });
@@ -284,7 +290,12 @@ export async function makeRealDispatcher(
     const icBytes = sizeOfICDescriptor() * N * N * E;
     const sim = device.createBuffer({
       label: `principia.retained.sim.${tileKey(tileId)}`,
-      size: simBytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      // COPY_SRC: the locked-pixel validation readback copies ONE SimResult
+      // out of this buffer (spec's inspector validation harness). That is a
+      // diagnostic seam, not a data path — per-sample data still never
+      // crosses GPU→CPU on the render/refinement path.
+      size: simBytes,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
     });
     const ic = device.createBuffer({
       label: `principia.retained.ic.${tileKey(tileId)}`,
@@ -329,6 +340,58 @@ export async function makeRealDispatcher(
     retained.set(key, { sim, ic, perTileBg });
     evictRetained();
     return reduction;
+  }
+
+  /**
+   * Locked-pixel GPU readback for the inspector's validation panel (spec:
+   * the inspector is the harness that validates the GPU f32 tiles against
+   * the CPU f64 recompute). lockAffine re-centres z0 on the clicked point,
+   * so under a latent-affine chart the locked IC sits at world-UV (0.5,0.5)
+   * of the post-lock view. Poll the retained tiles (the frame loop is
+   * recomputing them under the new key) for the deepest one covering the
+   * centre, and copy out that single SimResult.
+   *
+   * Returns null when the chart is not latent-affine (no uv↔z0
+   * correspondence to compare through) or no tile lands within the budget —
+   * the panel then shows "no GPU comparison", which is the honest answer.
+   */
+  async function lockedCentreSample(view: ViewState): Promise<DecodedSimResult | null> {
+    const chart = getChart(view.chartType as Parameters<typeof getChart>[0]);
+    if (!chart.affineSlice?.(chartViewOf(view))) return null;
+    const N = Math.min(view.samplesPerAxis, N_STAGING);
+    const stride = sizeOfSimResult(M_STAGING);
+
+    const POLL_MS = 250, BUDGET_MS = 6_000;
+    for (let waited = 0; waited <= BUDGET_MS; waited += POLL_MS) {
+      for (let z = Math.min(view.maxDepth, 24); z >= 0; z--) {
+        const n = 1 << z;
+        const tx = Math.min(Math.floor(0.5 * n), n - 1);
+        const id: TileID = { z, tx, ty: tx };
+        const rt = retained.get(retainedKey(view, id));
+        if (!rt) continue;
+        const b = tileBounds(id);
+        const lu = (0.5 - b.uMin) / (b.uMax - b.uMin);
+        const s = Math.min(Math.max(Math.floor(lu * N), 0), N - 1);
+        const idx = s * N + s;                     // (sx, sy) — symmetric at the centre
+        try {
+          const read = device.createBuffer({
+            label: 'principia.inspect.readback', size: stride,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+          });
+          const enc = device.createCommandEncoder({ label: 'inspect-readback' });
+          enc.copyBufferToBuffer(rt.sim, idx * stride, read, 0, stride);
+          device.queue.submit([enc.finish()]);
+          await read.mapAsync(GPUMapMode.READ);
+          const ab = read.getMappedRange().slice(0);
+          read.unmap(); read.destroy();
+          return decodeSimResults(ab, 1, M_STAGING)[0] ?? null;
+        } catch {
+          return null;    // device loss / eviction race: comparison unavailable
+        }
+      }
+      await new Promise((r) => setTimeout(r, POLL_MS));
+    }
+    return null;
   }
 
   return {
@@ -398,8 +461,13 @@ export async function makeRealDispatcher(
       harvestTimings();
     },
 
-    inspect(_view: ViewState, ic: TrajState) {
-      return Promise.resolve(runInspector(ic));
+    async inspect(view: ViewState, ic: TrajState) {
+      // Match the CPU inspector's horizon to the view's so the GPU↔CPU
+      // comparison integrates the same problem (RK45_DEFAULTS pins 80,
+      // which silently diverges once the horizon control is used).
+      const cpu = runInspector(ic, { THorizon: view.THorizon });
+      const gpu = await lockedCentreSample(view);
+      return gpu ? { ...cpu, validation: compareToGpu(cpu, gpu) } : cpu;
     },
 
     takeGpuTimings(): GpuPassTimings | undefined {
@@ -410,6 +478,7 @@ export async function makeRealDispatcher(
 
     setRenderParams(p: RenderParams): void {
       device.queue.writeBuffer(graph.paramsBuffer, 0, packRenderParams(p));
+      device.queue.writeBuffer(graph.eventPaletteBuffer, 0, packEventPalette(p));
     },
 
     lastDispatch(): LastDispatch | null {

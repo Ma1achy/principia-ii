@@ -53,7 +53,7 @@ const uniforms = {
   T_horizon: 1,                     // decode is checked at t = 0 (E_0)
   r_coll: R_COLL_DEFAULT, R_esc: R_ESC_DEFAULT, k_esc: K_ESC_DEFAULT,
   eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
-  quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
+  quality_tier: 1, checkpoint_count: M, samples_per_axis: N, integrator: 0,
 };
 const tile = {
   z: 0, tx: 0, ty: 0, level: 0,

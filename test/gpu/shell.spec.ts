@@ -90,7 +90,7 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
   }
 
   // Zoom in about the canvas centre (viewport zoom — no slice recompute).
-  const box = (await page.locator('canvas').boundingBox())!;
+  const box = (await page.locator('canvas[role="application"]').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.wheel(0, -240);
   await page.waitForFunction(() => {
@@ -154,7 +154,7 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
   // G13 a11y: the canvas is an application region, the polite status region
   // exists, and a CVD swap announces itself while leaving ViewState (and so
   // the cache key) untouched — the render-only invariant, live.
-  await expect(page.locator('canvas')).toHaveAttribute('role', 'application');
+  await expect(page.locator('canvas[role="application"]')).toHaveAttribute('role', 'application');
   await expect(page.locator('.a11y-status')).toHaveAttribute('aria-live', 'polite');
   const beforeCvd = await page.evaluate(() =>
     (window as unknown as PrincipiaWindow).__principia.app.store.snapshot());
@@ -179,6 +179,6 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
     expect(await converged(page)).toBe(true);
   }).toPass({ timeout: 120_000, intervals: [2_000] });
   await page.waitForTimeout(500);
-  await page.locator('canvas').screenshot({ path: 'dev/out/g8_shell.png' });
+  await page.locator('canvas[role="application"]').screenshot({ path: 'dev/out/g8_shell.png' });
   await page.screenshot({ path: 'dev/out/g8_shell_full.png' });
 });

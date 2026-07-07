@@ -2,23 +2,10 @@
 
 // @import { PI, linear_rgb_to_oklab, oklab_to_linear_rgb } from "./render_helpers.wgsl"
 
-// @export
-fn colour_event_class(class_: u32, detail: u32) -> vec3<f32> {
-  switch (class_) {
-    case 0u: { return vec3<f32>(0.7, 0.7, 0.2); }    // bounded
-    case 1u: { return vec3<f32>(0.9, 0.1, 0.1); }    // collision
-    case 2u: {
-      // Different escape body → different hue.
-      switch (detail) {
-        case 0u: { return vec3<f32>(0.10, 0.40, 0.90); }    // blue
-        case 1u: { return vec3<f32>(0.10, 0.80, 0.20); }    // green
-        default: { return vec3<f32>(0.90, 0.55, 0.10); }    // amber
-      }
-    }
-    case 3u: { return vec3<f32>(0.5, 0.5, 0.5); }    // degenerate
-    default: { return vec3<f32>(1.0, 0.9, 0.0); }    // timeout / max-substeps
-  }
-}
+// (colour_event_class moved into render_graph.wgsl as the palette-driven
+// `event_colour`, reading the group(3) EventPalette uniform — the fixed
+// colours here collapsed collision pairs and diverged from the historical
+// classifier on `main`.)
 
 // @export
 fn palette_seq(t: f32) -> vec3<f32> {

@@ -42,6 +42,9 @@ export function runInspector(
   nArr.push(d0.n);
 
   while (s.t < o.THorizon) {
+    // Wall-clock budget (hover-streamline): stop and return the partial
+    // trajectory. Reported as 'timeout' — an early cutoff, not a failure.
+    if (o.budgetMs !== undefined && performance.now() - t0 > o.budgetMs) break;
     // Clamp the final step to the horizon so bounded runs end at exactly
     // T_horizon (the fixed-step match integrator overshoots by < dtMacro;
     // keeping the adaptive side exact preserves sub-millisecond t_end

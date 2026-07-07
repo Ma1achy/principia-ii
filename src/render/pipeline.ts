@@ -4,6 +4,8 @@ import {
   createTileBindGroups, createRenderParamsBindGroup, createTileWindowBuffer,
 } from '@/gpu/buffers.js';
 import { buildLayouts } from '@/gpu/layouts.js';
+import { packEventPalette, EVENT_PALETTE_SIZE } from './params.js';
+import { DEFAULT_RENDER_PARAMS } from './types.js';
 
 /**
  * Build the render pipeline plus its bind groups. `RenderParams` lives
@@ -28,11 +30,13 @@ export interface RenderGraph {
   bgTile:         GPUBindGroup;   // group 0: canonical frame group
   bgStorage:      GPUBindGroup;   // group 1: canonical perTile group
   bgReduction:    GPUBindGroup;   // group 2: canonical reduction group
-  bgRenderParams: GPUBindGroup;   // group 3: RenderParams + TileWindow
+  bgRenderParams: GPUBindGroup;   // group 3: RenderParams + TileWindow + EventPalette
   paramsBuffer:   GPUBuffer;
   /** G8: per-draw screen rect + tile-UV window (defaults to the full
    *  window, so single-tile callers render exactly as before). */
   windowBuffer:   GPUBuffer;
+  /** Customisable event-classification colours (render-only, group 3 b2). */
+  eventPaletteBuffer: GPUBuffer;
 }
 
 export async function buildRenderGraph(
@@ -56,10 +60,18 @@ export async function buildRenderGraph(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+  const eventPaletteBuffer = device.createBuffer({
+    label: 'principia.eventPalette',
+    size: EVENT_PALETTE_SIZE,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(eventPaletteBuffer, 0,
+    packEventPalette(DEFAULT_RENDER_PARAMS));
+
   const windowBuffer = createTileWindowBuffer(ctx);
   const bgs = createTileBindGroups(ctx, layouts, bufs);
-  const bgRenderParams =
-    createRenderParamsBindGroup(ctx, layouts, paramsBuffer, windowBuffer);
+  const bgRenderParams = createRenderParamsBindGroup(
+    ctx, layouts, paramsBuffer, windowBuffer, eventPaletteBuffer);
 
   return {
     pipeline,
@@ -69,5 +81,6 @@ export async function buildRenderGraph(
     bgRenderParams,
     paramsBuffer,
     windowBuffer,
+    eventPaletteBuffer,
   };
 }

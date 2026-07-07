@@ -64,13 +64,14 @@ describe('mixed_axis inverseEncode (factory, not registered)', () => {
     expect(inv.z).toBeDefined();
   });
 
-  it('non-latent axis pairings stay projected (unconstructible in M10)', () => {
+  it('derived-axis charts construct; their inverse stays projected for now', () => {
+    // Stage 4: mass/lz/energy/shape axes are constructible; only the
+    // latent × latent inverse is exact (derived inverses land in Stage 5).
     const chart = makeMixedAxisChart({
       hAxis: { kind: 'mass', parameter: 'm1', range: [0.1, 0.9] },
       vAxis: { kind: 'latent', index: 0, range: [-1, 1] },
     });
     const inv = chart.inverseEncode(decodeOk([0.5, 0.5]));
     expect(inv.kind).toBe('projected');
-    expect(inv.reason).toMatch(/factory args/);
   });
 });

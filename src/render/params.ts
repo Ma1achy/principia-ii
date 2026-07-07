@@ -1,4 +1,5 @@
 import type { RenderParams } from './types.js';
+import { EVENT_CLASS_KEYS } from './types.js';
 
 const COLOUR_MODE_INDEX: Record<RenderParams['colourMode'], number> = {
   event_class: 0, energy: 1, ang_momentum: 2, kinetic: 3,
@@ -8,11 +9,12 @@ const COLOUR_MODE_INDEX: Record<RenderParams['colourMode'], number> = {
   close_encounters: 15, min_approach: 16, energy_drift_abs: 17,
   energy_drift_rel: 18, lz_drift_abs: 19, lz_drift_rel: 20,
   shape_sphere_vmf: 21, shape_sphere_okabe_ito: 22, stability_x_hue: 23,
+  none: 24,
 };
 
 const BRIGHT_MODE_INDEX: Record<RenderParams['brightnessMode'], number> = {
   flat: 0, time_to_event: 1, diffusion: 2,
-  bc_proximity: 3, energy_drift: 4,
+  bc_proximity: 3, energy_drift: 4, ftle: 5,
 };
 
 const COMBINER_INDEX: Record<RenderParams['combinerMode'], number> = {
@@ -72,5 +74,26 @@ export function packRenderParams(p: RenderParams): ArrayBuffer {
   f32[13] = p.wallClockTime;
   i32[14] = p.debugMode;          // bytes [56..59]; -1 = debug off
   f32[15] = p.debugHeatScale;     // bytes [60..63]
+  return buf;
+}
+
+/** Byte size of the EventPalette uniform: 10 × vec4<f32> (9 classes +
+ *  one reserved lane). Three-place rule: this packer + the EventPalette
+ *  WGSL struct in render_graph.wgsl + the pin in event_palette.test.ts
+ *  change together. */
+export const EVENT_PALETTE_SIZE = 160;
+
+/**
+ * Pack the event-classification palette into its group(3) binding(2)
+ * uniform. Entry order is EVENT_CLASS_KEYS; each entry is a linear-sRGB
+ * vec4 (alpha lane unused, kept for 16-byte stride).
+ */
+export function packEventPalette(p: RenderParams): ArrayBuffer {
+  const buf = new ArrayBuffer(EVENT_PALETTE_SIZE);
+  const f32 = new Float32Array(buf);
+  EVENT_CLASS_KEYS.forEach((key, i) => {
+    const [r, g, b] = p.eventPalette[key];
+    f32[i * 4] = r; f32[i * 4 + 1] = g; f32[i * 4 + 2] = b; f32[i * 4 + 3] = 1;
+  });
   return buf;
 }

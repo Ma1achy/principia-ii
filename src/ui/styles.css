@@ -6,6 +6,10 @@ body { margin: 0; background: var(--bg); color: var(--fg);
 .layout { display: grid; grid-template-columns: 1fr 340px; }
 .canvas-area { display: flex; align-items: center; justify-content: center;
                overflow: hidden; }
+.canvas-area.has-overlay { position: relative; }
+/* Diagnostic overlay: transparent 2D layer tracking the WebGPU canvas box.
+   Never intercepts pointer events — pan/zoom/lock stay on the GPU canvas. */
+.tile-overlay { position: absolute; pointer-events: none; z-index: 2; }
 .canvas-area canvas { max-width: 100%; max-height: 100%;
                       touch-action: none; cursor: crosshair; }
 .side { background: var(--panel); overflow-y: auto; }

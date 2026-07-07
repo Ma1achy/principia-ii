@@ -9,7 +9,9 @@ export type ChartId =
   | 'shape_sphere'
   | 'mass_simplex'
   | 'burrau_euclid'
-  | 'mixed_axis';
+  | 'mixed_axis'
+  | 'jacobi_position'
+  | 'jacobi_momentum';
 
 export type ChartKind = 'affine' | 'invariant' | 'sphere' | 'mass_simplex' | 'mixed';
 

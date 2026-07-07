@@ -53,10 +53,12 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
     for (let k = 0; k < 8; k++) expect(root.querySelector(`#z${k}`)).not.toBeNull();
   });
 
-  it('offers all 24 colour modes and all 5/3 brightness/combiner modes', () => {
+  it('offers all 25 colour modes (incl. none) and 6/3 brightness/combiner modes', () => {
     const { root } = mount();
-    expect(root.querySelectorAll('#colourMode option')).toHaveLength(24);
-    expect(root.querySelectorAll('#brightness option')).toHaveLength(5);
+    expect(root.querySelectorAll('#colourMode option')).toHaveLength(25);
+    expect(root.querySelector('#colourMode option[value="none"]')).not.toBeNull();
+    expect(root.querySelectorAll('#brightness option')).toHaveLength(6);
+    expect(root.querySelector('#brightness option[value="ftle"]')).not.toBeNull();
     expect(root.querySelectorAll('#combiner option')).toHaveLength(3);
   });
 
@@ -106,6 +108,38 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
     expect(render.snapshot().colourMode).toBe('jacobi_angle');
     // ViewState (and therefore the cache key) is untouched by a render change.
     expect(JSON.stringify(app.store.snapshot())).toBe(keyBefore);
+  });
+
+  it('selecting the mixed-axis chart mounts the custom-chart axis editor', () => {
+    const { root, app } = mount();
+    expect(root.querySelectorAll('#chart option')).toHaveLength(9);
+    expect(root.querySelector('#chart option[value="jacobi_position"]')).not.toBeNull();
+    expect(root.querySelector('#chart option[value="jacobi_momentum"]')).not.toBeNull();
+    app.store.update((v) => ({ ...v, chartType: 'mixed_axis' }));
+    // Two axis editors with kind selects + range fields appear.
+    expect(root.querySelectorAll('.axis-editor')).toHaveLength(2);
+    const kind = root.querySelector<HTMLSelectElement>('.axis-editor [data-f=kind]')!;
+    expect(kind.querySelectorAll('option')).toHaveLength(6);   // all axis kinds
+    // Editing an axis writes a full AxisSpec into chartParams.
+    kind.value = 'mass';
+    kind.dispatchEvent(new Event('change', { bubbles: true }));
+    const h = app.store.snapshot().chartParams['hAxis'] as { kind: string };
+    expect(h.kind).toBe('mass');
+  });
+
+  it('a named compound direction lands in q1, orthonormal to q2', () => {
+    const { root, app } = mount();
+    const sel = root.querySelector<HTMLSelectElement>('#namedDir')!;
+    sel.value = 'burrau_mass';
+    fire(sel, 'change');
+    const v = app.store.snapshot();
+    // Burrau mass-perturbation lives in the logit lanes (6, 7) only.
+    expect(Math.hypot(v.q1[6]!, v.q1[7]!)).toBeCloseTo(1, 9);
+    expect(Math.hypot(...v.q1.slice(0, 6))).toBeCloseTo(0, 12);
+    // Basis stays orthonormal; tilts reset.
+    const dot = v.q1.reduce((s, x, i) => s + x * v.q2[i]!, 0);
+    expect(dot).toBeCloseTo(0, 9);
+    expect(v.tilt1).toBe(0);
   });
 
   it('the diagnostic selector is a render-only recolour — never a recompute', () => {

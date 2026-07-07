@@ -91,11 +91,27 @@ export function defaultViewState(): ViewState {
   };
 }
 
+/** Canonical (sorted-key, deterministic) serialisation for chartParams.
+ *  Object key order must not affect the cache key. */
+export function stableChartParams(params: Record<string, unknown>): string {
+  const sort = (x: unknown): unknown => {
+    if (Array.isArray(x)) return x.map(sort);
+    if (x !== null && typeof x === 'object') {
+      return Object.fromEntries(Object.entries(x as Record<string, unknown>)
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([k, val]) => [k, sort(val)]));
+    }
+    return x;
+  };
+  return JSON.stringify(sort(params));
+}
+
 /** Derive the Layer-1 cache key from a `ViewState`. Anything that affects
  *  the contents of a tile's `simBuffer` must appear in here. */
 export function viewStateToCacheKey(v: ViewState): TileCacheKey {
   return {
     chartId:     v.chartType,
+    chartParams: stableChartParams(v.chartParams),
     z0:          v.z0,
     q1:          v.q1,
     q2:          v.q2,
@@ -105,7 +121,9 @@ export function viewStateToCacheKey(v: ViewState): TileCacheKey {
     nMax:        v.NMax,
     THorizon:    v.THorizon,
     checkpoints: v.checkpoints,
-    muMax:       5,                             // M10 promotes to chartParams
+    // Decode/event knobs: constants today (math/constants defaults used by
+    // both decode paths); they join ViewState if they become controls.
+    muMax:       5,
     alphaMin:    0.05,
     qMax:        2,
     rColl:       1e-4,
@@ -113,6 +131,8 @@ export function viewStateToCacheKey(v: ViewState): TileCacheKey {
     kEsc:        8,
     enabledMetrics: 0,
     qualityTier: v.qualityTier,
+    samplesPerAxis: v.samplesPerAxis,
+    ensembleCount:  v.ensembleCount,
     payloadVersion: 1,
   };
 }

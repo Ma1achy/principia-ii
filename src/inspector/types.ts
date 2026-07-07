@@ -15,6 +15,11 @@ export interface RK45Opts {
    *  shape-sphere trace. */
   fullTrace: boolean;
   checkpointCount: number;
+  /** Wall-clock cap in ms: the run loop stops (outcome 'timeout') when
+   *  exceeded and returns the partial trajectory. Absent = uncapped. The
+   *  hover-streamline runs the inspector on the main thread and relies on
+   *  this to stay inside a frame budget. */
+  budgetMs?: number;
 }
 
 export const RK45_DEFAULTS: RK45Opts = {

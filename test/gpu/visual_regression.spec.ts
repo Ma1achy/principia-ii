@@ -95,7 +95,7 @@ for (const entry of GOLDEN_MANIFEST) {
     }, entry.id);
     await page.waitForTimeout(400);
 
-    const shot = toRaster(await page.locator('canvas').screenshot());
+    const shot = toRaster(await page.locator('canvas[role="application"]').screenshot());
     test.skip(!hasPixels(shot),
       'compositor never presented WebGPU pixels on this runner (DG8.7)');
 

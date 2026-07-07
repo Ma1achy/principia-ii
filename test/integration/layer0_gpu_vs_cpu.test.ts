@@ -59,7 +59,7 @@ describe('Layer 0 GPU vs CPU', () => {
       r_coll: R_COLL_DEFAULT, R_esc: R_ESC_DEFAULT, k_esc: K_ESC_DEFAULT,
       eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
       quality_tier: 1, checkpoint_count: M,
-      samples_per_axis: N,
+      samples_per_axis: N, integrator: 0,
     };
     // G4: chart hyperparameters ride in ChartUniforms (defaults = the M3
     // latent-slice values, so the CPU reference knobs below still match).

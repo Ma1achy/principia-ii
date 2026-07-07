@@ -9,7 +9,7 @@ const uniforms: SimUniforms = {
   G: 1,
   dt_macro: 1e-3, N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 50,
   r_coll: 1e-4, R_esc: 10, k_esc: 8, eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
-  quality_tier: 1, checkpoint_count: 8, samples_per_axis: 16,
+  quality_tier: 1, checkpoint_count: 8, samples_per_axis: 16, integrator: 0,
 };
 const chart = { ...CHART_UNIFORMS_DEFAULTS, alpha_min: 0.07 };
 const tile: TileRequest = {

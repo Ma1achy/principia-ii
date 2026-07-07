@@ -14,7 +14,8 @@
  *                       b7 UploadedIC[] (compute-only, read-only storage).
  *   group(1) perTile:   b0 SimResult[], b1 ICDescriptor[]  (storage).
  *   group(2) reduction: b0 TileReduction                   (storage).
- *   group(3) render:    b0 RenderParams, b1 TileWindow (G8) (uniform).
+ *   group(3) render:    b0 RenderParams, b1 TileWindow (G8),
+ *                       b2 EventPalette (uniform).
  *
  * Visibility flags are the union of every stage that statically uses the
  * binding across ALL pipelines; WebGPU is fine with overspecification, and
@@ -88,6 +89,8 @@ export const RENDER_LAYOUT_DESC: GPUBindGroupLayoutDescriptor = {
       buffer: { type: 'uniform' } },                     // RenderParams
     { binding: 1, visibility: STAGE.VERTEX | STAGE.FRAGMENT,
       buffer: { type: 'uniform' } },                     // TileWindow (G8)
+    { binding: 2, visibility: STAGE.FRAGMENT,
+      buffer: { type: 'uniform' } },                     // EventPalette
   ],
 };
 

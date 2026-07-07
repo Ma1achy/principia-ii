@@ -30,6 +30,7 @@ export const COLOUR_SOURCES: Record<ColourMode, string> = {
   shape_sphere_vmf:   'SimResult.n_checkpoints[last]',
   shape_sphere_okabe_ito: 'SimResult.n_checkpoints[last]',
   stability_x_hue:    'SimResult.n_checkpoints[last] + diffusion',
+  none:               '',                    // constant grey; brightness carries all
 };
 
 export const BRIGHTNESS_SOURCES: Record<BrightnessMode, string> = {
@@ -38,4 +39,5 @@ export const BRIGHTNESS_SOURCES: Record<BrightnessMode, string> = {
   diffusion:      'SimResult.diffusion',
   bc_proximity:   'SimResult.n_checkpoints[last]',
   energy_drift:   'SimResult.energy_drift',
+  ftle:           'SimResult.ftle (FTLE_VALID gated)',
 };

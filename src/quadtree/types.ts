@@ -38,6 +38,10 @@ export interface CachedTile {
  */
 export interface TileCacheKey {
   readonly chartId:           string;
+  /** Canonical (sorted-key) serialisation of ViewState.chartParams — a
+   *  chart knob (K_max, pole buffer, frozen momenta, …) changes tile
+   *  contents exactly like z0 does, so it must invalidate. */
+  readonly chartParams:       string;
   readonly z0:                Vec8;
   readonly q1:                Vec8;
   readonly q2:                Vec8;
@@ -55,6 +59,10 @@ export interface TileCacheKey {
   readonly kEsc:              number;
   readonly enabledMetrics:    number;     // bitset
   readonly qualityTier:       'preview' | 'balanced' | 'research';
+  /** Per-tile sample grid + ensemble copies: both change simBuffer
+   *  contents, and both are user-editable controls. */
+  readonly samplesPerAxis:    number;
+  readonly ensembleCount:     number;
   readonly payloadVersion:    number;     // monotonic, see spec §6.5
 }
 
