@@ -9,6 +9,49 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G19 — Close-encounter regularization
+
+Branch `feat/g19-regularization`. 746 passed / 8 skipped (+13: golden 3 +
+unit 10, first run); typecheck + unpiped lint clean; figure-8 and both
+existing Burrau goldens untouched (run.ts not modified). CPU-only.
+
+### DG19.1 — LogH algorithmic regularization, not explicit KS/Levi-Civita
+The sketch proposed LC pair coordinates (u²=r, ds=dt/r) with dominant-pair
+selection and enter/exit hysteresis. Landed: Mikkola–Tanikawa /
+Preto–Tremaine time-transformed leapfrog over the FULL system (drift
+dt=δs/(T+B), kick dt=δs/W, B=−E constant) — same fictitious-time idea but
+exact on the Kepler limit, no pair switching, and the symmetric 2nd-order
+base map composes with the landed Yoshida weights to orders 4/6.
+Evidence: drift 1.1e-11 through all Burrau encounters (gate 1e-7),
+encounter depth r≈8.3e-5 crossed at O(1) steps.
+
+### DG19.2 — separate runRegularized() entry, not a run.ts mode flag
+Fictitious-time stepping doesn't fit RunParams (dtMacro/substeps are
+physical-time concepts). runRegularized mirrors run()'s result contract
+(RunResult/Diagnostics/TerminalLabel/trace) so consumers interchange;
+figure-8 passes untouched BY CONSTRUCTION.
+
+### DG19.3 — the "famous t≈60 escape" is Szebehely–Peters units
+Project normalisation (unit hypotenuse, Σm=1) gives t_proj ≈ 0.3098·t_SP.
+SP's closest approach t_SP≈15.83 → t≈4.905 = exactly the landed inspector
+collision truth; the escape DETECTION (REsc=10, persistence 8) fires at
+t≈24.57. Cross-integrator validation: with rColl=1e-4 on, the regularized
+run classifies COLLISION pair (0,1) at t=4.9047 — matching the pinned
+DOPRI5 truth to 4 digits from an independent scheme.
+
+### DG19.4 — measured gates: drift 1.1e-11, convergence 0.007
+h=2.5e-4 order-6 reference; h→h/2 escape-time shift 0.007 (gate 0.1);
+h-sweep 5e-4→6.25e-5 monotone within 0.009. h=2e-3 is genuinely too
+coarse — it ejects the WRONG body (the r≈8e-5 encounter demands the
+resolution), which is the sharpest possible demonstration of why the
+unregularized path could never have this golden.
+
+### DG19.5 — checkpoint pins use graded tolerances
+The r≈8e-5 encounter amplifies float-level differences ~1e4× and the flow
+is chaotic after it, so the 8 pinned checkpoints grade 1e-7 → 1e-2 with
+time. The pins are regression tripwires; the accuracy claim is carried by
+the drift + convergence gates, which are platform-robust.
+
 ## G16 — Documentation & onboarding
 
 Branch `feat/g16-docs`. 733 passed / 8 skipped (+18: docs completeness 18

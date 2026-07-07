@@ -15,10 +15,12 @@ import type { ChartView } from '@/chart_atlas/types.js';
  * a converged, tolerance-robust COLLISION (identical classification and
  * time across epsRel 1e-9..1e-11 and hMax 1e-2/2e-3, ΔE down to 4.6e-9),
  * while the non-regularized symplectic blows up (drift ~1e+4).
- * Szebehely & Peters' famous t ≈ 60 escape of the lightest body lives
- * BELOW that threshold and needs close-encounter regularization — G19.
- * Until then, COLLISION(t≈4.905) is the project-thresholds truth and is
- * pinned here (generated once by the tolerance sweep above, then fixed).
+ * Szebehely & Peters' famous escape of the lightest body lives BELOW
+ * that threshold — landed as G19's LogH regularized path
+ * (test/golden/burrau_regularized: same encounter → COLLISION t ≈ 4.9047
+ * with rColl on; with rColl off the run continues to the classical
+ * lightest-body escape at t ≈ 24.57 project units). At project
+ * thresholds COLLISION(t≈4.905) remains the truth pinned here.
  */
 describe('Stage 1a: canonical (3, 4, 5) Burrau golden via the chart pipeline', () => {
   it('the chart pipeline reproduces the spec-canonical IC exactly', () => {
