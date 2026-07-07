@@ -1,3 +1,4 @@
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import type { Chart } from '@/chart_atlas/types.js';
 import { FLAGS_INVARIANT, FLAGS_MASS_VARYING } from '@/chart_atlas/flags.js';
 import { burrauTriangle, nuFromAcuteAngle } from './euclid.js';
@@ -38,6 +39,10 @@ export function makeThetaKStrip(opts: {
                                descriptor: makeDescriptor(c.state) };
       return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
     },
+    chartUniforms() {
+      return CHART_UNIFORMS_DEFAULTS;
+    },
+
     inverseEncode() { return { kind: 'projected', reason: 'strip inverse not unique' }; },
     validate([u, v]) {
       if (u < 0 || u > 1 || v < 0 || v > 1)
@@ -78,6 +83,10 @@ export function makeThetaDeltaMStrip(opts: {
                                descriptor: makeDescriptor(c.state) };
       return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
     },
+    chartUniforms() {
+      return CHART_UNIFORMS_DEFAULTS;
+    },
+
     inverseEncode() {
       return { kind: 'projected', reason: 'δm inverse needs interpolation factor' };
     },

@@ -1,5 +1,6 @@
 import type { Chart } from '../types.js';
 import { FLAGS_DEFAULT, FLAGS_MASS_VARYING } from '../flags.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { latentSliceChart } from './latent_slice.js';
 import type { Vec8 } from '@/math/types.js';
 
@@ -32,6 +33,9 @@ export function makeMixedAxisChart(opts: {
     id: 'mixed_axis',
     kind: 'mixed',
     flags,
+    chartUniforms() {
+      return CHART_UNIFORMS_DEFAULTS;
+    },
     decode([u, v], view) {
       // Compose: write the per-axis derivation into the view's z0, then
       // decode the frozen point through the latent slice. M10 ships only

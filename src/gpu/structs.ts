@@ -47,10 +47,14 @@ export function sizeOfTileReduction(M: number = M_DEFAULT): number {
 /**
  * SimUniforms (frame-level). Bound at group(0) binding(0).
  * Field order matches the WGSL struct.
+ *
+ * G4 slimmed this to quantities constant across every chart in a frame —
+ * integration setup + event thresholds. The M3 stopgaps (m/M_total and
+ * the chart hyperparameters mu_max/alpha_min/q_max) are gone: masses come
+ * from the decoder per pixel, and chart knobs live in ChartUniforms at
+ * group(0) binding(3) (chart_uniforms.ts).
  */
 export interface SimUniforms {
-  m:               readonly [number, number, number];   // valid only for fixed-mass charts
-  M_total:         number;
   G:               number;
   dt_macro:        number;
   N_max:           number;
@@ -66,33 +70,25 @@ export interface SimUniforms {
   quality_tier:    number;
   checkpoint_count:number;
   samples_per_axis:number;
-  // M3 chart hyperparameters, read by decode.wgsl (promoted per-chart in M10).
-  mu_max:          number;
-  alpha_min:       number;
-  q_max:           number;
 }
 
 export function packSimUniforms(u: SimUniforms): ArrayBuffer {
-  // 96-byte buffer. m[3] is laid out as vec3<f32> + 4 bytes pad; the three
-  // M3 chart hyperparameters occupy f32[19..21] (offsets 76, 80, 84).
-  const buf = new ArrayBuffer(96);
+  // 64-byte buffer: 15 scalar lanes (60 B) + one trailing pad lane.
+  const buf = new ArrayBuffer(64);
   const f32 = new Float32Array(buf);
   const u32 = new Uint32Array(buf);
-  f32[0] = u.m[0]; f32[1] = u.m[1]; f32[2] = u.m[2]; f32[3] = u.M_total;
-  f32[4] = u.G;          f32[5] = u.dt_macro;
-  u32[6] = u.N_max >>> 0;
-  f32[7] = u.r_sub;
-  f32[8] = u.gamma_sub;  f32[9] = u.T_horizon;
-  f32[10] = u.r_coll;    f32[11] = u.R_esc;
-  u32[12] = u.k_esc >>> 0;
-  f32[13] = u.eps_E;     f32[14] = u.eps_L;
-  f32[15] = u.r_close;
-  u32[16] = u.quality_tier >>> 0;
-  u32[17] = u.checkpoint_count >>> 0;
-  u32[18] = u.samples_per_axis >>> 0;
-  f32[19] = u.mu_max;
-  f32[20] = u.alpha_min;
-  f32[21] = u.q_max;
+  f32[0]  = u.G;          f32[1]  = u.dt_macro;
+  u32[2]  = u.N_max >>> 0;
+  f32[3]  = u.r_sub;
+  f32[4]  = u.gamma_sub;  f32[5]  = u.T_horizon;
+  f32[6]  = u.r_coll;     f32[7]  = u.R_esc;
+  u32[8]  = u.k_esc >>> 0;
+  f32[9]  = u.eps_E;      f32[10] = u.eps_L;
+  f32[11] = u.r_close;
+  u32[12] = u.quality_tier >>> 0;
+  u32[13] = u.checkpoint_count >>> 0;
+  u32[14] = u.samples_per_axis >>> 0;
+  // f32[15] trailing pad
   return buf;
 }
 

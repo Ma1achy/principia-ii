@@ -1,5 +1,6 @@
 export * from './structs.js';
 export * from './layouts.js';
+export * from './chart_uniforms.js';
 export * from './init.js';
 export * from './buffers.js';
 export * from './pipelines.js';

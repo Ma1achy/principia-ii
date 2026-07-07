@@ -70,15 +70,13 @@ async function main() {
   log('pipelines built');
 
   const uniforms = {
-    m: [1/3, 1/3, 1/3],
-    M_total: 1, G: 1,
+    G: 1,
     dt_macro: C.DT_MACRO_DEFAULT, N_max: C.N_MAX_DEFAULT,
     r_sub: C.R_SUB_DEFAULT, gamma_sub: C.GAMMA_SUB_DEFAULT,
     T_horizon: T_HORIZON,
     r_coll: C.R_COLL_DEFAULT, R_esc: C.R_ESC_DEFAULT, k_esc: C.K_ESC_DEFAULT,
     eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
     quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
-    mu_max: C.MU_MAX_DEFAULT, alpha_min: C.ALPHA_MIN_DEFAULT, q_max: C.Q_MAX_DEFAULT,
   };
   const tile = {
     z: 0, tx: 0, ty: 0, level: 0,

@@ -9,6 +9,61 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G4 — Chart-parameter promotion
+
+Branch `feat/g4-chart-parameters`. Acceptance gate
+(`npm test -- --run test/integration/chart_uniforms`) green; 399 passed
+/ 1 skipped; typecheck + lint + build clean. Real-GPU proof: gpu:check
+gpuDisagree = 95 unchanged (the promoted decode is behaviour-identical
+to the M3 stopgap) + m5/m7/g17/depth-stress checks pass.
+
+### DG4.1 — doc's WGSL struct contradicted its own slot map (vec3 alignment)
+The doc's ChartUniforms WGSL struct declared `m_target: vec3<f32>` while
+its slot map placed m1/m2/m3_target at offsets 40/44/48. A vec3<f32>
+aligns to 16 and would land at offset 48 — the shader would silently
+read the wrong lanes (exactly the failure class the GPU skill's
+cardinal rule exists for). As built: three scalar fields
+m1_target/m2_target/m3_target; the packer/pin test/struct_dump all
+agree, and a test pins the scalar lanes explicitly.
+
+### DG4.2 — decode_full still needs r_coll, which is NOT a chart knob
+The doc's new signature `decode_full(z, ch)` dropped the SimUniforms
+argument entirely, but the decode's no-holes guard compares
+dmin < r_coll — an EVENT threshold that stays in SimUniforms. As built:
+`decode_full(z, ch, r_coll)`, with simulate passing uniforms.r_coll.
+Folding r_coll into ChartUniforms instead would have let a chart
+silently diverge from the integrator's collision radius.
+
+### DG4.3 — chartUniforms is required, and M11's factories implement it too
+The doc's integration test called `chart.chartUniforms!(…)` — implying
+an optional member. Made REQUIRED: an optional member silently yields
+undefined knobs at dispatch (mu_max = 0 collapses the decoder — the
+doc's own "silent zeros" warning). Implementors beyond the doc's list:
+the mixed-axis factory and M11's Burrau factories (acute_angle,
+mass_chart, both bifurcation strips — the doc only covered the M10
+six); lz_k inherits lz_e's via its object spread. A registry-wide test
+asserts every chart supplies non-zero knobs.
+
+### DG4.4 — frame capture bumped to v2; dev call site had a silent arg shift
+Dispatch is now a pure function of (SimUniforms, TileRequest,
+ChartUniforms), so G17's CapturedFrame gained a required `chart` field
+and FRAME_CAPTURE_VERSION went 1→2 (v1 captures are rejected loudly —
+replaying one without chart knobs would silently decode differently).
+dev/debug_harness.ts's `captureFrame(N, M, uniforms, tile, 'dev
+capture')` now put the LABEL STRING in the chart parameter — dev/ is
+outside tsc, so nothing flagged it; caught by re-running the g17 page
+check and fixed.
+
+### DG4.5 — SimUniforms slim: one artifact = four WGSL copies + packer + pins
+Dropping m/M_total/mu_max/alpha_min/q_max (96→64 B) touches every
+repeated copy of the struct: simulate.wgsl, reduce.wgsl,
+render_graph.wgsl, render_layer0.wgsl, packSimUniforms, the structs
+round-trip test, struct_dump's offset table (+ its new
+chartUniformsLayout), the TileBuffers uniform buffer size, and every
+SimUniforms literal (4 dev pages, gpu_check.html, 3 test files) — in
+one commit, per the cardinal rule. gpu:check's unchanged disagreement
+count is the behavioural regression proof.
+
 ## G3 — Bind-group layout authority
 
 Branch `feat/g3-bind-group-layouts`. Acceptance gate

@@ -8,8 +8,13 @@
  */
 import type { SimUniforms, TileRequest } from '@/gpu/structs.js';
 import { packSimUniforms, packTileRequest } from '@/gpu/structs.js';
+import type { ChartUniforms } from '@/gpu/chart_uniforms.js';
+import { packChartUniforms } from '@/gpu/chart_uniforms.js';
 
-export const FRAME_CAPTURE_VERSION = 1 as const;
+// v2 (G4): dispatch became a pure function of (SimUniforms, TileRequest,
+// ChartUniforms) — a capture without the chart knobs would silently replay
+// a different decode, so the version gate rejects v1 captures.
+export const FRAME_CAPTURE_VERSION = 2 as const;
 
 export interface CapturedFrame {
   version: number;
@@ -17,15 +22,17 @@ export interface CapturedFrame {
   M: number;
   uniforms: SimUniforms;
   tile: TileRequest;
+  chart: ChartUniforms;
   /** Free-form note (e.g. "disagreement at (7,3)"); ignored on restore. */
   label?: string;
 }
 
 /** Capture the current dispatch input. */
 export function captureFrame(
-  N: number, M: number, uniforms: SimUniforms, tile: TileRequest, label?: string,
+  N: number, M: number, uniforms: SimUniforms, tile: TileRequest,
+  chart: ChartUniforms, label?: string,
 ): CapturedFrame {
-  const frame: CapturedFrame = { version: FRAME_CAPTURE_VERSION, N, M, uniforms, tile };
+  const frame: CapturedFrame = { version: FRAME_CAPTURE_VERSION, N, M, uniforms, tile, chart };
   if (label !== undefined) frame.label = label;     // exactOptionalPropertyTypes
   return frame;
 }
@@ -46,6 +53,7 @@ export function deserializeFrame(json: string): CapturedFrame {
     throw new Error(`frame-capture version ${String(raw.version)} != ${FRAME_CAPTURE_VERSION}`);
   }
   if (raw.uniforms === undefined || raw.tile === undefined ||
+      raw.chart === undefined ||
       typeof raw.N !== 'number' || typeof raw.M !== 'number') {
     throw new Error('frame-capture missing required fields');
   }
@@ -56,9 +64,12 @@ export function deserializeFrame(json: string): CapturedFrame {
  * Determinism proof used by the round-trip test: a frame and its
  * serialise→deserialise twin must produce byte-identical packed inputs.
  */
-export function packedInputs(frame: CapturedFrame): { uniforms: ArrayBuffer; tile: ArrayBuffer } {
+export function packedInputs(frame: CapturedFrame): {
+  uniforms: ArrayBuffer; tile: ArrayBuffer; chart: ArrayBuffer;
+} {
   return {
     uniforms: packSimUniforms(frame.uniforms),
     tile: packTileRequest(frame.tile),
+    chart: packChartUniforms(frame.chart),
   };
 }

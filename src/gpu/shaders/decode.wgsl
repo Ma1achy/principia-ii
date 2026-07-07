@@ -1,6 +1,27 @@
 // @import { mass_softmax, sigmoid, PI, EPS_BOLT } from "./helpers.wgsl"
-// SimUniforms is entry-owned (declared in simulate.wgsl); referenced here
-// without an import directive — see integrate.wgsl for the rationale.
+
+// @export
+// Per-chart decoder hyperparameters (G4), bound by the entry at
+// group(0) binding(3). Layout is one artifact with packChartUniforms in
+// src/gpu/chart_uniforms.ts and the pin test — change all three together.
+// The target masses are THREE SCALARS, not a vec3: vec3<f32> aligns to 16
+// and would land at offset 48, silently skipping the lane the packer
+// writes at offset 40.
+struct ChartUniforms {
+  mu_max:       f32,
+  alpha_min:    f32,
+  q_max:        f32,
+  R_tilde:      f32,
+  Kmax:         f32,
+  gamma_K:      f32,
+  alpha_freeze: f32,
+  beta_freeze:  f32,
+  pole_buffer:  f32,
+  nu_burrau:    f32,
+  m1_target:    f32,
+  m2_target:    f32,
+  m3_target:    f32,
+};
 
 struct ConfigDecoded {
   rho:    vec2<f32>,
@@ -10,12 +31,12 @@ struct ConfigDecoded {
   beta:   f32,
 };
 
-fn decode_latent(z: array<f32, 8>, knobs: SimUniforms) -> ConfigDecoded {
-  let m  = mass_softmax(z[6], z[7], knobs.mu_max);
+fn decode_latent(z: array<f32, 8>, ch: ChartUniforms) -> ConfigDecoded {
+  let m  = mass_softmax(z[6], z[7], ch.mu_max);
   let M01 = m.x + m.y;
 
-  let alpha = knobs.alpha_min
-            + (PI/2.0 - 2.0*knobs.alpha_min) * sigmoid(z[0]);
+  let alpha = ch.alpha_min
+            + (PI/2.0 - 2.0*ch.alpha_min) * sigmoid(z[0]);
   let beta  = PI * sigmoid(z[1]);
 
   let rho_t    = vec2<f32>(cos(alpha), 0.0);
@@ -63,17 +84,17 @@ fn jacobi_momenta_to_particle(
 }
 
 // @export
-fn decode_full(z: array<f32, 8>, knobs: SimUniforms) -> ICOut {
+fn decode_full(z: array<f32, 8>, ch: ChartUniforms, r_coll: f32) -> ICOut {
   var out: ICOut;
-  let cfg = decode_latent(z, knobs);
+  let cfg = decode_latent(z, ch);
   out.m = cfg.m;
   out.r = jacobi_to_particle(cfg.rho, cfg.lambda, cfg.m);
 
   // Free Jacobi momenta.
-  let qx = knobs.q_max * (2.0 * sigmoid(z[2]) - 1.0);
-  let qy = knobs.q_max * (2.0 * sigmoid(z[3]) - 1.0);
-  let qX = knobs.q_max * (2.0 * sigmoid(z[4]) - 1.0);
-  let qY = knobs.q_max * (2.0 * sigmoid(z[5]) - 1.0);
+  let qx = ch.q_max * (2.0 * sigmoid(z[2]) - 1.0);
+  let qy = ch.q_max * (2.0 * sigmoid(z[3]) - 1.0);
+  let qX = ch.q_max * (2.0 * sigmoid(z[4]) - 1.0);
+  let qY = ch.q_max * (2.0 * sigmoid(z[5]) - 1.0);
   out.p = jacobi_momenta_to_particle(
     vec2<f32>(qx, qy), vec2<f32>(qX, qY), cfg.m);
 
@@ -82,7 +103,7 @@ fn decode_full(z: array<f32, 8>, knobs: SimUniforms) -> ICOut {
   let d02 = length(out.r[2] - out.r[0]);
   let d12 = length(out.r[2] - out.r[1]);
   let dmin = min(d01, min(d02, d12));
-  if (dmin < knobs.r_coll) { out.terminal = 2u; }
+  if (dmin < r_coll) { out.terminal = 2u; }
   else                     { out.terminal = 0u; }
   return out;
 }

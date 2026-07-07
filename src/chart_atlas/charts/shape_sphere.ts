@@ -1,4 +1,5 @@
 import type { Chart } from '../types.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_SPHERE } from '../flags.js';
 import { realiseFrozenConfig } from '../frozen_configuration.js';
 import { jacobiToParticleMomenta } from '@/decode/jacobi_particle.js';
@@ -55,6 +56,13 @@ export const shapeSphereChart: Chart = {
   inverseEncode() {
     return { kind: 'projected',
              reason: 'shape_sphere inverse not unique without chart params' };
+  },
+
+  chartUniforms(view) {
+    return {
+      ...CHART_UNIFORMS_DEFAULTS,
+      pole_buffer: (view.chartParams['poleBuffer'] as number | undefined) ?? 0.05,
+    };
   },
 
   validate([u, v]) {

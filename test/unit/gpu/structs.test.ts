@@ -20,26 +20,23 @@ describe('struct sizes', () => {
 });
 
 describe('uniform packing', () => {
-  it('SimUniforms round-trip preserves values to f32 precision', () => {
+  it('SimUniforms round-trip preserves values to f32 precision (G4 slim layout)', () => {
     const u = {
-      m: [0.4, 0.3, 0.3] as const,
-      M_total: 1, G: 1, dt_macro: 1e-3,
+      G: 1, dt_macro: 1e-3,
       N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 80,
       r_coll: 1e-4, R_esc: 10, k_esc: 8,
       eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
       quality_tier: 1, checkpoint_count: 8, samples_per_axis: 16,
-      mu_max: 5, alpha_min: 0.05, q_max: 2,
     };
     const buf = packSimUniforms(u);
-    expect(buf.byteLength).toBe(96);
+    expect(buf.byteLength).toBe(64);
     const f = new Float32Array(buf);
     const i = new Uint32Array(buf);
-    expect(f[0]).toBeCloseTo(0.4, 6);
-    expect(i[6]).toBe(64);            // N_max at u32[6]
-    expect(i[12]).toBe(8);            // k_esc at u32[12]
-    expect(f[19]).toBeCloseTo(5, 6);  // mu_max at f32[19]
-    expect(f[20]).toBeCloseTo(0.05, 6);
-    expect(f[21]).toBeCloseTo(2, 6);
+    expect(f[0]).toBeCloseTo(1, 6);    // G at f32[0]
+    expect(i[2]).toBe(64);             // N_max at u32[2]
+    expect(f[5]).toBeCloseTo(80, 6);   // T_horizon at f32[5]
+    expect(i[8]).toBe(8);              // k_esc at u32[8]
+    expect(i[14]).toBe(16);            // samples_per_axis at u32[14]
   });
 
   it('TileRequest packs to 48 bytes with i32 header + f32 uv fields', () => {

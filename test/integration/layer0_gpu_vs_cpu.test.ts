@@ -52,8 +52,7 @@ describe('Layer 0 GPU vs CPU', () => {
     });
 
     const uniforms = {
-      m: [1/3, 1/3, 1/3] as const,
-      M_total: 1, G: 1,
+      G: 1,
       dt_macro: DT_MACRO_DEFAULT, N_max: N_MAX_DEFAULT,
       r_sub: R_SUB_DEFAULT, gamma_sub: GAMMA_SUB_DEFAULT,
       T_horizon: 50,                   // shorter horizon for the test
@@ -61,9 +60,9 @@ describe('Layer 0 GPU vs CPU', () => {
       eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
       quality_tier: 1, checkpoint_count: M,
       samples_per_axis: N,
-      // shader-local hyperparameters baked in for M3:
-      mu_max: MU_MAX_DEFAULT, alpha_min: ALPHA_MIN_DEFAULT, q_max: Q_MAX_DEFAULT,
     };
+    // G4: chart hyperparameters ride in ChartUniforms (defaults = the M3
+    // latent-slice values, so the CPU reference knobs below still match).
     const tile = {
       z: 0, tx: 0, ty: 0, level: 0,
       uv_centre: [0.5, 0.5] as const,

@@ -1,4 +1,5 @@
 import type { Chart } from '../types.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_DEFAULT } from '../flags.js';
 import { burrauTriangle } from '@/burrau/euclid.js';
 import { canonicalise } from '@/decode/canonicalise.js';
@@ -35,6 +36,13 @@ export const burrauEuclidChart: Chart = {
   inverseEncode() {
     return { kind: 'projected',
              reason: 'burrau_euclid inverse via mass triple lookup' };
+  },
+
+  chartUniforms(view) {
+    return {
+      ...CHART_UNIFORMS_DEFAULTS,
+      nu_burrau: (view.chartParams['nu'] as number | undefined) ?? 0.5,
+    };
   },
 
   validate([u, v]) {

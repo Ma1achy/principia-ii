@@ -1,3 +1,4 @@
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import type { Chart } from '@/chart_atlas/types.js';
 import { FLAGS_MASS_VARYING } from '@/chart_atlas/flags.js';
 import { decodeMassSimplex } from '@/decode/mass.js';
@@ -35,6 +36,10 @@ export function makeBurrauMassChart(nu0: number): Chart {
                  descriptor: makeDescriptor(c.state) };
       }
       return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
+    },
+
+    chartUniforms() {
+      return { ...CHART_UNIFORMS_DEFAULTS, nu_burrau: nu0 };
     },
 
     inverseEncode() {

@@ -1,4 +1,5 @@
 import type { Chart } from '../types.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_MASS_VARYING } from '../flags.js';
 import { decodeMassSimplex } from '@/decode/mass.js';
 import { realiseFrozenConfig } from '../frozen_configuration.js';
@@ -57,6 +58,14 @@ export const massSimplexChart: Chart = {
     const u = m1;
     const v = 1 - m1 < 1e-12 ? 0 : Math.min(1, m2 / (1 - m1));
     return { kind: clamped ? 'projected' : 'exact', pixel: { s: u, t: v } };
+  },
+
+  chartUniforms(view) {
+    return {
+      ...CHART_UNIFORMS_DEFAULTS,
+      alpha_freeze: (view.chartParams['alpha'] as number | undefined) ?? Math.PI / 4,
+      beta_freeze:  (view.chartParams['beta']  as number | undefined) ?? Math.PI / 2,
+    };
   },
 
   validate([u, v]) {
