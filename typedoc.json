@@ -1,0 +1,17 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "exclude": ["**/*.test.ts"],
+  "tsconfig": "tsconfig.json",
+  "out": "docs/api",
+  "name": "Principia API",
+  "readme": "docs/README.md",
+  "includeVersion": false,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "navigationLinks": {
+    "Docs": "../README.md",
+    "Milestones": "../../milestones/README.md"
+  }
+}

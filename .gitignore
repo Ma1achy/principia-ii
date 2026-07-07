@@ -66,3 +66,6 @@ test-results/
 playwright-report/
 test/fixtures/golden/*.diff.png
 dist-web/
+
+# generated API reference (TypeDoc); regenerate with `npm run docs:api`
+docs/api/

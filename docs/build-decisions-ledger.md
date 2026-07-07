@@ -9,6 +9,40 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G16 — Documentation & onboarding
+
+Branch `feat/g16-docs`. 733 passed / 8 skipped (+18: docs completeness 18
+[gate ≥18], first run); typecheck + unpiped lint clean; gpu:check smoke
+green (docs-only change otherwise); `npm run docs:api` generates with 0
+errors. New dev dep: typedoc ^0.28. Milestone doc folded back as-built.
+
+### DG16.1 — docs index covers all 32 milestones, not the doc's 29
+G17/G18/G19 postdate the G16 draft. checkMilestoneCoverage reads
+milestones/README.md at check time, so the index links all 32 and a new
+milestone fails the gate until linked — the self-enforcing rule working
+as designed, just against reality.
+
+### DG16.2 — the doc's render-mode table was fiction
+It listed Outcome/vMF/Diffusion/FTLE/Coherence as "render modes". Landed
+(M7): 23 COLOUR modes × 5 BRIGHTNESS modes × 3 combiners × 9 palettes ×
+5 CVD. No FTLE or coherence colour mode exists; diffusion is a brightness
+mode. The user guide documents the real grouped surface.
+
+### DG16.3 — keyboard table corrected to landed bindings
+Zoom-in is `=` (the doc claimed `+`/`=` — DEFAULT_BINDINGS has no `+`);
+Escape's overlay-dismiss-then-unlock fallthrough (G13 boolean
+OverlayHooks) is stated; the G18 `~` dev-HUD toggle included.
+
+### DG16.4 — Broucke–Hénon, not Brouke–Hénon
+The draft misspelled the name (3×); the physicist is Roger Broucke. The
+glossary term + manifest use the correct spelling.
+
+### DG16.5 — the link gate also covers the pre-existing docs pages
+The checker walks every .md under docs/ except api/ — so the ledger,
+test-and-ci-strategy, integrity-pass, and all ADR pages are now
+link-gated too (scanned clean before landing). docs/api is generated,
+gitignored, and excluded from the walk.
+
 ## G15 — Build, bundling, deploy & hosting
 
 Branch `feat/g15-build-deploy`. 715 passed / 8 skipped (+30: build_config
