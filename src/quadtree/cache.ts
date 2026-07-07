@@ -49,6 +49,12 @@ export class TileCache {
     return this.map.has(this.fullKey(id, k));
   }
 
+  /** Iterate every cached entry (G7: device recovery walks the cache to
+   *  null dead GPU buffers while keeping the CPU-side reductions). */
+  *entries(): IterableIterator<CachedTile> {
+    yield* this.map.values();
+  }
+
   /**
    * Walk up the tree from `id` until a cached tile is found under the
    * given `key`. Returns the ancestor and the depth difference.

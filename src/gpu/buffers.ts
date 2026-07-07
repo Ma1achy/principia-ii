@@ -3,6 +3,7 @@ import { sizeOfSimResult, sizeOfICDescriptor, sizeOfTileReduction } from './stru
 import type { PipelineLayouts } from './layouts.js';
 import { CHART_UNIFORMS_SIZE } from './layouts.js';
 import { LINEARISED_UNIFORMS_SIZE } from './linearised_uniforms.js';
+import { ENSEMBLE_OFFSETS_SIZE } from './ensemble.js';
 
 export interface TileBuffers {
   uniforms:    GPUBuffer;
@@ -13,15 +14,19 @@ export interface TileBuffers {
   debug:       GPUBuffer;       // G17 DebugUniform (16B); zero-filled = mode 0 (M3 colouring)
   chart:       GPUBuffer;       // G4 ChartUniforms slot (64B); zero-filled until G4 packs it
   linearised:  GPUBuffer;       // G6 LinearisedRef (256B); zero-filled — only read when the flag is set
+  ensemble:    GPUBuffer;       // G7 EnsembleOffsets (256B); zero-filled = no jitter
   reduction:   GPUBuffer;       // G3: canonical TileReduction output (one home; M5 writes, render binds)
   N:           number;
   M:           number;
+  /** G7: ensemble capacity the per-tile buffers were sized for (≥ 1). */
+  EMax:        number;
 }
 
 export function createTileBuffers(
-  ctx: GpuContext, N: number, M: number,
+  ctx: GpuContext, N: number, M: number, EMax = 1,
 ): TileBuffers {
   const { device } = ctx;
+  const copies = Math.max(1, EMax);
 
   const uniforms   = device.createBuffer({
     size: 64, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });   // G4: slimmed SimUniforms
@@ -30,15 +35,15 @@ export function createTileBuffers(
     size: 48, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
   const simResults = device.createBuffer({
-    size: sizeOfSimResult(M) * N * N,
+    size: sizeOfSimResult(M) * N * N * copies,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
 
   const icDesc     = device.createBuffer({
-    size: sizeOfICDescriptor() * N * N,
+    size: sizeOfICDescriptor() * N * N * copies,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
 
   const readback   = device.createBuffer({
-    size: sizeOfSimResult(M) * N * N,
+    size: sizeOfSimResult(M) * N * N * copies,
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
 
   const debug      = device.createBuffer({
@@ -52,13 +57,17 @@ export function createTileBuffers(
     size: LINEARISED_UNIFORMS_SIZE,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
+  const ensemble   = device.createBuffer({
+    size: ENSEMBLE_OFFSETS_SIZE,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+
   const reduction  = device.createBuffer({
     size: sizeOfTileReduction(M),
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
 
   return {
     uniforms, tileReq, simResults, icDesc, readback,
-    debug, chart, linearised, reduction, N, M,
+    debug, chart, linearised, ensemble, reduction, N, M, EMax: copies,
   };
 }
 
@@ -96,6 +105,7 @@ export function createTileBindGroups(
       { binding: 2, resource: { buffer: bufs.debug } },     // G17
       { binding: 3, resource: { buffer: bufs.chart } },     // G4 slot
       { binding: 4, resource: { buffer: bufs.linearised } },// G6 slot
+      { binding: 5, resource: { buffer: bufs.ensemble } },  // G7 slot
     ],
   });
   const perTile = ctx.device.createBindGroup({

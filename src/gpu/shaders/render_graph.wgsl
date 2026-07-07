@@ -39,6 +39,8 @@ struct TileRequest {
   uv_centre: vec2<f32>,
   uv_half:   vec2<f32>,
   flags:     u32,
+  ensemble_e:        u32,   // G7: 0/1 = single, 2..16 = jittered copies
+  sample_pattern_id: u32,   // G7: 0 none, 1 stratified, 2 Halton(2,3)
 };
 
 struct SimResult {

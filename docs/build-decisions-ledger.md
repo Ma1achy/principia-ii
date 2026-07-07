@@ -9,6 +9,105 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G7 — Device-loss recovery, ensemble dispatch, spread second pass
+
+Branch `feat/g7-device-loss`. 464 passed / 6 skipped; typecheck + lint
+clean. Real-GPU proof: gpu:check ok with three new G7 gates — spreads
+(spread_t_end = 11.1, spread_n = 2.61, real checkpoint means on the
+mixed M3 tile), ensemble (E = 4 stratified: count 4, agreement 0.745,
+HAS_ENSEMBLE bit, sample_count = N²·4), recovery (forced destroy →
+fresh device in ~13 ms, cache reduction intact, post-loss class
+histogram exactly matches pre-loss) — plus g17/m5/m7/depth-stress page
+checks green. One gpu_check harness bug fixed along the way: the
+post-recovery render target must use the FRESH context's format (a
+canvas-less initGpu returns rgba8unorm; a mismatch silently drops the
+whole submission).
+
+### DG7.1 — ensemble offsets at g0b5, not the doc's g0b3
+The doc bound `EnsembleOffsets` at group(0) binding(3), which G4 had
+already assigned to `ChartUniforms` (and b4 went to G6's
+`LinearisedRef`). Landed at binding 5, compute-only, 256 B (16 × vec4
+(du, dv, 0, 0)), zero-filled default = no jitter. The frame bind group
+table is now b0 SimUniforms / b1 TileRequest / b2 DebugUniform /
+b3 ChartUniforms / b4 LinearisedRef / b5 EnsembleOffsets.
+
+### DG7.2 — spread pass: one entry inside reduce.wgsl, not 6 pipelines in a new file
+The doc specified `reduce_spreads.wgsl` with six per-scalar entry
+points and a dedicated pipeline builder. A separate file would need a
+FIFTH hand-kept copy of the shared structs (the M5 four-copy problem,
+worse), and six single-workgroup dispatches re-read the same N²·E
+samples six times. Landed: a single `reduce_spreads` entry INSIDE
+`reduce.wgsl`, same `pipelineReduce` layout, one sweep accumulating all
+five scalar spreads + the angular max, dispatched as a second pass in
+the same command encoder as the main reduce (pass ordering makes the
+means visible; no CPU round-trip). Also the doc bound `results` as
+`var<storage, read>`, violating the G3 rule that the shader's access
+mode must match the shared perTile layout's `'storage'` type —
+read_write as landed.
+
+### DG7.3 — E and patternId live in TileRequest spare lanes
+Per-tile scoping: `ensemble_e` at i32[9], `sample_pattern_id` at
+i32[10] of the existing 48 B TileRequest — not new SimUniforms fields.
+The TS fields are optional and pack as 0, so all pre-G7 callers and
+frame captures stay valid; the three WGSL TileRequest copies gained the
+two u32 lanes in the same commit (struct-as-one-artifact rule).
+
+### DG7.4 — DeviceRecovery hardened beyond the doc's sketch
+The doc's listing reattached a listener but had no defence against the
+OLD device's `lost` promise resolving after recovery (it fires once
+per device, possibly late): landed handler checks
+`currentCtx.device !== device` and ignores stale events. Also landed:
+injectable `acquire` (unit tests drive fake contexts with controllable
+lost promises; production defaults to initGpu), `dispose()`, and
+optional onRecovering/onRecovered hooks (the doc required UI hooks that
+don't exist until G8).
+
+### DG7.5 — public cache.entries() + CachedTile.reduction
+The doc's recovery walked `(cache as any).map.values()` and relied on a
+`reduction` field CachedTile didn't have. Landed: a real
+`*entries(): IterableIterator<CachedTile>` on TileCache and an optional
+`reduction?: TileReduction | null` on CachedTile (type-only import — no
+runtime cycle). Recovery nulls simBuffer/icBuffer (never destroy()
+through a lost device), resets lifecycle to 'unseen', keeps reduction —
+the ancestor-fallback baseline the whole feature exists to preserve.
+
+### DG7.6 — checkpoint means landed in the main reduce (doc prerequisite gap)
+The doc's `spread_n` reads `mean_n_checkpoints[m]`, but M5's reduce
+still zeroed those lanes ("M6 fills this"). Landed real means in the
+main pass: per-lane vec4 accumulators tree-reduced through a
+`array<array<vec4<f32>, 8>, 64>` workgroup array (~8 KB, within the
+16 KB floor), written as raw vector averages; the spread pass
+renormalises the mean direction and skips means shorter than 1e-6.
+
+### DG7.7 — SwiftShader does not re-zero loop-local `var`s (agreement > 1)
+First gpu:check run measured ensemble agreement 1.822 — impossible for
+a mean of per-pixel majority fractions. Root cause: `var hist:
+array<u32, 5>;` declared inside the per-pixel loop relies on WGSL
+zero-init-on-scope-entry, which SwiftShader does not honour on loop
+re-entry, so votes accumulated across each lane's strided pixels
+(~2.5× inflation, exactly as accumulation predicts). Fix: explicit
+initialisers on all loop-local and accumulator vars in reduce.wgsl
+(`var hist = array<u32, 5>(0u, ...)`, explicit ckpt_sum zero loop).
+Post-fix agreement: 0.745 on the fractal tile. Filed as a portability
+rule: never rely on implicit zero-init inside WGSL loops.
+
+### DG7.8 — depth-stress "uniform settles early" expectation was a zero-spread artifact
+With real spreads feeding compositeCoherence, the depth-stress
+harness's uniform chase (min-impurity child) no longer stops at
+keep('coherent') around z = 13 — that stop only happened because the
+spread terms were constant zero (S ≈ 0.35·impurity). The measured
+descent shows the min-impurity child of the M3 slice is honestly
+incoherent: impurity 0.11-0.22 through z = 12 (impurity-forced splits —
+spreads irrelevant), then genuine trajectory spread (S 1.6-3.1 vs
+τ ≈ 0.46) until the f32 floor, where all samples decode identically
+and S collapses to 0.033 ≪ τ = 0.5. The check now asserts the robust
+facts — stop ∈ {coherent, f32_floor}, final S ≤ τ, final impurity
+≤ 0.10 — instead of pinning depth ordering that the fake zeros
+produced. Product behaviour is correct; deeper-than-floor honesty is
+exactly what AT_F32_FLOOR + the G6 linearised path exist to handle.
+
+---
+
 ## G6 — Linearised decoder for deep zoom
 
 Branch `feat/g6-linearised-decoder`. Acceptance gate

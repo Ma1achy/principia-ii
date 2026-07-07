@@ -35,6 +35,8 @@ struct TileRequest {
   uv_centre: vec2<f32>,
   uv_half:   vec2<f32>,
   flags:     u32,
+  ensemble_e:        u32,   // G7: 0/1 = single, 2..16 = jittered copies
+  sample_pattern_id: u32,   // G7: 0 none, 1 stratified, 2 Halton(2,3)
 };
 
 struct SimResult {
@@ -116,6 +118,7 @@ var<workgroup> shared_d_min:     array<f32, 64>;
 var<workgroup> shared_drift:     array<f32, 64>;
 var<workgroup> shared_diff:      array<f32, 64>;
 var<workgroup> shared_diff_n:    array<f32, 64>;
+var<workgroup> shared_ckpt:      array<array<vec4<f32>, 8>, 64>;   // G7
 var<workgroup> shared_class_hist: array<atomic<u32>, 5>;
 var<workgroup> shared_suspect_e: array<atomic<u32>, 1>;
 var<workgroup> shared_suspect_l: array<atomic<u32>, 1>;
@@ -132,10 +135,23 @@ fn parallel_sum(arr: ptr<workgroup, array<f32, 64>>, lane: u32) -> f32 {
   return (*arr)[0];
 }
 
+fn parallel_max(arr: ptr<workgroup, array<f32, 64>>, lane: u32) -> f32 {
+  for (var s: u32 = 32u; s > 0u; s = s >> 1u) {
+    if (lane < s) {
+      (*arr)[lane] = max((*arr)[lane], (*arr)[lane + s]);
+    }
+    workgroupBarrier();
+  }
+  return (*arr)[0];
+}
+
 @compute @workgroup_size(64, 1, 1)
 fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   let lane = lid.x;
-  let total = uniforms.samples_per_axis * uniforms.samples_per_axis;
+  // G7: with E ensemble copies the buffer holds E consecutive N² slices;
+  // the means aggregate over ALL of them.
+  let E = max(1u, tile_req.ensemble_e);
+  let total = uniforms.samples_per_axis * uniforms.samples_per_axis * E;
 
   if (lane == 0u) {
     for (var i = 0u; i < 5u; i = i + 1u) { atomicStore(&shared_class_hist[i], 0u); }
@@ -153,11 +169,16 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   var drift_sum: f32 = 0.0;
   var diff_sum:  f32 = 0.0;
   var diff_count: f32 = 0.0;
+  var ckpt_sum: array<vec4<f32>, 8>;          // G7: checkpoint means
+  for (var m = 0u; m < 8u; m = m + 1u) { ckpt_sum[m] = vec4<f32>(0.0); }
 
   var i = lane;
   loop {
     if (i >= total) { break; }
     let r = results[i];
+    for (var m = 0u; m < 8u; m = m + 1u) {
+      ckpt_sum[m] = ckpt_sum[m] + r.n_checkpoints[m];
+    }
     arc       = arc       + r.arc_length_n;
     t_end_sum = t_end_sum + r.t_end;
     d_min_sum = d_min_sum + r.d_min;
@@ -188,7 +209,18 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   shared_drift[lane]  = drift_sum;
   shared_diff[lane]   = diff_sum;
   shared_diff_n[lane] = diff_count;
+  for (var m = 0u; m < 8u; m = m + 1u) { shared_ckpt[lane][m] = ckpt_sum[m]; }
   workgroupBarrier();
+
+  // G7: tree-reduce the checkpoint sums (vec4 lanes).
+  for (var s: u32 = 32u; s > 0u; s = s >> 1u) {
+    if (lane < s) {
+      for (var m = 0u; m < 8u; m = m + 1u) {
+        shared_ckpt[lane][m] = shared_ckpt[lane][m] + shared_ckpt[lane + s][m];
+      }
+    }
+    workgroupBarrier();
+  }
 
   let sumArc   = parallel_sum(&shared_arc,    lane);
   let sumTend  = parallel_sum(&shared_t_end,  lane);
@@ -202,10 +234,10 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     out.id = TileID(tile_req.z, tile_req.tx, tile_req.ty);
     out.level = tile_req.level;
 
-    // Checkpoint means are an M6 second pass; zero them so re-used output
-    // buffers never leak a previous tile's data.
+    // G7: real checkpoint means (raw vector average — the spread pass
+    // renormalises before its angular comparison).
     for (var m = 0u; m < 8u; m = m + 1u) {
-      out.mean_n_checkpoints[m] = vec4<f32>(0.0);
+      out.mean_n_checkpoints[m] = shared_ckpt[0][m] / n;
     }
 
     out.mean_arc_length_n = sumArc   / n;
@@ -220,7 +252,7 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     }
 
     // Class histogram → outcome impurity and dominant.
-    var hist: array<u32, 5>;
+    var hist = array<u32, 5>(0u, 0u, 0u, 0u, 0u);
     var dom: u32 = 0u; var domN: u32 = 0u; var sumN: u32 = 0u;
     for (var c = 0u; c < 5u; c = c + 1u) {
       hist[c] = atomicLoad(&shared_class_hist[c]);
@@ -235,31 +267,152 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     out.lz_drift_worst     = bitcast<f32>(atomicLoad(&shared_lz_max[0]));
     out.sample_count       = i32(total);
 
-    // Coherence score is computed CPU-side after readback so the same
-    // formula governs the scheduler decisions; the GPU writes the
-    // dominant spread terms below and zero-pads the rest.
-    out.spread_n              = 0.0;       // M6 fills this
+    // Spreads are zero-initialised here and filled by the G7 second pass
+    // (reduce_spreads) once the means above are visible — a skipped
+    // second pass must never leak a previous tile's spreads.
+    out.spread_n              = 0.0;
     out.spread_arc_length_n   = 0.0;
     out.spread_t_end          = 0.0;
     out.spread_d_min          = 0.0;
-    out.spread_ftle           = 0.0;
+    out.spread_ftle           = 0.0;       // FTLE lane not yet meaningful (M6)
     out.spread_energy_drift   = 0.0;
     out.spread_diffusion      = 0.0;
 
-    // Free-group / ensemble / trajectory fields are M6 producers.
+    // Free-group / trajectory fields are M6 producers.
     out.mean_word_length   = 0.0;
     out.spread_word_length = 0.0;
     out.word_agreement     = 0.0;
     out.dominant_word_hash = 0u;
     out.ensemble_outcome_agreement = 1.0;   // no ensemble ⇒ perfect agreement
-    out.ensemble_count     = 0;
+    out.ensemble_count     = 0;             // G7 second pass fills when E ≥ 2
     out.mean_orbit_count   = 0.0;
     out.retrograde_fraction = 0.0;
 
     out.coherence_score = 0.0;     // CPU patches after readback
     out.priority_score  = 0.0;
-    // Bits 0-5 are TILE_STATUS flags (none set in M5); bits 6-7 carry the
-    // schema version the CPU decoder asserts.
-    out.status_flags    = TILE_REDUCTION_SCHEMA_VERSION << 6u;
+    // Bits 0-5 are TILE_STATUS flags; bits 6-7 carry the schema version
+    // the CPU decoder asserts. G7: the reduce propagates the request
+    // flags it can observe — HAS_ENSEMBLE (bit 0) when E ≥ 2 and
+    // DECODE_LINEAR (bit 1) mirroring the TileRequest flag.
+    var status = TILE_REDUCTION_SCHEMA_VERSION << 6u;
+    if (E >= 2u)                        { status = status | 1u; }
+    if ((tile_req.flags & 1u) != 0u)    { status = status | 2u; }
+    out.status_flags = status;
+  }
+}
+
+// ── G7 second pass: spreads + ensemble agreement ─────────────────────────
+//
+// Runs AFTER `reduce` in the same submission (pass-ordering makes the
+// means visible). Reads the means from `out`, computes population
+// standard deviations for the scalar lanes, the max angular deviation
+// from the renormalised mean shape-sphere direction for spread_n, and —
+// when E ≥ 2 — the per-pixel outcome agreement across ensemble copies.
+
+@compute @workgroup_size(64, 1, 1)
+fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
+  let lane = lid.x;
+  let E = max(1u, tile_req.ensemble_e);
+  let per_copy = uniforms.samples_per_axis * uniforms.samples_per_axis;
+  let total = per_copy * E;
+
+  let mean_arc   = out.mean_arc_length_n;
+  let mean_tend  = out.mean_t_end;
+  let mean_dmin  = out.mean_d_min;
+  let mean_drift = out.mean_energy_drift;
+  let mean_diff  = out.mean_diffusion;
+
+  var acc_arc:   f32 = 0.0;
+  var acc_tend:  f32 = 0.0;
+  var acc_dmin:  f32 = 0.0;
+  var acc_drift: f32 = 0.0;
+  var acc_diff:  f32 = 0.0;
+  var diff_count: f32 = 0.0;
+  var ang_max:   f32 = 0.0;
+
+  var i = lane;
+  loop {
+    if (i >= total) { break; }
+    let r = results[i];
+    let da = r.arc_length_n  - mean_arc;   acc_arc   = acc_arc   + da * da;
+    let dt = r.t_end         - mean_tend;  acc_tend  = acc_tend  + dt * dt;
+    let dd = r.d_min         - mean_dmin;  acc_dmin  = acc_dmin  + dd * dd;
+    let dr = r.energy_drift  - mean_drift; acc_drift = acc_drift + dr * dr;
+    if (r.diffusion >= 0.0 && mean_diff >= 0.0) {   // sentinel guard
+      let df = r.diffusion - mean_diff;
+      acc_diff   = acc_diff + df * df;
+      diff_count = diff_count + 1.0;
+    }
+    for (var m = 0u; m < uniforms.checkpoint_count; m = m + 1u) {
+      let nm = out.mean_n_checkpoints[m].xyz;
+      let len = length(nm);
+      if (len > 1e-6) {
+        let cos_ang = clamp(dot(r.n_checkpoints[m].xyz, nm / len), -1.0, 1.0);
+        ang_max = max(ang_max, acos(cos_ang));
+      }
+    }
+    i = i + LANES;
+  }
+
+  shared_arc[lane]    = acc_arc;
+  shared_t_end[lane]  = acc_tend;
+  shared_d_min[lane]  = acc_dmin;
+  shared_drift[lane]  = acc_drift;
+  shared_diff[lane]   = acc_diff;
+  shared_diff_n[lane] = diff_count;
+  workgroupBarrier();
+  let sum_arc   = parallel_sum(&shared_arc,    lane);
+  let sum_tend  = parallel_sum(&shared_t_end,  lane);
+  let sum_dmin  = parallel_sum(&shared_d_min,  lane);
+  let sum_drift = parallel_sum(&shared_drift,  lane);
+  let sum_diff  = parallel_sum(&shared_diff,   lane);
+  let sum_diffn = parallel_sum(&shared_diff_n, lane);
+  workgroupBarrier();
+  shared_arc[lane] = ang_max;
+  workgroupBarrier();
+  let spread_ang = parallel_max(&shared_arc, lane);
+
+  if (lane == 0u) {
+    let n = f32(total);
+    out.spread_arc_length_n = sqrt(sum_arc   / n);
+    out.spread_t_end        = sqrt(sum_tend  / n);
+    out.spread_d_min        = sqrt(sum_dmin  / n);
+    out.spread_energy_drift = sqrt(sum_drift / n);
+    if (sum_diffn > 0.0) {
+      out.spread_diffusion = sqrt(sum_diff / sum_diffn);
+    } else {
+      out.spread_diffusion = 0.0;
+    }
+    out.spread_n = spread_ang;
+  }
+  workgroupBarrier();
+
+  // Ensemble agreement: per pixel, the fraction of copies voting for the
+  // pixel's majority outcome class, averaged over the tile.
+  if (E >= 2u) {
+    var agree_sum: f32 = 0.0;
+    var p = lane;
+    loop {
+      if (p >= per_copy) { break; }
+      // Explicit zero: SwiftShader does not re-zero a bare `var` on each
+      // loop-body re-entry, so votes would accumulate across the lane's
+      // strided pixels (agreement > 1).
+      var hist = array<u32, 5>(0u, 0u, 0u, 0u, 0u);
+      for (var e = 0u; e < E; e = e + 1u) {
+        let cls = results[e * per_copy + p].sample_descriptor & 0x7u;
+        if (cls < 5u) { hist[cls] = hist[cls] + 1u; }
+      }
+      var dom: u32 = 0u;
+      for (var c = 0u; c < 5u; c = c + 1u) { dom = max(dom, hist[c]); }
+      agree_sum = agree_sum + f32(dom) / f32(E);
+      p = p + LANES;
+    }
+    shared_t_end[lane] = agree_sum;
+    workgroupBarrier();
+    let sum_agree = parallel_sum(&shared_t_end, lane);
+    if (lane == 0u) {
+      out.ensemble_outcome_agreement = sum_agree / f32(per_copy);
+      out.ensemble_count = i32(E);
+    }
   }
 }

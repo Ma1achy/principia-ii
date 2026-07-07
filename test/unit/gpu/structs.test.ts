@@ -52,5 +52,7 @@ describe('uniform packing', () => {
     expect(f32[4]).toBeCloseTo(0.25, 6);
     expect(f32[7]).toBeCloseTo(0.125, 6);
     expect(i32[8]).toBe(1);
+    expect(i32[9]).toBe(0);     // ensemble_e defaults to 0 (G7)
+    expect(i32[10]).toBe(0);    // sample_pattern_id defaults to 0 (G7)
   });
 });

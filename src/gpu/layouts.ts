@@ -8,7 +8,8 @@
  * Group structure (the architectural contract — resist adding groups):
  *   group(0) frame:     b0 SimUniforms, b1 TileRequest,
  *                       b2 DebugUniform (G17), b3 ChartUniforms (G4),
- *                       b4 LinearisedRef (G6, compute-only).
+ *                       b4 LinearisedRef (G6, compute-only),
+ *                       b5 EnsembleOffsets (G7, compute-only).
  *   group(1) perTile:   b0 SimResult[], b1 ICDescriptor[]  (storage).
  *   group(2) reduction: b0 TileReduction                   (storage).
  *   group(3) render:    b0 RenderParams                    (uniform).
@@ -51,6 +52,8 @@ export const FRAME_LAYOUT_DESC: GPUBindGroupLayoutDescriptor = {
       buffer: { type: 'uniform' } },                     // ChartUniforms (G4)
     { binding: 4, visibility: STAGE.COMPUTE,
       buffer: { type: 'uniform' } },                     // LinearisedRef (G6)
+    { binding: 5, visibility: STAGE.COMPUTE,
+      buffer: { type: 'uniform' } },                     // EnsembleOffsets (G7)
   ],
 };
 
