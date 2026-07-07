@@ -9,6 +9,29 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G9 — WebGPU capability detection & graceful degradation
+
+Branch `feat/g9-capability`. 480 passed / 7 skipped (16 in the gate
+suite vs ≥ 12 required); typecheck + lint clean; gpu:check ok with
+gpuDisagree = 95 unchanged and all four page checks green — the
+recovery gate now exercises the reworked initGpu end-to-end through
+DeviceRecovery's default acquire.
+
+### DG9.1 — requestDevice rejects; the doc's null check was unreachable
+The doc classified `'no-device'` via `if (!device)` after
+`requestDevice`, but per the WebGPU spec requestDevice never resolves
+null — it REJECTS (OOM, invalid requiredLimits, lost adapter). Landed:
+`.catch(() => null)` around the request so the rejection is what maps
+to the typed `UnsupportedError('no-device')`, making all three
+UnsupportedReason values genuinely reachable. Also landed structurally
+typed detection (`GpuLike` instead of `any`), `GpuContext.limits`
+retyped from the ad-hoc 4-key record to the `DeviceLimits` interface
+(no external consumers existed — verified by grep), and two extra
+typed-refusal tests that run in plain Node (Node ≥ 21 ships a global
+`navigator` without `gpu`, so no-webgpu classification needs no mock).
+
+---
+
 ## G7 — Device-loss recovery, ensemble dispatch, spread second pass
 
 Branch `feat/g7-device-loss`. 464 passed / 6 skipped; typecheck + lint

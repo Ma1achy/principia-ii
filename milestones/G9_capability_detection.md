@@ -1,5 +1,11 @@
 # G9 — WebGPU capability detection & graceful degradation
 
+> **Status: LANDED** (branch `feat/g9-capability`). Folded back to the
+> as-built reality; the one substantive deviation is DG9.1 in
+> `docs/build-decisions-ledger.md` (requestDevice rejects — it never
+> resolves null — so the `'no-device'` classification wraps the
+> rejection). 16 unit tests landed (gate ≥ 12).
+
 ## Goal
 
 Before any pipeline allocates a buffer or picks a quality tier, Principia must
@@ -22,7 +28,10 @@ npm test -- --run test/unit/gpu/capability
 passes with at least 12 green tests covering: unsupported-browser/adapter
 classification, per-tier cap derivation from synthetic limits, the
 `maxStorageBufferBindingSize` → full-retention-viewport math, and request
-degradation (tier downgrade + viewport clamp).
+degradation (tier downgrade + viewport clamp). As landed: 16 tests — the
+listed 12 plus the baseline-warning case, a zero-floor viewport guard, and
+two `initGpu` typed-refusal tests (Node ≥ 21 has a global `navigator`
+without `gpu`, so the no-webgpu refusal is unit-testable without mocks).
 
 **Deliverable:** internal — tests only; a capability layer emits one `CapabilityProfile` (support state, limits, chosen tier, derived caps, warnings) that `initGpu`, the scheduler, and the UI read so unsupported devices degrade informatively instead of throwing, verified by `test/unit/gpu/capability`.
 
@@ -225,17 +234,18 @@ export async function initGpu(
   const cap = profile ?? (await detectCapabilities());
   if (!cap.supported) throw new UnsupportedError(cap.reason!);
 
-  const gpu = (navigator as any).gpu;
-  const adapter = await gpu.requestAdapter({ powerPreference: 'high-performance' });
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
   if (!adapter) throw new UnsupportedError('no-adapter');
 
   // Request only what the adapter actually reports; never exceed it.
+  // requestDevice REJECTS on failure (it never resolves null) — classify
+  // the rejection as the typed 'no-device' reason (DG9.1).
   const device = await adapter.requestDevice({
     requiredLimits: {
       maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
       maxBufferSize: adapter.limits.maxBufferSize,
     },
-  });
+  }).catch(() => null);
   if (!device) throw new UnsupportedError('no-device');
 
   const format = canvas?.getContext('webgpu')
@@ -427,3 +437,6 @@ skips cleanly without one.
   different limits, so the profile is not cached across a loss.
 - **Don't conflate `features` with limits.** `shader-f16`/`timestamp-query` are
   opt-in upgrades (spec §6.4.2): detect and use them, never require them.
+- **As landed, detection is typed structurally.** `detectCapabilities` takes a
+  `GpuLike` (the injectable slice of `navigator.gpu` it actually needs) rather
+  than `any`, so fake adapters in tests stay type-checked.
