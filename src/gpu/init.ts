@@ -46,7 +46,13 @@ export async function initGpu(
   // Request only what the adapter actually reports; never exceed it.
   // requestDevice REJECTS on failure (it never resolves null) — classify
   // that rejection as the typed 'no-device' reason.
+  // timestamp-query (G10 perf timing) is opt-in per device: a query set
+  // cannot be created later unless the feature was requested HERE. Gate on
+  // the live adapter (a post-TDR fallback may not advertise it), never require.
+  const requiredFeatures: GPUFeatureName[] =
+    adapter.features.has('timestamp-query') ? ['timestamp-query'] : [];
   const device = await adapter.requestDevice({
+    requiredFeatures,
     requiredLimits: {
       maxStorageBufferBindingSize:
         adapter.limits.maxStorageBufferBindingSize,

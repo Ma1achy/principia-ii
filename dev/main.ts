@@ -85,6 +85,9 @@ async function main(): Promise<void> {
   }, {
     initialView: view,
     viewport: { widthPx: canvas.width, heightPx: canvas.height, tilePix: 256 },
+    // G10: the dispatcher only times passes when initGpu enabled
+    // timestamp-query on this device; tell the monitor the same thing.
+    gpuTimingAvailable: ctx.device.features.has('timestamp-query'),
   });
 
   mountUI(root, app, canvas);

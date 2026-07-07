@@ -7,6 +7,7 @@ import { TileCache } from '@/quadtree/cache.js';
 import { visibleTiles } from '@/quadtree/visible.js';
 import { subrect } from '@/quadtree/tile.js';
 import { planFrame } from '@/quadtree/scheduler.js';
+import { PerfMonitor, type PerfRecommendation } from '@/perf/perf_monitor.js';
 
 export interface FrameLoopOpts {
   frameBudget:     number;    // max compute jobs per frame (tile-jobs, not ms)
@@ -15,6 +16,11 @@ export interface FrameLoopOpts {
   ensembleEnabled: boolean;
   viewport?:       Viewport;
   cacheCapacity?:  number;
+  // --- G10 additions (all optional; defaults keep G2 callers unchanged) ---
+  frameBudgetMs?:  number;    // wall-clock budget per frame (default 16)
+  perfWindow?:     number;    // rolling window length in frames (default 120)
+  /** From ctx.capability.features.includes('timestamp-query'). */
+  gpuTimingAvailable?: boolean;
 }
 
 /**
@@ -29,13 +35,22 @@ export interface FrameLoopOpts {
 export class FrameLoop {
   readonly cache: TileCache;
   readonly ledger: JobLedger;
+  /** G10: rolling perf stats + budget feedback. The UI reads
+   *  perf.snapshot()/lastRecommendation; the loop applies the dispatch-cap
+   *  scale itself and NEVER mutates the tier (advisory only). */
+  readonly perf: PerfMonitor;
   /** Stats of the most recent tick (null before the first). Read-only
    *  telemetry for HUDs and headless checks. */
   lastStats: FrameStats | null = null;
+  /** The most recent recommend() output (null before enough samples). */
+  lastRecommendation: PerfRecommendation | null = null;
   private frameNum = 0;
   private running = false;
   private rafId = 0;
   private viewport: Viewport;
+  /** Perf-scaled dispatches-per-frame cap; recovers to opts.frameBudget
+   *  once the window is back under budget. */
+  private dispatchCap: number;
 
   constructor(
     private store:      Store,
@@ -50,6 +65,14 @@ export class FrameLoop {
       ftleEnabled:     opts.ftleEnabled,
       ensembleEnabled: opts.ensembleEnabled,
     });
+    this.perf = new PerfMonitor({
+      windowFrames:  opts.perfWindow ?? 120,
+      frameBudgetMs: opts.frameBudgetMs ?? 16,
+      overRatio: 1.0,
+      sustainedFraction: 0.5,
+      gpuTimingAvailable: opts.gpuTimingAvailable ?? false,
+    });
+    this.dispatchCap = opts.frameBudget;
   }
 
   start(): void {
@@ -102,9 +125,11 @@ export class FrameLoop {
     }
     const plan: RenderPlan = { view, entries };
 
-    // Schedule new compute jobs (highest priority first).
+    // Schedule new compute jobs (highest priority first). The perf-driven
+    // dispatchCap backs off the dispatches-per-frame knob (planFrame's
+    // frameBudget — its maxInFlight input is "jobs already running").
     const jobs = planFrame(this.cache, qview, {
-      frameBudget:     this.opts.frameBudget,
+      frameBudget:     Math.min(this.dispatchCap, this.opts.frameBudget),
       maxInFlight:     this.ledger.inflightCount,
       ftleEnabled:     this.opts.ftleEnabled,
       ensembleEnabled: this.opts.ensembleEnabled,
@@ -118,6 +143,22 @@ export class FrameLoop {
 
     stats.jobsCompleted = this.ledger.completedCount - completedBefore;
     stats.cpuMs = this.deps.now() - t0;
+
+    // G10: record this frame + apply back-pressure. GPU timings are the
+    // PREVIOUS frame's resolved timestamps (async readback — one-frame
+    // latency is invisible to a rolling window).
+    const gpu = this.dispatcher.takeGpuTimings?.();
+    this.perf.record({ cpuMs: stats.cpuMs, gpu, jobsDispatched: stats.jobsDispatched });
+    const rec = this.perf.recommend(view.qualityTier);
+    this.lastRecommendation = rec;
+    this.dispatchCap = rec.dispatchCapScale >= 1
+      ? this.opts.frameBudget    // recovered: climb straight back to the ceiling
+      : Math.max(1, Math.round(this.dispatchCap * rec.dispatchCapScale));
+    if (gpu) {
+      stats.gpuPassMs = gpu;
+      stats.gpuMs = Object.values(gpu).reduce((s, x) => s + (x ?? 0), 0);
+    }
+    stats.overBudget = this.perf.budgetState() !== 'ok';
     this.lastStats = stats;
     return stats;
   }

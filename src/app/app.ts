@@ -14,6 +14,10 @@ export interface AppOpts {
   ftleEnabled?:     boolean;
   ensembleEnabled?: boolean;
   viewport?:        Viewport;
+  // --- G10 perf knobs (see FrameLoopOpts) ---
+  frameBudgetMs?:   number;
+  perfWindow?:      number;
+  gpuTimingAvailable?: boolean;
 }
 
 /** Top-level facade. The DOM bindings (canvas mounting, button clicks)
@@ -37,6 +41,10 @@ export class App {
       ftleEnabled:     opts.ftleEnabled     ?? false,
       ensembleEnabled: opts.ensembleEnabled ?? false,
       ...(opts.viewport ? { viewport: opts.viewport } : {}),
+      ...(opts.frameBudgetMs !== undefined ? { frameBudgetMs: opts.frameBudgetMs } : {}),
+      ...(opts.perfWindow !== undefined ? { perfWindow: opts.perfWindow } : {}),
+      ...(opts.gpuTimingAvailable !== undefined
+        ? { gpuTimingAvailable: opts.gpuTimingAvailable } : {}),
     });
 
     // Inspector lifecycle owns three signals: lock fired (kick the f64

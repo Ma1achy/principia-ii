@@ -14,6 +14,7 @@ import { buildPipelines } from '@/gpu/pipelines.js';
 import { buildReducePipeline } from '@/gpu/reduce_pipeline.js';
 import { dispatchReduce } from '@/gpu/reduce_dispatch.js';
 import { readbackReduction } from '@/gpu/reduce_readback.js';
+import { makeGpuTimer, type GpuPassTimings } from '@/perf/gpu_timing.js';
 import { packChartUniforms } from '@/gpu/chart_uniforms.js';
 import { packLinearisedUniforms } from '@/gpu/linearised_uniforms.js';
 import { packEnsembleOffsets } from '@/gpu/ensemble.js';
@@ -115,6 +116,26 @@ export async function makeRealDispatcher(
   const windowPool: WindowSlot[] = [];
   let chain: Promise<unknown> = Promise.resolve();
 
+  // G10: per-pass GPU timing. Gate on the DEVICE's live feature set, not
+  // the detection-time profile — initGpu only enables timestamp-query when
+  // the adapter it actually got offers it (a post-TDR fallback may not).
+  const timer = makeGpuTimer(device,
+    { features: [...device.features].map(String) });
+  let pendingTimings: GpuPassTimings | undefined;
+
+  /** Resolve + read whatever passes were timestamped since the last
+   *  harvest. Best-effort: a harvest that overlaps an in-flight read is
+   *  dropped (rolling-window sampling tolerates gaps). */
+  function harvestTimings(): void {
+    if (!timer) return;
+    const enc = device.createCommandEncoder({ label: 'perf-resolve' });
+    if (!timer.resolve(enc)) return;    // read in flight or nothing written
+    device.queue.submit([enc.finish()]);
+    void timer.read().then((t) => {
+      if (Object.keys(t).length > 0) pendingTimings = { ...pendingTimings, ...t };
+    }).catch(() => undefined);          // device lost mid-read: drop sample
+  }
+
   function retainedKey(view: ViewState, id: TileID): string {
     // Tile payloads are keyed by tile AND chart identity — a chart/slice
     // change must not let stale buffers render. (The CPU TileCache keys
@@ -212,7 +233,9 @@ export async function makeRealDispatcher(
 
     const enc = device.createCommandEncoder({ label: 'tile-job' });
     {
-      const pass = enc.beginComputePass({ label: 'simulate' });
+      const simTw = timer?.timestampWrites('simulate');
+      const pass = enc.beginComputePass(
+        simTw ? { label: 'simulate', timestampWrites: simTw } : { label: 'simulate' });
       pass.setPipeline(pl.simulate);
       pass.setBindGroup(0, pl.bindGroupCommon);
       pass.setBindGroup(1, pl.bindGroupSim);
@@ -224,7 +247,11 @@ export async function makeRealDispatcher(
     device.queue.submit([enc.finish()]);
 
     // M5 reduce (+ G7 spreads second pass) then readback.
-    device.queue.submit([dispatchReduce(ctx, rp)]);
+    device.queue.submit([dispatchReduce(ctx, rp, timer ? {
+      reduce: timer.timestampWrites('reduce'),
+      reduce_spreads: timer.timestampWrites('reduce_spreads'),
+    } : undefined)]);
+    harvestTimings();
     const reduction = await readbackReduction(rp, M_STAGING);
 
     const perTileBg = device.createBindGroup({
@@ -289,12 +316,14 @@ export async function makeRealDispatcher(
 
       const bgs = createTileBindGroups(ctx, layouts, staging);
       const enc = device.createCommandEncoder({ label: 'frame-render' });
+      const renderTw = timer?.timestampWrites('render');
       const pass = enc.beginRenderPass({
         colorAttachments: [{
           view: getTarget(),
           clearValue: { r: 0.04, g: 0.05, b: 0.07, a: 1 },
           loadOp: 'clear', storeOp: 'store',
         }],
+        ...(renderTw ? { timestampWrites: renderTw } : {}),
       });
       pass.setPipeline(graph.pipeline);
       pass.setBindGroup(0, bgs.frame);
@@ -306,10 +335,17 @@ export async function makeRealDispatcher(
       }
       pass.end();
       device.queue.submit([enc.finish()]);
+      harvestTimings();
     },
 
     inspect(_view: ViewState, ic: TrajState) {
       return Promise.resolve(runInspector(ic));
+    },
+
+    takeGpuTimings(): GpuPassTimings | undefined {
+      const t = pendingTimings;
+      pendingTimings = undefined;
+      return t;
     },
 
     setRenderParams(p: RenderParams): void {
@@ -319,6 +355,7 @@ export async function makeRealDispatcher(
     dispose(): void {
       for (const t of retained.values()) { t.sim.destroy(); t.ic.destroy(); }
       retained.clear();
+      timer?.destroy();
     },
   };
 }
