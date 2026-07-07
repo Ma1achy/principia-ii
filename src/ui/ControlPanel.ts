@@ -37,19 +37,19 @@ export function mountRenderControls(
   section.innerHTML = `
     <h3>Render (no recompute)</h3>
     <div class="row">
-      <label>Colour mode</label>
+      <label for="colourMode">Colour mode</label>
       <select id="colourMode">
         ${COLOUR_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
       </select>
     </div>
     <div class="row">
-      <label>Palette</label>
+      <label for="palette">Palette</label>
       <select id="palette">
         ${PALETTES.map((p) => `<option value="${p}">${p}</option>`).join('')}
       </select>
     </div>
     <div class="row">
-      <label>CVD sim</label>
+      <label for="cvd">CVD sim</label>
       <select id="cvd">
         ${CVD_ORDER.map((m) => `<option value="${m}">${cvdLabel(m)}</option>`).join('')}
       </select>
@@ -100,20 +100,20 @@ export function mountControlPanel(
     <div class="panel">
       <h3>View</h3>
       <div class="row">
-        <label>Chart</label>
+        <label for="chart">Chart</label>
         <select id="chart">
           ${CHARTS.map((c) => `<option value="${c.id}">${c.label}</option>`).join('')}
         </select>
       </div>
       ${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `
         <div class="row">
-          <label>z[${k}]</label>
+          <label for="z${k}">z[${k}]</label>
           <input type="range" id="z${k}" min="-3" max="3" step="0.01">
           <span id="z${k}_v"></span>
         </div>
       `).join('')}
       <div class="row">
-        <label>Tilt 1 (z<sub><span id="t1t"></span></sub>)</label>
+        <label for="tilt1">Tilt 1 (z<sub><span id="t1t"></span></sub>)</label>
         <input type="range" id="tilt1" min="-1.5707" max="1.5707" step="0.01" value="0">
         <span id="tilt1_v"></span>
       </div>
@@ -128,7 +128,7 @@ export function mountControlPanel(
         <span id="mag_v"></span>
       </div>
       <div class="row">
-        <label>Quality</label>
+        <label for="quality">Quality</label>
         <select id="quality">
           <option value="preview">Preview</option>
           <option value="balanced">Balanced</option>
