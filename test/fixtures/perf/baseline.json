@@ -1,0 +1,10 @@
+{
+  "cpuP95Ms": 0.4,
+  "gpuP95Ms": {
+    "simulate": 27.99,
+    "reduce": 0.02,
+    "reduce_spreads": 0.02,
+    "render": 0.42
+  },
+  "budget": "ok"
+}

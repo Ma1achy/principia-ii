@@ -144,9 +144,10 @@ async function main(): Promise<void> {
   app.start();
 
   for (const w of cap.warnings) console.warn('[principia]', w);
-  // Expose for the headless shell check (dev/out/g8_shell_check.mjs).
+  // Expose for the headless shell check (dev/out/g8_shell_check.mjs) and
+  // the G14 regression specs (renderStore: render-only mode switching).
   (window as unknown as { __principia?: unknown }).__principia =
-    { app, cap, telemetry: telemetrySink };
+    { app, cap, telemetry: telemetrySink, renderStore };
 }
 
 main().catch((err: unknown) => {

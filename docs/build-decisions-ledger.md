@@ -9,6 +9,67 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G14 — Real-GPU e2e & regression CI
+
+Branch `feat/g14-regression-ci`. 685 passed / 8 skipped (+23: image_diff
+15 [gate ≥12], perf_gate 8); typecheck + unpiped lint clean; gpu:check +
+all four page checks green; 7 goldens + perf baseline captured on Metal
+and re-verified on fresh boots (visual 7/7, perf gate green); full
+PW_REAL_GPU=1 headed run 10/10; headless SwiftShader floor 2 passed /
+8 self-skipped. New dev deps: pngjs, @types/pngjs, @axe-core/playwright.
+Milestone doc folded back as-built.
+
+### DG14.1 — RENDER_MODES = all seven landed colour modes
+The doc's manifest claimed to mirror G12's colour-mode panel but omitted
+min_pair_dist (6 of 7). Landed with all seven +
+`satisfies readonly ColourMode[]` so the next drift is a type error.
+
+### DG14.2 — doc's AA heuristic failed its own test
+Its min(aToB,bToA) OR-logic + selfDist ≤ 3×threshold guard rejects a
+hard black/white edge shift (selfDist=255) — the exact case its own
+test demands be discounted. Landed: both-directions bracket — AA iff
+some A-neighbour ≈ B's centre AND some B-neighbour ≈ A's centre. A
+solid flip fails the first bracket and is always counted.
+
+### DG14.3 — visual + perf specs gate on PW_REAL_GPU, not adapter
+The doc gated on requestAdapter() — but SwiftShader IS an adapter, and
+goldens/baseline are backend-specific: fractal-boundary pixels disagree
+~37% between backends (M3 D3.2) and SwiftShader timing is ~100×
+hardware. Adapter detection would have made the swiftshader smoke fail
+every golden. The a11y spec runs on BOTH backends (DOM-only) and joins
+the always-on floor.
+
+### DG14.4 — presence check = the screenshot raster itself
+The doc's in-page drawImage probe reads the CLEARED current texture
+even HEADED (DG8.7 — reconfirmed live: all 7 specs skipped). Landed:
+capture the compositor screenshot first, skip iff it is (near-)uniform.
+
+### DG14.5 — one Playwright project at a time; workers: 1
+The doc's two-simultaneous-projects layout under a single global args
+switch would run every spec twice per invocation; it also dropped the
+landed webServer block and used never-landed launch args. Landed: the
+active project is selected by PW_REAL_GPU. workers: 1 is load-bearing —
+parallel spec files contend for the one physical GPU and skewed the
+perf gate (caught live: perf failed in the parallel full run, passed
+alone). Perf spec ceiling 2× (dev-laptop convergence-window p95 jitters
+±50% run-to-run); tighten on a dedicated runner.
+
+### DG14.6 — env-gated fixture regeneration; real baseline numbers
+PW_UPDATE_GOLDENS / PW_UPDATE_PERF write the fixtures from the spec
+itself (the doc's --update-goldens flag was unspecified). The committed
+baseline is measured (cpuP95 0.4ms, simulate 27.99ms), not the doc's
+aspirational 14/9.5 — the landed loop's CPU cost is sub-ms and simulate
+dominates the convergence window. The shell hooks the doc invented
+(applyGolden/renderStable/warmAndRun/perfSnapshot) don't exist; specs
+use the landed __principia surface (renderStore now exposed).
+
+### DG14.7 — the axe gate found real violations before reaching CI
+First run: four critical select-name violations (#chart/#quality/
+#colourMode/#palette had bare <label> siblings; only G13's #cvd passed
+via aria-label). Fixed with for= associations on every panel label.
+
+---
+
 ## G13 — Accessibility & CVD UI
 
 Branch `feat/g13-a11y-cvd`. 662 passed / 8 skipped (+32: a11y suite,

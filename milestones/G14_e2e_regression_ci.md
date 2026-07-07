@@ -29,7 +29,8 @@ criterion is a unit suite that never touches a display.
 npm test -- --run test/unit/regression/image_diff
 ```
 
-passes with at least **12 green tests** covering: identical images → zero diff;
+passes with at least **12 green tests** (15 as-built, + 8 in the perf-gate
+suite) covering: identical images → zero diff;
 single-pixel delta below/above tolerance; per-channel vs luma comparison;
 alpha handling; the antialias-aware threshold; dimension-mismatch rejection;
 diff-mask production; and the golden-manifest validator (every declared render
@@ -47,6 +48,11 @@ principia/
       image_diff.ts          # NEW: pure RGBA comparator + diff mask (the exit subject)
       golden_manifest.ts     # NEW: GoldenEntry registry + validateManifest (per render mode)
       perf_gate.ts           # NEW: pure PerfSnapshot-vs-baseline regression classifier
+      index.ts               # NEW: barrel
+    ui/
+      ControlPanel.ts        # MODIFIED: label `for=` associations (axe select-name fix)
+  dev/
+    main.ts                  # MODIFIED: __principia.renderStore exposed for the visual spec
   test/
     unit/
       regression/
@@ -196,32 +202,36 @@ function pixelDistance(
 }
 
 /**
- * Antialias heuristic: a pixel that differs is likely AA if, in either image,
- * at least one orthogonal neighbour is closer to the OTHER image's value than
- * the pixel itself is — i.e. the edge merely shifted by sub-pixel sampling.
- * Conservative: only discounts genuine edge jitter, never a solid colour flip.
+ * Antialias heuristic (as-built — the draft's min(aToB,bToA) OR-logic plus a
+ * selfDist ≤ 3×threshold guard failed its own edge-shift test on a hard
+ * black/white edge): a differing pixel is treated as edge jitter iff BOTH
+ * values already exist in the other image's immediate neighbourhood — some
+ * neighbour in A matches B's centre value AND some neighbour in B matches
+ * A's centre value, which is exactly what a sub-pixel edge shift produces.
+ * A solid colour flip fails the first bracket (the new colour has no support
+ * anywhere in A's neighbourhood) and is always counted.
  */
 function looksLikeAntialiasing(
   a: RasterImage, b: RasterImage, x: number, y: number,
   metric: DiffMetric, compareAlpha: boolean, threshold: number,
 ): boolean {
-  const idx = (xx: number, yy: number) => (yy * a.width + xx) * 4;
+  const idx = (xx: number, yy: number): number => (yy * a.width + xx) * 4;
   const here = idx(x, y);
-  const selfDist = pixelDistance(a.data, b.data, here, metric, compareAlpha);
   const neigh: [number, number][] = [
     [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1],
   ];
+  let bValueInA = false;   // some A-neighbour ≈ B's centre value
+  let aValueInB = false;   // some B-neighbour ≈ A's centre value
   for (const [nx, ny] of neigh) {
     if (nx < 0 || ny < 0 || nx >= a.width || ny >= a.height) continue;
     const ni = idx(nx, ny);
-    // Distance from A's neighbour to B's centre (and symmetrically) — if a
-    // neighbouring source value already sits within threshold of the target,
-    // the difference is an edge shift, not a colour change.
-    const aToB = pixelDistanceCross(a.data, b.data, ni, here, metric, compareAlpha);
-    const bToA = pixelDistanceCross(b.data, a.data, ni, here, metric, compareAlpha);
-    if (Math.min(aToB, bToA) <= threshold && selfDist <= 3 * threshold) {
-      return true;
+    if (pixelDistanceCross(a.data, b.data, ni, here, metric, compareAlpha) <= threshold) {
+      bValueInA = true;
     }
+    if (pixelDistanceCross(b.data, a.data, ni, here, metric, compareAlpha) <= threshold) {
+      aValueInB = true;
+    }
+    if (bValueInA && aValueInB) return true;
   }
   return false;
 }
@@ -309,15 +319,18 @@ at one PNG.
  * deterministic SimResult, recoloured.
  */
 
-/** Mirrors G12 mountRenderControls #colourMode options. Render-only. */
+/** Mirrors G12 mountRenderControls COLOUR_MODES exactly — all SEVEN (the
+ *  draft omitted min_pair_dist while claiming to mirror the panel). The
+ *  `satisfies readonly ColourMode[]` pin makes the next drift a type error. */
 export const RENDER_MODES = [
   'event_class',
   'energy',
   'ang_momentum',
   'escape_time',
+  'min_pair_dist',
   'shape_sphere_vmf',
   'stability_x_hue',
-] as const;
+] as const satisfies readonly ColourMode[];
 
 export type RenderMode = (typeof RENDER_MODES)[number];
 
@@ -344,6 +357,7 @@ export const GOLDEN_MANIFEST: readonly GoldenEntry[] = [
   { id: 'energy',           file: 'energy.png',           seed: 1, tolerance: 0.002 },
   { id: 'ang_momentum',     file: 'ang_momentum.png',     seed: 1, tolerance: 0.002 },
   { id: 'escape_time',      file: 'escape_time.png',      seed: 1, tolerance: 0.002 },
+  { id: 'min_pair_dist',    file: 'min_pair_dist.png',    seed: 1, tolerance: 0.002 },
   { id: 'shape_sphere_vmf', file: 'shape_sphere_vmf.png', seed: 1, tolerance: 0.003 },
   { id: 'stability_x_hue',  file: 'stability_x_hue.png',  seed: 1, tolerance: 0.003 },
 ];
@@ -491,131 +505,106 @@ export function checkPerf(
 
 ## `playwright.config.ts` (modified — additions to G8)
 
-G8's config has a single `chromium` project on swiftshader args. G14 keeps that
-project's launch behaviour but renames it to `chromium-swiftshader` for clarity
-and adds a **second project** so the same specs run under either real WebGPU
-(nightly/opt-in) or the always-on swiftshader fallback, selected by
-`PW_REAL_GPU`. Labelled additions only.
+**As-built.** ONE project is active at a time, selected by `PW_REAL_GPU=1`
+(the draft's two-simultaneous-projects layout would have run every spec twice
+under a single global args switch — misleading and 2× the wall clock). The
+landed G8 launch args (`--enable-unsafe-swiftshader`; there is no
+`--use-vulkan=swiftshader` in the landed config) and the **`webServer` block
+the draft dropped** are kept. `workers: 1` is load-bearing: every spec
+contends for the same physical GPU, and parallel workers skew the perf gate's
+timings and starve the compositor.
 
 ```ts
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
-// --- G14 ADDITION: launch args differ by backend; swiftshader stays default ---
+const REAL_GPU = process.env['PW_REAL_GPU'] === '1';
+
 const SWIFTSHADER_ARGS = [
   '--enable-unsafe-webgpu',
-  '--enable-features=Vulkan',
-  '--use-vulkan=swiftshader',
+  '--enable-features=WebGPU',
+  '--enable-unsafe-swiftshader',
   '--no-sandbox',
 ];
-// Real GPU: drop the swiftshader override so Chrome picks the hardware adapter.
+// Real GPU: drop the swiftshader override so Chromium picks the hardware adapter.
 const REAL_GPU_ARGS = [
   '--enable-unsafe-webgpu',
-  '--enable-features=Vulkan',
+  '--enable-features=WebGPU',
   '--no-sandbox',
 ];
-const REAL_GPU = process.env.PW_REAL_GPU === '1';
-// --- end addition ---
 
 export default defineConfig({
   testDir: './test/gpu',
-  timeout: 120_000,
+  timeout: 300_000,
   fullyParallel: false,
+  // ONE worker: every spec contends for the same physical GPU — parallel
+  // workers skew the perf gate's timings and starve the compositor.
+  workers: 1,
   use: {
     headless: true,
     launchOptions: {
-      // CHANGED (G14): pick args by backend; default path is unchanged swiftshader.
       args: REAL_GPU ? REAL_GPU_ARGS : SWIFTSHADER_ARGS,
     },
   },
   projects: [
-    // G8's `chromium` project, renamed for clarity — always-on swiftshader smoke
-    // (same Desktop Chrome device + swiftshader launch args as G8).
-    { name: 'chromium-swiftshader', use: { ...devices['Desktop Chrome'] } },
-    // --- G14 ADDITION: real-WebGPU project, opt-in via PW_REAL_GPU=1 ---
-    ...(REAL_GPU
-      ? [{ name: 'chromium-real-webgpu', use: { ...devices['Desktop Chrome'] } }]
-      : []),
-    // --- end addition ---
+    REAL_GPU
+      ? { name: 'chromium-real-webgpu' }
+      : { name: 'chromium-swiftshader' },
   ],
+  webServer: {
+    command: 'npx vite dev --port 5197 --strictPort',
+    port: 5197,
+    reuseExistingServer: true,
+    timeout: 60_000,
+  },
 });
 ```
 
 ## `.github/workflows/acceptance.yml` (modified — patches to G8)
 
-One real change. The §7 `spec_section_7` job is already CPU-only and un-gated in
-G8 (push / PR / nightly `schedule:`); G14 leaves it untouched and reproduces it
-here only for context. The substantive change is that the `webgpu_integration`
-job is split: its swiftshader smoke stays label-gated (`needs-gpu`), and a new
-nightly real-GPU regression job runs the visual/perf/a11y specs.
-
-Labelled patch (apply against G8's `acceptance.yml`):
+One real change — and less than the draft assumed: the landed G8 workflow
+**already** has `spec_section_7` (CPU-only, un-gated) and
+`webgpu_swiftshader_smoke` (label/nightly-gated; there was never a
+`webgpu_integration` job to split). G14 adds ONE job. The smoke job now also
+carries the axe a11y gate for free (it runs `npm run test:gpu`, and the a11y
+spec is backend-independent; the visual/perf specs self-skip there).
 
 ```yaml
-# (workflow `on:` from G8 is unchanged — push, pull_request, and the
-#  nightly `schedule: cron '0 4 * * *'` already exist.)
-
-jobs:
-  # --- UNCHANGED from G8: §7 acceptance is already CPU-only and un-gated —
-  #     it runs on push / PR / nightly and never required needs-gpu. Shown
-  #     here for context only; G14 does not modify this job. ---
-  spec_section_7:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
-      - run: npm test -- --run test/integration/acceptance
-      - name: Summarise
-        if: always()
-        run: echo "All six §7 acceptance checks must pass."
-
-  # --- CHANGED (G14): was `webgpu_integration` gated on needs-gpu+swiftshader.
-  #     Now: always-on swiftshader smoke on the label, PLUS a nightly REAL-GPU
-  #     regression job (visual + perf + a11y). ---
-  webgpu_swiftshader_smoke:
-    if: contains(github.event.pull_request.labels.*.name, 'needs-gpu')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --project=chromium-swiftshader   # swiftshader fallback
-
   real_gpu_regression:
-    # Nightly schedule OR an explicit `real-gpu` PR label. NOT needs-gpu.
+    # G14: nightly schedule OR an explicit `real-gpu` PR label — NOT
+    # needs-gpu. Visual goldens + the perf baseline bind only on the
+    # real-GPU reference runner; on a GPU-less hosted runner the visual
+    # and perf specs self-skip (blank-compositor / PW_REAL_GPU guards)
+    # and the job still enforces the pure regression gates.
+    # Swap runs-on to a self-hosted GPU runner to arm the pixel/perf gates.
     if: >-
       github.event_name == 'schedule' ||
-      contains(github.event.pull_request.labels.*.name, 'real-gpu')
-    runs-on: ubuntu-latest          # swap to a self-hosted GPU runner in prod
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'real-gpu'))
+    runs-on: ubuntu-latest
     env:
       PW_REAL_GPU: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        with:
+          node-version: '22'
+          cache: 'npm'
       - run: npm ci
       # The pure gates run everywhere — they are the regression floor.
       - run: npm test -- --run test/unit/regression
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --project=chromium-real-webgpu   # visual+perf+a11y
-        # Specs self-skip if no real adapter is present (M3 guard), so a runner
-        # that silently falls back to swiftshader degrades to a no-op, not a
-        # false failure.
+      - run: npx playwright test --project=chromium-real-webgpu
       - name: Upload diff artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: visual-diffs
-          path: test/fixtures/golden/**/*.diff.png
+          path: test/fixtures/golden/*.diff.png
+          if-no-files-found: ignore
 ```
 
-> The always-on `webgpu_integration` job from G8 is **split**: the swiftshader
-> smoke stays label-gated (cheap, deterministic, runs on `needs-gpu`), and the
-> real-GPU visual/perf/a11y work moves to the nightly `real_gpu_regression`
-> job. Nothing in G8's `ci.yml` (unit / integration / golden) changes.
+> Nothing in G8's `ci.yml` (unit / integration / golden) changes. The diff
+> masks (`*.diff.png`) are gitignored and only surface as CI artifacts.
 
 ## `test/fixtures/perf/baseline.json`
 
@@ -624,14 +613,18 @@ reference runner (G10 `PerfMonitor.snapshot()` after a warm window), reviewed,
 and bumped deliberately. CPU p95 mirrors G8's frame budget table (Balanced
 < 16 ms); GPU pass p95s are present only when timestamp-query was available.
 
+As-built (captured on the Metal reference machine via `PW_UPDATE_PERF=1`; the
+draft's 14 ms/9.5 ms figures were aspirational — the landed loop's CPU cost is
+sub-millisecond and `simulate` dominates during convergence):
+
 ```json
 {
-  "cpuP95Ms": 14.0,
+  "cpuP95Ms": 0.4,
   "gpuP95Ms": {
-    "simulate": 9.5,
-    "reduce": 0.8,
-    "reduce_spreads": 0.4,
-    "render": 1.2
+    "simulate": 27.99,
+    "reduce": 0.02,
+    "reduce_spreads": 0.02,
+    "render": 0.42
   },
   "budget": "ok"
 }
@@ -885,111 +878,71 @@ describe('checkPerf: regression classifier', () => {
 });
 ```
 
-### Playwright specs (real browser; skip without a display/GPU)
+### Playwright specs (as-built)
 
-All three guard on M3's `navigator.gpu` pattern *and* G9's `detectCapabilities`,
-so they no-op on a runner without a real adapter rather than failing.
+**Gating changed from the draft.** Adapter detection is NOT the right gate for
+the visual and perf specs: SwiftShader *is* an adapter, and fractal-boundary
+pixels put ~37% of samples in backend disagreement (M3 D3.2) while SwiftShader
+frame timings are ~100× hardware — the goldens and the baseline are
+**backend-specific**, so those two specs run only under `PW_REAL_GPU=1` (the
+real-GPU project) and additionally skip when the compositor screenshot is
+blank (DG8.7: an in-page `drawImage` probe reads the CLEARED current texture
+even headed, so the only honest presence check is the screenshot raster
+itself). The a11y spec runs on BOTH backends — the DOM is identical under
+SwiftShader, so it joins the always-on floor.
 
-#### `test/gpu/visual_regression.spec.ts`
+**Shell hooks changed from the draft.** There is no
+`applyGolden`/`renderStable`/`warmAndRun`/`perfSnapshot` on `__principia`.
+The specs use the landed surface: `__principia.renderStore.update(...)` for
+the render-only mode flip (dev/main.ts now exposes `renderStore`),
+`__principia.app.loop.lastStats` convergence polling (the G8 pattern), and
+`__principia.app.loop.perf.snapshot()` for the perf capture. Deterministic
+"seed" = the `?thorizon=20&n=16` URL knobs + a fixed 1400×1000 viewport.
 
-```ts
-import { test, expect } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
-import { PNG } from 'pngjs';
-import {
-  compareImages, type RasterImage,
-} from '@/regression/image_diff.js';
-import { GOLDEN_MANIFEST, type GoldenEntry } from '@/regression/golden_manifest.js';
+**Fixture regeneration is env-gated in the specs** (the draft's
+`--update-goldens` flag was unspecified):
 
-function toRaster(buf: Buffer): RasterImage {
-  const png = PNG.sync.read(buf);
-  return { width: png.width, height: png.height, data: new Uint8ClampedArray(png.data) };
-}
-
-for (const entry of GOLDEN_MANIFEST) {
-  test(`render mode '${entry.id}' matches golden`, async ({ page }) => {
-    await page.goto('/');
-    // Skip cleanly if this browser has no real WebGPU adapter (M3/G9 pattern).
-    const ok = await page.evaluate(async () => {
-      const g = (navigator as any).gpu;
-      if (!g) return false;
-      const a = await g.requestAdapter();
-      return !!a;
-    });
-    test.skip(!ok, 'no real WebGPU adapter on this runner');
-
-    // Apply the deterministic seed + render mode, wait for a stable frame.
-    await page.evaluate(({ id, seed }: GoldenEntry) => {
-      (window as any).__principia.applyGolden({ colourMode: id, seed });
-    }, entry);
-    await page.evaluate(() => (window as any).__principia.renderStable());
-
-    const shot = await page.locator('canvas').screenshot();
-    const golden = toRaster(await readFile(`test/fixtures/golden/${entry.file}`));
-    const result = compareImages(toRaster(shot), golden, {
-      tolerance: entry.tolerance, metric: 'channel', ignoreAntialiasing: true,
-    });
-    if (!result.passed) {
-      await writeDiff(`test/fixtures/golden/${entry.file}.diff.png`, result.diffMask);
-    }
-    expect(result.passed, `diffRatio=${result.diffRatio}`).toBe(true);
-  });
-}
-
-async function writeDiff(path: string, mask: RasterImage): Promise<void> {
-  const png = new PNG({ width: mask.width, height: mask.height });
-  png.data = Buffer.from(mask.data.buffer);
-  const { writeFile } = await import('node:fs/promises');
-  await writeFile(path, PNG.sync.write(png));
-}
+```bash
+PW_REAL_GPU=1 PW_UPDATE_GOLDENS=1 npx playwright test --headed test/gpu/visual_regression.spec.ts
+PW_REAL_GPU=1 PW_UPDATE_PERF=1    npx playwright test --headed test/gpu/perf_capture.spec.ts
 ```
 
-#### `test/gpu/perf_capture.spec.ts`
+See the three spec files for the full as-built listings
+(`test/gpu/{visual_regression,perf_capture,a11y_shell}.spec.ts`); the load-
+bearing shapes:
 
 ```ts
-import { test, expect } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
-import { checkPerf, type PerfBaseline } from '@/regression/perf_gate.js';
+// visual_regression.spec.ts — per manifest entry:
+test.skip(!REAL_GPU, 'goldens are backend-specific — real-GPU project only');
+await bootConverged(page);                       // goto + __principia + lastStats poll
+await page.evaluate((mode) => {                  // RENDER-ONLY flip (group-3 rebind)
+  __principia.renderStore.update(p => ({ ...p, colourMode: mode }));
+}, entry.id);
+const shot = toRaster(await page.locator('canvas').screenshot());
+test.skip(!hasPixels(shot), 'compositor never presented (DG8.7)');
+// PW_UPDATE_GOLDENS=1 → write golden; else compareImages(...) and write a
+// .diff.png mask on failure (gitignored; uploaded as a CI artifact).
 
-test('frame-loop perf does not regress vs baseline', async ({ page }) => {
-  await page.goto('/');
-  const ok = await page.evaluate(async () => {
-    const g = (navigator as any).gpu;
-    return !!g && !!(await g.requestAdapter());
-  });
-  test.skip(!ok, 'no real WebGPU adapter on this runner');
+// perf_capture.spec.ts:
+test.skip(!REAL_GPU, 'baseline is runner-specific — real-GPU project only');
+// converge, settle 3s, then:
+const snapshot = await page.evaluate(() => __principia.app.loop.perf.snapshot());
+// 2× ceiling: dev-laptop convergence-window GPU p95 jitters ±50% run-to-run;
+// tighten toward the +25% default on a dedicated self-hosted runner.
+const result = checkPerf(snapshot, baseline, { allowedRegression: 1.0 });
 
-  // Drive ~600 frames through G10's PerfMonitor, then read its snapshot.
-  const snapshot = await page.evaluate(async () => {
-    await (window as any).__principia.warmAndRun(600);
-    return (window as any).__principia.perfSnapshot();
-  });
-
-  const baseline = JSON.parse(
-    await readFile('test/fixtures/perf/baseline.json', 'utf8'),
-  ) as PerfBaseline;
-  const result = checkPerf(snapshot, baseline);
-  expect(result.passed, JSON.stringify(result.regressions)).toBe(true);
-});
+// a11y_shell.spec.ts — BOTH backends (always-on floor):
+const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+expect(results.violations.filter(v => v.impact === 'serious' || v.impact === 'critical'))
+  .toEqual([]);
 ```
 
-#### `test/gpu/a11y_shell.spec.ts`
-
-```ts
-import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
-
-test('G12/G13 shell has no serious a11y violations', async ({ page }) => {
-  await page.goto('/');                       // mounts mountUI + mountChrome (G12)
-  await page.waitForSelector('.shell');
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa'])
-    .analyze();
-  const serious = results.violations.filter(
-    v => v.impact === 'serious' || v.impact === 'critical');
-  expect(serious, JSON.stringify(serious.map(v => v.id))).toEqual([]);
-});
-```
+The first axe run failed for real: G12's four selects (`#chart`, `#quality`,
+`#colourMode`, `#palette`) had bare `<label>` siblings with no `for=`
+association (`select-name`, critical) — only G13's `#cvd` passed via its
+`aria-label`. Fixed by associating every panel label (`for=` on chart,
+quality, colour mode, palette, cvd, all eight z-sliders, tilt). The gate paid
+for itself before it ever reached CI.
 
 ## Run it
 
@@ -1000,27 +953,37 @@ npm test -- --run test/unit/regression/image_diff
 # Both pure gates (comparator + perf classifier):
 npm test -- --run test/unit/regression
 
-# Real-browser regression specs (real GPU only; self-skip otherwise):
-PW_REAL_GPU=1 npx playwright test --project=chromium-real-webgpu
+# Real-browser regression specs (real GPU; visual/perf bind, all 10 run):
+PW_REAL_GPU=1 npx playwright test --headed
 
-# Always-on swiftshader smoke (matches G8 behaviour):
-npx playwright test --project=chromium-swiftshader
+# Always-on swiftshader floor (shell smoke + axe; visual/perf self-skip):
+npm run test:gpu
+
+# Regenerate fixtures on the reference runner:
+PW_REAL_GPU=1 PW_UPDATE_GOLDENS=1 npx playwright test --headed test/gpu/visual_regression.spec.ts
+PW_REAL_GPU=1 PW_UPDATE_PERF=1    npx playwright test --headed test/gpu/perf_capture.spec.ts
 ```
 
 ## Acceptance check
 
-`test/unit/regression/image_diff.test.ts` passes with ≥12 green tests (17 as
-written): identical → zero diff; sub/over-tolerance single-pixel deltas;
-channel-vs-luma divergence; alpha opt-out; AA discount (edge shift ignored,
-solid flip counted); `DimensionMismatchError`; magenta diff-mask placement; and
-`validateManifest()` returning `[]` for the committed manifest while flagging a
-missing mode, a duplicate file, and a bad tolerance. The perf gate suite proves
-`checkPerf` tolerates +25% / noise-floor deltas but fails real regressions and
-budget worsening. `playwright.config.ts` exposes a `chromium-real-webgpu`
-project that runs the visual/perf/a11y specs under real WebGPU while keeping
-`chromium-swiftshader` always-on; `acceptance.yml` adds a nightly real-GPU
-regression job (the §7 job stays CPU-only and un-gated, as in G8); the three
-browser specs skip cleanly when no real adapter exists.
+`test/unit/regression/image_diff.test.ts` passes with ≥12 green tests (**15
+as-built**, + 8 perf-gate): identical → zero diff; sub/over-tolerance
+single-pixel deltas; channel-vs-luma divergence; alpha opt-out; AA discount
+(edge shift ignored, solid flip counted); `DimensionMismatchError`; magenta
+diff-mask placement; and `validateManifest()` returning `[]` for the committed
+manifest while flagging a missing mode, a duplicate file, and a bad tolerance.
+The perf gate suite proves `checkPerf` tolerates +25% / noise-floor deltas but
+fails real regressions and budget worsening. `playwright.config.ts` selects
+`chromium-real-webgpu` (PW_REAL_GPU=1) or `chromium-swiftshader` (default) —
+one at a time; `acceptance.yml` adds the nightly/`real-gpu`-label
+`real_gpu_regression` job (§7 stays CPU-only and un-gated).
+
+Live proof on the reference (Metal) runner: 7 committed goldens regenerate
+and re-verify 7/7 on fresh boots; the perf gate passes against the committed
+baseline; the axe scan found four REAL critical `select-name` violations on
+first run (fixed with `for=` label associations) and now passes on both
+backends; the full `PW_REAL_GPU=1` run is 10/10 green and the headless
+SwiftShader floor is 2 passed / 8 self-skipped.
 
 ## Notes for the implementer
 

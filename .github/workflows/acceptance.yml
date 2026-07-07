@@ -23,7 +23,10 @@ jobs:
   webgpu_swiftshader_smoke:
     # Runs on PRs labelled "needs-gpu" and on the nightly schedule —
     # WebGPU-on-CI is slow (SwiftShader) so most PRs skip it; PRs that
-    # touch GPU code add the label and pay it once.
+    # touch GPU code add the label and pay it once. Includes the G14 axe
+    # a11y gate (DOM-only, backend-independent); the visual + perf
+    # regression specs self-skip here (goldens/baseline are backend-
+    # specific, real-GPU project only).
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'pull_request' &&
@@ -39,3 +42,36 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:gpu
       - run: npm run gpu:check
+
+  real_gpu_regression:
+    # G14: nightly schedule OR an explicit `real-gpu` PR label — NOT
+    # needs-gpu. Visual goldens + the perf baseline bind only on the
+    # real-GPU reference runner; on a GPU-less hosted runner the visual
+    # and perf specs self-skip (blank-compositor / PW_REAL_GPU guards)
+    # and the job still enforces the pure regression gates.
+    # Swap runs-on to a self-hosted GPU runner to arm the pixel/perf gates.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'real-gpu'))
+    runs-on: ubuntu-latest
+    env:
+      PW_REAL_GPU: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      # The pure gates run everywhere — they are the regression floor.
+      - run: npm test -- --run test/unit/regression
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium-real-webgpu
+      - name: Upload diff artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: test/fixtures/golden/*.diff.png
+          if-no-files-found: ignore
