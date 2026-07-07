@@ -1,6 +1,7 @@
 import type { GpuContext } from '@/gpu/init.js';
 import type { GpuDispatcher, RenderPlan } from './types.js';
 import type { ViewState } from '@/interact/view_state.js';
+import { stableChartParams } from '@/interact/view_state.js';
 import type { TileID } from '@/quadtree/types.js';
 import type { TileReduction } from '@/quadtree/reduction_types.js';
 import type { SimUniforms, TileRequest } from '@/gpu/structs.js';
@@ -179,10 +180,11 @@ export async function makeRealDispatcher(
   function retainedKey(view: ViewState, id: TileID): string {
     // Tile payloads are keyed by tile AND chart identity — a chart/slice
     // change must not let stale buffers render. (The CPU TileCache keys
-    // the full 19-field TileCacheKey; the renderer only needs enough to
-    // avoid cross-view aliasing, and the frame loop only asks for tiles
-    // that are 'ready' under the CURRENT key.)
-    return `${view.chartType}|${view.z0.join(',')}|${view.q1.join(',')}|${view.q2.join(',')}|${view.mag}|${tileKey(id)}`;
+    // the full TileCacheKey; the renderer only needs enough to avoid
+    // cross-view aliasing, and the frame loop only asks for tiles that
+    // are 'ready' under the CURRENT key.) chartParams is included so a
+    // chart-knob change can't alias old buffers into the new view.
+    return `${view.chartType}|${stableChartParams(view.chartParams)}|${view.z0.join(',')}|${view.q1.join(',')}|${view.q2.join(',')}|${view.mag}|${tileKey(id)}`;
   }
 
   function evictRetained(): void {

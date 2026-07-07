@@ -13,14 +13,15 @@ import type { TileCacheKey } from './types.js';
 export function serialiseCacheKey(k: TileCacheKey): string {
   const f = (xs: readonly number[]): string => xs.map(x => x.toFixed(15)).join(',');
   return [
-    k.chartId,
+    k.chartId, k.chartParams,
     f(k.z0), f(k.q1), f(k.q2), k.mag.toFixed(15),
     k.integrator,
     k.dtMacro.toFixed(15),
     k.nMax, k.THorizon.toFixed(8), k.checkpoints,
     k.muMax.toFixed(8), k.alphaMin.toFixed(8), k.qMax.toFixed(8),
     k.rColl.toFixed(15), k.REsc.toFixed(8), k.kEsc,
-    k.enabledMetrics, k.qualityTier, k.payloadVersion,
+    k.enabledMetrics, k.qualityTier,
+    k.samplesPerAxis, k.ensembleCount, k.payloadVersion,
   ].join('|');
 }
 
