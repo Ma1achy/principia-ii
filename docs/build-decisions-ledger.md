@@ -9,6 +9,66 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G5 — Closed-form chart inverses
+
+Branch `feat/g5-inverses`. Acceptance gate
+(`npm test -- --run test/golden/chart_inverse`) green; 432 passed
+/ 1 skipped; typecheck + lint clean. CPU-only milestone — no GPU
+surface touched, so no gpu:check delta to prove.
+
+### DG5.1 — golden redesigned around state equivalence, not pixel equality
+The doc's golden asserted `inverseEncode` recovers the original pixel to
+1e-3 on ≥70% of samples. That fails structurally for three charts:
+latent_slice had no pixel at all pre-G5 (z only), burrau_euclid's u axis
+is display-only, and shape_sphere folds u ↔ 1−u onto the same state. As
+built (per the ratified "assert robust facts, don't pin gauge" pattern):
+the golden pins `decode(inverseEncode(state).pixel)` ≡ the original
+canonical state componentwise (m 1e-9, r/p 1e-6) — redundancy-proof
+because both decodes canonicalise — and additionally pins exact pixel
+recovery for the no-redundancy charts. Vacuity guards (>50 ok, >30 exact
+per chart) replace the 70% ratio.
+
+### DG5.2 — the shape-sphere redundancy is on the u/θ axis, NOT φ/v
+The doc's hemisphere-fold caveat said the inverse picks a canonical
+`v ∈ [0, 0.5]` (φ ∈ [0, π]) representative. Deriving the realised Hopf
+vector algebraically gives n = (sinθ cosφ, sinθ sinφ, |cosθ|): the
+β-fold collapses θ ↔ π−θ (u ↔ 1−u), while n₁/n₂ distinguish every
+φ ∈ [0, 2π) — so v is faithful and u carries the fold. Canonical states
+have n₃ ≥ 0 (mirror rule λ̃_y ≥ 0), so the inverse returns the u ≤ 0.5
+representative. Pinned by tests: u and 1−u decode to identical states,
+and v ≈ 0.95 round-trips exactly. The landed FLAGS_SPHERE comment's
+φ-redundancy claim was the same error, inherited by the doc.
+
+### DG5.3 — mass-simplex inverse: doc's Newton cubic targets a map that never landed
+The doc derived Newton iteration on `m₁v³ − m₂v + m₂ = 0`, inverting the
+parameterisation `m₁ = u(1 − uv)`. The landed M10 forward map is the
+bilinear `m₁ = u, m₂ = (1−u)v`, whose closed-form inverse
+(`u = raw₁, v = raw₂/(1 − raw₁)` after unbuffering) already existed and
+is exact. Kept M10's inverse untouched; the doc section was rewritten.
+
+### DG5.4 — I computed from the IC, not assumed 1; K read directly
+The doc's lz inverse hardcoded `I = 1` (true only at the decode side's
+R̃ = 1 gauge) and routed K through `E − U(r)`. As built: I = Σmᵢ|rᵢ|²
+and K = Σ|pᵢ|²/2mᵢ from the actual IC — a foreign IC arriving via an M8
+chart switch has arbitrary I, and `L_max = √(2IK)` with the real I is
+what makes a rigid rotor of any size land exactly on the feasibility rim
+(Cauchy–Schwarz equality; the rim-projection branch is unreachable for
+genuine states and guards float error with a 1e-9 tolerance).
+
+### DG5.5 — inverseEncode gained an optional view parameter
+The doc's inverses hardcoded chart knobs (Kmax = 2, poleBuffer = 0.05)
+with a note that "production reads chartParams". Landed as
+`inverseEncode(ic, view?)`: the optional view carries chartParams and
+the latent slice frame; every chart falls back to its decode defaults
+when absent, so M8's existing lookup/lock/preserve call sites compile
+and behave unchanged. Also beyond the doc: latent_slice's inverse now
+projects z − z0 onto the slice axes to produce a real pixel when a view
+is supplied (off-plane residual > 1e-6 → projected with reason),
+and lz_k inherits the shared inverse via its object spread (one
+function object, identity-pinned by test) rather than duplicating it.
+
+---
+
 ## G4 — Chart-parameter promotion
 
 Branch `feat/g4-chart-parameters`. Acceptance gate

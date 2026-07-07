@@ -9,10 +9,14 @@ inverse-encode for every chart.  Without G5, the
 in M8 only works on the affine latent-slice chart; with G5 it works
 across all six registered charts plus the mixed-axis factory.
 
-After G5: `chart.inverseEncode(ic)` returns either
-`{ kind: 'exact', pixel, z }` (the pixel maps back to the same physical
-IC) or `{ kind: 'projected', pixel, z, reason }` (clamped to a
-chart-feasible region with a specific cause).
+After G5: `chart.inverseEncode(ic, view?)` returns either
+`{ kind: 'exact', pixel }` (the pixel decodes back to the same physical
+state) or `{ kind: 'projected', pixel, reason, clamped: true }` (nearest
+chart-feasible pixel with a specific cause). The **optional `view`
+parameter** carries the chart knobs (`Kmax`, `gammaK`, `poleBuffer`, the
+latent slice frame …); charts fall back to their decode defaults when it
+is absent, so pre-G5 callers (M8's lookup/lock paths) keep working
+unchanged.
 
 **Exit criterion.**
 
@@ -20,11 +24,12 @@ chart-feasible region with a specific cause).
 npm test -- --run test/golden/chart_inverse
 ```
 
-For each chart, decoding a known pixel and inverse-encoding the
-resulting physical IC reproduces the original pixel to within 1e-6
-(invariant charts) or 1e-9 (affine + Burrau Euclid). Lookup → lock →
-switch-chart preserves the physical IC's inter-body distances to within
-1e-3 in the mass-weighted phase-space norm.
+The golden pins **state equivalence**, not pixel equality: for every
+registered chart (plus a mixed-axis factory instance), decoding a random
+pixel, inverse-encoding the state, and re-decoding the inverse's pixel
+reproduces the original canonical state componentwise (`m` to 1e-9,
+`r`/`p` to 1e-6). Charts with no declared redundancy additionally
+recover the original pixel to 1e-6. See "Why state equivalence" below.
 
 **Deliverable:** internal — tests only; real closed-form `inverseEncode` for every chart makes the lookup → lock → switch-chart round trip preserve the physical IC across all charts, pinned by golden `test/golden/chart_inverse`.
 
@@ -34,14 +39,15 @@ switch-chart preserves the physical IC's inter-body distances to within
 principia/
   src/
     chart_atlas/
+      types.ts                     # G5: inverseEncode gains optional view param
       charts/
-        latent_slice.ts            # already exact in M10
-        lz_e.ts                    # G5: real closed-form inverse
-        lz_k.ts                    # G5
-        shape_sphere.ts            # G5
-        mass_simplex.ts            # G5
-        burrau_euclid.ts           # G5
-        mixed_axis.ts              # G5
+        latent_slice.ts            # G5: projects z − z0 onto the slice for a pixel
+        lz_e.ts                    # G5: shared closed-form inverse (inverseLzChart)
+        lz_k.ts                    # G5: inherits lz_e's inverse via the spread
+        shape_sphere.ts            # G5: θ/φ read-back from the Hopf vector
+        mass_simplex.ts            # already exact from M10 (see below)
+        burrau_euclid.ts           # G5: ν via recoverNuFromTriangle
+        mixed_axis.ts              # G5: latent × latent via inverseEncodeLatent
   test/
     unit/charts/
       inverse_lz_e.test.ts
@@ -49,535 +55,181 @@ principia/
       inverse_shape_sphere.test.ts
       inverse_mass_simplex.test.ts
       inverse_burrau_euclid.test.ts
+      inverse_latent.test.ts       # latent_slice view projection + mixed_axis factory
     golden/
       chart_inverse.test.ts
 ```
+
+## Why state equivalence (golden design)
+
+A pixel-equality golden fails for structural reasons on three charts:
+
+- **latent_slice** had no pixel at all pre-G5 (it returned only `z`),
+  and an off-slice IC has no exact pixel by definition.
+- **burrau_euclid**'s u axis is display-only — every u decodes to the
+  same state, so the inverse's `u = 0.5` convention can't match a random
+  input u.
+- **shape_sphere**'s realisation map folds `θ ↔ π−θ` (u ↔ 1−u) onto the
+  same state, so half the pixel square inverts to the other half.
+
+The robust fact — per the ratified golden pattern, "assert robust facts,
+don't pin gauge" — is that `decode(inverseEncode(state).pixel)`
+reproduces `state`. Both decode outputs pass through the canonicaliser,
+so they are directly comparable componentwise with no gauge freedom
+left. Exact pixel recovery is pinned **additionally** for the charts
+with no declared redundancy (latent_slice on-slice, lz_e, lz_k,
+mass_simplex, mixed_axis latent×latent).
 
 ## The maths
 
 For each chart we need the inverse of `decode(uv) → physical IC`.
 Starting from a physical IC `(m, r, p)`:
 
-### `(L_z, E)` chart
+### `(L_z, E)` and `(L_z, K)` charts — one shared inverse
 
-The forward decode reads `L_z(u)` and `E(t) = U + K(t)`; the inverse
-reads them back from the IC:
+Both charts pixel-map through K — the (L_z, E) energy axis is
+`E = U + K*` at the frozen geometry — so one inverse serves both,
+exactly like the shared decode (`inverseLzChart`, exported from
+`lz_e.ts`; `lz_k.ts` inherits it via the object spread):
 
 ```
 L_z = Σᵢ (rᵢ × pᵢ)_z
-E   = K(p) + V(r)
-K   = E - U(r)
-```
+K   = Σᵢ |pᵢ|² / 2mᵢ            [read directly — no U(r) needed]
+I   = Σᵢ mᵢ |rᵢ|²               [from the IC, NOT assumed 1]
 
-Then the chart's `K_max` and `γ_K` give:
-
-```
-v = (K / K_max)^(1/γ_K)
-L_max(t) = √(2 I K(v))
-u = (L_z + L_max) / (2 L_max)
-```
-
-Edge cases:
-- `K = 0` (rest start) → `v = 0`, `L_z = 0` mandated, `u = 0.5`
-- `K > K_max` → clamp to `v = 1`, set `lookup_clamped`
-- `|L_z| > L_max(K)` → infeasible at this K; project onto the parabola
-  by reducing `|L_z|` to the boundary (`u → 0` or `u → 1`)
-
-### `(L_z, K)` chart
-
-Even simpler — `K` is the chart axis directly:
-
-```
 v = (K / K_max)^(1/γ_K)
 L_max = √(2 I K)
 u = (L_z + L_max) / (2 L_max)
 ```
 
-Same edge cases.
+`I` is the COM-frame moment of inertia of the **actual IC**: decode
+outputs sit at the R̃ = 1 gauge where I = 1, but a foreign IC arriving
+through an M8 chart switch need not.
+
+Edge cases:
+- `K ≤ 0` (rest start) → `L_z = 0` is mandated and the u axis is
+  degenerate → exact `(0.5, 0)`.
+- `K > K_max` → projected onto the top edge `t = 1` with u read at
+  `L_max(K_max)`, `clamped: true`, reason names both values.
+- `|L_z| > L_max (1 + 1e-9)` → projected to the rim (`u → 0` or `1`).
+  Cauchy–Schwarz makes this unreachable for genuine states
+  (`|L_z| ≤ √(2IK)` always, with equality at rigid rotation); the guard
+  absorbs floating-point error at the rim.
 
 ### Shape sphere chart
 
-The corrected formula from M6:
+The realised configuration's Hopf vector is
 
 ```
-n_1 = (|λ̃|² - |ρ̃|²) / I
-n_2 = -2 ρ̃ · λ̃ / I
-n_3 =  2 (ρ̃ × λ̃)_z / I
+n = (sin θ cos φ,  sin θ sin φ,  |cos θ|)
 ```
 
-The realisation map (M10) used:
+— derived by composing the realisation map `2α = arccos(−sinθ cosφ)`,
+`β = atan2(cosθ, −sinθ sinφ)` (β-folded into [0, π]) with the M6 Hopf
+components. Two consequences:
+
+- **The u axis carries the redundancy, not φ/v.** The β-fold collapses
+  `θ ↔ π−θ` (u ↔ 1−u) onto the same state; `n₁` and `n₂` distinguish
+  every `φ ∈ [0, 2π)`, so v is faithful. (An earlier revision of this
+  doc claimed the fold lived on the φ axis — wrong, and now pinned the
+  right way round by `inverse_shape_sphere.test.ts`.)
+- **Canonical states have n₃ ≥ 0** (the mirror rule enforces
+  λ̃_y ≥ 0), so `θ = arccos(n₃)` lands in [0, π/2] and the inverse
+  returns the canonical `u ≤ 0.5` representative;
+  `decode(inverse(x))` reproduces x's state exactly.
+
+The inverse: compute `n` via `particlePositionsToJacobi` →
+`massWeightedJacobi` → `shapeSphere`, then
 
 ```
-2α = arccos(-sin θ cos φ)
-β  = atan2(cos θ, -sin θ sin φ)        (folded into [0, π])
+θ = arccos(clamp(n₃))          φ = atan2(n₂, n₁) wrapped to [0, 2π)
+u = (θ − ε) / (π − 2ε)         v = φ / 2π
 ```
 
-To invert, recover `(θ, φ)` from `(α, β)` via `n` directly: take
-`n` from the IC, then
-
-```
-θ = arccos(n_3)               [polar angle from +z]
-φ = atan2(n_2 / sin θ, n_1 / sin θ)        [longitude]
-```
-
-Then `u = (θ - ε) / (π - 2 ε)`, `v = φ / (2 π)`. When `θ` is near 0 or
-π (within the pole buffer), `sin θ ≈ 0` and `φ` is undefined — clamp
-`u` to the buffer boundary.
-
-The hemisphere-fold caveat: M10 chose `φ ∈ [0, 2π]` then folded `β`
-into `[0, π]`. The inverse picks the canonical representative
-`v ∈ [0, 0.5]` corresponding to `φ ∈ [0, π]`; users who want the
-"reflection-equivalent" lower hemisphere set `v ∈ (0.5, 1)` explicitly.
+with `ε` read from `view.chartParams['poleBuffer']` (default 0.05, the
+same value the forward decode uses). `θ` inside the pole buffer →
+projected to the buffer edge (`s = 0` or `1`), keeping the recovered v.
+At a pole (`sin θ < 1e-9`) φ is degenerate — pick 0.
 
 ### Mass simplex chart
 
-The forward map (with interior buffer ε_m):
+**Already exact from M10 — no G5 work.** The landed forward map is the
+bilinear `m₁ = u, m₂ = (1−u)·v, m₀ = (1−u)(1−v)` (see
+`decodeMassSimplex`), whose inverse is closed-form:
 
 ```
-m_inner = decodeMassSimplex(u, v, 0)              [direct simplex]
-m_outer = (1 - 3ε_m) m_inner + ε_m (1, 1, 1)
+raw = (m − ε_m) / (1 − 3 ε_m)         [undo the interior buffer]
+u = raw₁            v = raw₂ / (1 − raw₁)
 ```
 
-Inverse: undo the buffer shrink, then invert the simplex
-parameterisation. From `m`:
-
-```
-m_inner = (m - ε_m) / (1 - 3ε_m)
-m1 = m_inner.x = u (1 - u v)
-m2 = m_inner.y = v (1 - u v)
-```
-
-Solve for `u, v`. Let `s = u v`. Then `m1 + m2 = (u + v)(1 - s)`. We
-have two equations:
-
-```
-u (1 - u v) = m1
-v (1 - u v) = m2
-u v = (1 - m_inner.z) - (m_inner.x + m_inner.y)
-```
-
-Wait — easier formulation: `m0 + m1 + m2 = 1`, so
-`m_inner.z = 1 - m_inner.x - m_inner.y`. Once we have `m_inner.{x, y}`,
-solve numerically:
-
-```
-u v = ?
-```
-
-Direct algebra: divide the two equations, get `u/v = m1/m2`, so
-`u = (m1/m2) v`. Substitute into `v(1 - u v) = m2`:
-
-```
-v (1 - (m1/m2) v²) = m2
-m2 v - m1 v³ = m2
-m1 v³ - m2 v + m2 = 0
-```
-
-This is a cubic with a single real root in `(0, 1)`. Use Newton's
-method seeded at `v = m2 / (m1 + m2)`; converges in ~3 iterations.
+Any raw component outside [0, 1] marks the result projected. (An
+earlier revision of this doc derived a Newton iteration for the cubic
+`m₁v³ − m₂v + m₂ = 0`, which inverts the parameterisation
+`m₁ = u(1 − uv)` — a map that was never landed. Removed.)
 
 ### Burrau Euclid chart
 
-Recover ν from the triangle (already implemented as
-`recoverNuFromTriangle` in M11), then `v = (ν - 1/32) / (31/32 - 1/32)`.
-The horizontal axis `m` is display-only (Burrau Euclid is a 1D physical
-chart), so `u` is unconstrained — return `0.5` by convention.
+Recover ν from the triangle's leg ratio (`recoverNuFromTriangle`,
+M11 — hypot distances, so rotation-invariant and safe on canonicalised
+states), then `t = (ν − 1/32) / (30/32)`. ν outside [1/32, 31/32] →
+projected to the nearer edge. The horizontal axis is display-only
+(Burrau Euclid is a 1D physical chart), so `s = 0.5` by convention.
+
+### Latent slice chart
+
+Pre-G5 this chart's inverse returned only the latent `z` (M8's lookup
+projects it against its own view). G5 adds the pixel when a `view` is
+supplied: run `inverseEncodeLatent`, project `z − z0` onto the slice
+axes `q1`/`q2` (independent least-squares per axis), and map back
+through `mag`. An off-plane residual above 1e-6 means the IC does not
+live on this 2D slice — still return the nearest pixel, marked
+projected with reason `'IC lies off this 2D latent slice'`.
 
 ### Mixed-axis chart
 
-For the latent × latent variant: read off the two latent components
-directly. For axes that combine latent + chart-derived (e.g.
-mass × Lz), invert the per-axis warp independently and stitch.
-
-## `src/chart_atlas/charts/lz_e.ts` — full inverseEncode
-
-```ts
-inverseEncode(ic) {
-  const I = 1;
-  const Kmax   = 2;        // default; see note below
-  const gammaK = 2;
-
-  // L_z and E from the IC.
-  let Lz = 0, K = 0;
-  for (let i = 0; i < 3; i++) {
-    Lz += ic.r[i][0] * ic.p[i][1] - ic.r[i][1] * ic.p[i][0];
-    K  += (ic.p[i][0]**2 + ic.p[i][1]**2) / (2 * ic.m[i]);
-  }
-
-  if (K > Kmax) {
-    // Out-of-range; clamp v to 1 and re-project Lz.
-    const Lmax = Math.sqrt(2 * I * Kmax);
-    const u = clamp01((Lz + Lmax) / (2 * Lmax));
-    return { kind: 'projected',
-             pixel: { s: u, t: 1 },
-             reason: `K = ${K.toFixed(3)} > Kmax = ${Kmax}`,
-             clamped: true };
-  }
-
-  const v = Math.pow(Math.max(0, K) / Kmax, 1 / gammaK);
-  const Lmax = Math.sqrt(2 * I * Math.max(K, 1e-30));
-
-  if (Math.abs(Lz) > Lmax + 1e-9) {
-    // Infeasible — project to the boundary.
-    const u = Lz > 0 ? 1 : 0;
-    return { kind: 'projected',
-             pixel: { s: u, t: v },
-             reason: `|Lz| = ${Math.abs(Lz).toFixed(3)} > L_max = ${Lmax.toFixed(3)}`,
-             clamped: true };
-  }
-
-  const u = clamp01((Lz + Lmax) / (2 * Lmax));
-  return { kind: 'exact', pixel: { s: u, t: v } };
-},
-```
-
-(The chart's `Kmax` and `gammaK` are read from `chartParams` in
-production; G5's chart binds them via the `chartUniforms()` hook from
-G4.)
-
-## `src/chart_atlas/charts/lz_k.ts` — full inverseEncode
-
-```ts
-inverseEncode(ic) {
-  const I = 1;
-  const Kmax   = 2;
-  const gammaK = 2;
-  let Lz = 0, K = 0;
-  for (let i = 0; i < 3; i++) {
-    Lz += ic.r[i][0] * ic.p[i][1] - ic.r[i][1] * ic.p[i][0];
-    K  += (ic.p[i][0]**2 + ic.p[i][1]**2) / (2 * ic.m[i]);
-  }
-  if (K > Kmax) {
-    return { kind: 'projected', pixel: { s: 0.5, t: 1 },
-             reason: 'K out of range', clamped: true };
-  }
-  const v = Math.pow(K / Kmax, 1 / gammaK);
-  const Lmax = Math.sqrt(2 * I * K);
-  const u = Lmax === 0 ? 0.5 : (Lz + Lmax) / (2 * Lmax);
-  return { kind: 'exact', pixel: { s: clamp01(u), t: v } };
-},
-```
-
-## `src/chart_atlas/charts/shape_sphere.ts` — full inverseEncode
-
-```ts
-import { shapeSphere, massWeightedJacobi } from '@/metrics/shape_sphere.js';
-import { particlePositionsToJacobi } from '@/decode/jacobi_particle.js';
-
-inverseEncode(ic) {
-  const eps = 0.05;       // pole buffer
-  const { rho, lambda } = particlePositionsToJacobi(ic.r, ic.m);
-  const { rhoT, lambdaT } = massWeightedJacobi(rho, lambda, ic.m);
-  const n = shapeSphere(rhoT, lambdaT);
-
-  const cosTheta = Math.max(-1, Math.min(1, n[2]));
-  const theta = Math.acos(cosTheta);
-  const sinTheta = Math.sqrt(Math.max(0, 1 - cosTheta * cosTheta));
-  let phi: number;
-  if (sinTheta < 1e-9) {
-    // n is essentially at a pole; φ is degenerate. Pick φ = 0.
-    phi = 0;
-  } else {
-    phi = Math.atan2(n[1] / sinTheta, n[0] / sinTheta);
-    if (phi < 0) phi += 2 * Math.PI;
-  }
-
-  // Map back to (u, v).
-  if (theta < eps || theta > Math.PI - eps) {
-    return { kind: 'projected',
-             pixel: { s: theta < eps ? 0 : 1, t: phi / (2 * Math.PI) },
-             reason: 'in pole buffer',
-             clamped: true };
-  }
-  return { kind: 'exact',
-           pixel: { s: (theta - eps) / (Math.PI - 2 * eps),
-                    t: phi / (2 * Math.PI) } };
-},
-```
-
-## `src/chart_atlas/charts/mass_simplex.ts` — full inverseEncode
-
-```ts
-const EPS_MASS = 1e-4;
-
-inverseEncode(ic) {
-  // Undo the interior buffer.
-  const inner: [number, number, number] = [
-    (ic.m[0] - EPS_MASS) / (1 - 3 * EPS_MASS),
-    (ic.m[1] - EPS_MASS) / (1 - 3 * EPS_MASS),
-    (ic.m[2] - EPS_MASS) / (1 - 3 * EPS_MASS),
-  ];
-  // The simplex params (u, v) satisfy:
-  //   m1 = u (1 - u v),  m2 = v (1 - u v),  m0 = 1 - m1 - m2
-  // Newton's method on m1 v³ - m2 v + m2 = 0 (with u = (m1/m2) v).
-  const m1 = inner[1], m2 = inner[2];
-  let v = m2 / Math.max(m1 + m2, 1e-12);    // seed
-  for (let it = 0; it < 12; it++) {
-    const f  = m1 * v * v * v - m2 * v + m2;
-    const fp = 3 * m1 * v * v - m2;
-    if (Math.abs(fp) < 1e-15) break;
-    const dv = f / fp;
-    v -= dv;
-    if (Math.abs(dv) < 1e-12) break;
-  }
-  v = clamp01(v);
-  const u = m2 === 0 ? 0 : clamp01(m1 / m2 * v);
-  return { kind: 'exact', pixel: { s: u, t: v } };
-},
-```
-
-## `src/chart_atlas/charts/burrau_euclid.ts` — full inverseEncode
-
-```ts
-import { recoverNuFromTriangle } from '@/burrau/euclid.js';
-
-inverseEncode(ic) {
-  const nu = recoverNuFromTriangle(ic.r);
-  const nuMin = 1/32, nuMax = 31/32;
-  const v = clamp01((nu - nuMin) / (nuMax - nuMin));
-  // u is display-only; return 0.5 by convention.
-  return { kind: 'exact', pixel: { s: 0.5, t: v } };
-},
-```
-
-## `src/chart_atlas/charts/mixed_axis.ts` — full inverseEncode
-
-```ts
-inverseEncode(ic) {
-  const inv = (axis: AxisSpec, value: number) => {
-    switch (axis.kind) {
-      case 'latent':  return clamp01((value - axis.range[0]) /
-                                     (axis.range[1] - axis.range[0]));
-      case 'mass': {
-        // value is m_1 (or m_2 depending on parameter selector); recover v.
-        return clamp01((value - axis.range[0]) /
-                       (axis.range[1] - axis.range[0]));
-      }
-      case 'lz':      return clamp01((value - axis.range[0]) /
-                                     (axis.range[1] - axis.range[0]));
-      case 'energy':  return clamp01((value - axis.range[0]) /
-                                     (axis.range[1] - axis.range[0]));
-      case 'shape_alpha':
-      case 'shape_beta':
-        return clamp01((value - axis.range[0]) /
-                       (axis.range[1] - axis.range[0]));
-    }
-  };
-
-  const hValue = pickAxisValue(opts.hAxis, ic);
-  const vValue = pickAxisValue(opts.vAxis, ic);
-  return { kind: 'exact',
-           pixel: { s: inv(opts.hAxis, hValue),
-                    t: inv(opts.vAxis, vValue) } };
-},
-```
-
-with the helper:
-
-```ts
-function pickAxisValue(axis: AxisSpec, ic: TrajState): number {
-  switch (axis.kind) {
-    case 'latent':
-      // For latent-axis pickup we'd need the inverse-encoded latent
-      // coordinate. The mixed-axis factory captures `view.z0` at
-      // construction; in production this passes through.
-      return 0;     // simplified for G5
-    case 'mass':
-      return axis.parameter === 'm1' ? ic.m[1] : ic.m[2];
-    case 'lz':
-      return ic.r[0][0]*ic.p[0][1] - ic.r[0][1]*ic.p[0][0]
-           + ic.r[1][0]*ic.p[1][1] - ic.r[1][1]*ic.p[1][0]
-           + ic.r[2][0]*ic.p[2][1] - ic.r[2][1]*ic.p[2][0];
-    case 'energy':
-      return totalEnergy(ic.m, ic.r, ic.p);
-    case 'shape_alpha': {
-      const { rho, lambda } = particlePositionsToJacobi(ic.r, ic.m);
-      const { rhoT, lambdaT } = massWeightedJacobi(rho, lambda, ic.m);
-      return Math.atan2(Math.hypot(...lambdaT), Math.hypot(...rhoT));
-    }
-    case 'shape_beta': {
-      const { rho, lambda } = particlePositionsToJacobi(ic.r, ic.m);
-      const { rhoT, lambdaT } = massWeightedJacobi(rho, lambda, ic.m);
-      return Math.atan2(lambdaT[1], lambdaT[0]);
-    }
-  }
-}
-```
+For the latent × latent variant (the only one constructible in M10):
+run `inverseEncodeLatent` to recover the full latent z, then read each
+axis back through its construction-time range with clamping. Other axis
+kinds are unconstructible in M10's factory (decode throws), so their
+inverse stays `projected` with reason `'mixed_axis inverse depends on
+factory args'` — M11/M12 fill them in alongside their decodes.
 
 ## Tests
 
-### `test/unit/charts/inverse_lz_e.test.ts`
+Unit suites (`test/unit/charts/inverse_*.test.ts`) pin, per chart:
 
-```ts
-import { describe, it, expect } from 'vitest';
-import { lzEChart } from '@/chart_atlas/charts/lz_e.js';
+- **lz_e** — rest start ↔ `(0.5, 0)`; interior round trips to 1e-9;
+  no-view fallback equals the with-view result at default knobs;
+  invariance under in-plane rotation of the IC; a rigidly rotating
+  equal-mass triangle sits exactly on the feasibility rim (`u = 1`,
+  the Cauchy–Schwarz equality case); `K > K_max` → projected top edge;
+  all-at-rest with arbitrary geometry → apex.
+- **lz_k** — `lzKChart.inverseEncode` is **the same function object**
+  as lz_e's (inherited via the spread); round trip through its own
+  decode; `Kmax` from the view shifts the v read-back as expected.
+- **shape_sphere** — u < 0.5 pixels round-trip exactly (including
+  v near 1, pinning the φ wrap); u > 0.5 folds to the canonical 1−u
+  representative; u and 1−u decode to the same state; the equal-mass
+  equilateral (Lagrange) configuration projects into the pole buffer;
+  no-view fallback uses the default buffer.
+- **mass_simplex** — interior round trips to 1e-10; the inverse reads
+  only masses (geometry perturbation is invisible); sub-buffer masses
+  → projected.
+- **burrau_euclid** — v round trips to 1e-9 with `s = 0.5`; u is
+  display-only (identical states for any u); ν outside range →
+  projected.
+- **inverse_latent** — latent_slice on-slice round trip through the
+  view; no-view returns z only (pre-G5 behaviour); off-slice IC →
+  projected with reason and the nearest pixel; mixed_axis
+  latent × latent round trip; non-latent pairings stay projected.
 
-const view = {
-  chartParams: { Kmax: 2, gammaK: 2,
-                 alpha: Math.PI/4, beta: Math.PI/2 },
-  z0: [0,0,0,0,0,0,0,0] as any,
-  q1: [1,0,0,0,0,0,0,0] as any, q2: [0,1,0,0,0,0,0,0] as any,
-  mag: 1, m: [1/3, 1/3, 1/3] as any,
-  alphaMin: 0.05, muMax: 5, qMax: 2,
-  rColl: 1e-4, deltaLambda: 1e-12,
-};
-
-describe('(Lz, E) chart inverse', () => {
-  it('rest start (K=0, Lz=0) round-trips to (0.5, 0)', () => {
-    const out = lzEChart.decode([0.5, 0], view as any);
-    if (out.kind !== 'ok') throw new Error('expected ok');
-    const inv = lzEChart.inverseEncode(out.state);
-    expect(inv.kind).toBe('exact');
-    if (inv.kind === 'exact') {
-      expect(inv.pixel!.s).toBeCloseTo(0.5, 6);
-      expect(inv.pixel!.t).toBeCloseTo(0, 6);
-    }
-  });
-
-  it('round-trips a non-rest pixel to within 1e-6', () => {
-    for (const [s, t] of [[0.7, 0.5], [0.3, 0.8], [0.5, 0.3]]) {
-      const out = lzEChart.decode([s, t], view as any);
-      if (out.kind !== 'ok') continue;
-      const inv = lzEChart.inverseEncode(out.state);
-      expect(inv.kind).toBe('exact');
-      if (inv.kind === 'exact') {
-        expect(inv.pixel!.s).toBeCloseTo(s, 4);
-        expect(inv.pixel!.t).toBeCloseTo(t, 4);
-      }
-    }
-  });
-
-  it('returns projected when K exceeds Kmax', () => {
-    // Synthesise an IC with K > Kmax = 2.
-    const m = [1/3, 1/3, 1/3] as const;
-    const r = [[1, 0], [-0.5, Math.sqrt(3)/2], [-0.5, -Math.sqrt(3)/2]] as any;
-    const huge = 5;
-    const p = [[0, huge*m[0]], [0, -huge*m[1]/2], [0, -huge*m[2]/2]] as any;
-    const inv = lzEChart.inverseEncode({ m, r, p, t: 0 } as any);
-    expect(inv.kind).toBe('projected');
-  });
-});
-```
-
-### `test/unit/charts/inverse_mass_simplex.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { massSimplexChart } from '@/chart_atlas/charts/mass_simplex.js';
-
-const view = {
-  chartParams: { alpha: Math.PI/4, beta: Math.PI/2 },
-  z0: [0,0,0,0,0,0,0,0] as any,
-  q1: [1,0,0,0,0,0,0,0] as any, q2: [0,1,0,0,0,0,0,0] as any,
-  mag: 1, alphaMin: 0.05, muMax: 5, qMax: 2,
-  rColl: 1e-4, deltaLambda: 1e-12,
-};
-
-describe('mass-simplex chart inverse', () => {
-  it('round-trips for several interior points', () => {
-    for (const [s, t] of [[0.2, 0.3], [0.5, 0.4], [0.1, 0.7]]) {
-      const out = massSimplexChart.decode([s, t], view as any);
-      if (out.kind !== 'ok') continue;
-      const inv = massSimplexChart.inverseEncode(out.state);
-      expect(inv.kind).toBe('exact');
-      if (inv.kind === 'exact') {
-        expect(inv.pixel!.s).toBeCloseTo(s, 3);
-        expect(inv.pixel!.t).toBeCloseTo(t, 3);
-      }
-    }
-  });
-});
-```
-
-### `test/unit/charts/inverse_shape_sphere.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { shapeSphereChart } from '@/chart_atlas/charts/shape_sphere.js';
-
-const view = {
-  chartParams: { poleBuffer: 0.05 },
-  z0: [0,0,0,0,0,0,0,0] as any,
-  q1: [1,0,0,0,0,0,0,0] as any, q2: [0,1,0,0,0,0,0,0] as any,
-  mag: 1, m: [1/3, 1/3, 1/3] as any,
-  alphaMin: 0.05, muMax: 5, qMax: 2,
-  rColl: 1e-4, deltaLambda: 1e-12,
-};
-
-describe('shape-sphere chart inverse', () => {
-  it('round-trips for non-pole pixels', () => {
-    for (const [s, t] of [[0.3, 0.25], [0.7, 0.5], [0.5, 0.0]]) {
-      const out = shapeSphereChart.decode([s, t], view as any);
-      if (out.kind !== 'ok') continue;
-      const inv = shapeSphereChart.inverseEncode(out.state);
-      expect(inv.kind === 'exact' || inv.kind === 'projected').toBe(true);
-      if (inv.kind === 'exact') {
-        expect(inv.pixel!.s).toBeCloseTo(s, 3);
-        expect(inv.pixel!.t).toBeCloseTo(t, 3);
-      }
-    }
-  });
-
-  it('reports projected near a pole', () => {
-    const out = shapeSphereChart.decode([0.001, 0.5], view as any);
-    if (out.kind !== 'ok') return;
-    const inv = shapeSphereChart.inverseEncode(out.state);
-    expect(inv.kind).toBe('projected');
-  });
-});
-```
-
-### `test/golden/chart_inverse.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import '@/chart_atlas/index.js';
-import { allCharts } from '@/chart_atlas/registry.js';
-
-describe('every chart round-trips its decode through inverseEncode', () => {
-  it('to within 1e-3 in pixel space across 100 random pixels per chart', () => {
-    let rng = 17;
-    const next = () => {
-      rng = (rng * 1664525 + 1013904223) & 0x7fffffff;
-      return (rng / 0x7fffffff);
-    };
-    for (const chart of allCharts()) {
-      let goodCount = 0, totalCount = 0;
-      const view = {
-        chartParams: { Kmax: 2, gammaK: 2,
-                       alpha: Math.PI/4, beta: Math.PI/2,
-                       poleBuffer: 0.05, nu: 0.5 },
-        z0: [0,0,0,0,0,0,0,0] as any,
-        q1: [1,0,0,0,0,0,0,0] as any, q2: [0,1,0,0,0,0,0,0] as any,
-        mag: 1, m: [1/3, 1/3, 1/3] as any,
-        alphaMin: 0.05, muMax: 5, qMax: 2,
-        rColl: 1e-4, deltaLambda: 1e-12,
-      };
-      for (let trial = 0; trial < 100; trial++) {
-        const u = 0.05 + 0.9 * next();    // avoid extreme edges
-        const v = 0.05 + 0.9 * next();
-        try {
-          const out = chart.decode([u, v], view as any);
-          if (out.kind !== 'ok') continue;
-          totalCount++;
-          const inv = chart.inverseEncode(out.state);
-          if (inv.kind === 'exact' && inv.pixel) {
-            if (Math.abs(inv.pixel.s - u) < 1e-3 &&
-                Math.abs(inv.pixel.t - v) < 1e-3) goodCount++;
-          } else if (inv.kind === 'projected') {
-            // Projected counts as "round-tripped if the chart is at the
-            // boundary"; we still want most pixels to be exact.
-          }
-        } catch { /* mixed_axis throws for unimplemented combinations */ }
-      }
-      // At least 70% of in-range pixels should round-trip exactly.
-      if (totalCount > 0) {
-        expect(goodCount / totalCount).toBeGreaterThan(0.7);
-      }
-    }
-  });
-});
-```
+The golden (`test/golden/chart_inverse.test.ts`) sweeps 100 LCG-seeded
+pixels (seed 17) per chart over `allCharts()` plus a mixed-axis factory
+instance: every ok decode must inverse-encode to a pixel in [0, 1]²,
+every `exact` result must re-decode to the same canonical state, and
+no-redundancy charts must also recover the original pixel. Guard
+thresholds (> 50 ok decodes, > 30 exact inversions per chart) keep the
+sweep from passing vacuously.
 
 ## Run it
 
@@ -592,37 +244,37 @@ npm test -- --run test/golden/chart_inverse
 npm test -- --run test/golden/chart_inverse
 ```
 
-Each chart's `inverseEncode` agrees with `decode` to within 1e-3 in
-pixel space on at least 70% of in-range pixels. The remaining 30%
-(near pole / parabola / simplex boundaries) cleanly return
-`{ kind: 'projected', reason }` with a specific cause string.
+Every chart's `decode ∘ inverseEncode ∘ decode` is a state identity on
+exact pixels; projected results carry a specific `reason` and a nearest
+feasible pixel.
 
 ## Notes for the implementer
 
-- **Why round-trip "at most" 1e-3.** The forward decode goes through
-  the canonicaliser (rotation gauge, mirror rule, COM project), so the
-  output IC is in canonical position. The inverse takes the IC, undoes
-  any rotation / mirror, then reads off the chart pixel. The tolerance
-  bound corresponds to an `f32`-precision pass through the
-  intermediate Jacobi vectors; the test uses f64 throughout so
-  realised tolerance is much tighter than 1e-3, but the budget stays
-  loose to absorb the corner cases.
-- **Mass-simplex Newton convergence.** The cubic
-  `m1 v³ - m2 v + m2 = 0` has one real root in (0, 1) for every valid
-  `(m1, m2)`; Newton's method seeded at `m2 / (m1 + m2)` converges in
-  3-5 iterations. Tests sample broadly to confirm.
+- **The interface change is additive.** `inverseEncode(ic, view?)` —
+  the second parameter is optional and every chart falls back to its
+  decode defaults, so M8's `lookup`/`lock`/`preserve` (which call
+  `inverseEncodeLatent` directly or pass no view) are untouched.
+- **Compute I from the IC.** The decode side works at the R̃ = 1 gauge
+  where I = 1, but the inverse must serve foreign ICs (M8 chart
+  switches) whose moment of inertia is arbitrary. `L_max = √(2IK)` with
+  the actual I is what makes the rim test land exactly at u = 1 for a
+  rigid rotor of any size.
+- **The rim branch is a float guard, not a reachable region.**
+  `|L_z| > √(2IK)` violates Cauchy–Schwarz for genuine states; the
+  `(1 + 1e-9)` tolerance keeps rigid-rotation equality cases (the
+  physical rim) on the exact path.
 - **Pole buffer for shape sphere.** Inverse calls inside the buffer
-  return `kind: 'projected'`. The `pole_buffer` value lives in
-  `ChartUniforms` (G4); the inverse reads the same value the forward
-  decode used, so the buffer's exact width matches by construction.
-- **`(L_z, E)` infeasibility.** When `|L_z| > L_max(K)` the IC sits
-  outside the chart's feasibility parabola (it can exist physically
-  but not at this `K`-axis value). The inverse projects to the
-  parabola boundary and reports it via the `reason` string. M8's
+  return `kind: 'projected'`. The buffer width comes from the same
+  `chartParams['poleBuffer']` the forward decode reads (and G4 packs
+  into `ChartUniforms.pole_buffer`), so the two sides agree by
+  construction.
+- **`(L_z, E)` infeasibility.** When `K > K_max` the IC exists
+  physically but not at this chart's v range. The inverse projects to
+  the top edge and reports it via the `reason` string; M8's
   lock-preservation policy reads the reason and chooses whether to
   refuse the chart switch.
-- **Mixed-axis inverse.** The factory sketch above handles mass / Lz
-  / energy / shape_alpha / shape_beta axes; the latent-axis inverse
-  needs the chart's `view.z0` (which the factory captures) so it's
-  closed over the construction-time view. Production wiring passes the
-  factory args to the inverse via a closure.
+- **Mixed-axis latent read-back is range-relative.** The factory
+  closes over its construction-time axis ranges; the inverse reads
+  `z[axis.index]` back through the same range. The latent components it
+  does not display are simply not represented — that information lives
+  in the returned `z`, which M8 uses for slice re-centring.
