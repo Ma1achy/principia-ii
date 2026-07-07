@@ -6,6 +6,7 @@ import { inspectorWithShadow } from './shadow.js';
 import { diagnosticsAt } from './diagnostics.js';
 import { collisionCheck, makeEscapeState, tickEscapeGates } from '@/integrate/events.js';
 import { wordToString } from '@/metrics/free_group.js';
+import { diffusion } from '@/metrics/diffusion.js';
 import { metricsTick, makeMetrics, DEFAULT_BRANCH_CUTS } from '@/metrics/observe_extended.js';
 
 /**
@@ -29,6 +30,8 @@ export function runInspector(
 
   const escState = makeEscapeState();
   const metrics = makeMetrics();
+  const diffT: number[] = [];
+  const diffTheta: number[] = [];
   let outcome: InspectorResult['outcome'] = 'timeout';
   let dMin = Infinity;
   let deltaEMax = 0;
@@ -75,8 +78,11 @@ export function runInspector(
     energyArr.push(d.E); lzArr.push(d.Lz); nArr.push(d.n);
     deltaEMax = Math.max(deltaEMax, Math.abs(d.E - energyArr[0]!));
 
-    // Metrics tick (free-group word, arc length, phase).
+    // Metrics tick (free-group word, arc length, phase). Keep the (t, θ̃)
+    // trace for the two-window diffusion fit below.
     metricsTick(metrics, s, false, DEFAULT_BRANCH_CUTS);
+    diffT.push(s.t);
+    diffTheta.push(metrics.thetaTilde);
 
     // Update d_min and check terminal events.
     const sep = Math.min(
@@ -105,12 +111,19 @@ export function runInspector(
     ? inspectorWithShadow(s0, o)
     : { lambda: 0, valid: false };
 
+  // Two-window frequency diffusion over the per-step θ̃ trace — only
+  // meaningful for bounded runs (matches the GPU's bounded-only gate).
+  const diff = outcome === 'bounded'
+    ? diffusion(diffT, diffTheta, o.THorizon).value
+    : -1;
+
   return {
     t: tArr, r: rArr, p: pArr,
     nShape: nArr,
     energy: energyArr, lz: lzArr,
     outcome, tEnd: s.t, dMin, deltaEMax,
     ftle: shadow.valid ? shadow.lambda : 0,
+    diffusion: diff,
     freeGroupWord: wordToString(metrics.word),
     ic: { m: s0.m, r: s0.r, p: s0.p },
     nSteps, nReject,

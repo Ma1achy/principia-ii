@@ -42,7 +42,7 @@ async function main() {
   const { wgslLink } = await import('@/gpu/wgsl/link.js');
   const fetchText = async (p) => (await fetch(p)).text();
   const S = {};
-  for (const n of ['helpers','decode','decode_linear','integrate','events','observe','simulate','render_layer0','reduce']) {
+  for (const n of ['helpers','free_group','decode','decode_linear','integrate','events','observe','simulate','render_layer0','reduce']) {
     S[`${n}.wgsl`] = await fetchText(`/src/gpu/shaders/${n}.wgsl`);
   }
   const simulateSrc = wgslLink({ entryPath: 'simulate.wgsl', sources: S }).module;

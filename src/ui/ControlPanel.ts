@@ -47,6 +47,7 @@ const COLOUR_MODE_GROUPS: readonly { group: string; modes: readonly { id: Colour
     { id: 'shape_sphere_vmf', label: 'Shape sphere (vMF)' },
     { id: 'shape_sphere_okabe_ito', label: 'Shape sphere (Okabe–Ito)' },
     { id: 'stability_x_hue', label: 'Stability × hue' },
+    { id: 'free_group_word', label: 'Free-group word' },
   ] },
   { group: 'None', modes: [
     { id: 'none', label: 'None (brightness only)' },

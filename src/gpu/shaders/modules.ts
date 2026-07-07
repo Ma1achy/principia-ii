@@ -8,6 +8,7 @@
 import { wgslLink } from '@/gpu/wgsl/link.js';
 
 import helpersWgsl from '@/gpu/shaders/helpers.wgsl?raw';
+import freeGroupWgsl from '@/gpu/shaders/free_group.wgsl?raw';
 import observeWgsl from '@/gpu/shaders/observe.wgsl?raw';
 import eventsWgsl from '@/gpu/shaders/events.wgsl?raw';
 import integrateWgsl from '@/gpu/shaders/integrate.wgsl?raw';
@@ -25,6 +26,7 @@ import renderGraphWgsl from '@/gpu/shaders/render_graph.wgsl?raw';
 
 const SOURCES: Record<string, string> = {
   'helpers.wgsl': helpersWgsl,
+  'free_group.wgsl': freeGroupWgsl,
   'observe.wgsl': observeWgsl,
   'events.wgsl': eventsWgsl,
   'integrate.wgsl': integrateWgsl,

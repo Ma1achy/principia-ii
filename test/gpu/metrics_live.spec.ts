@@ -11,7 +11,8 @@ test('tile reductions carry real diffusion + research-tier FTLE', async ({ page 
     null, { timeout: 60_000 });
 
   interface Red { mean_diffusion: number; spread_diffusion: number;
-                  mean_ftle: number; mean_arc_length_n: number }
+                  mean_ftle: number; mean_arc_length_n: number;
+                  mean_word_length: number }
   const reductions = async (): Promise<Red[]> => page.evaluate(() => {
     const p = (window as never as {
       __principia: { app: { loop: { cache: { entries(): Iterable<{ reduction?: Red | null }> } } } };
@@ -24,6 +25,7 @@ test('tile reductions carry real diffusion + research-tier FTLE', async ({ page 
           spread_diffusion: t.reduction.spread_diffusion,
           mean_ftle: t.reduction.mean_ftle,
           mean_arc_length_n: t.reduction.mean_arc_length_n,
+          mean_word_length: t.reduction.mean_word_length,
         });
       }
     }
@@ -61,6 +63,8 @@ test('tile reductions carry real diffusion + research-tier FTLE', async ({ page 
   expect(withDiff.length).toBeGreaterThan(0);      // real fits, not all sentinel
   expect(maxDiff).toBeGreaterThan(0);              // and they VARY (not flat)
   expect(maxArc).toBeGreaterThan(0);               // arc length is real too
+  // Free-group words are computed on every tier: some tile has symbols.
+  expect(Math.max(...balanced.map((r) => r.mean_word_length))).toBeGreaterThan(0);
   // Balanced tier: FTLE off by design (research-only).
   expect(Math.max(...balanced.map((r) => r.mean_ftle))).toBe(0);
 

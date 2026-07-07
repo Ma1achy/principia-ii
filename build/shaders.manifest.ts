@@ -21,6 +21,7 @@ export const SHADER_MODULES = [
   'decode.wgsl',
   'decode_linear.wgsl',
   'events.wgsl',
+  'free_group.wgsl',
   'helpers.wgsl',
   'integrate.wgsl',
   'metrics.wgsl',

@@ -78,7 +78,7 @@ describe('shader compose over the real Principia shaders', () => {
 
   // Hand-maintained concat orders these replaced (dev/render_graph.ts et al.).
   const SIMULATE_UNITS = [
-    'helpers.wgsl', 'observe.wgsl', 'events.wgsl',
+    'free_group.wgsl', 'helpers.wgsl', 'observe.wgsl', 'events.wgsl',
     'integrate.wgsl', 'decode.wgsl', 'decode_linear.wgsl', 'simulate.wgsl',
   ];
   const RENDER_UNITS = [

@@ -1,46 +1,27 @@
-// Shape-sphere coordinate, phase unwrap, and free-group bookkeeping in
-// the GPU integrator. Function definitions only, no entry point; consumed
-// only by the M6 WGSL check (dev/out/m6_wgsl_check.mjs), which composes it
-// with helpers.wgsl for PI. NOT part of the linked simulate module —
-// simulate.wgsl imports shape_sphere from observe.wgsl and the free-group
-// functions from free_group.wgsl (the CANONICAL linkable copies); the
-// duplicates here are deliberate (standalone-check composition).
+// Free-group word bookkeeping (spec §free_group): π₁(S² ∖ 3 punctures) ≅
+// F₂ = ⟨a, b⟩, symbols appended when the shape-sphere path crosses a branch
+// cut, with on-the-fly free reduction. 2 bits per symbol (a=00, A=01, b=10,
+// B=11), 58 usable slots across the uint4 lanes, length in .w bits 26–31
+// (symbol slots reach only bit 19 of .w, so the length field never collides).
 //
-// The TS copies live in src/metrics/{shape_sphere,phase,free_group}.ts —
-// change all sides in the same commit.
+// This is the CANONICAL linkable copy (imported by simulate.wgsl).
+// metrics.wgsl carries a deliberate duplicate for the standalone M6 WGSL
+// check; the TS reference is src/metrics/free_group.ts — change all three
+// in the same commit.
 
-// @import { PI } from "./helpers.wgsl"
-
-fn shape_sphere(rho_t: vec2<f32>, lambda_t: vec2<f32>) -> vec3<f32> {
-  let rho_sq    = dot(rho_t,    rho_t);
-  let lambda_sq = dot(lambda_t, lambda_t);
-  let I = rho_sq + lambda_sq;
-  if (I == 0.0) { return vec3<f32>(0.0, 0.0, 1.0); }
-  return vec3<f32>(
-    (lambda_sq - rho_sq) / I,
-    -2.0 * dot(rho_t, lambda_t) / I,
-     2.0 * (rho_t.x * lambda_t.y - rho_t.y * lambda_t.x) / I,
-  );
-}
-
-fn phase_from_n(n: vec3<f32>) -> f32 {
-  return atan2(n.y, n.x);
-}
-
-fn unwrap_phase(prev: f32, cur: f32, theta_tilde: f32) -> f32 {
-  var d = cur - prev;
-  if (d >  PI) { d = d - 2.0*PI; }
-  if (d < -PI) { d = d + 2.0*PI; }
-  return theta_tilde + d;
-}
-
-// Free-group word append with on-the-fly cancellation.
+// @export
 struct FreeWord {
   bits:   vec4<u32>,
   length: u32,
   truncated: u32,
 };
 
+// @export
+fn empty_word() -> FreeWord {
+  return FreeWord(vec4<u32>(0u, 0u, 0u, 0u), 0u, 0u);
+}
+
+// @export
 fn append_symbol(word: FreeWord, sym: u32) -> FreeWord {
   var w = word;
   if (w.length >= 58u) { w.truncated = 1u; return w; }
@@ -85,12 +66,12 @@ fn append_symbol(word: FreeWord, sym: u32) -> FreeWord {
   return w;
 }
 
-fn signed_plane(n: vec3<f32>, b: vec3<f32>, e: vec3<f32>) -> f32 {
+fn fg_signed_plane(n: vec3<f32>, b: vec3<f32>, e: vec3<f32>) -> f32 {
   let cr = vec3<f32>(b.y*e.z - b.z*e.y, b.z*e.x - b.x*e.z, b.x*e.y - b.y*e.x);
   return dot(n, cr);
 }
 
-fn pick_endpoint(b: vec3<f32>) -> vec3<f32> {
+fn fg_pick_endpoint(b: vec3<f32>) -> vec3<f32> {
   let north = vec3<f32>(0.0, 0.0, 1.0);
   let south = vec3<f32>(0.0, 0.0, -1.0);
   let cr = cross(b, north);
@@ -99,23 +80,24 @@ fn pick_endpoint(b: vec3<f32>) -> vec3<f32> {
   return north;
 }
 
+// @export
 fn free_group_tick(
   w: FreeWord, prev_n: vec3<f32>, cur_n: vec3<f32>,
   b1: vec3<f32>, b2: vec3<f32>,
 ) -> FreeWord {
   var word = w;
 
-  let e1 = pick_endpoint(b1);
-  let dp1 = signed_plane(prev_n, b1, e1);
-  let dc1 = signed_plane(cur_n,  b1, e1);
+  let e1 = fg_pick_endpoint(b1);
+  let dp1 = fg_signed_plane(prev_n, b1, e1);
+  let dc1 = fg_signed_plane(cur_n,  b1, e1);
   if (dp1 != 0.0 && dc1 != 0.0 && sign(dp1) != sign(dc1)) {
     let sym1 = select(1u, 0u, dp1 > 0.0);
     word = append_symbol(word, sym1);
   }
 
-  let e2 = pick_endpoint(b2);
-  let dp2 = signed_plane(prev_n, b2, e2);
-  let dc2 = signed_plane(cur_n,  b2, e2);
+  let e2 = fg_pick_endpoint(b2);
+  let dp2 = fg_signed_plane(prev_n, b2, e2);
+  let dc2 = fg_signed_plane(cur_n,  b2, e2);
   if (dp2 != 0.0 && dc2 != 0.0 && sign(dp2) != sign(dc2)) {
     let sym2 = select(3u, 2u, dp2 > 0.0);
     word = append_symbol(word, sym2);

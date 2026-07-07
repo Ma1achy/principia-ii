@@ -8,7 +8,7 @@ import { buildPipelines } from '@/gpu/pipelines.js';
 import { dispatchLayer0 } from '@/gpu/dispatch_layer0.js';
 import { readbackSimResults } from '@/gpu/readback.js';
 import { wgslLink } from '@/gpu/wgsl/link.js';
-import { packSliceUniforms, DEFAULT_SLICE } from '@/gpu/slice_uniforms.js';
+import { packSliceUniforms, tileLocalSlice, DEFAULT_SLICE } from '@/gpu/slice_uniforms.js';
 import {
   packUploadedICs, buildUploadedICs, type UploadedICSample,
 } from '@/gpu/uploaded_ics.js';
@@ -92,7 +92,7 @@ describe('chart decode on the GPU (slice uniforms + uploaded ICs)', () => {
 
     // Pass 2: the view's own slice, as the dispatcher now uploads it.
     const s = latentSliceChart.affineSlice!(view)!;
-    ctx.device.queue.writeBuffer(bufs.slice, 0, packSliceUniforms(s));
+    ctx.device.queue.writeBuffer(bufs.slice, 0, packSliceUniforms(tileLocalSlice(s, [0.5, 0.5], [0.5, 0.5])));
     dispatchLayer0(ctx, bufs, pl, { uniforms, tile }, target);
     const after = await readbackSimResults(ctx, bufs);
 
@@ -121,7 +121,8 @@ describe('chart decode on the GPU (slice uniforms + uploaded ICs)', () => {
     expect(checked).toBeGreaterThan(N * N / 2);   // the gate actually bound
 
     // Restore the seeded default for any suite sharing the device.
-    ctx.device.queue.writeBuffer(bufs.slice, 0, packSliceUniforms(DEFAULT_SLICE));
+    ctx.device.queue.writeBuffer(bufs.slice, 0,
+      packSliceUniforms(tileLocalSlice(DEFAULT_SLICE, [0.5, 0.5], [0.5, 0.5])));
   }, 240_000);
 
   it('uploaded ICs: the GPU integrates exactly what the CPU chart decoded (lz_e)', async () => {
