@@ -45,6 +45,8 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
       // Render (group-3)
       '#colourMode', '#brightness', '#combiner', '#palette',
       '#vmfKappa', '#vmfChroma', '#vmfLightness', '#overlay', '#overlayStrength', '#cvd',
+      // Diagnostics (render-only debug recolour)
+      '#debugMode',
     ];
     for (const id of ids) expect(root.querySelector(id), `missing ${id}`).not.toBeNull();
     // z0[0..7]
@@ -104,5 +106,16 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
     expect(render.snapshot().colourMode).toBe('jacobi_angle');
     // ViewState (and therefore the cache key) is untouched by a render change.
     expect(JSON.stringify(app.store.snapshot())).toBe(keyBefore);
+  });
+
+  it('the diagnostic selector is a render-only recolour — never a recompute', () => {
+    const { root, app, render } = mount();
+    const viewBefore = JSON.stringify(app.store.snapshot());
+    expect(render.snapshot().debugMode).toBe(-1);           // off by default
+    const dbg = root.querySelector<HTMLSelectElement>('#debugMode')!;
+    dbg.value = '4';                                          // Energy-drift heat
+    fire(dbg, 'change');
+    expect(render.snapshot().debugMode).toBe(4);
+    expect(JSON.stringify(app.store.snapshot())).toBe(viewBefore);
   });
 });

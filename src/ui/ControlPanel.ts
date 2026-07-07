@@ -7,6 +7,7 @@ import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
 import { CVD_ORDER, cvdLabel, setCvd } from './a11y/cvd_control.js';
+import { DEBUG_MODES } from '@/debug/debug_modes.js';
 import { panelAria } from './a11y/aria.js';
 import { rovingTabindex, advanceRoving } from './a11y/keyboard.js';
 import type { Announcement } from './a11y/live_region.js';
@@ -120,6 +121,13 @@ export function mountRenderControls(
         ${CVD_ORDER.map((m) => `<option value="${m}">${cvdLabel(m)}</option>`).join('')}
       </select>
     </div>
+    <div class="row">
+      <label for="debugMode">Diagnostic</label>
+      <select id="debugMode">
+        <option value="-1">Off (production colour)</option>
+        ${DEBUG_MODES.map((m) => `<option value="${m.mode}">${m.label}</option>`).join('')}
+      </select>
+    </div>
   `;
   root.appendChild(section);
 
@@ -181,6 +189,14 @@ export function mountRenderControls(
     render.update((p) => setCvd(p, cvd.value as CvdMode));
     liveSay?.({ kind: 'cvd', mode: render.snapshot().cvdMode });
   });
+
+  // Diagnostic recolour (render-only, group-3): pre-empts the colour switch
+  // to visualise the raw descriptor/drift/checkpoint state of the SAME
+  // SimResult buffer — no recompute. -1 = off.
+  const dbg = q<HTMLSelectElement>('#debugMode');
+  offs.push(bind(dbg, render, (el, p) => { el.value = String(p.debugMode); }));
+  dbg.addEventListener('change', () =>
+    render.update((p) => ({ ...p, debugMode: Number(dbg.value) })));
 
   offs.push(() => section.remove());
   return () => offs.forEach((off) => off());

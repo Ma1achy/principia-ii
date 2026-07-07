@@ -48,12 +48,14 @@ const PALETTE_INDEX: Record<RenderParams['palette'], number> = {
  *   [44..47]  palette_range_max (f32)
  *   [48..51]  playback_tau (f32)
  *   [52..55]  wall_clock (f32)
- *   [56..63]  reserved
+ *   [56..59]  debug_mode (i32; -1 = off)
+ *   [60..63]  debug_heat_scale (f32)
  */
 export function packRenderParams(p: RenderParams): ArrayBuffer {
   const buf = new ArrayBuffer(64);
   const f32 = new Float32Array(buf);
   const u32 = new Uint32Array(buf);
+  const i32 = new Int32Array(buf);
   u32[0] = COLOUR_MODE_INDEX[p.colourMode];
   u32[1] = BRIGHT_MODE_INDEX[p.brightnessMode];
   u32[2] = COMBINER_INDEX[p.combinerMode];
@@ -68,5 +70,7 @@ export function packRenderParams(p: RenderParams): ArrayBuffer {
   f32[11] = p.paletteRange[1];
   f32[12] = p.playbackTau;
   f32[13] = p.wallClockTime;
+  i32[14] = p.debugMode;          // bytes [56..59]; -1 = debug off
+  f32[15] = p.debugHeatScale;     // bytes [60..63]
   return buf;
 }
