@@ -16,7 +16,8 @@
     "dev:debug": "vite dev --open /dev/debug_harness.html",
     "dev:layer2": "vite dev --open /dev/layer2_refinement.html",
     "dev:render": "vite dev --open /dev/render_graph.html",
-    "dev:depth": "vite dev --open /dev/depth_stress.html"
+    "dev:depth": "vite dev --open /dev/depth_stress.html",
+    "docs:api": "typedoc"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
@@ -30,6 +31,7 @@
     "happy-dom": "^20.10.6",
     "playwright": "^1.61.1",
     "pngjs": "^7.0.0",
+    "typedoc": "^0.28.20",
     "typescript": "^5.4.0",
     "vite": "^8.1.3",
     "vitest": "^1.4.0"
