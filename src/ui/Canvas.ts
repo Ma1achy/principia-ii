@@ -1,5 +1,6 @@
 import type { App } from '@/app/app.js';
 import { panViewport, zoomViewport } from '@/app/viewport_nav.js';
+import { canvasAria } from './a11y/aria.js';
 
 /** G12: brackets a pointer gesture so the history funnel coalesces the
  *  whole drag into ONE undo entry (begin at pointerdown, end at pointerup).
@@ -18,6 +19,10 @@ export function mountCanvas(
   root: HTMLElement, app: App, canvas: HTMLCanvasElement, gate?: GestureGate,
 ): () => void {
   root.appendChild(canvas);
+
+  // G13: the canvas is an interactive `application` region — assistive tech
+  // must pass keystrokes through (arrow keys pan/tilt; no browse mode).
+  for (const [k, v] of Object.entries(canvasAria())) canvas.setAttribute(k, v);
 
   let dragging = false;
   let moved = false;

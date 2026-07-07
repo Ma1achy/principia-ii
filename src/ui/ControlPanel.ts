@@ -4,6 +4,10 @@ import type { ColourMode, CvdMode, PaletteId } from '@/render/types.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
+import { CVD_ORDER, cvdLabel, setCvd } from './a11y/cvd_control.js';
+import { panelAria } from './a11y/aria.js';
+import { rovingTabindex, advanceRoving } from './a11y/keyboard.js';
+import type { Announcement } from './a11y/live_region.js';
 
 /** Render-only selectors (G12): a curated slice of M7's mode space. Bound
  *  to the RenderParamsStore, NEVER the view Store — a palette/mode/CVD
@@ -21,18 +25,12 @@ const PALETTES: readonly PaletteId[] = [
   'viridis', 'cividis', 'plasma', 'magma', 'inferno',
   'twilight', 'cool_warm', 'principia', 'cubehelix',
 ];
-const CVD_MODES: readonly { id: CvdMode; label: string }[] = [
-  { id: 'none', label: 'None' },
-  { id: 'protan', label: 'Protanopia' },
-  { id: 'deutan', label: 'Deuteranopia' },
-  { id: 'tritan', label: 'Tritanopia' },
-  { id: 'achrom', label: 'Achromatopsia' },
-];
-
 /** Mount ONLY the render-only controls (called by mountControlPanel when a
- *  RenderParamsStore is supplied). */
+ *  RenderParamsStore is supplied). The CVD option list is G13's CVD_ORDER /
+ *  cvdLabel — the single source shared with the Alt+C cycle shortcut. */
 export function mountRenderControls(
   root: HTMLElement, render: RenderParamsStore,
+  liveSay?: (a: Announcement) => void,
 ): () => void {
   const section = document.createElement('div');
   section.className = 'panel render-controls';
@@ -53,7 +51,7 @@ export function mountRenderControls(
     <div class="row">
       <label>CVD sim</label>
       <select id="cvd">
-        ${CVD_MODES.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
+        ${CVD_ORDER.map((m) => `<option value="${m}">${cvdLabel(m)}</option>`).join('')}
       </select>
     </div>
   `;
@@ -72,9 +70,14 @@ export function mountRenderControls(
     render.update(p => ({ ...p, palette: palette.value as PaletteId })));
 
   const cvd = section.querySelector<HTMLSelectElement>('#cvd')!;
+  cvd.setAttribute('aria-label', 'Colour-vision simulation');
   offs.push(bind(cvd, render, (el, p) => { el.value = p.cvdMode; }));
-  cvd.addEventListener('change', () =>
-    render.update(p => ({ ...p, cvdMode: cvd.value as CvdMode })));
+  cvd.addEventListener('change', () => {
+    // RENDER-ONLY: setCvd edits RenderParams via the render store (group-3
+    // rebind) — never the ViewState Store, the cache key, or undo history.
+    render.update(p => setCvd(p, cvd.value as CvdMode));
+    liveSay?.({ kind: 'cvd', mode: render.snapshot().cvdMode });
+  });
 
   offs.push(() => section.remove());
   return () => offs.forEach(off => off());
@@ -91,6 +94,7 @@ const CHARTS: readonly { id: string; label: string }[] = [
 
 export function mountControlPanel(
   root: HTMLElement, app: App, render?: RenderParamsStore,
+  liveSay?: (a: Announcement) => void,
 ): () => void {
   root.innerHTML = `
     <div class="panel">
@@ -195,8 +199,44 @@ export function mountControlPanel(
     app.store.update((v) => ({ ...v, qualityTier: quality.value as QualityTier }));
   });
 
+  // G13: the panel is a labelled landmark region for screen readers.
+  for (const [k, v] of Object.entries(panelAria('View controls'))) {
+    root.setAttribute(k, v);
+  }
+
+  // G13: roving tabindex over the eight z-sliders + the tilt slider.
+  // Vertical arrows move focus within the group (one Tab stop for the whole
+  // stack); horizontal arrows keep the native value adjustment. The listener
+  // lives on the panel because the window-level keymap ignores events from
+  // editable elements (Keybindings' isEditable guard).
+  const sliderEls = [
+    ...Array.from({ length: 8 }, (_, k) => q<HTMLInputElement>(`#z${k}`)),
+    tilt1,
+  ];
+  let activeSlider = 0;
+  const reflowRoving = (): void => {
+    const tab = rovingTabindex(sliderEls.length, activeSlider);
+    sliderEls.forEach((el, i) => {
+      el.tabIndex = tab[i]!;
+      el.setAttribute('aria-label',
+        el.closest('.row')?.querySelector('label')?.textContent ?? `slider ${i}`);
+    });
+  };
+  reflowRoving();
+  const onSliderKey = (e: KeyboardEvent): void => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const i = sliderEls.indexOf(e.target as HTMLInputElement);
+    if (i < 0) return;
+    e.preventDefault();
+    activeSlider = advanceRoving(i, sliderEls.length, e.key === 'ArrowDown' ? 1 : -1);
+    reflowRoving();
+    sliderEls[activeSlider]!.focus();
+  };
+  root.addEventListener('keydown', onSliderKey);
+  offs.push(() => root.removeEventListener('keydown', onSliderKey));
+
   // Render-only section (G12): group-3 rebind, never the view store.
-  if (render) offs.push(mountRenderControls(root, render));
+  if (render) offs.push(mountRenderControls(root, render, liveSay));
 
   return () => offs.forEach((off) => off());
 }

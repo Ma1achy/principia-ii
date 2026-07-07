@@ -28,7 +28,7 @@ real DOM layout.
 npm test -- --run test/unit/ui/a11y
 ```
 
-passes with at least **15 green tests** (28 as written) covering: the CVD-mode
+passes with at least **15 green tests** (32 as-built) covering: the CVD-mode
 reducer (`cycleCvd`/`setCvd` produce a new `RenderParams` and leave a paired
 `ViewState` + its `viewStateToCacheKey` **byte-identical** — the render-only
 invariant); the ARIA attribute builder (`buildAria` role/label/extra-attr
@@ -49,14 +49,20 @@ src/
       aria.ts            # NEW: applyAria + buildAria attribute builder + panel/slider/canvas presets
       keyboard.ts        # NEW: focusOrder, rovingTabindex, advanceRoving, KeyAction, resolveKey, SHORTCUTS, describeShortcuts
       live_region.ts     # NEW: announce() message builder + LiveRegion mount helper (DOM-thin)
-      theme.ts           # NEW: applyTheme / themeVars — high-contrast + font-scale + reduced-motion class toggles
-    ControlPanel.ts      # MODIFIED (G12): mount CVD toggle, apply ARIA, wire roving tabindex (labelled patch)
-    Canvas.ts            # MODIFIED (G12): canvas as application region + live-status node (labelled patch)
-    Keybindings.ts       # MODIFIED (G12): merge SHORTCUTS, route Escape/Enter through resolveKey (labelled patch)
+      theme.ts           # NEW: themeVars/applyTheme + prefersReducedMotion() (matchMedia-guarded)
+      index.ts           # NEW: barrel (re-exported from src/ui/index.ts)
+    ControlPanel.ts      # MODIFIED (G12): CVD select single-sourced to CVD_ORDER/cvdLabel + announce; panel ARIA; roving tabindex
+    Canvas.ts            # MODIFIED (G12): canvas as application region (canvasAria)
+    Keybindings.ts       # MODIFIED (G12): optional `pre` handler param + makeA11yPreHandler + OverlayHooks
+    ChartBrowser.ts      # MODIFIED (G12): ChartBrowserHandle.isOpen() (Escape-dismiss consumption test)
+    App.ts               # MODIFIED (G12): .a11y-status cell + LiveRegion + theme state + preHandler wiring
+    styles.css           # MODIFIED: font-scale var, high-contrast vars, reduced-motion switch, .a11y-visually-hidden
 test/
   unit/
     ui/
       a11y.test.ts       # NEW: pure reducer + invariant + ARIA + roving + announce (exit suite)
+  gpu/
+    shell.spec.ts        # MODIFIED: live a11y probe (roles, CVD announce + view unchanged, Escape-dismiss)
 ```
 
 ## Depends on / pairs with
@@ -334,8 +340,10 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { key: 'ArrowUp',   describe: 'Previous slider in the group',              action: { kind: 'roving', dir: -1 } },
 ] as const;
 
-/** The subset of a KeyboardEvent resolveKey needs (DOM-free for testing). */
-export interface KeyEventLike {
+/** The subset of a KeyboardEvent resolveKey needs (DOM-free for testing).
+ *  Named A11yKeyEvent as-built — G12's keymap.ts already exports a
+ *  KeyEventLike and both flow through the ui barrel (TS2308 otherwise). */
+export interface A11yKeyEvent {
   key: string;
   altKey?: boolean;
   shiftKey?: boolean;
@@ -346,7 +354,7 @@ export interface KeyEventLike {
  * match exactly (an unspecified modifier must be false). Returns `none` when
  * nothing matches so the caller leaves the event alone. Pure.
  */
-export function resolveKey(ev: KeyEventLike): KeyAction {
+export function resolveKey(ev: A11yKeyEvent): KeyAction {
   for (const s of SHORTCUTS) {
     if (s.key !== ev.key) continue;
     if (!!s.alt !== !!ev.altKey) continue;
@@ -510,6 +518,13 @@ export function applyTheme(
   root.classList.toggle('a11y-reduced-motion', classes.includes('a11y-reduced-motion'));
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
 }
+
+/** Read the OS reduced-motion preference; false where matchMedia is absent
+ *  (happy-dom / node) so headless mounts never throw. */
+export function prefersReducedMotion(): boolean {
+  return typeof matchMedia !== 'undefined'
+    && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 ```
 
 The companion stylesheet (shipped in G12's CSS, extended here) keys everything
@@ -540,204 +555,193 @@ html { font-size: calc(100% * var(--a11y-font-scale)); }
 
 ## G12 integration patch — `src/ui/ControlPanel.ts`
 
-The CVD toggle is mounted through G8's `bind`, applies ARIA, and — critically —
-applies its result **render-only**: it goes through **G12's `RenderParamsStore`**
-(`render.snapshot()` / `render.update(fn)`), a separate store that never touches
-`ViewState` / cache / undo history — that separation is the structural render-only
-guarantee. `mountControlPanel` takes `render` as a parameter (see CANON #5: it
-mounts the render-mode/palette/CVD section internally). The slider stack gets
-roving tabindex. Minimal, labelled diff against G12.
+**As-built note:** G12 already shipped the `<select id="cvd">` (bound to the
+`RenderParamsStore` with a local `CVD_MODES` table). G13's patch therefore
+*single-sources* it: the local table is deleted and the options are built from
+`CVD_ORDER`/`cvdLabel` — the same source the Alt+C cycle shortcut uses — and the
+change handler routes through `setCvd` and announces. `mountControlPanel` /
+`mountRenderControls` each gain an optional trailing `liveSay` parameter
+(existing call sites compile unchanged). The import path is
+`./render_params.js` (there is no `render_params_store.ts`).
 
 ```ts
-// + imports at top:
-import { setCvd, cvdLabel, CVD_ORDER } from './a11y/cvd_control.js';
-import { applyAria, panelAria, sliderAria } from './a11y/aria.js';
-import { rovingTabindex } from './a11y/keyboard.js';
-import type { CvdMode } from '@/render/types.js';
-import type { RenderParamsStore } from './render_params_store.js'; // G12
+// + imports at top (as-built):
+import { CVD_ORDER, cvdLabel, setCvd } from './a11y/cvd_control.js';
+import { panelAria } from './a11y/aria.js';
+import { rovingTabindex, advanceRoving } from './a11y/keyboard.js';
+import type { Announcement } from './a11y/live_region.js';
 
-// mountControlPanel(root, app, render): the `render` RenderParamsStore is the
-// render-only channel for the CVD/palette/render-mode section (CANON #5).
+// mountRenderControls(root, render, liveSay?): options from CVD_ORDER/cvdLabel;
+// change handler is render-only and announces:
+const cvd = section.querySelector<HTMLSelectElement>('#cvd')!;
+cvd.setAttribute('aria-label', 'Colour-vision simulation');
+offs.push(bind(cvd, render, (el, p) => { el.value = p.cvdMode; }));
+cvd.addEventListener('change', () => {
+  // RENDER-ONLY: setCvd edits RenderParams via the render store (group-3
+  // rebind) — never the ViewState Store, the cache key, or undo history.
+  render.update(p => setCvd(p, cvd.value as CvdMode));
+  liveSay?.({ kind: 'cvd', mode: render.snapshot().cvdMode });
+});
 
-// + inside mountControlPanel, after the existing rows are built:
-
+// mountControlPanel(root, app, render?, liveSay?):
 // (1) Label the panel landmark for screen readers.
 for (const [k, v] of Object.entries(panelAria('View controls'))) {
   root.setAttribute(k, v);
 }
 
-// (2) CVD toggle — a render-only control. It reads/writes RenderParams via
-//     G12's RenderParamsStore (`render`), NOT the ViewState Store, so it can
-//     never enter the cache key or the undo history. The render-only guarantee
-//     is STRUCTURAL: `render` is a separate store (no {renderOnly} flag exists).
-const cvdSel = root.querySelector<HTMLSelectElement>('#cvd')!;   // <select id="cvd"> added to the template
-cvdSel.innerHTML = CVD_ORDER
-  .map(m => `<option value="${m}">${cvdLabel(m)}</option>`).join('');
-applyAria(cvdSel, 'group', 'Colour-vision simulation');
-cvdSel.value = render.snapshot().cvdMode;
-cvdSel.addEventListener('change', () => {
-  const mode = cvdSel.value as CvdMode;
-  // RENDER-ONLY: render.update mutates only RenderParams; group-3 rebind;
-  // no recompute, no ViewState Store.update, no undo push.
-  render.update(p => setCvd(p, mode));
-  liveSay?.({ kind: 'cvd', mode });
-});
-
-// (3) Roving tabindex over the eight z-sliders + the tilt slider.
+// (2) Roving tabindex over the eight z-sliders + the tilt slider. Vertical
+//     arrows move focus within the group (one Tab stop for the whole stack);
+//     horizontal arrows keep the native value adjustment. The listener lives
+//     on the panel because the window-level keymap ignores events from
+//     editable elements (Keybindings' isEditable guard).
 const sliderEls = [
-  ...Array.from({ length: 8 }, (_, k) =>
-    root.querySelector<HTMLInputElement>(`#z${k}`)!),
-  root.querySelector<HTMLInputElement>('#tilt1')!,
+  ...Array.from({ length: 8 }, (_, k) => q<HTMLInputElement>(`#z${k}`)),
+  tilt1,
 ];
 let activeSlider = 0;
-const reflowRoving = () => {
+const reflowRoving = (): void => {
   const tab = rovingTabindex(sliderEls.length, activeSlider);
   sliderEls.forEach((el, i) => {
     el.tabIndex = tab[i]!;
-    applyAria(el, 'slider', el.previousElementSibling?.textContent ?? `slider ${i}`,
-      { extra: { 'aria-valuenow': el.value, 'aria-valuemin': el.min, 'aria-valuemax': el.max } });
+    el.setAttribute('aria-label',
+      el.closest('.row')?.querySelector('label')?.textContent ?? `slider ${i}`);
   });
 };
 reflowRoving();
+const onSliderKey = (e: KeyboardEvent): void => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const i = sliderEls.indexOf(e.target as HTMLInputElement);
+  if (i < 0) return;
+  e.preventDefault();
+  activeSlider = advanceRoving(i, sliderEls.length, e.key === 'ArrowDown' ? 1 : -1);
+  reflowRoving();
+  sliderEls[activeSlider]!.focus();
+};
+root.addEventListener('keydown', onSliderKey);
+offs.push(() => root.removeEventListener('keydown', onSliderKey));
 ```
 
 > `render.update(p => setCvd(p, mode))` is G12's `RenderParamsStore` channel: it
 > writes the M7 `RenderParams` uniform and rebinds group 3 only. It is a *deliberate
 > sibling* of `store.update` — the CVD path never goes through the ViewState `Store`,
 > so the M8 `viewStateToCacheKey` is structurally untouched and no undo entry is
-> created. `liveSay` is the announcement closure threaded into `mountControlPanel`
-> from the shell (it wraps `LiveRegion.say`; see CANON #6 — there is no `app.live`).
-> `sliderAria` is used for the value-text variant when a slider is read on focus.
+> created. Note `RenderParamsStore.update` returns **void** (landed G12 API), so
+> the announcement reads `render.snapshot().cvdMode` after the update. `liveSay`
+> is the announcement closure threaded from the shell (wraps `LiveRegion.say`;
+> there is no `app.live`). Range inputs natively adjust on arrow keys, which is
+> why roving claims only the vertical axis (up/down = navigate, left/right =
+> adjust) — a full four-arrow roving group would fight the slider itself.
 
 ## G12 integration patch — `src/ui/Canvas.ts`
 
-The canvas becomes a keyboard-focusable `application` region and hosts the polite
-live-status node that `LiveRegion` writes into.
+**As-built:** the canvas ARIA lives in `Canvas.ts`, but the live-status node and
+`LiveRegion` are owned by **`mountUI` (`App.ts`)** — the shell owns the status
+cell (`.a11y-status` in the shell markup) and the single `liveSay` closure it
+threads into `mountControlPanel` and the keybinding pre-handler. That keeps
+`mountCanvas`'s signature unchanged and puts all threading in one place.
 
 ```ts
-// + imports at top:
-import { applyAria, canvasAria, statusAria } from './a11y/aria.js';
-import { LiveRegion } from './a11y/live_region.js';
-
-// + inside mountCanvas, after the <canvas> is created:
-
+// src/ui/Canvas.ts — inside mountCanvas, after root.appendChild(canvas):
+import { canvasAria } from './a11y/aria.js';
 // Canvas is an interactive application region; it must receive arrow keys.
 for (const [k, v] of Object.entries(canvasAria())) canvas.setAttribute(k, v);
 
-// Polite live-status region (visually hidden via the .a11y-visually-hidden class).
-const status = document.createElement('div');
-status.className = 'a11y-visually-hidden';
+// src/ui/App.ts (mountUI) — the shell markup gains
+//   <div class="a11y-status a11y-visually-hidden"></div>
+// and mountUI wires the region + theme:
+const status = area('.a11y-status');
 for (const [k, v] of Object.entries(statusAria())) status.setAttribute(k, v);
-root.appendChild(status);
-
 const live = new LiveRegion(status, app.store);
-const offLive = live.start();
-// Thread the announcement closure to the other mount sites (CANON #6: App has
-// no `live` member). The shell passes `liveSay` into mountControlPanel /
-// installKeybindings so they can announce CVD / contrast / font changes:
-const liveSay = (a: Parameters<LiveRegion<never>['say']>[0]) => live.say(a);
-// e.g. mountControlPanel(panelRoot, app, render, liveSay);
-//      installKeybindings(app, render, liveSay, theme);
-// remember offLive in the existing teardown array.
+offs.push(live.start());
+const liveSay = live.say.bind(live);
+
+const theme: ThemeState = { ...DEFAULT_THEME };
+const applyThemeNow = (t: ThemeState): void =>
+  applyTheme(document.documentElement, t, prefersReducedMotion());
+applyThemeNow(theme);
 ```
 
 ## G12 integration patch — `src/ui/Keybindings.ts`
 
 G12 owns zoom / lock / pan keys; G13 merges its accessibility shortcuts and
-routes Escape/Enter through `resolveKey`, giving them a single documented
-meaning. The CVD/contrast/font branches are render-only or theme-only — none of
-them touch the ViewState `Store`.
+routes Escape/Enter through `resolveKey`. **As-built**, the landed
+`installKeybindings(target, app, map, hooks)` gains ONE optional parameter —
+`pre?: (e: KeyboardEvent) => boolean` — evaluated after the `isEditable` guard
+and before the keymap lookup; existing call sites compile unchanged. The
+factory `makeA11yPreHandler(deps)` and the `OverlayHooks`/`A11yHandlerDeps`
+interfaces live in `Keybindings.ts` (the DOM-bridge file; the pure logic stays
+in `a11y/keyboard.ts`).
 
-**App augmentation (CANON #6).** App has **no** `live` / `theme` / `applyTheme` /
-`confirmActiveOverlay` / `dismissActiveOverlay` members today. G13 does **not**
-pretend they exist. The overlay confirm/dismiss hooks are declared as an explicit
-labelled augmentation that **G12's App must grow** (or be threaded as closures);
-theme state + the announcement closure are threaded as `installKeybindings`
-parameters, not read off `app`:
+**Escape must not shadow G12's `unlock`.** G12's keymap already binds
+`escape → unlock`. The doc's original unconditional `dismiss` consumption would
+have broken that binding, so `OverlayHooks.confirm()/dismiss()` return
+**boolean** — true iff an overlay actually consumed the key. A dismiss with no
+open overlay returns false and the chord falls through to the keymap's
+`unlock`. `ChartBrowserHandle` grew `isOpen()` so the shell's dismiss hook can
+tell.
 
 ```ts
-// G13 extends App with overlay hooks — G12's App MUST grow these (or they are
-// threaded as closures). They are NOT assumed to already exist on App.
-interface OverlayHooks {
-  confirmActiveOverlay(): void;   // Enter: confirm the active lookup/overlay
-  dismissActiveOverlay(): void;   // Escape: cancel overlay / clear lookup
+// src/ui/Keybindings.ts (as-built)
+export interface OverlayHooks {
+  confirm(): boolean;   // Enter: true iff an overlay consumed it
+  dismiss(): boolean;   // Escape: true iff an overlay was open (else → unlock)
 }
-```
 
-**Wiring into G12's `installKeybindings` (CANON #3 / two-stage).** G12's keymap
-pipeline matches chords to keymap entries; there is no free-standing pre-handler
-slot. G13 reconciles by extending `installKeybindings`'s signature with an
-optional `preHandler` that runs BEFORE the G12 keymap dispatch and short-circuits
-when it returns `true` (G13 actions take precedence; on `none` it returns `false`
-and G12's keymap handles the chord as usual):
+export interface A11yHandlerDeps {
+  render: RenderParamsStore;              // G12 render-only channel
+  say: (a: Announcement) => void;         // wraps LiveRegion.say (threaded)
+  theme: ThemeState;                      // mutable, owned by the shell
+  applyTheme: (t: ThemeState) => void;    // theme DOM sink (threaded)
+  overlay?: OverlayHooks;
+}
 
-```ts
-// G12 signature, extended (last param optional ⇒ existing call sites compile):
-// installKeybindings(
-//   app: App,
-//   render: RenderParamsStore,             // G12 render-only channel (CANON #4)
-//   liveSay: (a: Announcement) => void,    // threaded from Canvas (CANON #6)
-//   theme: ThemeState,                     // threaded theme state (CANON #6)
-//   overlay: OverlayHooks,                 // explicit augmentation (CANON #6)
-//   applyTheme: (t: ThemeState) => void,   // theme DOM sink, threaded
-//   preHandler = makeA11yPreHandler(render, liveSay, theme, overlay, applyTheme),
-// ) { /* ... existing G12 keydown listener calls preHandler?.(ev) first ... */ }
-
-// + imports at top:
-import { resolveKey, type KeyAction } from './a11y/keyboard.js';
-import { cycleCvd } from './a11y/cvd_control.js';
-import { stepFontScale, type ThemeState } from './a11y/theme.js';
-import type { Announcement } from './a11y/live_region.js';
-import type { RenderParamsStore } from './render_params_store.js'; // G12
-
-// + the preHandler factory, installed as G12's optional preHandler so it runs
-//   BEFORE the keymap dispatch. Returns true when it consumed the event:
-function makeA11yPreHandler(
-  render: RenderParamsStore,
-  liveSay: (a: Announcement) => void,
-  theme: ThemeState,
-  overlay: OverlayHooks,
-  applyTheme: (t: ThemeState) => void,
-) {
+export function makeA11yPreHandler(
+  deps: A11yHandlerDeps,
+): (e: KeyboardEvent) => boolean {
   return (ev: KeyboardEvent): boolean => {
     const action: KeyAction = resolveKey(ev);
     switch (action.kind) {
       case 'cvd-cycle': {
         // RENDER-ONLY: render.update mutates only RenderParams (group-3 rebind).
-        const next = render.update(p => cycleCvd(p, action.dir));
-        liveSay({ kind: 'cvd', mode: next.cvdMode });
+        deps.render.update(p => cycleCvd(p, action.dir));
+        deps.say({ kind: 'cvd', mode: deps.render.snapshot().cvdMode });
         ev.preventDefault(); return true;
       }
       case 'toggle-contrast': {
-        theme.highContrast = !theme.highContrast;
-        applyTheme(theme);                               // class toggle on :root
-        liveSay({ kind: 'contrast', on: theme.highContrast });
+        deps.theme.highContrast = !deps.theme.highContrast;
+        deps.applyTheme(deps.theme);
+        deps.say({ kind: 'contrast', on: deps.theme.highContrast });
         ev.preventDefault(); return true;
       }
       case 'font-scale': {
-        theme.fontScale = stepFontScale(theme.fontScale, action.dir);
-        applyTheme(theme);
-        liveSay({ kind: 'font', scale: theme.fontScale });
+        deps.theme.fontScale = stepFontScale(deps.theme.fontScale, action.dir);
+        deps.applyTheme(deps.theme);
+        deps.say({ kind: 'font', scale: deps.theme.fontScale });
         ev.preventDefault(); return true;
       }
-      case 'commit':  overlay.confirmActiveOverlay(); ev.preventDefault(); return true;
-      case 'dismiss': overlay.dismissActiveOverlay(); ev.preventDefault(); return true;
-      case 'roving':  return false;   // handled by the focused slider group
-      case 'none':    return false;   // let G12's keymap handle the chord
+      case 'commit': {
+        if (deps.overlay?.confirm()) { ev.preventDefault(); return true; }
+        return false;
+      }
+      case 'dismiss': {
+        if (deps.overlay?.dismiss()) { ev.preventDefault(); return true; }
+        return false;
+      }
+      case 'roving': return false;   // handled by the focused slider group
+      case 'none':   return false;   // let G12's keymap handle the chord
       default: { const _x: never = action; return _x; }
     }
   };
 }
 ```
 
-> The `commit` / `dismiss` arms call the `OverlayHooks` augmentation: Enter
-> confirms the lookup dialog (G12's `#lookup`), Escape clears it / closes the
-> inspector overlay. These members do not exist on G12's App yet — G12 must grow
-> them, or the shell threads them as closures. Neither pushes a recompute; the
-> lookup result is a view *navigation* that already goes through `store.update`,
-> so it stays on the existing path. `render.update` returns the updated
-> `RenderParams` (G12 `RenderParamsStore`); the CVD path never touches the
-> ViewState `Store`, so `viewStateToCacheKey` is structurally untouched.
+> In the shell, `dismiss` closes the preset gallery when it is open (via
+> `gallery.isOpen()`); `confirm` currently returns false — there is no
+> confirmable overlay in the landed shell (the lookup dialog was deferred at
+> DG8.3 and has not landed). `RenderParamsStore.update` returns **void**
+> (landed G12 API), so the CVD announcement reads `snapshot()` after the
+> update. The CVD path never touches the ViewState `Store`, so
+> `viewStateToCacheKey` is structurally untouched.
 
 ## Tests
 
@@ -763,8 +767,8 @@ import { DEFAULT_RENDER_PARAMS } from '@/render/types.js';
  * viewStateToCacheKey: the key is derived ONLY from ViewState, never from
  * RenderParams. This lets us prove the render-only invariant headlessly. */
 interface View { chartType: string; z0: number[]; mag: number; locked: boolean }
-const view: View = { chartType: 'lz_e', z0: [0,0,0,0,0,0,0,0], mag: 1, locked: false };
-const keyOf = (v: View) => ({ chartId: v.chartType, z0: v.z0, mag: v.mag });
+const view: View = { chartType: 'lz_e', z0: [0, 0, 0, 0, 0, 0, 0, 0], mag: 1, locked: false };
+const keyOf = (v: View): object => ({ chartId: v.chartType, z0: v.z0, mag: v.mag });
 
 describe('cvd reducer: render-only RenderParams edits', () => {
   it('setCvd returns a new RenderParams with only cvdMode changed', () => {
@@ -832,7 +836,7 @@ describe('aria attribute builder', () => {
 
   it('sliderAria mirrors the numeric model + value text', () => {
     const a = sliderAria('z[0]', 1.5, -3, 3);
-    expect(a.role).toBe('slider');
+    expect(a['role']).toBe('slider');
     expect(a['aria-valuenow']).toBe('1.5');
     expect(a['aria-valuemin']).toBe('-3');
     expect(a['aria-valuemax']).toBe('3');
@@ -841,14 +845,14 @@ describe('aria attribute builder', () => {
 
   it('canvasAria is an interactive application region, focusable', () => {
     const a = canvasAria();
-    expect(a.role).toBe('application');
-    expect(a.tabindex).toBe('0');
+    expect(a['role']).toBe('application');
+    expect(a['tabindex']).toBe('0');
     expect(a['aria-roledescription']).toMatch(/interactive/);
   });
 
   it('statusAria is a polite, atomic status region', () => {
     const a = statusAria();
-    expect(a.role).toBe('status');
+    expect(a['role']).toBe('status');
     expect(a['aria-live']).toBe('polite');
     expect(a['aria-atomic']).toBe('true');
   });
@@ -965,7 +969,7 @@ function — the CVD reducer, `buildAria`, the roving-tabindex math, `resolveKey
 
 ## Acceptance check
 
-`test/unit/ui/a11y.test.ts` passes with ≥15 green tests (28 as written). The
+`test/unit/ui/a11y.test.ts` passes with ≥15 green tests (**32 as-built**). The
 CVD reducer returns a new `RenderParams` changing **only** `cvdMode` (and is a
 no-op for an unchanged or unknown mode), and the render-only invariant test
 confirms a CVD edit leaves the `ViewState` and its `viewStateToCacheKey`
@@ -974,6 +978,13 @@ maps; `rovingTabindex` / `advanceRoving` / `focusOrder` give the expected
 index/order results with correct wrap/clamp; `resolveKey` matches modifiers
 exactly and maps Enter→commit / Escape→dismiss; and `announce` / `themeVars`
 produce the documented strings and class lists.
+
+Live proof (`test/gpu/shell.spec.ts`, green headless on SwiftShader and
+`--headed` on Metal): the canvas carries `role="application"`, the
+`.a11y-status` region is `aria-live="polite"`, selecting `deutan` in the CVD
+select announces "Deuteranopia" while the `ViewState` snapshot deep-equals its
+pre-toggle value (the render-only invariant on a real device), and Escape
+closes the open preset gallery (consumed) instead of falling through.
 
 ## Notes for the implementer
 

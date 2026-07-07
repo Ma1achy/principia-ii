@@ -108,3 +108,30 @@ button:hover { filter: brightness(1.1); }
 .devhud-tile-failure { color: #ff8f8f; }
 .devhud-validation.flagged { color: #ff8f8f; }
 .devhud-capture.stale { color: #ffd479; }
+
+/* ── G13 accessibility: font scale, high contrast, reduced motion. ── */
+:root { --a11y-font-scale: 1; }
+html { font-size: calc(100% * var(--a11y-font-scale)); }
+
+:root.a11y-high-contrast {
+  --bg: #000; --fg: #fff; --accent: #ffd400; --panel: #111; --border: #fff;
+}
+
+:root.a11y-reduced-motion *,
+:root.a11y-reduced-motion *::before,
+:root.a11y-reduced-motion *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Fallback: honour the OS preference even before JS runs. */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0s !important; transition-duration: 0s !important; }
+}
+
+/* Screen-reader-only content (the polite live-status region). */
+.a11y-visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

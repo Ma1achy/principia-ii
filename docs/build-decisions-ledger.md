@@ -9,6 +9,65 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G13 — Accessibility & CVD UI
+
+Branch `feat/g13-a11y-cvd`. 662 passed / 8 skipped (+32: a11y suite,
+gate ≥15); typecheck + unpiped lint clean; gpu:check + all four page
+checks green; shell spec extended with a live a11y probe — green
+headless (SwiftShader) and headed (Metal). CVD before/after
+screenshots (viridis vs deuteranopia simulation) sent to the user.
+Milestone doc folded back as-built.
+
+### DG13.1 — CVD select single-sourced, not added
+The doc said `<select id="cvd">` is "added to the template"; G12 had
+already shipped it with a local CVD_MODES table. Landed: the table is
+deleted and the options build from G13's CVD_ORDER/cvdLabel — the same
+source the Alt+C cycle uses — with the change handler routed through
+setCvd + a live announcement. One source of truth for mode order and
+labels.
+
+### DG13.2 — Escape must not shadow G12's `escape → unlock`
+The doc's commit/dismiss arms consumed Enter/Escape unconditionally,
+which would have broken G12's landed `escape → unlock` binding.
+Landed: OverlayHooks.confirm()/dismiss() return boolean (true iff an
+overlay consumed the key); a dismiss with nothing open returns false
+and the chord falls through to the keymap. ChartBrowserHandle grew
+isOpen() so the shell's hook can tell. confirm() returns false today —
+no confirmable overlay exists (lookup dialog still deferred, DG8.3).
+
+### DG13.3 — one optional `pre` param, not a 7-param signature
+The doc rewrote installKeybindings with seven positional params.
+Landed: the G12 signature gains ONE optional
+`pre?: (e: KeyboardEvent) => boolean` evaluated after the isEditable
+guard and before keymap lookup; makeA11yPreHandler(deps) +
+OverlayHooks/A11yHandlerDeps live in Keybindings.ts. Existing call
+sites compile unchanged. RenderParamsStore.update returns void (landed
+API, doc assumed it returned the next params) — announcements read
+snapshot() after the update.
+
+### DG13.4 — live region owned by mountUI, not Canvas
+The doc mounted the status node inside mountCanvas and threaded
+liveSay out of it. Landed: the shell markup carries a
+`.a11y-status.a11y-visually-hidden` cell; mountUI creates the
+LiveRegion and the single liveSay closure it threads into
+mountControlPanel and the pre-handler. mountCanvas keeps its signature
+and only applies canvasAria.
+
+### DG13.5 — roving claims the vertical axis only
+Range inputs natively adjust on ALL four arrow keys; the doc's roving
+group would have fought the slider's own value adjustment, and a
+window-level roving handler would never fire anyway (the keymap's
+isEditable guard drops events from inputs). Landed: a panel-level
+keydown handler — ArrowUp/ArrowDown move focus through the 9-slider
+group (one Tab stop), ArrowLeft/ArrowRight keep native value
+adjustment.
+
+### DG13.6 — A11yKeyEvent rename
+The doc's KeyEventLike collided with G12 keymap.ts's exported
+KeyEventLike once both flowed through the ui barrel (TS2308).
+
+---
+
 ## G18 — Debug HUD integration
 
 Branch `feat/g18-debug-hud`. 630 passed / 8 skipped (+25: debug_hud 19

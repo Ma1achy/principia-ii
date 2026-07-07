@@ -8,8 +8,11 @@ import { mountInspectorPanel } from './InspectorPanel.js';
 import { mountChartBrowser } from './ChartBrowser.js';
 import { mountChrome } from './Chrome.js';
 import { mountLoadingIndicator } from './LoadingIndicator.js';
-import { installKeybindings } from './Keybindings.js';
+import { installKeybindings, makeA11yPreHandler, type OverlayHooks } from './Keybindings.js';
 import { RenderParamsStore } from './render_params.js';
+import { statusAria } from './a11y/aria.js';
+import { LiveRegion } from './a11y/live_region.js';
+import { applyTheme, prefersReducedMotion, DEFAULT_THEME, type ThemeState } from './a11y/theme.js';
 import { PresetStore } from './presets.js';
 import { initHistory, pushHistory, type History } from './history.js';
 import { buildKeymap } from './keymap.js';
@@ -39,6 +42,7 @@ export function mountUI(
       <section class="gallery-area"></section>
       <div class="loader-area"></div>
       <div class="devhud-area"></div>
+      <div class="a11y-status a11y-visually-hidden"></div>
     </div>
   `;
   const area = (sel: string): HTMLElement => {
@@ -77,21 +81,48 @@ export function mountUI(
   const getHistory = (): History => history;
   const setHistory = (h: History): void => { history = h; };
 
+  // --- a11y: live region + theme (G13) ---
+  const status = area('.a11y-status');
+  for (const [k, v] of Object.entries(statusAria())) status.setAttribute(k, v);
+  const live = new LiveRegion(status, app.store);
+  offs.push(live.start());
+  const liveSay = live.say.bind(live);
+
+  const theme: ThemeState = { ...DEFAULT_THEME };
+  const applyThemeNow = (t: ThemeState): void =>
+    applyTheme(document.documentElement, t, prefersReducedMotion());
+  applyThemeNow(theme);
+
   // --- keybindings → actions over the Store/history ---
   const presets = deps.presets ?? new PresetStore();
   let openPresetsFn = (): void => {};
+  // Overlay hooks resolve late (the gallery mounts below); a dismiss with no
+  // open overlay returns false so Escape falls through to G12's `unlock`.
+  let overlay: OverlayHooks = { confirm: () => false, dismiss: () => false };
+  const renderStore = deps.renderStore ?? new RenderParamsStore();
   offs.push(installKeybindings(window, app, buildKeymap(), {
     getHistory, setHistory,
     openPresets: () => openPresetsFn(),
-  }));
+  }, makeA11yPreHandler({
+    render: renderStore, say: liveSay, theme, applyTheme: applyThemeNow,
+    overlay: { confirm: () => overlay.confirm(), dismiss: () => overlay.dismiss() },
+  })));
 
   // --- mounts ---
   offs.push(mountChrome(area('.shell-chrome'), deps.boundary, deps.capability));
   offs.push(mountCanvas(area('.canvas-area'), app, canvas, gate));
-  offs.push(mountControlPanel(area('.control-area'), app, deps.renderStore));
+  offs.push(mountControlPanel(area('.control-area'), app, deps.renderStore, liveSay));
   offs.push(mountInspectorPanel(area('.inspector-area'), app));
   const gallery = mountChartBrowser(area('.gallery-area'), app, presets);
   openPresetsFn = () => { gallery.open(); };
+  overlay = {
+    confirm: () => false,   // no confirmable overlay in the shell yet
+    dismiss: () => {
+      if (!gallery.isOpen()) return false;
+      gallery.close();
+      return true;
+    },
+  };
   offs.push(gallery.dispose);
   offs.push(mountLoadingIndicator(area('.loader-area'), app.loop.ledger, app.loop.perf));
   if (deps.debug) offs.push(mountDebugHud(area('.devhud-area'), app, deps.debug));
