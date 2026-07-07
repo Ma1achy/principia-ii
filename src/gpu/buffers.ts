@@ -1,7 +1,7 @@
 import type { GpuContext } from './init.js';
 import { sizeOfSimResult, sizeOfICDescriptor, sizeOfTileReduction } from './structs.js';
 import type { PipelineLayouts } from './layouts.js';
-import { CHART_UNIFORMS_SIZE } from './layouts.js';
+import { CHART_UNIFORMS_SIZE, TILE_WINDOW_SIZE } from './layouts.js';
 import { LINEARISED_UNIFORMS_SIZE } from './linearised_uniforms.js';
 import { ENSEMBLE_OFFSETS_SIZE } from './ensemble.js';
 
@@ -128,16 +128,43 @@ export function createTileBindGroups(
   return bgs;
 }
 
+/** Pack a G8 TileWindow: screen rect (y down, [0,1]²) + tile-UV window. */
+export function packTileWindow(
+  rect: readonly [number, number, number, number],
+  uv:   readonly [number, number, number, number] = [0, 0, 1, 1],
+): ArrayBuffer {
+  const buf = new ArrayBuffer(TILE_WINDOW_SIZE);
+  new Float32Array(buf).set([...rect, ...uv]);
+  return buf;
+}
+
+/** A TileWindow uniform buffer initialised to the full window (whole
+ *  screen, whole tile) — single-tile callers render unchanged. */
+export function createTileWindowBuffer(ctx: { device: GPUDevice }): GPUBuffer {
+  const buf = ctx.device.createBuffer({
+    label: 'principia.tileWindow',
+    size: TILE_WINDOW_SIZE,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  ctx.device.queue.writeBuffer(buf, 0, packTileWindow([0, 0, 1, 1]));
+  return buf;
+}
+
 /**
  * group(3) stays separate so palette / CVD-mode swaps rebind ONLY this
  * group (M7's 64-byte rebind contract) — never the per-tile or frame groups.
+ * G8 adds the TileWindow at binding 1 (per-draw screen rect + UV window).
  */
 export function createRenderParamsBindGroup(
   ctx: { device: GPUDevice }, layouts: PipelineLayouts, paramsBuffer: GPUBuffer,
+  windowBuffer: GPUBuffer,
 ): GPUBindGroup {
   return ctx.device.createBindGroup({
     label: 'principia.bg.renderParams',
     layout: layouts.render,
-    entries: [{ binding: 0, resource: { buffer: paramsBuffer } }],
+    entries: [
+      { binding: 0, resource: { buffer: paramsBuffer } },
+      { binding: 1, resource: { buffer: windowBuffer } },
+    ],
   });
 }

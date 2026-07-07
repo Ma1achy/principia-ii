@@ -1,6 +1,8 @@
 import type { GpuContext } from '@/gpu/init.js';
 import type { TileBuffers } from '@/gpu/buffers.js';
-import { createTileBindGroups, createRenderParamsBindGroup } from '@/gpu/buffers.js';
+import {
+  createTileBindGroups, createRenderParamsBindGroup, createTileWindowBuffer,
+} from '@/gpu/buffers.js';
 import { buildLayouts } from '@/gpu/layouts.js';
 
 /**
@@ -26,8 +28,11 @@ export interface RenderGraph {
   bgTile:         GPUBindGroup;   // group 0: canonical frame group
   bgStorage:      GPUBindGroup;   // group 1: canonical perTile group
   bgReduction:    GPUBindGroup;   // group 2: canonical reduction group
-  bgRenderParams: GPUBindGroup;   // group 3: RenderParams uniform
+  bgRenderParams: GPUBindGroup;   // group 3: RenderParams + TileWindow
   paramsBuffer:   GPUBuffer;
+  /** G8: per-draw screen rect + tile-UV window (defaults to the full
+   *  window, so single-tile callers render exactly as before). */
+  windowBuffer:   GPUBuffer;
 }
 
 export async function buildRenderGraph(
@@ -51,8 +56,10 @@ export async function buildRenderGraph(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+  const windowBuffer = createTileWindowBuffer(ctx);
   const bgs = createTileBindGroups(ctx, layouts, bufs);
-  const bgRenderParams = createRenderParamsBindGroup(ctx, layouts, paramsBuffer);
+  const bgRenderParams =
+    createRenderParamsBindGroup(ctx, layouts, paramsBuffer, windowBuffer);
 
   return {
     pipeline,
@@ -61,5 +68,6 @@ export async function buildRenderGraph(
     bgReduction: bgs.reduction,
     bgRenderParams,
     paramsBuffer,
+    windowBuffer,
   };
 }

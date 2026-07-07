@@ -77,7 +77,7 @@ function encodeRenderPass(
   pass.setBindGroup(1, graph.bgStorage);
   pass.setBindGroup(2, graph.bgReduction);   // canonical reduction group (G3)
   pass.setBindGroup(3, graph.bgRenderParams);
-  pass.draw(3, 1);
+  pass.draw(6, 1);   // G8: windowed quad
   pass.end();
   ctx.device.queue.submit([enc.finish()]);
 }

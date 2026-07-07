@@ -1,0 +1,29 @@
+:root { --bg: #0e1116; --fg: #e7e7e7; --panel: #161a21; --accent: #5fa9ff; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+       font-family: system-ui, sans-serif; }
+#root, .layout { height: 100%; }
+.layout { display: grid; grid-template-columns: 1fr 340px; }
+.canvas-area { display: flex; align-items: center; justify-content: center;
+               overflow: hidden; }
+.canvas-area canvas { max-width: 100%; max-height: 100%;
+                      touch-action: none; cursor: crosshair; }
+.side { background: var(--panel); overflow-y: auto; }
+.control-area, .inspector-area { padding: 12px; }
+.row { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+.row label { width: 96px; font-size: 12px; color: #aab; }
+.row input[type=range] { flex: 1; }
+.row span { font-size: 12px; min-width: 44px; }
+h3 { margin: 4px 0 8px; font-size: 14px; }
+select { background: #222834; color: var(--fg); border: 1px solid #333;
+         border-radius: 4px; padding: 4px; }
+button { background: var(--accent); border: none; color: var(--bg);
+         padding: 6px 12px; border-radius: 4px; cursor: pointer;
+         font-size: 12px; }
+button:hover { filter: brightness(1.1); }
+.inspector[hidden] { display: none; }
+.ic-summary { font-size: 13px; line-height: 1.6; }
+.ic-summary code { background: #222; padding: 2px 4px; border-radius: 2px; }
+#status { color: #fa5; font-size: 12px; }
+.boot-error { color: #f66; padding: 24px; white-space: pre-wrap;
+              font-family: ui-monospace, monospace; }

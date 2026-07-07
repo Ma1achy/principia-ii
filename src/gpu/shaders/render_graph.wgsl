@@ -95,19 +95,39 @@ struct RenderParams {
 @group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 @group(3) @binding(0) var<uniform>      rparams : RenderParams;
 
+// G8: per-draw tile window. `rect` is the screen rectangle in [0,1]²
+// screen-UV (y down, like canvas pixels); `uv` is the tile-local UV
+// window sampled across it ((0,0,1,1) = the whole tile; an ancestor
+// fallback passes the descendant's subrect). Drawn as a 6-vertex quad.
+struct TileWindow {
+  rect: vec4<f32>,   // x0, y0, x1, y1 in screen UV (y down)
+  uv:   vec4<f32>,   // u0, v0, u1, v1 in tile-local UV
+};
+@group(3) @binding(1) var<uniform> window : TileWindow;
+
+struct VSOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0)       uv:  vec2<f32>,   // tile-local UV (v down)
+};
+
 @vertex
-fn vs_main(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4<f32> {
-  let pos = array<vec2<f32>, 3>(
-    vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));
-  return vec4<f32>(pos[vid], 0.0, 1.0);
+fn vs_main(@builtin(vertex_index) vid: u32) -> VSOut {
+  let corners = array<vec2<f32>, 6>(
+    vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 0.0), vec2<f32>(0.0, 1.0),
+    vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 0.0), vec2<f32>(1.0, 1.0));
+  let c = corners[vid];
+  let p = mix(window.rect.xy, window.rect.zw, c);   // screen UV, y down
+  var out: VSOut;
+  out.pos = vec4<f32>(p.x * 2.0 - 1.0, 1.0 - p.y * 2.0, 0.0, 1.0);
+  out.uv  = mix(window.uv.xy, window.uv.zw, c);
+  return out;
 }
 
 @fragment
-fn fs_main(@builtin(position) frag: vec4<f32>) -> @location(0) vec4<f32> {
+fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
   let N = uniforms.samples_per_axis;
-  let tile_pix = 32.0;          // see M3 note; promoted to a uniform in M8+
-  let sx = u32(floor(frag.x / tile_pix));
-  let sy = u32(floor(frag.y / tile_pix));
+  let sx = u32(clamp(floor(uv.x * f32(N)), 0.0, f32(N - 1u)));
+  let sy = u32(clamp(floor(uv.y * f32(N)), 0.0, f32(N - 1u)));
   let idx = clamp(sy * N + sx, 0u, N*N - 1u);
 
   let r  = results[idx];
