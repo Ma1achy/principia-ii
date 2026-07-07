@@ -6,6 +6,7 @@ import '@/ui/styles.css';
 import { App as AppCore } from '@/app/app.js';
 import { makeRealDispatcher } from '@/app/dispatcher.js';
 import { mountUI } from '@/ui/App.js';
+import { liveCaptureFrom } from '@/devhud/capture.js';
 import { RenderParamsStore } from '@/ui/render_params.js';
 import { detectCapabilities } from '@/gpu/capability.js';
 import { appEnv } from '@/env.js';
@@ -153,10 +154,12 @@ async function main(): Promise<void> {
 
   mountUI(root, app, canvas, {
     boundary, capability: cap, renderStore,
-    // Live capture-button wiring is deferred: the dispatcher doesn't expose
-    // its last-dispatch SimUniforms yet. The capture tab shows the (empty)
-    // state; extendCapture() is exercised by unit tests.
-    debug: { perf: app.loop.perf, sink: telemetrySink, tileFlags, inspector: inspectorNow },
+    debug: {
+      perf: app.loop.perf, sink: telemetrySink, tileFlags, inspector: inspectorNow,
+      // The HUD's capture button: last dispatch inputs + current view →
+      // FrameCaptureV2 (null before the first tile job).
+      capture: () => liveCaptureFrom(dispatcher.lastDispatch(), app.store.snapshot()),
+    },
   });
   app.start();
   void registerServiceWorker();

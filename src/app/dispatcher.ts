@@ -56,10 +56,24 @@ interface WindowSlot {
   bg:  GPUBindGroup;
 }
 
+/** The inputs of the most recent simulate dispatch — everything G17's
+ *  captureFrame needs to reproduce the frame byte-identically (G18). */
+export interface LastDispatch {
+  N: number;
+  M: number;
+  uniforms: SimUniforms;
+  tile: TileRequest;
+  chart: ChartUniformsValue;
+}
+type ChartUniformsValue = Parameters<typeof packChartUniforms>[0];
+
 export interface RealDispatcher extends GpuDispatcher {
   /** Palette / mode swap: rewrites ONLY the 64-byte RenderParams buffer
    *  (M7's rebind contract) — no recompute, no pipeline rebuild. */
   setRenderParams(p: RenderParams): void;
+  /** The most recent tile dispatch's inputs (null before the first job).
+   *  Feeds the G18 dev HUD's live capture button (DG18.4 follow-up). */
+  lastDispatch(): LastDispatch | null;
   dispose(): void;
 }
 
@@ -118,6 +132,7 @@ export async function makeRealDispatcher(
   const retained = new Map<string, RetainedTile>();
   const windowPool: WindowSlot[] = [];
   let chain: Promise<unknown> = Promise.resolve();
+  let last: LastDispatch | null = null;
 
   // G10: per-pass GPU timing. Gate on the DEVICE's live feature set, not
   // the detection-time profile — initGpu only enables timestamp-query when
@@ -211,10 +226,13 @@ export async function makeRealDispatcher(
       ensemble_e: E, sample_pattern_id: patternId,
     };
 
+    const chartU = chart.chartUniforms(cView);
     device.queue.writeBuffer(staging.uniforms, 0, packSimUniforms(uniforms));
     device.queue.writeBuffer(staging.tileReq, 0, packTileRequest(tile));
-    device.queue.writeBuffer(staging.chart, 0,
-      packChartUniforms(chart.chartUniforms(cView)));
+    device.queue.writeBuffer(staging.chart, 0, packChartUniforms(chartU));
+    // Snapshot for the dev HUD's capture button (all three are fresh
+    // objects per job — safe to retain by reference).
+    last = { N, M: uniforms.checkpoint_count, uniforms, tile, chart: chartU };
     device.queue.writeBuffer(staging.ensemble, 0,
       packEnsembleOffsets(jitterOffsets(patternId, E)));
     if (linearised) {
@@ -353,6 +371,10 @@ export async function makeRealDispatcher(
 
     setRenderParams(p: RenderParams): void {
       device.queue.writeBuffer(graph.paramsBuffer, 0, packRenderParams(p));
+    },
+
+    lastDispatch(): LastDispatch | null {
+      return last;
     },
 
     dispose(): void {

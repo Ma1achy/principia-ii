@@ -1,8 +1,10 @@
 import type { CapturedFrame } from '@/debug/frame_capture.js';   // G17 base record
+import { captureFrame } from '@/debug/frame_capture.js';
 import type { ViewState } from '@/interact/view_state.js';
 import { viewStateToCacheKey } from '@/interact/view_state.js';
 import { serialiseCacheKey } from '@/quadtree/cache_key.js';
 import { jitterOffsets } from '@/quadtree/ensemble_jitter.js';
+import type { LastDispatch } from '@/app/dispatcher.js';
 
 /** Resolved sub-pixel jitter seed (one per ensemble copy). */
 export interface SeedOffset { du: number; dv: number }
@@ -49,6 +51,29 @@ export function extendCapture(
     cacheKey: serialiseCacheKey(viewStateToCacheKey(view)),
     seeds: captureSeeds(cfg),
   };
+}
+
+/**
+ * Build a live FrameCaptureV2 from the dispatcher's last dispatch and the
+ * current view (the G18 capture button's one-call glue). Pure: G17's
+ * captureFrame over the dispatch inputs, widened with the view + the seeds
+ * regenerated from the tile's own (patternId, E). Returns null when nothing
+ * has been dispatched yet.
+ */
+export function liveCaptureFrom(
+  d: LastDispatch | null, view: ViewState, label = 'live',
+): FrameCaptureV2 | null {
+  if (!d) return null;
+  return extendCapture(
+    captureFrame(d.N, d.M, d.uniforms, d.tile, d.chart, label),
+    view,
+    // G7 carries E/patternId in the TileRequest's spare lanes; a request
+    // without them is a plain E=1 dispatch.
+    {
+      E: d.tile.ensemble_e ?? 1,
+      patternId: (d.tile.sample_pattern_id ?? 0) as 0 | 1 | 2,
+    },
+  );
 }
 
 /**

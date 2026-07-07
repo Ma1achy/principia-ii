@@ -3,7 +3,8 @@ import { perfHudVM, budgetBucket } from '@/devhud/perf_view.js';
 import { errorOverlayVM, appErrorRow } from '@/devhud/error_view.js';
 import { validationVM, FTLE_DELTA_THRESHOLD } from '@/devhud/validation_view.js';
 import {
-  extendCapture, captureSeeds, checkCaptureReplayable, type FrameCaptureV2,
+  extendCapture, captureSeeds, checkCaptureReplayable, liveCaptureFrom,
+  type FrameCaptureV2,
 } from '@/devhud/capture.js';
 import {
   initDevOverlay, devOverlayReducer, DEV_TABS,
@@ -209,6 +210,29 @@ describe('extended frame-capture: ViewState + ensemble seeds', () => {
   it('a freshly-extended capture is replayable (no mismatches)', () => {
     const cap = extendCapture(baseFrame(), defaultViewState(), ensembleCfg(2, 0));
     expect(checkCaptureReplayable(cap)).toEqual([]);
+  });
+
+  it('liveCaptureFrom builds a replayable V2 from the last dispatch', () => {
+    // Structural LastDispatch: the glue only reads N/M/uniforms/tile/chart
+    // plus the tile's own ensemble fields for the seeds.
+    const d = {
+      N: 16, M: 8,
+      uniforms: { samples_per_axis: 16 } as any,
+      tile: { ensemble_e: 4, sample_pattern_id: 1 } as any,
+      chart: {} as any,
+    };
+    const cap = liveCaptureFrom(d, defaultViewState());
+    expect(cap).not.toBeNull();
+    expect(cap!.N).toBe(16);
+    expect(cap!.M).toBe(8);
+    expect(cap!.label).toBe('live');
+    expect(cap!.seeds.E).toBe(4);
+    expect(cap!.seeds.patternId).toBe(1);
+    expect(checkCaptureReplayable(cap!)).toEqual([]);
+  });
+
+  it('liveCaptureFrom is null before the first dispatch', () => {
+    expect(liveCaptureFrom(null, defaultViewState())).toBeNull();
   });
 
   it('detects a tampered cacheKey / seed table on replay check', () => {
