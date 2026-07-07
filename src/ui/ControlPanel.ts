@@ -5,6 +5,7 @@ import type {
 } from '@/render/types.js';
 import { DEFAULT_EVENT_PALETTE, EVENT_CLASS_KEYS } from '@/render/types.js';
 import { linearToSrgb, srgbToLinear } from '@/render/oklab.js';
+import { mountChartParams } from './ChartParamsPanel.js';
 import { zoomViewport } from '@/app/viewport_nav.js';
 import { bind, bindInput } from './reactive.js';
 import type { RenderParamsStore } from './render_params.js';
@@ -261,6 +262,7 @@ const CHARTS: readonly { id: string; label: string }[] = [
   { id: 'shape_sphere', label: 'Shape sphere' },
   { id: 'mass_simplex', label: 'Mass simplex' },
   { id: 'burrau_euclid', label: 'Burrau Euclid' },
+  { id: 'mixed_axis', label: 'Mixed axis (custom)' },
 ];
 const INTEGRATORS: readonly { id: IntegratorId; label: string }[] = [
   { id: 'kdk', label: 'KDK leapfrog' },
@@ -284,6 +286,7 @@ export function mountControlPanel(
           ${CHARTS.map((c) => `<option value="${c.id}">${c.label}</option>`).join('')}
         </select>
       </div>
+      <div id="chartParamsHost"></div>
     </details>
     <details class="panel" open>
       <summary><h3>Position (z₀)</h3></summary>
@@ -414,6 +417,10 @@ export function mountControlPanel(
     if (!r.ok) statusText(root, `chart switch refused: ${r.reason ?? ''}`);
     else if (r.reason) statusText(root, r.reason);
   });
+
+  // Per-chart parameters (incl. the mixed-axis custom-chart editor). Edits
+  // write chartParams, which is in the tile cache key — they recompute.
+  offs.push(mountChartParams(q<HTMLElement>('#chartParamsHost'), app));
 
   // Per-dimension z₀ sliders.
   for (const k of LATENT_DIMS) {

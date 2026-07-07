@@ -110,6 +110,21 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
     expect(JSON.stringify(app.store.snapshot())).toBe(keyBefore);
   });
 
+  it('selecting the mixed-axis chart mounts the custom-chart axis editor', () => {
+    const { root, app } = mount();
+    expect(root.querySelectorAll('#chart option')).toHaveLength(7);
+    app.store.update((v) => ({ ...v, chartType: 'mixed_axis' }));
+    // Two axis editors with kind selects + range fields appear.
+    expect(root.querySelectorAll('.axis-editor')).toHaveLength(2);
+    const kind = root.querySelector<HTMLSelectElement>('.axis-editor [data-f=kind]')!;
+    expect(kind.querySelectorAll('option')).toHaveLength(6);   // all axis kinds
+    // Editing an axis writes a full AxisSpec into chartParams.
+    kind.value = 'mass';
+    kind.dispatchEvent(new Event('change', { bubbles: true }));
+    const h = app.store.snapshot().chartParams['hAxis'] as { kind: string };
+    expect(h.kind).toBe('mass');
+  });
+
   it('the diagnostic selector is a render-only recolour — never a recompute', () => {
     const { root, app, render } = mount();
     const viewBefore = JSON.stringify(app.store.snapshot());
