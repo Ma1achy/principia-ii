@@ -3,7 +3,7 @@
 // @import { State, integrator_macro_step }                       from "./integrate.wgsl"
 // @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
 // @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
-// @import { cross_z, EPS_BOLT }                           from "./helpers.wgsl"
+// @import { cross_z, EPS_BOLT, PI }                       from "./helpers.wgsl"
 //
 // Entry-owned structs: SimUniforms / TileRequest / SimResult / ICDescriptor
 // are declared HERE and referenced by the imported units without an import
@@ -107,6 +107,69 @@ const TILE_REQ_DECODE_UPLOADED : u32 = 2u;
 @group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 @group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 
+// Shape-sphere vector of a state (mass-weighted Jacobi → n on S²).
+// Mirrors the checkpoint-capture math; hoisted so the per-step phase/arc
+// tracking and the checkpoint branch share one definition.
+fn shape_n_of(s: State) -> vec3<f32> {
+  let M01 = s.m.x + s.m.y;
+  let cx  = (s.m.x*s.r[0] + s.m.y*s.r[1]) / M01;
+  let rho = s.r[1] - s.r[0];
+  let lambda = s.r[2] - cx;
+  let muRho    = (s.m.x * s.m.y) / M01;
+  let muLambda = s.m.z * M01;
+  return shape_sphere(rho * sqrt(muRho), lambda * sqrt(muLambda));
+}
+
+// Mass-weighted phase-space separation (ADR-0003 norm; TS twin:
+// inspector/shadow.ts `sep`): Σ mᵢ|Δr|² + |Δp|²/mᵢ.
+fn ftle_sep(a: State, b: State) -> f32 {
+  var s2: f32 = 0.0;
+  for (var i = 0u; i < 3u; i = i + 1u) {
+    let dr = b.r[i] - a.r[i];
+    let dp = b.p[i] - a.p[i];
+    s2 += a.m[i] * dot(dr, dr) + dot(dp, dp) / a.m[i];
+  }
+  return sqrt(s2);
+}
+
+// Pull the shadow back to distance d0 along the current separation.
+fn ftle_renorm(base: State, shadow: State, d: f32, d0: f32) -> State {
+  var out = shadow;
+  let sc = d0 / d;
+  for (var i = 0u; i < 3u; i = i + 1u) {
+    out.r[i] = base.r[i] + (shadow.r[i] - base.r[i]) * sc;
+    out.p[i] = base.p[i] + (shadow.p[i] - base.p[i]) * sc;
+  }
+  return out;
+}
+
+// Least-squares slope ω over the checkpoints inside [t_lo, t_hi].
+// Mirrors metrics/diffusion.ts fitOmega (≥3-sample gate; den > 0).
+// Checkpoint m sits at t = (m+1)·dt_ckpt with θ̃ in the .w lane.
+fn fit_omega(
+  ckpts: array<vec4<f32>, 8>, m_count: u32, dt_ckpt: f32,
+  t_lo: f32, t_hi: f32,
+) -> vec2<f32> {                       // (omega, valid: 1/0)
+  var n: f32 = 0.0; var tBar: f32 = 0.0; var yBar: f32 = 0.0;
+  for (var m = 0u; m < m_count; m = m + 1u) {
+    let t = f32(m + 1u) * dt_ckpt;
+    if (t >= t_lo && t <= t_hi) { n += 1.0; tBar += t; yBar += ckpts[m].w; }
+  }
+  if (n < 3.0) { return vec2<f32>(0.0, 0.0); }
+  tBar /= n; yBar /= n;
+  var num: f32 = 0.0; var den: f32 = 0.0;
+  for (var m = 0u; m < m_count; m = m + 1u) {
+    let t = f32(m + 1u) * dt_ckpt;
+    if (t >= t_lo && t <= t_hi) {
+      let dt = t - tBar;
+      num += dt * (ckpts[m].w - yBar);
+      den += dt * dt;
+    }
+  }
+  if (den == 0.0) { return vec2<f32>(0.0, 0.0); }
+  return vec2<f32>(num / den, 1.0);
+}
+
 @compute @workgroup_size(8, 8, 1)
 fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   let N = uniforms.samples_per_axis;
@@ -156,6 +219,35 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   let E0  = total_energy(s);
   let Lz0 = ang_mom(s);
 
+  // Shape-sphere trace state: n(t), unwrapped phase θ̃(t), arc length.
+  // Unwrap per MACRO step (dt_macro is far below the shape period, so the
+  // per-step phase delta stays well inside ±π). TS twins:
+  // metrics/phase.ts (unwrap), metrics/arc.ts (geodesic arc).
+  var prev_n = shape_n_of(s);
+  var prev_phase = atan2(prev_n.y, prev_n.x);
+  var theta_tilde: f32 = 0.0;
+  var arc: f32 = 0.0;
+
+  // Benettin shadow trajectory for FTLE (research tier only — it doubles
+  // the integration cost). f32 CONSTRAINT: the CPU reference seeds at
+  // δ0 = 1e-8, but 1 + 1e-8 == 1 in f32 — the perturbation would vanish.
+  // Seed at 1e-4 (well above f32 ε on O(1) coordinates) and renormalise
+  // often so the separation never leaves the measurable band.
+  let want_ftle = uniforms.quality_tier == 2u;
+  let FTLE_DELTA0: f32 = 1e-4;
+  let FTLE_RENORM_EVERY: u32 = 16u;
+  var shadow: State = s;
+  if (want_ftle) {
+    let seed = FTLE_DELTA0 / sqrt(12.0);      // ADR-0003: full phase-space seed
+    for (var i = 0u; i < 3u; i = i + 1u) {
+      shadow.r[i] += vec2<f32>(seed, seed);
+      shadow.p[i] += vec2<f32>(seed, seed);
+    }
+  }
+  var ftle_S: f32 = 0.0;
+  var renorms: u32 = 0u;
+  var steps_since_renorm: u32 = 0u;
+
   // Integration loop with checkpointing.
   var checkpoints: array<vec4<f32>, 8>;
   let M = uniforms.checkpoint_count;
@@ -178,6 +270,22 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     totalSubsteps += nsub;
     maxSub = max(maxSub, nsub);
 
+    // Benettin shadow: same integrator, same macro cadence; measure and
+    // renormalise every FTLE_RENORM_EVERY steps in the mass-weighted norm.
+    if (want_ftle) {
+      let _ns = integrator_macro_step(&shadow, uniforms);
+      steps_since_renorm += 1u;
+      if (steps_since_renorm >= FTLE_RENORM_EVERY) {
+        let d = ftle_sep(s, shadow);
+        if (d > 0.0 && d < 1e30) {
+          ftle_S += log(d / FTLE_DELTA0);
+          shadow = ftle_renorm(s, shadow, d, FTLE_DELTA0);
+          renorms += 1u;
+        }
+        steps_since_renorm = 0u;
+      }
+    }
+
     // Energy / Lz drift tracking.
     let E  = total_energy(s);
     let Lz = ang_mom(s);
@@ -188,20 +296,21 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
               min(length(s.r[2]-s.r[0]), length(s.r[2]-s.r[1])));
     dmin = min(dmin, rmin);
 
-    // Checkpoint capture (corrected shape-sphere coordinate).
+    // Shape trace: phase unwrap + geodesic arc, every macro step. The
+    // wrapped delta stays inside ±π because dt_macro ≪ the shape period.
+    let n = shape_n_of(s);
+    let ph = atan2(n.y, n.x);
+    var dph = ph - prev_phase;
+    if (dph >  PI) { dph -= 2.0 * PI; }
+    if (dph < -PI) { dph += 2.0 * PI; }
+    theta_tilde += dph;
+    arc += acos(clamp(dot(prev_n, n), -1.0, 1.0));
+    prev_n = n; prev_phase = ph;
+
+    // Checkpoint capture: n(t_m) in .xyz, unwrapped phase θ̃(t_m) in .w
+    // (the spec's SimResult contract; geometry readers must ignore .w).
     if (ck < M && s.t >= nextCkpt) {
-      // Rebuild the canonical-frame Jacobi vectors for the shape sphere.
-      let M01 = s.m.x + s.m.y;
-      let cx  = (s.m.x*s.r[0] + s.m.y*s.r[1]) / M01;
-      let rho = s.r[1] - s.r[0];
-      let lambda = s.r[2] - cx;
-      let muRho    = (s.m.x * s.m.y) / M01;
-      let muLambda = s.m.z * M01;
-      let rho_t    = rho    * sqrt(muRho);
-      let lambda_t = lambda * sqrt(muLambda);
-      let n = shape_sphere(rho_t, lambda_t);
-      // .w = unwrapped phase placeholder for M6; M3 leaves it 0.
-      checkpoints[ck] = vec4<f32>(n, 0.0);
+      checkpoints[ck] = vec4<f32>(n, theta_tilde);
       ck += 1u;
       nextCkpt += dtCkpt;
     }
@@ -226,22 +335,48 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     checkpoints[k] = checkpoints[max(ck, 1u) - 1u];
   }
 
+  // Frequency diffusion: two-window least-squares ω fit over the
+  // checkpoint (t_m, θ̃_m) series (spec §freq_diffusion; TS twin
+  // metrics/diffusion.ts). Only meaningful for a BOUNDED run with a full
+  // checkpoint set — padded lanes would poison the fit — else sentinel -1.
+  var diffusion: f32 = -1.0;
+  if (terminal_kind == 0u && ck == M) {
+    let T = uniforms.T_horizon;
+    let w1 = fit_omega(checkpoints, M, dtCkpt, T * 0.25, T * 0.5);
+    let w2 = fit_omega(checkpoints, M, dtCkpt, T * 0.5,  T * 0.75);
+    if (w1.y > 0.5 && w2.y > 0.5) { diffusion = abs(w2.x - w1.x); }
+  }
+
+  // Benettin FTLE: λ = S / t over the renormalisation history. Valid only
+  // for BOUNDED outcomes with at least one renormalisation (FTLE_VALID,
+  // bit 7) — near a collision the separation explodes at the singularity
+  // and λ measures the event, not the flow. Mirrors the CPU inspector's
+  // bounded-only gate.
+  var ftle: f32 = 0.0;
+  var ftle_valid: u32 = 0u;
+  if (want_ftle && terminal_kind == 0u && renorms > 0u && s.t > 0.0) {
+    ftle = ftle_S / s.t;
+    ftle_valid = 1u;
+  }
+
   // Write SimResult.
   var r: SimResult;
   r.n_checkpoints   = checkpoints;
-  r.free_group_word = vec4<u32>(0u, 0u, 0u, 0u);     // M6
-  r.arc_length_n    = 0.0;                            // M6
+  r.free_group_word = vec4<u32>(0u, 0u, 0u, 0u);     // Stage 5: symbolic dynamics
+  r.arc_length_n    = arc;
   r.t_end           = s.t;
   r.d_min           = dmin;
-  r.ftle            = 0.0;                            // M6 / Research tier
-  r.diffusion       = -1.0;                           // M6
+  r.ftle            = ftle;
+  r.diffusion       = diffusion;
   r.delta_E_max_abs = dE_max;
   r.energy_drift    = dE_max / max(abs(E0), uniforms.eps_E);
   r.delta_Lz_max_abs = dLz_max;
   r.Lz_drift         = dLz_max / max(abs(Lz0), uniforms.eps_L);
   r.E_0  = E0; r.Lz_0 = Lz0;
   r.sample_descriptor = (terminal_kind & 0x7u)
-                       | ((terminal_detail & 0x3u) << 3u);
+                       | ((terminal_detail & 0x3u) << 3u)
+                       | (ftle_valid << 7u)
+                       | (min(renorms, 127u) << 23u);
   r.trajectory_stats  = 0u;
   results[idx] = r;
 

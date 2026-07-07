@@ -119,6 +119,8 @@ var<workgroup> shared_d_min:     array<f32, 64>;
 var<workgroup> shared_drift:     array<f32, 64>;
 var<workgroup> shared_diff:      array<f32, 64>;
 var<workgroup> shared_diff_n:    array<f32, 64>;
+var<workgroup> shared_ftle:      array<f32, 64>;
+var<workgroup> shared_ftle_n:    array<f32, 64>;
 var<workgroup> shared_ckpt:      array<array<vec4<f32>, 8>, 64>;   // G7
 var<workgroup> shared_class_hist: array<atomic<u32>, 5>;
 var<workgroup> shared_suspect_e: array<atomic<u32>, 1>;
@@ -170,6 +172,8 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   var drift_sum: f32 = 0.0;
   var diff_sum:  f32 = 0.0;
   var diff_count: f32 = 0.0;
+  var ftle_sum:  f32 = 0.0;
+  var ftle_count: f32 = 0.0;
   var ckpt_sum: array<vec4<f32>, 8>;          // G7: checkpoint means
   for (var m = 0u; m < 8u; m = m + 1u) { ckpt_sum[m] = vec4<f32>(0.0); }
 
@@ -187,6 +191,10 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     if (r.diffusion >= 0.0) {       // sentinel guard
       diff_sum   = diff_sum + r.diffusion;
       diff_count = diff_count + 1.0;
+    }
+    if (((r.sample_descriptor >> 7u) & 1u) == 1u) {  // FTLE_VALID only
+      ftle_sum   = ftle_sum + r.ftle;
+      ftle_count = ftle_count + 1.0;
     }
 
     let cls = r.sample_descriptor & 0x7u;
@@ -210,6 +218,8 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   shared_drift[lane]  = drift_sum;
   shared_diff[lane]   = diff_sum;
   shared_diff_n[lane] = diff_count;
+  shared_ftle[lane]   = ftle_sum;
+  shared_ftle_n[lane] = ftle_count;
   for (var m = 0u; m < 8u; m = m + 1u) { shared_ckpt[lane][m] = ckpt_sum[m]; }
   workgroupBarrier();
 
@@ -229,6 +239,8 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
   let sumDrift = parallel_sum(&shared_drift,  lane);
   let sumDiff  = parallel_sum(&shared_diff,   lane);
   let sumDiffN = parallel_sum(&shared_diff_n, lane);
+  let sumFtle  = parallel_sum(&shared_ftle,   lane);
+  let sumFtleN = parallel_sum(&shared_ftle_n, lane);
 
   if (lane == 0u) {
     let n = f32(total);
@@ -244,7 +256,11 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     out.mean_arc_length_n = sumArc   / n;
     out.mean_t_end        = sumTend  / n;
     out.mean_d_min        = sumDmin  / n;
-    out.mean_ftle         = 0.0;        // M6 (FTLE lane not yet meaningful)
+    if (sumFtleN > 0.0) {
+      out.mean_ftle = sumFtle / sumFtleN;      // FTLE_VALID samples only
+    } else {
+      out.mean_ftle = 0.0;                     // no valid FTLE (non-research tier)
+    }
     out.mean_energy_drift = sumDrift / n;
     if (sumDiffN > 0.0) {
       out.mean_diffusion = sumDiff / sumDiffN;
@@ -275,7 +291,7 @@ fn reduce(@builtin(local_invocation_id) lid : vec3<u32>) {
     out.spread_arc_length_n   = 0.0;
     out.spread_t_end          = 0.0;
     out.spread_d_min          = 0.0;
-    out.spread_ftle           = 0.0;       // FTLE lane not yet meaningful (M6)
+    out.spread_ftle           = 0.0;       // filled by the second pass
     out.spread_energy_drift   = 0.0;
     out.spread_diffusion      = 0.0;
 
@@ -338,6 +354,8 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
   var acc_drift: f32 = 0.0;
   var acc_diff:  f32 = 0.0;
   var diff_count: f32 = 0.0;
+  var acc_ftle:  f32 = 0.0;
+  var ftle_count: f32 = 0.0;
   var ang_max:   f32 = 0.0;
 
   var i = lane;
@@ -352,6 +370,11 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
       let df = r.diffusion - mean_diff;
       acc_diff   = acc_diff + df * df;
       diff_count = diff_count + 1.0;
+    }
+    if (((r.sample_descriptor >> 7u) & 1u) == 1u) { // FTLE_VALID only
+      let dfl = r.ftle - out.mean_ftle;
+      acc_ftle   = acc_ftle + dfl * dfl;
+      ftle_count = ftle_count + 1.0;
     }
     for (var m = 0u; m < uniforms.checkpoint_count; m = m + 1u) {
       let nm = out.mean_n_checkpoints[m].xyz;
@@ -370,6 +393,8 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
   shared_drift[lane]  = acc_drift;
   shared_diff[lane]   = acc_diff;
   shared_diff_n[lane] = diff_count;
+  shared_ftle[lane]   = acc_ftle;
+  shared_ftle_n[lane] = ftle_count;
   workgroupBarrier();
   let sum_arc   = parallel_sum(&shared_arc,    lane);
   let sum_tend  = parallel_sum(&shared_t_end,  lane);
@@ -377,6 +402,8 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
   let sum_drift = parallel_sum(&shared_drift,  lane);
   let sum_diff  = parallel_sum(&shared_diff,   lane);
   let sum_diffn = parallel_sum(&shared_diff_n, lane);
+  let sum_ftle  = parallel_sum(&shared_ftle,   lane);
+  let sum_ftlen = parallel_sum(&shared_ftle_n, lane);
   workgroupBarrier();
   shared_arc[lane] = ang_max;
   workgroupBarrier();
@@ -392,6 +419,11 @@ fn reduce_spreads(@builtin(local_invocation_id) lid : vec3<u32>) {
       out.spread_diffusion = sqrt(sum_diff / sum_diffn);
     } else {
       out.spread_diffusion = 0.0;
+    }
+    if (sum_ftlen > 0.0) {
+      out.spread_ftle = sqrt(sum_ftle / sum_ftlen);
+    } else {
+      out.spread_ftle = 0.0;
     }
     out.spread_n = spread_ang;
   }

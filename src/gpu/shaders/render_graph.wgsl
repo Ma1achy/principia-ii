@@ -7,7 +7,7 @@
 
 // @import { PI, linear_to_srgb }                       from "./render_helpers.wgsl"
 // @import { palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
-// @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift } from "./brightness_modes.wgsl"
+// @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift, brightness_ftle } from "./brightness_modes.wgsl"
 // @import { combine_replace_lightness, combine_modulate_lightness, combine_multiply_rgb } from "./combiner.wgsl"
 // @import { apply_cvd }                                from "./cvd.wgsl"
 //
@@ -239,17 +239,24 @@ fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
     case 20u: { rgb = palette_seq(clamp(log(r.Lz_drift + 1e-10) / log(1e-2) - 1.0, 0.0, 1.0)); }
     case 21u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKLAB); }
     case 22u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKABE_ITO); }
-    default:  { rgb = stability_x_hue(n_last, r.diffusion, rparams.vmf_kappa, rparams.vmf_chroma); }
+    case 23u: { rgb = stability_x_hue(n_last, r.diffusion, rparams.vmf_kappa, rparams.vmf_chroma); }
+    // 24 "none": constant mid-grey — the brightness node carries everything
+    // (colour none + replace-lightness combiner = a pure greyscale map).
+    default:  { rgb = vec3<f32>(0.5, 0.5, 0.5); }
   }
 
   // 2. Brightness node.
+  // FTLE validity: pass -1 when the sample's FTLE_VALID bit (7) is clear so
+  // brightness_ftle renders neutral instead of treating "not computed" as 0.
+  let ftle_v = select(-1.0, r.ftle, ((r.sample_descriptor >> 7u) & 1u) == 1u);
   var L: f32 = 1.0;
   switch (rparams.brightness_mode_id) {
-    case 0u: { L = 1.0; }
+    case 0u: { L = 1.0; }                     // "none": colour carries everything
     case 1u: { L = brightness_time_to_event(r.t_end, uniforms.T_horizon); }
     case 2u: { L = brightness_diffusion(r.diffusion); }
     case 3u: { L = brightness_bc_proximity(n_last); }
-    default: { L = brightness_energy_drift(r.energy_drift); }
+    case 4u: { L = brightness_energy_drift(r.energy_drift); }
+    default: { L = brightness_ftle(ftle_v); }
   }
 
   // 3. Combiner.

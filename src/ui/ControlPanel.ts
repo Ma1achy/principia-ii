@@ -43,11 +43,15 @@ const COLOUR_MODE_GROUPS: readonly { group: string; modes: readonly { id: Colour
     { id: 'shape_sphere_okabe_ito', label: 'Shape sphere (Okabe–Ito)' },
     { id: 'stability_x_hue', label: 'Stability × hue' },
   ] },
+  { group: 'None', modes: [
+    { id: 'none', label: 'None (brightness only)' },
+  ] },
 ];
 const BRIGHTNESS_MODES: readonly { id: BrightnessMode; label: string }[] = [
-  { id: 'flat', label: 'Flat' }, { id: 'time_to_event', label: 'Time to event' },
+  { id: 'flat', label: 'None (flat)' }, { id: 'time_to_event', label: 'Time to event' },
   { id: 'diffusion', label: 'Diffusion' }, { id: 'bc_proximity', label: 'BC proximity' },
   { id: 'energy_drift', label: 'Energy drift' },
+  { id: 'ftle', label: 'FTLE (research tier)' },
 ];
 const COMBINER_MODES: readonly { id: CombinerMode; label: string }[] = [
   { id: 'replace_lightness', label: 'Replace lightness' },

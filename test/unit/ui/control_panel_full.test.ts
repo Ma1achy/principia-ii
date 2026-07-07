@@ -53,10 +53,12 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
     for (let k = 0; k < 8; k++) expect(root.querySelector(`#z${k}`)).not.toBeNull();
   });
 
-  it('offers all 24 colour modes and all 5/3 brightness/combiner modes', () => {
+  it('offers all 25 colour modes (incl. none) and 6/3 brightness/combiner modes', () => {
     const { root } = mount();
-    expect(root.querySelectorAll('#colourMode option')).toHaveLength(24);
-    expect(root.querySelectorAll('#brightness option')).toHaveLength(5);
+    expect(root.querySelectorAll('#colourMode option')).toHaveLength(25);
+    expect(root.querySelector('#colourMode option[value="none"]')).not.toBeNull();
+    expect(root.querySelectorAll('#brightness option')).toHaveLength(6);
+    expect(root.querySelector('#brightness option[value="ftle"]')).not.toBeNull();
     expect(root.querySelectorAll('#combiner option')).toHaveLength(3);
   });
 

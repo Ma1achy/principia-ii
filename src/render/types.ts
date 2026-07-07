@@ -9,14 +9,16 @@ export type ColourMode =
   | 'energy_drift_abs' | 'energy_drift_rel'
   | 'lz_drift_abs'  | 'lz_drift_rel'
   | 'shape_sphere_vmf' | 'shape_sphere_okabe_ito'
-  | 'stability_x_hue';
+  | 'stability_x_hue'
+  | 'none';                         // constant mid-grey: brightness carries everything
 
 export type BrightnessMode =
-  | 'flat'
+  | 'flat'                          // "none": L = 1, colour carries everything
   | 'time_to_event'
   | 'diffusion'
   | 'bc_proximity'
-  | 'energy_drift';
+  | 'energy_drift'
+  | 'ftle';                         // Benettin FTLE (research tier computes it)
 
 export type CombinerMode =
   | 'replace_lightness'    // OKLAB-correct, default
