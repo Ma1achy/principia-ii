@@ -10,9 +10,9 @@
 // wgslTileReductionStruct(8) in src/gpu/structs.ts (ADR 0006). The golden
 // test diffs the two; edit the TILE_REDUCTION_FIELDS table, never this text.
 
+// G4: slimmed to frame-constant quantities (integration setup + event
+// thresholds). Chart hyperparameters live in ChartUniforms at g0b3.
 struct SimUniforms {
-  m:                vec3<f32>,
-  M_total:          f32,
   G:                f32,
   dt_macro:         f32,
   N_max:            u32,
@@ -28,9 +28,6 @@ struct SimUniforms {
   quality_tier:     u32,
   checkpoint_count: u32,
   samples_per_axis: u32,
-  mu_max:           f32,
-  alpha_min:        f32,
-  q_max:            f32,
 };
 
 struct TileRequest {

@@ -12,6 +12,7 @@ import { scanNonFinite, nonFiniteSamples } from '@/debug/finite_scan.js';
 import { captureFrame, serializeFrame, deserializeFrame, packedInputs } from '@/debug/frame_capture.js';
 import type { SimUniforms, TileRequest } from '@/gpu/structs.js';
 import { sizeOfSimResult } from '@/gpu/structs.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { wgslLink } from '@/gpu/wgsl/link.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -33,11 +34,10 @@ function hasWebGPU(): boolean {
 describe.skipIf(!hasWebGPU())('debug harness (real M3 dispatch)', () => {
   const N = 16, M = 8;
   const uniforms: SimUniforms = {
-    m: [1 / 3, 1 / 3, 1 / 3], M_total: 1, G: 1,
+    G: 1,
     dt_macro: 1e-3, N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 50,
     r_coll: 1e-4, R_esc: 10, k_esc: 8, eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
     quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
-    mu_max: 5, alpha_min: 0.05, q_max: 2,
   };
   const tile: TileRequest = {
     z: 0, tx: 0, ty: 0, level: 0, uv_centre: [0.5, 0.5], uv_half: [0.5, 0.5], flags: 0,
@@ -72,9 +72,11 @@ describe.skipIf(!hasWebGPU())('debug harness (real M3 dispatch)', () => {
     expect(nonFiniteSamples(scanNonFinite(ab, N, M))).toEqual([]);
 
     // Capture this exact frame and confirm the round-trip re-packs identically.
-    const f1 = deserializeFrame(serializeFrame(captureFrame(N, M, uniforms, tile)));
+    const f1 = deserializeFrame(serializeFrame(
+      captureFrame(N, M, uniforms, tile, CHART_UNIFORMS_DEFAULTS)));
     const re = packedInputs(f1);
-    expect(re.uniforms.byteLength).toBe(96);
+    expect(re.uniforms.byteLength).toBe(64);
     expect(re.tile.byteLength).toBe(48);
+    expect(re.chart.byteLength).toBe(64);
   }, 120_000);
 });

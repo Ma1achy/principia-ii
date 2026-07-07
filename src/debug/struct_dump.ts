@@ -21,28 +21,45 @@ export interface StructLayout {
   fields: readonly FieldOffset[];
 }
 
-/** SimUniforms layout — mirrors packSimUniforms (96 bytes). */
+/** SimUniforms layout — mirrors packSimUniforms (64 bytes after G4). */
 export function simUniformsLayout(): StructLayout {
   const f = (name: string, offset: number, wgslType: string, size = 4): FieldOffset =>
     ({ name, offset, size, wgslType });
   return {
     struct: 'SimUniforms',
-    totalSize: 96,
+    totalSize: 64,
     fields: [
-      f('m', 0, 'vec3<f32>', 12),
-      f('M_total', 12, 'f32'),
-      f('G', 16, 'f32'),          f('dt_macro', 20, 'f32'),
-      f('N_max', 24, 'u32'),      f('r_sub', 28, 'f32'),
-      f('gamma_sub', 32, 'f32'),  f('T_horizon', 36, 'f32'),
-      f('r_coll', 40, 'f32'),     f('R_esc', 44, 'f32'),
-      f('k_esc', 48, 'u32'),      f('eps_E', 52, 'f32'),
-      f('eps_L', 56, 'f32'),      f('r_close', 60, 'f32'),
-      f('quality_tier', 64, 'u32'),
-      f('checkpoint_count', 68, 'u32'),
-      f('samples_per_axis', 72, 'u32'),
-      f('mu_max', 76, 'f32'),     f('alpha_min', 80, 'f32'),
-      f('q_max', 84, 'f32'),
-      // f32[22..23] (offsets 88, 92) are trailing pad to 96.
+      f('G', 0, 'f32'),           f('dt_macro', 4, 'f32'),
+      f('N_max', 8, 'u32'),       f('r_sub', 12, 'f32'),
+      f('gamma_sub', 16, 'f32'),  f('T_horizon', 20, 'f32'),
+      f('r_coll', 24, 'f32'),     f('R_esc', 28, 'f32'),
+      f('k_esc', 32, 'u32'),      f('eps_E', 36, 'f32'),
+      f('eps_L', 40, 'f32'),      f('r_close', 44, 'f32'),
+      f('quality_tier', 48, 'u32'),
+      f('checkpoint_count', 52, 'u32'),
+      f('samples_per_axis', 56, 'u32'),
+      // f32[15] (offset 60) is trailing pad to 64.
+    ],
+  };
+}
+
+/** ChartUniforms layout — mirrors packChartUniforms (64 bytes, G4).
+ *  m*_target are three SCALARS, not a vec3 (a vec3 would 16-align to 48). */
+export function chartUniformsLayout(): StructLayout {
+  const f = (name: string, offset: number, wgslType: string, size = 4): FieldOffset =>
+    ({ name, offset, size, wgslType });
+  return {
+    struct: 'ChartUniforms',
+    totalSize: 64,
+    fields: [
+      f('mu_max', 0, 'f32'),        f('alpha_min', 4, 'f32'),
+      f('q_max', 8, 'f32'),         f('R_tilde', 12, 'f32'),
+      f('Kmax', 16, 'f32'),         f('gamma_K', 20, 'f32'),
+      f('alpha_freeze', 24, 'f32'), f('beta_freeze', 28, 'f32'),
+      f('pole_buffer', 32, 'f32'),  f('nu_burrau', 36, 'f32'),
+      f('m1_target', 40, 'f32'),    f('m2_target', 44, 'f32'),
+      f('m3_target', 48, 'f32'),
+      // f32[13..15] (offsets 52..63) reserved.
     ],
   };
 }
@@ -87,5 +104,6 @@ export function formatLayout(layout: StructLayout): string {
 /** Dump both M3 structs to a sink (defaults to console.log). */
 export function dumpStructLayouts(M = M_DEFAULT, sink: (s: string) => void = console.log): void {
   sink(formatLayout(simUniformsLayout()));
+  sink(formatLayout(chartUniformsLayout()));
   sink(formatLayout(simResultLayout(M)));
 }

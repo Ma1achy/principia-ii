@@ -1,4 +1,5 @@
 import type { Chart, ChartDecodeOut, ChartView } from '../types.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_INVARIANT } from '../flags.js';
 import { realiseFrozenConfig } from '../frozen_configuration.js';
 import { constructMomentaForLzK } from '../momentum_construction.js';
@@ -77,6 +78,16 @@ export const lzEChart: Chart = {
       kind: 'projected',
       pixel: { s: 0.5 + 0.5 * Math.sign(Lz), t: 0.5 },
       reason: `lz_e inverse needs chart params (Lz=${Lz.toPrecision(6)}, E=${E.toPrecision(6)})`,
+    };
+  },
+
+  chartUniforms(view) {
+    return {
+      ...CHART_UNIFORMS_DEFAULTS,
+      Kmax:         (view.chartParams['Kmax']   as number | undefined) ?? 2,
+      gamma_K:      (view.chartParams['gammaK'] as number | undefined) ?? 2,
+      alpha_freeze: (view.chartParams['alpha']  as number | undefined) ?? Math.PI / 4,
+      beta_freeze:  (view.chartParams['beta']   as number | undefined) ?? Math.PI / 2,
     };
   },
 

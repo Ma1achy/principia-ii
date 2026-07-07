@@ -1,3 +1,4 @@
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import type { Chart } from '@/chart_atlas/types.js';
 import { FLAGS_INVARIANT } from '@/chart_atlas/flags.js';
 import { burrauTriangle, nuFromAcuteAngle } from './euclid.js';
@@ -47,6 +48,10 @@ export function makeAcuteAngleKChart(opts: {
                  descriptor: makeDescriptor(c.state) };
       }
       return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
+    },
+
+    chartUniforms() {
+      return CHART_UNIFORMS_DEFAULTS;
     },
 
     inverseEncode() {

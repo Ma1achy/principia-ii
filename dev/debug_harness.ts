@@ -14,6 +14,7 @@ import { pickSample, type InspectRow } from '@/debug/inspector.js';
 import { dumpStructLayouts } from '@/debug/struct_dump.js';
 import { scanNonFinite, nonFiniteSamples } from '@/debug/finite_scan.js';
 import { captureFrame, serializeFrame, deserializeFrame } from '@/debug/frame_capture.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { Logger, consoleSink, type LogRecord } from '@/debug/logger.js';
 
 // Linked shader modules (G1 wgslLink; replaces the M3 hand concat).
@@ -32,11 +33,10 @@ const paneSink = (rec: LogRecord): void => {
 const log = new Logger({ sink: paneSink });
 
 const DEFAULT_UNIFORMS: SimUniforms = {
-  m: [1 / 3, 1 / 3, 1 / 3], M_total: 1, G: 1,
+  G: 1,
   dt_macro: 1e-3, N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 50,
   r_coll: 1e-4, R_esc: 10, k_esc: 8, eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
   quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
-  mu_max: 5, alpha_min: 0.05, q_max: 2,
 };
 const DEFAULT_TILE: TileRequest = {
   z: 0, tx: 0, ty: 0, level: 0,
@@ -158,7 +158,7 @@ async function main(): Promise<void> {
       log.warn(`non-finite samples: ${JSON.stringify(nonFiniteSamples(hits))}`);
     },
     onCapture: () => {
-      const json = serializeFrame(captureFrame(N, M, DEFAULT_UNIFORMS, DEFAULT_TILE, 'dev capture'));
+      const json = serializeFrame(captureFrame(N, M, DEFAULT_UNIFORMS, DEFAULT_TILE, CHART_UNIFORMS_DEFAULTS, 'dev capture'));
       void deserializeFrame(json);   // validate round-trip before download
       downloadJson('frame.json', json);
       log.info('captured frame.json');

@@ -22,7 +22,7 @@ export function createTileBuffers(
   const { device } = ctx;
 
   const uniforms   = device.createBuffer({
-    size: 96, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    size: 64, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });   // G4: slimmed SimUniforms
 
   const tileReq    = device.createBuffer({
     size: 48, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });

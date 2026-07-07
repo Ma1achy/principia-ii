@@ -41,11 +41,10 @@ function log(msg: string): void {
 }
 
 const DEFAULT_UNIFORMS: SimUniforms = {
-  m: [1 / 3, 1 / 3, 1 / 3], M_total: 1, G: 1,
+  G: 1,
   dt_macro: 1e-3, N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 50,
   r_coll: 1e-4, R_esc: 10, k_esc: 8, eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
   quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
-  mu_max: 5, alpha_min: 0.05, q_max: 2,
 };
 const DEFAULT_TILE: TileRequest = {
   z: 0, tx: 0, ty: 0, level: 0,

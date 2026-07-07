@@ -1,5 +1,6 @@
 import type { Vec2, Vec3, Vec8, TerminalLabel, TrajState } from '@/math/types.js';
 import type { ICDescriptor } from '@/decode/types.js';
+import type { ChartUniforms } from '@/gpu/chart_uniforms.js';
 
 export type ChartId =
   | 'latent_slice'
@@ -56,6 +57,9 @@ export interface Chart {
   inverseEncode(ic: TrajState): EncodeResult;
   /** Validate (uv) is a representable point in the chart for this view. */
   validate(uv: Vec2, view: ChartView): ValidationResult;
+  /** Per-chart decoder knobs for the GPU (G4): packed into the
+   *  ChartUniforms buffer at group(0) binding(3) on dispatch. */
+  chartUniforms(view: ChartView): ChartUniforms;
   /** Optional: chart-specific WGSL fragment to inline at dispatch time. */
   wgsl?: string;
 }

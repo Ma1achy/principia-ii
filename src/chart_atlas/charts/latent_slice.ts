@@ -1,4 +1,5 @@
 import type { Chart } from '../types.js';
+import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_DEFAULT } from '../flags.js';
 import { decodeLatent } from '@/decode/pipeline.js';
 import { inverseEncodeLatent } from '@/decode/inverse.js';
@@ -29,6 +30,10 @@ export const latentSliceChart: Chart = {
   inverseEncode(ic) {
     const enc = inverseEncodeLatent(ic, KNOBS);
     return { kind: enc.clamped ? 'projected' : 'exact', z: enc.z, clamped: enc.clamped };
+  },
+
+  chartUniforms() {
+    return CHART_UNIFORMS_DEFAULTS;
   },
 
   validate([u, v]) {

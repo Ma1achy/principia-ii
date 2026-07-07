@@ -1,19 +1,44 @@
 import { describe, it, expect } from 'vitest';
-import { simUniformsLayout, simResultLayout, formatLayout } from '@/debug/struct_dump.js';
+import {
+  simUniformsLayout, chartUniformsLayout, simResultLayout, formatLayout,
+} from '@/debug/struct_dump.js';
 import { sizeOfSimResult } from '@/gpu/structs.js';
 
 describe('simUniformsLayout', () => {
   const L = simUniformsLayout();
-  it('totals 96 bytes and matches packSimUniforms offsets', () => {
-    expect(L.totalSize).toBe(96);
+  it('totals 64 bytes and matches packSimUniforms offsets (G4 slim layout)', () => {
+    expect(L.totalSize).toBe(64);
     const off = Object.fromEntries(L.fields.map((f) => [f.name, f.offset]));
-    expect(off['M_total']).toBe(12);
-    expect(off['samples_per_axis']).toBe(72);
-    expect(off['mu_max']).toBe(76);
-    expect(off['q_max']).toBe(84);
+    expect(off['G']).toBe(0);
+    expect(off['N_max']).toBe(8);
+    expect(off['k_esc']).toBe(32);
+    expect(off['samples_per_axis']).toBe(56);
   });
   it('every field fits inside the struct', () => {
-    for (const f of L.fields) expect(f.offset + f.size).toBeLessThanOrEqual(96);
+    for (const f of L.fields) expect(f.offset + f.size).toBeLessThanOrEqual(64);
+  });
+});
+
+describe('chartUniformsLayout (G4)', () => {
+  const L = chartUniformsLayout();
+  it('totals 64 bytes; m*_target are scalars at 40/44/48, NOT a 16-aligned vec3', () => {
+    expect(L.totalSize).toBe(64);
+    const off = Object.fromEntries(L.fields.map((f) => [f.name, f.offset]));
+    expect(off['mu_max']).toBe(0);
+    expect(off['nu_burrau']).toBe(36);
+    expect(off['m1_target']).toBe(40);
+    expect(off['m2_target']).toBe(44);
+    expect(off['m3_target']).toBe(48);
+  });
+  it('matches packChartUniforms lane-for-lane', async () => {
+    const { packChartUniforms, CHART_UNIFORMS_DEFAULTS } =
+      await import('@/gpu/chart_uniforms.js');
+    const f = new Float32Array(packChartUniforms(
+      { ...CHART_UNIFORMS_DEFAULTS, nu_burrau: 0.75, m_target: [0.5, 0.3, 0.2] }));
+    expect(f[9]).toBeCloseTo(0.75, 6);
+    expect(f[10]).toBeCloseTo(0.5, 6);
+    expect(f[11]).toBeCloseTo(0.3, 6);
+    expect(f[12]).toBeCloseTo(0.2, 6);
   });
 });
 

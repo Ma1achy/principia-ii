@@ -28,7 +28,12 @@ chart (α_min = 0.20) does not trigger a shader recompile; the
 `ChartUniforms` buffer rebinds and the next dispatch reads the new
 values.
 
-**Deliverable:** internal — tests only; per-chart decoder knobs live in a `ChartUniforms` buffer at group(0) binding(3) (the G3-reserved slot; binding 2 is G17's DebugUniform) so changing a chart's parameters rebinds without a shader recompile, verified by `test/integration/chart_uniforms`.
+**Deliverable:** per-chart decoder knobs live in a `ChartUniforms` buffer at
+group(0) binding(3) (the G3-reserved slot; binding 2 is G17's DebugUniform) so
+changing a chart's parameters rebinds without a shader recompile, verified by
+`test/integration/chart_uniforms` and on a real device by `npm run gpu:check`
+(unchanged gpuDisagree = 95 proves the promoted decode is behaviour-identical)
+plus the m5/m7/g17/depth-stress page checks.
 
 ## File tree
 
@@ -37,8 +42,12 @@ principia/
   src/
     gpu/
       chart_uniforms.ts         # the new struct + packing
-      structs.ts                # SimUniforms slimmed down
-      buffers.ts                # one extra buffer in TileBuffers
+      structs.ts                # SimUniforms slimmed down (96 -> 64 B)
+      buffers.ts                # uniforms buffer 96 -> 64; bufs.chart packed
+      dispatch_layer0.ts        # DispatchView gains chart?; writes bufs.chart
+    debug/
+      struct_dump.ts            # SimUniforms table redone + chartUniformsLayout
+      frame_capture.ts          # v2: capture carries ChartUniforms
     chart_atlas/
       types.ts                  # Chart adds chartUniforms()
       registry.ts               # ditto
@@ -202,6 +211,10 @@ specified.)
 // @import { sigmoid, mass_softmax } from "./helpers.wgsl"
 
 // @export
+// The target masses are THREE SCALARS, not a vec3: a vec3<f32> aligns to
+// 16 and would land at offset 48, silently skipping the lane the TS packer
+// writes at offset 40. (An earlier draft of this doc used vec3 here,
+// contradicting its own slot map above.)
 struct ChartUniforms {
   mu_max:       f32,
   alpha_min:    f32,
@@ -213,52 +226,61 @@ struct ChartUniforms {
   beta_freeze:  f32,
   pole_buffer:  f32,
   nu_burrau:    f32,
-  m_target:     vec3<f32>,
+  m1_target:    f32,
+  m2_target:    f32,
+  m3_target:    f32,
 };
 
 // @export
-fn decode_full(z: array<f32, 8>, ch: ChartUniforms) -> ICOut {
+// r_coll is passed separately: the no-holes guard threshold is an EVENT
+// parameter and stays in SimUniforms — folding it into ChartUniforms would
+// let a chart silently diverge from the integrator's collision radius.
+fn decode_full(z: array<f32, 8>, ch: ChartUniforms, r_coll: f32) -> ICOut {
   var out: ICOut;
-  let m  = mass_softmax(z[6], z[7], ch.mu_max);
-  out.m  = m;
-
-  let alpha = ch.alpha_min
-            + (PI/2.0 - 2.0*ch.alpha_min) * sigmoid(z[0]);
-  let beta  = PI * sigmoid(z[1]);
-
-  // ... same body as before, just reading ch.* instead of uniforms.*
+  let cfg = decode_latent(z, ch);          // reads ch.mu_max / ch.alpha_min
+  // ... same body as before, just reading ch.* instead of uniforms.*,
+  // and the no-holes guard compares dmin < r_coll.
 }
 ```
 
 ### `src/gpu/shaders/simulate.wgsl`
 
 ```wgsl
-// @import "./helpers.wgsl"
-// @import "./decode.wgsl"
-// @import "./integrate.wgsl"
-// @import "./events.wgsl"
-// @import "./metrics.wgsl"
+// @import { decode_full, ICOut, ChartUniforms }           from "./decode.wgsl"
+// (other named imports unchanged from G1 — integrate/events/observe/helpers)
 
 @group(0) @binding(0) var<uniform> uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform> tile_req : TileRequest;
-@group(0) @binding(3) var<uniform> chart    : ChartUniforms;
+@group(0) @binding(3) var<uniform> chart    : ChartUniforms;   // G4
 
 @compute @workgroup_size(8, 8, 1)
 fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
-  // ... call decode_full(z, chart) ...
+  // ... let ic_out = decode_full(z, chart, uniforms.r_coll); ...
 }
 ```
 
+The same slimmed `SimUniforms` struct is repeated in all four WGSL copies
+(simulate, reduce, render_graph, render_layer0) — the one-artifact rule
+applies to every copy, the packer, the pin tests, AND struct_dump's offset
+table in the same commit.
+
 The host-side `dispatch_layer0.ts` (M3) gains one extra `writeBuffer`
-per frame:
+per dispatch; `DispatchView` gains an optional `chart?: ChartUniforms`
+defaulting to `CHART_UNIFORMS_DEFAULTS` (the latent-slice values), so
+every pre-G4 call site keeps its behaviour bit-for-bit:
 
 ```ts
-// G2's frame loop, when assembling per-tile uniforms:
-device.queue.writeBuffer(bufs.uniforms,       0, packSimUniforms(simU));
-device.queue.writeBuffer(bufs.tileReq,        0, packTileRequest(tile));
-device.queue.writeBuffer(bufs.chart, 0,
-                          packChartUniforms(chart.chartUniforms(view)));
+device.queue.writeBuffer(bufs.uniforms, 0, packSimUniforms(view.uniforms));
+device.queue.writeBuffer(bufs.tileReq,  0, packTileRequest(view.tile));
+device.queue.writeBuffer(bufs.chart,    0,
+  packChartUniforms(view.chart ?? CHART_UNIFORMS_DEFAULTS));
 ```
+
+**Frame capture is v2.** The dispatch is now a pure function of
+(SimUniforms, TileRequest, ChartUniforms), so G17's `CapturedFrame`
+gained a required `chart` field and `FRAME_CAPTURE_VERSION` bumped to 2 —
+a v1 capture replayed without chart knobs would silently decode
+differently, and the version gate makes that loud instead.
 
 ## Chart contract extension
 
@@ -269,7 +291,11 @@ import type { ChartUniforms } from '@/gpu/chart_uniforms.js';
 
 export interface Chart {
   // ... existing fields (id, kind, flags, decode, inverseEncode, validate)
-  /** Returns the chart-specific decoder parameters for this view. */
+  /** Returns the chart-specific decoder parameters for this view.
+   *  REQUIRED (not optional): every Chart implementor supplies it — the
+   *  M10 six, the mixed-axis factory, and the M11 Burrau factories
+   *  (acute_angle, mass_chart, both bifurcation strips). lz_k inherits
+   *  lz_e's via its spread. */
   chartUniforms(view: ChartView): ChartUniforms;
 }
 ```
@@ -407,7 +433,7 @@ const baseView: ChartView = {
 
 describe('chart-uniform handoff per chart', () => {
   it('latent slice supplies the defaults', () => {
-    const u = latentSliceChart.chartUniforms!(baseView);
+    const u = latentSliceChart.chartUniforms(baseView);
     expect(u.mu_max).toBe(5);
     expect(u.alpha_min).toBe(0.05);
   });
@@ -416,7 +442,7 @@ describe('chart-uniform handoff per chart', () => {
     const view: ChartView = { ...baseView,
       chartParams: { Kmax: 4, gammaK: 1.5, alpha: 0.6, beta: 1.2 },
     };
-    const u = lzEChart.chartUniforms!(view);
+    const u = lzEChart.chartUniforms(view);
     expect(u.Kmax).toBe(4);
     expect(u.gamma_K).toBe(1.5);
     expect(u.alpha_freeze).toBeCloseTo(0.6, 6);
@@ -427,14 +453,14 @@ describe('chart-uniform handoff per chart', () => {
     const view: ChartView = { ...baseView,
       chartParams: { poleBuffer: 0.10 },
     };
-    const u = shapeSphereChart.chartUniforms!(view);
+    const u = shapeSphereChart.chartUniforms(view);
     expect(u.pole_buffer).toBe(0.10);
     expect(u.alpha_min).toBe(0.05);             // default preserved
   });
 
   it('switching charts changes only the chart buffer payload', () => {
-    const a = packChartUniforms(latentSliceChart.chartUniforms!(baseView));
-    const b = packChartUniforms(lzEChart.chartUniforms!({ ...baseView,
+    const a = packChartUniforms(latentSliceChart.chartUniforms(baseView));
+    const b = packChartUniforms(lzEChart.chartUniforms({ ...baseView,
       chartParams: { Kmax: 4 } }));
     // Buffers differ in the Kmax slot; everything else identical.
     const af = new Float32Array(a);

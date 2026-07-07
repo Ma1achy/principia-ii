@@ -1,4 +1,4 @@
-// @import { decode_full, ICOut }                          from "./decode.wgsl"
+// @import { decode_full, ICOut, ChartUniforms }           from "./decode.wgsl"
 // @import { State, kdk_macro_step }                       from "./integrate.wgsl"
 // @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
 // @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
@@ -9,9 +9,9 @@
 // (WGSL module-scope forward references). Moving them into a unit that
 // simulate.wgsl imports would create an import cycle.
 
+// G4: slimmed to frame-constant quantities (integration setup + event
+// thresholds). Chart hyperparameters live in ChartUniforms at g0b3.
 struct SimUniforms {
-  m:                vec3<f32>,
-  M_total:          f32,
   G:                f32,
   dt_macro:         f32,
   N_max:            u32,
@@ -27,11 +27,6 @@ struct SimUniforms {
   quality_tier:     u32,
   checkpoint_count: u32,
   samples_per_axis: u32,
-  // For M3 we hard-code mu_max, alpha_min, q_max: they live with the chart in M10.
-  // Rough values for the latent chart at M3:
-  mu_max:           f32,           // = 5
-  alpha_min:        f32,           // = 0.05
-  q_max:            f32,           // = 2
 };
 
 struct TileRequest {
@@ -68,6 +63,7 @@ struct ICDescriptor {
 
 @group(0) @binding(0) var<uniform>      uniforms : SimUniforms;
 @group(0) @binding(1) var<uniform>      tile_req : TileRequest;
+@group(0) @binding(3) var<uniform>      chart    : ChartUniforms;   // G4
 @group(1) @binding(0) var<storage, read_write> results : array<SimResult>;
 @group(1) @binding(1) var<storage, read_write> ics     : array<ICDescriptor>;
 
@@ -88,7 +84,7 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   z[6] = 0.0; z[7] = 0.0;                               // equal masses
 
   // Decode.
-  let ic_out = decode_full(z, uniforms);
+  let ic_out = decode_full(z, chart, uniforms.r_coll);
 
   if (ic_out.terminal != 0u) {
     write_terminal(idx, ic_out);

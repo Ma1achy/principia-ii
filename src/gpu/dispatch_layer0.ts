@@ -3,10 +3,15 @@ import type { TileBuffers } from './buffers.js';
 import type { Pipelines }   from './pipelines.js';
 import type { SimUniforms, TileRequest } from './structs.js';
 import { packSimUniforms, packTileRequest } from './structs.js';
+import type { ChartUniforms } from './chart_uniforms.js';
+import { packChartUniforms, CHART_UNIFORMS_DEFAULTS } from './chart_uniforms.js';
 
 export interface DispatchView {
   uniforms: SimUniforms;
   tile:     TileRequest;
+  /** Per-chart decoder knobs (G4). Defaults to CHART_UNIFORMS_DEFAULTS
+   *  (the latent-slice values), preserving pre-G4 behaviour. */
+  chart?:   ChartUniforms;
 }
 
 /**
@@ -26,6 +31,8 @@ export function dispatchLayer0(
 
   device.queue.writeBuffer(bufs.uniforms, 0, packSimUniforms(view.uniforms));
   device.queue.writeBuffer(bufs.tileReq,  0, packTileRequest(view.tile));
+  device.queue.writeBuffer(bufs.chart,    0,
+    packChartUniforms(view.chart ?? CHART_UNIFORMS_DEFAULTS));
 
   const enc = device.createCommandEncoder();
   {
