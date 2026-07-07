@@ -1,7 +1,7 @@
 import type { Chart } from '../types.js';
 import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_DEFAULT } from '../flags.js';
-import { burrauTriangle } from '@/burrau/euclid.js';
+import { burrauTriangle, recoverNuFromTriangle } from '@/burrau/euclid.js';
 import { canonicalise } from '@/decode/canonicalise.js';
 import { makeDescriptor } from '@/decode/pipeline.js';
 import { EPS_DEADBAND, R_COLL_DEFAULT } from '@/math/constants.js';
@@ -33,9 +33,22 @@ export const burrauEuclidChart: Chart = {
     return { kind: 'ok', state: c2.state, descriptor: makeDescriptor(c2.state) };
   },
 
-  inverseEncode() {
-    return { kind: 'projected',
-             reason: 'burrau_euclid inverse via mass triple lookup' };
+  inverseEncode(ic) {
+    // ν from the triangle's leg ratio (rotation-invariant, so the
+    // canonicalised state recovers it exactly); the u axis is
+    // display-only for this 1D physical chart — 0.5 by convention.
+    const nu = recoverNuFromTriangle(ic.r);
+    const nuMin = 1 / 32, nuMax = 31 / 32;
+    if (nu < nuMin || nu > nuMax) {
+      return {
+        kind: 'projected',
+        pixel: { s: 0.5, t: nu < nuMin ? 0 : 1 },
+        reason: `nu = ${nu.toPrecision(6)} outside [1/32, 31/32]`,
+        clamped: true,
+      };
+    }
+    return { kind: 'exact',
+             pixel: { s: 0.5, t: (nu - nuMin) / (nuMax - nuMin) } };
   },
 
   chartUniforms(view) {

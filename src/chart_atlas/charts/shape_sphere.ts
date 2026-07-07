@@ -2,7 +2,8 @@ import type { Chart } from '../types.js';
 import { CHART_UNIFORMS_DEFAULTS } from '@/gpu/chart_uniforms.js';
 import { FLAGS_SPHERE } from '../flags.js';
 import { realiseFrozenConfig } from '../frozen_configuration.js';
-import { jacobiToParticleMomenta } from '@/decode/jacobi_particle.js';
+import { jacobiToParticleMomenta, particlePositionsToJacobi } from '@/decode/jacobi_particle.js';
+import { shapeSphere, massWeightedJacobi } from '@/metrics/shape_sphere.js';
 import { canonicalise } from '@/decode/canonicalise.js';
 import { makeDescriptor } from '@/decode/pipeline.js';
 import { EPS_DEADBAND, R_COLL_DEFAULT } from '@/math/constants.js';
@@ -14,8 +15,9 @@ import type { Vec2, Triple } from '@/math/types.js';
  * recovers the canonical Jacobi (α, β) and decodes through the shared
  * pipeline.
  *
- * The chart sets `has_redundant_hemisphere = true`: φ ∈ (π, 2π) is the
- * reflection-equivalent copy of φ ∈ (0, π).
+ * The chart sets `has_redundant_hemisphere = true`: the β-fold in the
+ * realisation map collapses θ ↔ π−θ, so u ∈ (0.5, 1) is the
+ * reflection-equivalent copy of u ∈ (0, 0.5) (see inverseEncode).
  */
 export const shapeSphereChart: Chart = {
   id: 'shape_sphere',
@@ -53,9 +55,45 @@ export const shapeSphereChart: Chart = {
     return { kind: 'ok', state: c.state, descriptor: makeDescriptor(c.state) };
   },
 
-  inverseEncode() {
-    return { kind: 'projected',
-             reason: 'shape_sphere inverse not unique without chart params' };
+  inverseEncode(ic, view) {
+    // The realised configuration's Hopf vector is
+    //   n = (sin θ cos φ, sin θ sin φ, |cos θ|)
+    // — the β-fold in the realisation map collapses θ and π−θ onto the
+    // same state (the u axis is the redundant one, NOT φ/v: n₁ and n₂
+    // distinguish every φ ∈ [0, 2π)). Canonical states have n₃ ≥ 0
+    // (the mirror rule enforces λ̃_y ≥ 0), so θ = arccos(n₃) lands in
+    // [0, π/2] and the inverse returns the canonical u ≤ 0.5
+    // representative; decode(inverse(x)) reproduces x's state exactly.
+    const eps = (view?.chartParams['poleBuffer'] as number | undefined) ?? 0.05;
+    const { rho, lambda } = particlePositionsToJacobi(ic.r, ic.m);
+    const { rhoT, lambdaT } = massWeightedJacobi(rho, lambda, ic.m);
+    const n = shapeSphere(rhoT, lambdaT);
+
+    const cosTheta = Math.max(-1, Math.min(1, n[2]));
+    const theta = Math.acos(cosTheta);
+    const sinTheta = Math.sqrt(Math.max(0, 1 - cosTheta * cosTheta));
+
+    let phi: number;
+    if (sinTheta < 1e-9) {
+      phi = 0;                        // pole: φ degenerate
+    } else {
+      phi = Math.atan2(n[1], n[0]);
+      if (phi < 0) phi += 2 * Math.PI;
+    }
+    const t = phi / (2 * Math.PI);
+
+    if (theta < eps || theta > Math.PI - eps) {
+      return {
+        kind: 'projected',
+        pixel: { s: theta < eps ? 0 : 1, t },
+        reason: 'inside the pole buffer',
+        clamped: true,
+      };
+    }
+    return {
+      kind: 'exact',
+      pixel: { s: (theta - eps) / (Math.PI - 2 * eps), t },
+    };
   },
 
   chartUniforms(view) {

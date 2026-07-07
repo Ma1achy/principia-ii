@@ -53,8 +53,11 @@ export interface Chart {
   flags: ChartFlags;
   /** Map a tile-local (u, v) ∈ [0, 1]² to a physical IC. */
   decode(uv: Vec2, view: ChartView): ChartDecodeOut;
-  /** Project a physical IC back to chart pixel space. */
-  inverseEncode(ic: TrajState): EncodeResult;
+  /** Project a physical IC back to chart pixel space. The optional view
+   *  carries chartParams (Kmax, gammaK, poleBuffer, …); charts fall back
+   *  to their decode defaults when it is absent, so existing callers keep
+   *  working. */
+  inverseEncode(ic: TrajState, view?: ChartView): EncodeResult;
   /** Validate (uv) is a representable point in the chart for this view. */
   validate(uv: Vec2, view: ChartView): ValidationResult;
   /** Per-chart decoder knobs for the GPU (G4): packed into the

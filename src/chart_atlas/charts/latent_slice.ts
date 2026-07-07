@@ -27,9 +27,43 @@ export const latentSliceChart: Chart = {
     return decodeLatent(z, KNOBS);
   },
 
-  inverseEncode(ic) {
+  inverseEncode(ic, view) {
     const enc = inverseEncodeLatent(ic, KNOBS);
-    return { kind: enc.clamped ? 'projected' : 'exact', z: enc.z, clamped: enc.clamped };
+    if (!view) {
+      // No slice to project onto — return the latent point alone (the
+      // pre-G5 behaviour; M8's lookup projects it against its own view).
+      return { kind: enc.clamped ? 'projected' : 'exact', z: enc.z, clamped: enc.clamped };
+    }
+    // Project z − z0 onto the slice axes. Off-plane residual means the IC
+    // does not live on this 2D slice — still return the nearest pixel,
+    // marked projected.
+    const d = enc.z.map((zi, i) => zi - view.z0[i]!);
+    const dotQ = (q: readonly number[]): [number, number] => {
+      let num = 0, den = 0;
+      for (let i = 0; i < 8; i++) { num += d[i]! * q[i]!; den += q[i]! * q[i]!; }
+      return [num, den];
+    };
+    const [h, hh] = dotQ(view.q1);
+    const [w, ww] = dotQ(view.q2);
+    const su = hh > 0 ? h / hh : 0;
+    const sv = ww > 0 ? w / ww : 0;
+    let off = 0;
+    for (let i = 0; i < 8; i++) {
+      const inPlane = su * view.q1[i]! + sv * view.q2[i]!;
+      off += (d[i]! - inPlane) ** 2;
+    }
+    const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
+    const s = clamp01((su / view.mag + 1) / 2);
+    const t = clamp01((sv / view.mag + 1) / 2);
+    const offPlane = Math.sqrt(off) > 1e-6;
+    const projected = enc.clamped || offPlane;
+    return {
+      kind: projected ? 'projected' : 'exact',
+      pixel: { s, t },
+      z: enc.z,
+      clamped: projected,
+      ...(offPlane ? { reason: 'IC lies off this 2D latent slice' } : {}),
+    };
   },
 
   chartUniforms() {

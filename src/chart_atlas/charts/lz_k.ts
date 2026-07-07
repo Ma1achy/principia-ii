@@ -13,14 +13,7 @@ export const lzKChart: Chart = {
   id: 'lz_k',
   flags: FLAGS_INVARIANT,
 
-  inverseEncode(ic) {
-    const K = (ic.p[0][0] ** 2 + ic.p[0][1] ** 2) / (2 * ic.m[0])
-            + (ic.p[1][0] ** 2 + ic.p[1][1] ** 2) / (2 * ic.m[1])
-            + (ic.p[2][0] ** 2 + ic.p[2][1] ** 2) / (2 * ic.m[2]);
-    return {
-      kind: 'projected',
-      pixel: { s: 0.5, t: 0.5 },
-      reason: `lz_k inverse needs chart params (K=${K.toPrecision(6)})`,
-    };
-  },
+  // inverseEncode inherited from lzEChart via the spread: both charts
+  // pixel-map through K, so the shared closed-form inverse (G5) serves
+  // both — mirroring the shared decode.
 };
