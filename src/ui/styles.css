@@ -92,3 +92,19 @@ button:hover { filter: brightness(1.1); }
   .gallery-area { justify-self: stretch; }
   .gallery-grid { grid-template-columns: 1fr; }
 }
+
+/* ── G18 dev HUD: floats over the canvas bottom edge; default-hidden. ── */
+.devhud-area { grid-area: canvas; align-self: end; justify-self: stretch; z-index: 4; }
+.devhud { background: rgba(10, 12, 16, 0.92); color: #cde; font: 11px/1.5 ui-monospace, monospace;
+          border-top: 1px solid var(--accent); max-height: 40vh; overflow-y: auto; }
+.devhud[hidden] { display: none; }
+.devhud-tabs { display: flex; gap: 4px; padding: 4px 8px; }
+.devhud-tabs button { font: inherit; padding: 2px 8px; }
+.devhud-body { padding: 4px 8px 8px; }
+.devhud-perf.budget-warn { color: #ffd479; }
+.devhud-perf.budget-bad  { color: #ff8f8f; }
+.devhud-error.level-40 { color: #ff8f8f; }
+.devhud-error.level-30 { color: #ffd479; }
+.devhud-tile-failure { color: #ff8f8f; }
+.devhud-validation.flagged { color: #ff8f8f; }
+.devhud-capture.stale { color: #ffd479; }

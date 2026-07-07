@@ -13,6 +13,7 @@ import { RenderParamsStore } from './render_params.js';
 import { PresetStore } from './presets.js';
 import { initHistory, pushHistory, type History } from './history.js';
 import { buildKeymap } from './keymap.js';
+import { mountDebugHud, type DebugHudDeps } from '@/devhud/mount.js';
 
 /** Shell dependencies (G12). Everything optional: the G8-era 3-arg
  *  mountUI(root, app, canvas) still works (tests, minimal embeds) —
@@ -22,6 +23,7 @@ export interface ShellDeps {
   capability?: CapabilityProfile;      // G9: warning banner source
   renderStore?: RenderParamsStore;     // render-only knobs (group-3 rebind)
   presets?: PresetStore;
+  debug?: DebugHudDeps;                // G18: dev overlay (absent in prod)
 }
 
 export function mountUI(
@@ -36,6 +38,7 @@ export function mountUI(
       <aside class="inspector-area"></aside>
       <section class="gallery-area"></section>
       <div class="loader-area"></div>
+      <div class="devhud-area"></div>
     </div>
   `;
   const area = (sel: string): HTMLElement => {
@@ -91,6 +94,7 @@ export function mountUI(
   openPresetsFn = () => { gallery.open(); };
   offs.push(gallery.dispose);
   offs.push(mountLoadingIndicator(area('.loader-area'), app.loop.ledger, app.loop.perf));
+  if (deps.debug) offs.push(mountDebugHud(area('.devhud-area'), app, deps.debug));
 
   return () => offs.forEach((off) => off());
 }

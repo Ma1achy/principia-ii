@@ -28,8 +28,8 @@ never calls `app.store.update`), it never invalidates the cache or touches the
 history ring (it mirrors G12's render-only discipline), and it degrades to an
 inert no-op when no `document` is present (headless CI) — exactly like G12's
 `shell_dom` smoke mount. The aggregation/formatting logic is pure and is what the
-exit suite pins; the DOM mount is exercised only by a jsdom smoke test that skips
-cleanly without a document.
+exit suite pins; the DOM mount is exercised by a happy-dom smoke suite and by a
+live `~` probe in the G8 shell spec.
 
 **Exit criterion (single executable test).**
 
@@ -67,11 +67,18 @@ principia/
       overlay_state.ts     # NEW: dev-overlay visibility reducer + tab selection (pure)
       mount.ts            # NEW: mountDebugHud() — wires the view-models into a drawer (DOM)
       index.ts            # NEW: barrel
+    ui/
+      App.ts              # MODIFIED: ShellDeps.debug + .devhud-area cell + conditional mount
+      styles.css          # MODIFIED: .devhud drawer styles appended
+  dev/
+    main.ts               # MODIFIED: tileFlags/inspector feeds + debug in ShellDeps
   test/
     unit/
       ui/
         debug_hud.test.ts      # NEW: pure view-models + capture + toggle reducer (exit suite)
-        debug_hud_dom.test.ts  # NEW: jsdom smoke mount; skips cleanly without a document
+        debug_hud_dom.test.ts  # NEW: happy-dom smoke mount (G12 shell_dom idiom)
+    gpu/
+      shell.spec.ts       # MODIFIED: live `~` toggle probe (HUD shows, view unchanged)
 ```
 
 ## Depends on / pairs with
@@ -112,16 +119,21 @@ re-declared. The seams, by upstream milestone:
 - **M8** (`ViewState`, `defaultViewState`, `viewStateToCacheKey`) — `capture.ts`
   snapshots the full `ViewState` so a captured frame replays at the right
   chart/tier/zoom; `viewStateToCacheKey` confirms a replayed view matches.
-- **G7** (`EnsembleConfig`, `jitterOffsets`) — `capture.ts` records the ensemble
-  seeds (`patternId` + the resolved jitter offsets for `E`) so a captured
-  fractal-boundary frame replays with identical sub-pixel jitter.
+- **G7** (`jitterOffsets`, `@/quadtree/ensemble_jitter.js`) — `capture.ts`
+  records the ensemble seeds (`patternId` + the resolved jitter offsets for `E`)
+  so a captured fractal-boundary frame replays with identical sub-pixel jitter.
+  There is **no `EnsembleConfig` type in `@/gpu/ensemble.js`** — G7 carries
+  `E`/`patternId` in the `TileRequest`, so the capture API takes them
+  **structurally** (`{ E: number; patternId: 0 | 1 | 2 }`).
 - **G2** (`App`, `Store`, `FrameStats`) — `mount.ts` reads `app.store.snapshot()`
   read-only and subscribes for live updates; it never calls `app.store.update`.
 - **G8 / G12** (`mountUI`, `ShellDeps`, the shell grid) — the overlay is mounted
   as one more `off`-returning mount beside `mountChrome`, gated by a toggle from
   `overlay_state.ts`; an integration patch to `ShellDeps`/`mountUI` is below.
 - Contracts: tiers per **ADR 0003**; outcome enum **ADR 0002**; the tile failure
-  bits are G11's `TILE_STATUS_FAIL` (1<<6..1<<8), surfaced read-only.
+  bits are G11's `TILE_STATUS_FAIL` at **bits 8–10** (`SIM_FAILED = 1<<8`,
+  `MAX_SUBSTEPS = 1<<9`, `TIMEOUT = 1<<10` — bits 6–7 are the schema-version
+  field, DG11.1), surfaced read-only.
 
 > **G17 surface, declared.** G18 builds against G17's `@/debug/frame_capture.js`
 > (`CapturedFrame`, `captureFrame`, `serializeFrame`, `deserializeFrame`,
@@ -376,7 +388,8 @@ export function validationVM(result: InspectorResult): ValidationVM {
 Extends G17's `CapturedFrame` to a `FrameCaptureV2` carrying the full M8
 `ViewState` and the G7 ensemble seeds, so a captured repro replays
 deterministically. Pure: it composes G17's base record with snapshots taken from
-the live `Store` and `EnsembleConfig`; the round-trip is what the exit suite pins.
+the live `Store` and a structural `{E, patternId}` ensemble config; the
+round-trip is what the exit suite pins.
 
 `viewStateToCacheKey` (M8) returns a `TileCacheKey` **object**, not a string, so
 the captured `cacheKey` is its `serialiseCacheKey()` (M4, `@/quadtree/cache_key.js`)
@@ -388,13 +401,14 @@ import type { CapturedFrame } from '@/debug/frame_capture.js';   // G17 base rec
 import type { ViewState } from '@/interact/view_state.js';
 import { viewStateToCacheKey } from '@/interact/view_state.js';
 import { serialiseCacheKey } from '@/quadtree/cache_key.js';
-import type { EnsembleConfig } from '@/gpu/ensemble.js';
 import { jitterOffsets } from '@/quadtree/ensemble_jitter.js';
 
 /** Resolved sub-pixel jitter seed (one per ensemble copy). */
 export interface SeedOffset { du: number; dv: number }
 
-/** The ensemble seeding needed to replay a frame's sub-pixel jitter (G7). */
+/** The ensemble seeding needed to replay a frame's sub-pixel jitter (G7).
+ *  The input is structural ({E, patternId}) — there is no EnsembleConfig
+ *  type in @/gpu/ensemble.js; G7 carries E/patternId in the TileRequest. */
 export interface EnsembleSeeds {
   E: number;
   patternId: 0 | 1 | 2;
@@ -413,8 +427,8 @@ export interface FrameCaptureV2 extends CapturedFrame {
   seeds: EnsembleSeeds;
 }
 
-/** Snapshot the ensemble seeds from a live EnsembleConfig (G7). */
-export function captureSeeds(cfg: EnsembleConfig): EnsembleSeeds {
+/** Snapshot the ensemble seeds for a (patternId, E) pair (G7 jitter). */
+export function captureSeeds(cfg: { E: number; patternId: 0 | 1 | 2 }): EnsembleSeeds {
   const offsets = jitterOffsets(cfg.patternId, Math.max(1, cfg.E))
     .map(o => ({ du: o.du, dv: o.dv }));
   return { E: cfg.E, patternId: cfg.patternId, offsets };
@@ -426,7 +440,7 @@ export function captureSeeds(cfg: EnsembleConfig): EnsembleSeeds {
  * ensemble config; it never reads the GPU or the DOM.
  */
 export function extendCapture(
-  base: CapturedFrame, view: ViewState, cfg: EnsembleConfig,
+  base: CapturedFrame, view: ViewState, cfg: { E: number; patternId: 0 | 1 | 2 },
 ): FrameCaptureV2 {
   return {
     ...base,
@@ -532,8 +546,8 @@ import {
 
 export interface DebugHudDeps {
   perf: PerfMonitor;                          // G10
-  sink: InMemorySink;                         // G11 telemetry buffer
-  /** Live per-tile status_flags (tileKey → u32), supplied by the scheduler. */
+  sink: Pick<InMemorySink, 'records'>;        // G11 telemetry buffer
+  /** Live per-tile status_flags (tileKey → u32), supplied by the caller. */
   tileFlags: () => ReadonlyMap<string, number>;
   /** The current locked inspector result, or null when unlocked (M9 / G2). */
   inspector: () => InspectorResult | null;
@@ -642,12 +656,18 @@ function renderErrors(vm: ReturnType<typeof errorOverlayVM>): HTMLElement {
   el.className = 'devhud-errors';
   const head = document.createElement('div');
   head.textContent = `errors ${vm.errorCount} · warns ${vm.warnCount} ` +
-    `· failed tiles ${vm.failedTiles.length}`;
+    `· failed tiles ${vm.failedTiles.length} · warned ${vm.warnedTiles.length}`;
   el.appendChild(head);
   for (const r of vm.rows.slice(0, 10)) {
     const row = document.createElement('div');
     row.className = `devhud-error level-${r.level}`;
     row.textContent = r.message;
+    el.appendChild(row);
+  }
+  for (const t of vm.failedTiles.slice(0, 10)) {
+    const row = document.createElement('div');
+    row.className = 'devhud-tile-failure';
+    row.textContent = `${t.tileKey}: ${t.descriptor.label}`;
     el.appendChild(row);
   }
   return el;
@@ -698,33 +718,74 @@ Additive: existing `ShellDeps` fields and callers are unchanged; the dev HUD is
 **optional** so a production shell can omit it.
 
 ```ts
-// src/ui/App.ts (patch against G12's mountUI)
-import { mountDebugHud, type DebugHudDeps } from '@/devhud/index.js';
+// src/ui/App.ts (as-built patch against G12's mountUI)
+import { mountDebugHud, type DebugHudDeps } from '@/devhud/mount.js';
 
 export interface ShellDeps {
-  boundary: ErrorBoundary;
-  capability: CapabilityProfile;
-  ledger: JobLedger;
-  perf?: PerfMonitor;
-  renderStore: RenderParamsStore;
+  boundary?: ErrorBoundary;            // G11: error overlay source
+  capability?: CapabilityProfile;      // G9: warning banner source
+  renderStore?: RenderParamsStore;     // render-only knobs (group-3 rebind)
   presets?: PresetStore;
-  // --- G18 addition: when present, mount the toggleable dev overlay ---
-  debug?: DebugHudDeps;
+  debug?: DebugHudDeps;                // G18: dev overlay (absent in prod)
 }
 
-// In mountUI(root, app, canvas, deps), add a host element to the shell grid and
-// mount the HUD when `deps.debug` is supplied:
-//   root.innerHTML = `<div class="shell"> … <div class="devhud-area"></div></div>`;
-//   if (deps.debug) {
-//     offs.push(mountDebugHud(
-//       root.querySelector('.devhud-area')!, app, deps.debug));
-//   }
+// In mountUI(root, app, canvas, deps): a `.devhud-area` cell joins the shell
+// markup (after `.loader-area`), and the HUD mounts only when supplied:
+//   <div class="devhud-area"></div>
+//   if (deps.debug) offs.push(mountDebugHud(area('.devhud-area'), app, deps.debug));
 ```
 
-The HUD lives in its own grid cell (`.devhud-area`), starts hidden, and surfaces
-on `~`. Because it reads `app.store.snapshot()` and never calls
-`app.store.update`, it cannot enter the history ring or invalidate the cache — the
-same render-only guarantee G12's `RenderParamsStore` carries.
+G12's `ShellDeps` fields are **all optional** (the G8-era 3-arg `mountUI` still
+works) — the doc's earlier required `boundary`/`capability`/`renderStore` and the
+`ledger`/`perf` fields never existed; `mountLoadingIndicator` takes
+`app.loop.ledger`/`app.loop.perf` directly. The HUD lives in its own grid cell
+(`.devhud-area`, floating over the canvas bottom edge in `styles.css`), starts
+hidden, and surfaces on `~`. Because it reads `app.store.snapshot()` and never
+calls `app.store.update`, it cannot enter the history ring or invalidate the
+cache — the same render-only guarantee G12's `RenderParamsStore` carries.
+
+## Live wiring — `dev/main.ts` (as-built)
+
+The dev shell supplies the four feeds:
+
+```ts
+// tileFlags: iterate the live cache; only tiles with a landed reduction
+// carry status_flags (CachedTile.reduction is optional).
+const tileFlags = (): ReadonlyMap<string, number> => {
+  const m = new Map<string, number>();
+  for (const t of app.loop.cache.entries()) {
+    if (t.reduction) m.set(tileKey(t.id), t.reduction.status_flags);
+  }
+  return m;
+};
+// inspector: App.inspector() returns the SAME promise per lock — track it
+// by identity so the resolved result is cached until the lock changes and
+// the HUD poll never re-runs the inspector.
+let inspectorResult: InspectorResult | null = null;
+let trackedInspector: Promise<InspectorResult> | null = null;
+const inspectorNow = (): InspectorResult | null => {
+  const p = app.inspector();
+  if (p !== trackedInspector) {
+    trackedInspector = p;
+    inspectorResult = null;
+    p?.then((r) => { if (trackedInspector === p) inspectorResult = r; },
+            () => { /* surfaced by the boundary, not the HUD */ });
+  }
+  return inspectorResult;
+};
+
+mountUI(root, app, canvas, {
+  boundary, capability: cap, renderStore,
+  debug: { perf: app.loop.perf, sink: telemetrySink, tileFlags, inspector: inspectorNow },
+});
+```
+
+**Deferred: the live capture button.** `capture?` is omitted in `dev/main.ts`
+(the tab renders its empty state) because the dispatcher does not yet expose its
+last-dispatch `SimUniforms`/`TileRequest` — G17's `captureFrame` needs those as
+inputs. `extendCapture`/`checkCaptureReplayable` are fully exercised by the exit
+suite; wiring a live capture button is follow-up work once the dispatcher
+exposes its last dispatch.
 
 ## Tests
 
@@ -746,7 +807,6 @@ import { Telemetry, Level, InMemorySink } from '@/error/telemetry.js';
 import { AppErrorKind, type AppError } from '@/error/kinds.js';
 import { TILE_STATUS_FAIL, TILE_STATUS_AT_F32_FLOOR } from '@/error/tile_status.js';
 import type { InspectorResult } from '@/inspector/types.js';
-import type { EnsembleConfig } from '@/gpu/ensemble.js';
 import { jitterOffsets } from '@/quadtree/ensemble_jitter.js';
 import { defaultViewState, viewStateToCacheKey } from '@/interact/view_state.js';
 import { serialiseCacheKey } from '@/quadtree/cache_key.js';
@@ -820,7 +880,7 @@ describe('errorOverlayVM: telemetry rows + tile-failure roll-up', () => {
   it('never includes a record below Warn (no debug noise)', () => {
     const sink = new InMemorySink();
     fill(sink);
-    expect(errorOverlayVM(sink).rows.some(r => r.level === Level.Debug)).toBe(false);
+    expect(errorOverlayVM(sink).rows.some(r => r.level < Level.Warn)).toBe(false);
   });
 
   it('splits failed tiles (hard bit) from warned tiles (f32 floor)', () => {
@@ -912,8 +972,14 @@ describe('overlay toggle reducer', () => {
 });
 
 describe('extended frame-capture: ViewState + ensemble seeds', () => {
-  const ensembleCfg = (E: number, patternId: 0 | 1 | 2): EnsembleConfig =>
-    ({ E, patternId, uniformBuf: {} as any });
+  // There is no EnsembleConfig type in @/gpu/ensemble.js — G7 carries
+  // E/patternId in the TileRequest, so the capture API takes them
+  // structurally (see src/devhud/capture.ts).
+  const ensembleCfg = (E: number, patternId: 0 | 1 | 2): { E: number; patternId: 0 | 1 | 2 } =>
+    ({ E, patternId });
+  // G17 CapturedFrame base record: version/N/M/uniforms/tile/chart/label?
+  const baseFrame = () =>
+    ({ version: 2, N: 256, M: 64, uniforms: {}, tile: {}, chart: {} }) as any;
 
   it('captureSeeds reproduces G7 jitterOffsets for (patternId, E)', () => {
     const seeds = captureSeeds(ensembleCfg(4, 1));
@@ -925,10 +991,8 @@ describe('extended frame-capture: ViewState + ensemble seeds', () => {
   });
 
   it('extendCapture attaches the full ViewState and a matching cacheKey', () => {
-    const view = { ...defaultViewState(), chartType: 'lz_e', qualityTier: 'research' as const };
-    // G17 CapturedFrame base record: version/N/M/uniforms/tile/label?
-    const base = { version: 1, N: 256, M: 64, uniforms: {}, tile: {} } as any;
-    const cap: FrameCaptureV2 = extendCapture(base, view, ensembleCfg(4, 2));
+    const view = { ...defaultViewState(), chartType: 'lz_e' };
+    const cap: FrameCaptureV2 = extendCapture(baseFrame(), view, ensembleCfg(4, 2));
     expect(cap.N).toBe(256);                                  // base field preserved
     expect(cap.view.chartType).toBe('lz_e');
     expect(cap.cacheKey).toBe(serialiseCacheKey(viewStateToCacheKey(view)));
@@ -936,16 +1000,12 @@ describe('extended frame-capture: ViewState + ensemble seeds', () => {
   });
 
   it('a freshly-extended capture is replayable (no mismatches)', () => {
-    const view = defaultViewState();
-    const base = { version: 1, N: 256, M: 64, uniforms: {}, tile: {} } as any;
-    const cap = extendCapture(base, view, ensembleCfg(2, 0));
+    const cap = extendCapture(baseFrame(), defaultViewState(), ensembleCfg(2, 0));
     expect(checkCaptureReplayable(cap)).toEqual([]);
   });
 
   it('detects a tampered cacheKey / seed table on replay check', () => {
-    const view = defaultViewState();
-    const base = { version: 1, N: 256, M: 64, uniforms: {}, tile: {} } as any;
-    const good = extendCapture(base, view, ensembleCfg(2, 0));
+    const good = extendCapture(baseFrame(), defaultViewState(), ensembleCfg(2, 0));
     const tampered: FrameCaptureV2 = {
       ...good,
       cacheKey: 'not-the-real-key',
@@ -960,44 +1020,47 @@ describe('extended frame-capture: ViewState + ensemble seeds', () => {
 
 ### `test/unit/ui/debug_hud_dom.test.ts`
 
+Uses the `// @vitest-environment happy-dom` header (G12's `shell_dom.test.ts`
+idiom) rather than a `skipIf` — the suite always runs, in happy-dom. Six tests
+as-built: hidden mount + disposer, `~` toggle + perf tab, disposer removes the
+`~` listener, capture tab, errors tab (counts + `sim failed` tile row), and the
+validation tab's no-lock state.
+
 ```ts
+// @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { mountDebugHud, type DebugHudDeps } from '@/devhud/mount.js';
+import type { App } from '@/app/app.js';
 
-// jsdom smoke mount. Skips cleanly when no document is present (headless),
-// mirroring G12's shell_dom.test.ts.
-const hasDom = typeof document !== 'undefined';
+// happy-dom smoke mount, mirroring G12's shell_dom.test.ts. The HUD only
+// reads store.snapshot()/subscribe() and its injected deps — minimal fakes.
+const fakeApp = (): App => {
+  const view = { qualityTier: 'balanced' };
+  return {
+    store: {
+      snapshot: () => view,
+      subscribe: (f: (v: unknown) => void) => { f(view); return () => {}; },
+    },
+  } as unknown as App;
+};
+const deps = (over: Partial<DebugHudDeps> = {}): DebugHudDeps => ({
+  perf: {
+    snapshot: () => ({
+      frames: 1, cpuMeanMs: 8, cpuP95Ms: 9, gpuP95Ms: {},
+      gpuTimingAvailable: false, budget: 'ok', overFraction: 0,
+    }),
+    recommend: () => ({ dispatchCapScale: 1, recommendTier: null, reason: 'ok' }),
+  } as any,
+  sink: { records: () => [] } as any,
+  tileFlags: () => new Map(),
+  inspector: () => null,
+  capture: () => null,
+  raf: () => 0,            // no real animation frame in the test
+  caf: () => {},
+  ...over,
+});
 
-describe.skipIf(!hasDom)('mountDebugHud (jsdom smoke)', () => {
-  // Minimal fakes — the HUD only reads snapshot()/subscribe() and the deps.
-  const fakeApp = () => {
-    let cb: ((v: any) => void) | null = null;
-    const view = { qualityTier: 'balanced' };
-    return {
-      store: {
-        snapshot: () => view,
-        subscribe: (f: (v: any) => void) => { cb = f; f(view); return () => { cb = null; }; },
-      },
-      _fire: () => cb?.(view),
-    } as any;
-  };
-  const deps = (over: Partial<DebugHudDeps> = {}): DebugHudDeps => ({
-    perf: {
-      snapshot: () => ({
-        frames: 1, cpuMeanMs: 8, cpuP95Ms: 9, gpuP95Ms: {},
-        gpuTimingAvailable: false, budget: 'ok', overFraction: 0,
-      }),
-      recommend: () => ({ dispatchCapScale: 1, recommendTier: null, reason: 'ok' }),
-    } as any,
-    sink: { records: () => [] } as any,
-    tileFlags: () => new Map(),
-    inspector: () => null,
-    capture: () => null,
-    raf: () => 0,            // no real animation frame in the test
-    caf: () => {},
-    ...over,
-  });
-
+describe('mountDebugHud (happy-dom smoke)', () => {
   it('mounts hidden and returns a disposer', () => {
     const root = document.createElement('div');
     const off = mountDebugHud(root, fakeApp(), deps());
@@ -1015,15 +1078,46 @@ describe.skipIf(!hasDom)('mountDebugHud (jsdom smoke)', () => {
     off();
   });
 
-  it('selecting the capture tab renders G18\'s own capture panel', () => {
+  it('the disposer removes the `~` listener (no zombie toggles)', () => {
     const root = document.createElement('div');
-    const off = mountDebugHud(root, fakeApp(), deps({
-      capture: () => null,
-    }));
+    document.body.appendChild(root);
+    const off = mountDebugHud(root, fakeApp(), deps());
+    off();
+    // After dispose the root is emptied and re-dispatching must not throw
+    // or resurrect the drawer.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '~' }));
+    expect(root.querySelector('.devhud')).toBeNull();
+    root.remove();
+  });
+
+  it("selecting the capture tab renders G18's own capture panel", () => {
+    const root = document.createElement('div');
+    const off = mountDebugHud(root, fakeApp(), deps({ capture: () => null }));
     root.querySelector<HTMLButtonElement>('button[data-tab="capture"]')!.click();
     root.querySelector<HTMLButtonElement>('button[data-tab="perf"]')!.click();
     root.querySelector<HTMLButtonElement>('button[data-tab="capture"]')!.click();
     expect(root.querySelector('.devhud-capture')!.textContent).toMatch(/no captured frame/);
+    off();
+  });
+
+  it('the errors tab renders counts from the sink and tile flags', () => {
+    const root = document.createElement('div');
+    const off = mountDebugHud(root, fakeApp(), deps({
+      tileFlags: () => new Map([['1/0/0', 1 << 8]]),          // SIM_FAILED
+    }));
+    root.querySelector<HTMLButtonElement>('button[data-tab="errors"]')!.click();
+    const el = root.querySelector('.devhud-errors')!;
+    expect(el.textContent).toMatch(/failed tiles 1/);
+    expect(root.querySelector('.devhud-tile-failure')!.textContent).toMatch(/sim failed/);
+    off();
+  });
+
+  it('the validation tab reports the no-lock state', () => {
+    const root = document.createElement('div');
+    const off = mountDebugHud(root, fakeApp(), deps());
+    root.querySelector<HTMLButtonElement>('button[data-tab="validation"]')!.click();
+    expect(root.querySelector('.devhud-validation')!.textContent)
+      .toMatch(/no locked inspector result/);
     off();
   });
 });
@@ -1032,8 +1126,9 @@ describe.skipIf(!hasDom)('mountDebugHud (jsdom smoke)', () => {
 ## Run it
 
 ```bash
-npm test -- --run test/unit/ui/debug_hud        # exit suite (pure VMs + capture + toggle)
-npm test -- --run test/unit/ui/debug_hud_dom    # jsdom smoke; skips cleanly headless
+npm test -- --run test/unit/ui/debug_hud        # both suites (25 tests as-built)
+npx playwright test                             # shell spec incl. live `~` HUD probe
+npx playwright test --headed                    # same on the real (Metal) GPU
 ```
 
 ## Acceptance check
@@ -1042,19 +1137,24 @@ npm test -- --run test/unit/ui/debug_hud_dom    # jsdom smoke; skips cleanly hea
 npm test -- --run test/unit/ui/debug_hud
 ```
 
-`test/unit/ui/debug_hud.test.ts` passes with ≥16 green tests: `perfHudVM` buckets
-the three budget states, emits per-pass GPU rows only with `timestamp-query`, and
-surfaces the `recommend()` hint read-only; `errorOverlayVM` lists only Warn+
-telemetry rows most-recent-first with correct counts, splits failed tiles
-(`hasTileFailure`) from f32-floor warned tiles, and `appErrorRow` is stack-free;
-`validationVM` flags an outcome/word disagreement or an FTLE delta past
+`test/unit/ui/debug_hud.test.ts` passes with ≥16 green tests (**as-built: 19
+pure + 6 happy-dom = 25**): `perfHudVM` buckets the three budget states, emits
+per-pass GPU rows only with `timestamp-query`, and surfaces the `recommend()`
+hint read-only; `errorOverlayVM` lists only Warn+ telemetry rows
+most-recent-first with correct counts, splits failed tiles (`hasTileFailure`)
+from f32-floor warned tiles, and `appErrorRow` is stack-free; `validationVM`
+flags an outcome/word disagreement or an FTLE delta past
 `FTLE_DELTA_THRESHOLD` and reports `available:false` when M9 ran without a GPU
 `SimResult`; the toggle reducer is default-hidden and `selectTab` reveals;
 `extendCapture` attaches the full `ViewState` (its `cacheKey` matching
 `serialiseCacheKey(viewStateToCacheKey(view))`) plus G7 ensemble seeds, and
 `checkCaptureReplayable` is empty for a fresh capture and non-empty for a
-tampered one. The jsdom smoke mount starts hidden, toggles on `~`, renders the
-perf tab, and renders G18's own capture panel.
+tampered one. The happy-dom smoke mount starts hidden, toggles on `~` (and the
+disposer removes the listener), renders all four tabs, and shows the tile-failure
+rows. Live proof: `test/gpu/shell.spec.ts` presses `Shift+`` in the running app —
+the drawer appears with live perf numbers and the errors tab, hides again, and
+the `ViewState` snapshot is unchanged by the whole exchange (read-only pin);
+green both headless (SwiftShader) and `--headed` (Metal).
 
 ## Notes for the implementer
 
@@ -1079,8 +1179,9 @@ perf tab, and renders G18's own capture panel.
     `viewStateToCacheKey` (returns a `TileCacheKey` **object**);
     M4 `@/quadtree/cache_key.js`: `serialiseCacheKey` (the object→string form the
     captured `cacheKey` stores).
-  - G7 `@/gpu/ensemble.js`: `EnsembleConfig`; `@/quadtree/ensemble_jitter.js`:
-    `jitterOffsets`.
+  - G7 `@/quadtree/ensemble_jitter.js`: `jitterOffsets`. (**No `EnsembleConfig`
+    exists in `@/gpu/ensemble.js`** — the capture API takes `{E, patternId}`
+    structurally.)
   - G2 `@/app/app.js`: `App` (its `store.snapshot()`/`subscribe()` only);
     `@/app/store.ts`: `Store`.
   - G8/G12 `@/ui/App.js`: `ShellDeps`, `mountUI` (the integration patch; there is
@@ -1118,8 +1219,9 @@ perf tab, and renders G18's own capture panel.
 - **Headless-safe by construction.** `mountDebugHud` returns a no-op when
   `document` is absent, and the pure view-models (`perf_view`, `error_view`,
   `validation_view`, `capture`, `overlay_state`) touch neither the GPU nor the
-  DOM — that is why the exit suite needs no browser. The jsdom smoke test is the
-  only DOM-touching test, and it `skipIf`s cleanly like G12's `shell_dom`.
+  DOM — that is why the exit suite needs no browser. The DOM smoke test runs
+  under the `// @vitest-environment happy-dom` header (G12's `shell_dom` idiom —
+  it always runs; no `skipIf` needed since the environment is per-file).
 - **G18 owns its panels; it does not host a G17 registry.** G17's harness is a
   single standalone Vite page with no exported panel contract, so there is
   nothing to mount. The four tabs (`perf`/`errors`/`validation`/`capture`) are
@@ -1131,3 +1233,14 @@ perf tab, and renders G18's own capture panel.
   is for compute-affecting, user-facing actions; the dev HUD is neither, so it
   registers its own `keydown` listener and removes it on `off()`. Keep dev-tool
   keybindings out of the user keymap so they never collide with a shipped shortcut.
+- **The live capture button is deferred (as-built).** `dev/main.ts` omits the
+  `capture?` dep because the dispatcher does not yet expose its last-dispatch
+  `SimUniforms`/`TileRequest` — the inputs G17's `captureFrame` needs. The
+  capture tab renders its empty state; `extendCapture`/`checkCaptureReplayable`
+  are pinned by the exit suite. Follow-up: expose the last dispatch on
+  `GpuDispatcher`, then wire a capture button in the HUD.
+- **Inspector feed: track the promise by identity.** `App.inspector()` returns
+  the *same* `Promise<InspectorResult>` for the lifetime of a lock (and `null`
+  when unlocked). The `dev/main.ts` feed caches the resolved result keyed on
+  promise identity, so the HUD's rAF poll never re-runs the inspector and a
+  re-lock invalidates the cached result automatically.

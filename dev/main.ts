@@ -11,6 +11,8 @@ import { detectCapabilities } from '@/gpu/capability.js';
 import { initGpu, UnsupportedError } from '@/gpu/init.js';
 import { ErrorBoundary, Telemetry, InMemorySink, Level } from '@/error/index.js';
 import { defaultViewState } from '@/interact/view_state.js';
+import { tileKey } from '@/quadtree/index.js';
+import type { InspectorResult } from '@/inspector/types.js';
 import {
   SIMULATE_MODULE, RENDER_LAYER0_MODULE, REDUCE_MODULE, RENDER_GRAPH_MODULE,
 } from './shader_modules.js';
@@ -107,7 +109,38 @@ async function main(): Promise<void> {
   const renderStore = new RenderParamsStore(
     undefined, (p) => dispatcher.setRenderParams(p));
 
-  mountUI(root, app, canvas, { boundary, capability: cap, renderStore });
+  // G18: dev overlay ('~' toggles). Read-only feeds: perf monitor, telemetry
+  // buffer, live per-tile status_flags, and the locked inspector result.
+  // The inspector promise is tracked by identity — App.inspector() returns
+  // the same promise per lock, so a resolved result is cached until the
+  // lock changes (never re-runs the inspector from the HUD poll).
+  const tileFlags = (): ReadonlyMap<string, number> => {
+    const m = new Map<string, number>();
+    for (const t of app.loop.cache.entries()) {
+      if (t.reduction) m.set(tileKey(t.id), t.reduction.status_flags);
+    }
+    return m;
+  };
+  let inspectorResult: InspectorResult | null = null;
+  let trackedInspector: Promise<InspectorResult> | null = null;
+  const inspectorNow = (): InspectorResult | null => {
+    const p = app.inspector();
+    if (p !== trackedInspector) {
+      trackedInspector = p;
+      inspectorResult = null;
+      p?.then((r) => { if (trackedInspector === p) inspectorResult = r; },
+              () => { /* surfaced by the boundary, not the HUD */ });
+    }
+    return inspectorResult;
+  };
+
+  mountUI(root, app, canvas, {
+    boundary, capability: cap, renderStore,
+    // Live capture-button wiring is deferred: the dispatcher doesn't expose
+    // its last-dispatch SimUniforms yet. The capture tab shows the (empty)
+    // state; extendCapture() is exercised by unit tests.
+    debug: { perf: app.loop.perf, sink: telemetrySink, tileFlags, inspector: inspectorNow },
+  });
   app.start();
 
   for (const w of cap.warnings) console.warn('[principia]', w);
