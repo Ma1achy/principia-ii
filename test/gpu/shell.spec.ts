@@ -121,6 +121,22 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
   await page.locator('.inspector .unlock').click();
   await expect(page.locator('.inspector')).toBeHidden();
 
+  // G18 dev HUD: default-hidden, `~` reveals it with live perf numbers,
+  // `~` again hides it. Read-only — toggling must not disturb the view.
+  await expect(page.locator('.devhud')).toBeHidden();
+  const beforeHud = await page.evaluate(() =>
+    (window as unknown as PrincipiaWindow).__principia.app.store.snapshot());
+  await page.keyboard.press('Shift+`');
+  await expect(page.locator('.devhud')).toBeVisible();
+  await expect(page.locator('.devhud-perf')).toContainText('cpu');
+  await page.locator('.devhud button[data-tab="errors"]').click();
+  await expect(page.locator('.devhud-errors')).toContainText('failed tiles');
+  await page.keyboard.press('Shift+`');
+  await expect(page.locator('.devhud')).toBeHidden();
+  const afterHud = await page.evaluate(() =>
+    (window as unknown as PrincipiaWindow).__principia.app.store.snapshot());
+  expect(afterHud).toEqual(beforeHud);
+
   expect(errors).toEqual([]);
 
   // Let the zoomed/panned frontier finish before the keepsake screenshots

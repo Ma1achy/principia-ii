@@ -9,6 +9,54 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G18 — Debug HUD integration
+
+Branch `feat/g18-debug-hud`. 630 passed / 8 skipped (+25: debug_hud 19
+[gate ≥16], debug_hud_dom 6); typecheck + unpiped lint clean; gpu:check
++ all four page checks green; shell spec extended with a live `~` HUD
+probe — green headless (SwiftShader, ~2.4 min) and headed on Metal
+(~6 s). Milestone doc folded back as-built.
+
+### DG18.1 — phantom `EnsembleConfig` → structural `{E, patternId}`
+The doc imported `EnsembleConfig` from `@/gpu/ensemble.js`; no such
+type exists (G7 carries E/patternId in the TileRequest). The capture
+API (`captureSeeds`/`extendCapture`) takes the pair structurally —
+no new type is declared, so nothing can drift from G7.
+
+### DG18.2 — failure-bit contract line corrected to bits 8–10
+The doc's contracts line said `TILE_STATUS_FAIL` is `1<<6..1<<8`; bits
+6–7 are the schema-version field (DG11.1) and the landed bits are
+8–10. Doc folded to the landed values; the HUD only consumes
+`hasTileFailure`/`tileFlagDescriptor`, so no code was affected.
+
+### DG18.3 — dev/main feeds: cache walk + promise-identity inspector
+`tileFlags` iterates `app.loop.cache.entries()` and maps
+`tileKey(id) → reduction.status_flags` (tiles without a landed
+reduction are skipped). The inspector feed caches the resolved
+`InspectorResult` keyed on the *identity* of `App.inspector()`'s
+promise — one promise per lock, so the HUD's rAF poll never re-runs
+the inspector and a re-lock invalidates automatically.
+
+### DG18.4 — live capture button deferred; capture tab ships empty-state
+G17's `captureFrame` needs the dispatched `SimUniforms`/`TileRequest`,
+which `GpuDispatcher` doesn't expose. Rather than bolt a side channel
+on, `dev/main.ts` omits the optional `capture` dep (the tab renders
+"no captured frame"); `extendCapture`/`checkCaptureReplayable` are
+fully pinned by the exit suite. Follow-up noted in the milestone doc.
+
+### DG18.5 — shell spec pins the HUD read-only guarantee live
+Added to `test/gpu/shell.spec.ts`: press `Shift+``, assert the drawer
+shows live perf text and the errors tab, hide it again, and assert the
+`ViewState` snapshot deep-equals its pre-toggle value — the read-only
+contract enforced on a real device, not just in happy-dom.
+
+### DG18.6 — DOM smoke uses happy-dom header, not jsdom skipIf
+The doc's `skipIf(typeof document === 'undefined')` would silently
+skip forever under the node default environment. Landed as
+`// @vitest-environment happy-dom` (G12 shell_dom idiom): always runs.
+
+---
+
 ## G12 — UI/UX shell (full)
 
 Branch `feat/g12-ui-shell-full`. 605 passed / 8 skipped (+32: shell 25
