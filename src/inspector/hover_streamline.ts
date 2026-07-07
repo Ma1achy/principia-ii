@@ -4,23 +4,41 @@ import { RK45_DEFAULTS } from './types.js';
 
 /**
  * Debounced, budget-capped hover streamline. The user moves the cursor
- * across the shape-sphere chart; we draw a trajectory streaming out from
- * the hovered pixel.
+ * across the shape-sphere chart; we integrate a short CPU f64 trajectory
+ * from the hovered pixel and hand its shape-sphere path to the caller.
  *
  * Policy:
  *   - 30 ms debounce: never start a new integration until the pointer
  *     has been stationary for 30 ms.
- *   - 8 ms wall-clock cap per integration; on deadline, draw the
- *     partial trajectory and continue extending it on idle frames at
- *     16 ms per frame budget.
+ *   - `budgetMs` wall-clock cap per integration (enforced inside
+ *     runInspector): on deadline the partial trajectory is delivered.
+ *   - Sessions are monotonic; a stale integration never overwrites a
+ *     newer hover's result.
  */
 export class HoverStreamline {
-  private currentSession: number = 0;
-  private lastResult: { sessionId: number; trajectory: { x: number; y: number; z: number }[] } | null = null;
+  private currentSession = 0;
+  private lastResult: {
+    sessionId: number;
+    trajectory: { x: number; y: number; z: number }[];
+  } | null = null;
+
+  constructor(
+    /** Called with the (possibly partial) trajectory of the latest session. */
+    private readonly onResult?: (traj: { x: number; y: number; z: number }[]) => void,
+    private readonly budgetMs = 24,
+    private readonly horizon = 30,
+  ) {}
 
   /** Returns the currently displayed (possibly partial) trajectory. */
   trajectory(): { x: number; y: number; z: number }[] {
     return this.lastResult?.trajectory ?? [];
+  }
+
+  /** Cancel any pending session and clear the result (pointer left). */
+  clear(): void {
+    this.currentSession++;
+    this.lastResult = null;
+    this.onResult?.([]);
   }
 
   /** Called by the UI on each pointer move. Decoded IC is supplied by
@@ -36,26 +54,17 @@ export class HoverStreamline {
     const ic = decodeIc();
     if (!ic) return;
 
-    const start = performance.now();
-    const budget = 8;
-    // Run a short-horizon inspector with a tight budget. The inspector
-    // returns whatever fraction of the trajectory it managed in the
-    // budget; we extend it on subsequent idle frames.
+    // Budget-capped short-horizon run on the main thread. The budget is
+    // enforced INSIDE the integrator loop (RK45Opts.budgetMs), so a stiff
+    // region cannot jank the frame — it just yields a shorter streamline.
     const result = runInspector(ic, {
       ...RK45_DEFAULTS,
-      THorizon: 30,
+      THorizon: this.horizon,
       fullTrace: false,
-      checkpointCount: 64,
+      budgetMs: this.budgetMs,
     });
     if (sessionId !== this.currentSession) return;     // user moved again
-    this.lastResult = {
-      sessionId,
-      trajectory: result.nShape,
-    };
-    const elapsed = performance.now() - start;
-    if (elapsed >= budget && result.tEnd < 30) {
-      // Schedule a continuation. (M9 shows the contract; production may
-      // requestIdleCallback or use the existing render-loop slot.)
-    }
+    this.lastResult = { sessionId, trajectory: result.nShape };
+    this.onResult?.(result.nShape);
   }
 }

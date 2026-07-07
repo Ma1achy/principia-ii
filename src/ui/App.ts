@@ -5,6 +5,7 @@ import type { CapabilityProfile } from '@/gpu/capability.js';
 import { mountControlPanel } from './ControlPanel.js';
 import { mountCanvas, type GestureGate } from './Canvas.js';
 import { mountTileOverlay } from './TileOverlay.js';
+import { mountStreamlineOverlay } from './StreamlineOverlay.js';
 import { mountInspectorPanel } from './InspectorPanel.js';
 import { mountChartBrowser } from './ChartBrowser.js';
 import { mountChrome } from './Chrome.js';
@@ -114,6 +115,7 @@ export function mountUI(
   offs.push(mountCanvas(area('.canvas-area'), app, canvas, gate));
   offs.push(mountControlPanel(area('.control-area'), app, deps.renderStore, liveSay));
   offs.push(mountTileOverlay(area('.canvas-area'), area('.control-area'), app, canvas));
+  offs.push(mountStreamlineOverlay(area('.canvas-area'), app, canvas));
   offs.push(mountInspectorPanel(area('.inspector-area'), app));
   const gallery = mountChartBrowser(area('.gallery-area'), app, presets);
   openPresetsFn = () => { gallery.open(); };
