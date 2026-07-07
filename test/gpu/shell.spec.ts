@@ -131,6 +131,15 @@ test('the shell boots, renders tiles, and answers pan/zoom/lock', async ({ page 
   await expect(page.locator('.devhud-perf')).toContainText('cpu');
   await page.locator('.devhud button[data-tab="errors"]').click();
   await expect(page.locator('.devhud-errors')).toContainText('failed tiles');
+  // Live capture button (DG18.4 follow-up): the dispatcher has dispatched
+  // real tiles by now, so a click must yield a REPLAYABLE snapshot with a
+  // JSON download link.
+  await page.locator('.devhud button[data-tab="capture"]').click();
+  await expect(page.locator('.devhud-capture')).toContainText('no captured frame');
+  await page.locator('.devhud-capture-take').click();
+  await expect(page.locator('.devhud-capture')).toContainText('replayable');
+  await expect(page.locator('.devhud-capture-download')).toHaveAttribute(
+    'download', /principia-capture-/);
   await page.keyboard.press('Shift+`');
   await expect(page.locator('.devhud')).toBeHidden();
   const afterHud = await page.evaluate(() =>

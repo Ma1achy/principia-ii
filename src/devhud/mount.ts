@@ -19,7 +19,10 @@ export interface DebugHudDeps {
   tileFlags: () => ReadonlyMap<string, number>;
   /** The current locked inspector result, or null when unlocked (M9 / G2). */
   inspector: () => InspectorResult | null;
-  /** The most-recent extended capture, or null when nothing is captured. */
+  /** Snapshot the live dispatch inputs as an extended capture, or null
+   *  before the first dispatch. Called on the capture button's click —
+   *  never on the render poll, so a capture is a stable, user-taken
+   *  snapshot rather than a churning live view. */
   capture?: () => FrameCaptureV2 | null;
   /** Injectable rAF for tests; defaults to requestAnimationFrame. */
   raf?: (cb: () => void) => number;
@@ -42,6 +45,7 @@ export function mountDebugHud(
   const caf = deps.caf ?? ((h): void => cancelAnimationFrame(h));
 
   let state: DevOverlayState = initDevOverlay();
+  let captured: FrameCaptureV2 | null = null;   // the user's taken snapshot
   const offs: (() => void)[] = [];
 
   root.innerHTML = `
@@ -68,7 +72,10 @@ export function mountDebugHud(
       const r = deps.inspector();
       body.appendChild(renderValidation(r ? validationVM(r) : null));
     } else {
-      body.appendChild(renderCapture(deps.capture?.() ?? null));
+      body.appendChild(renderCaptureTab(captured, deps.capture, (cap) => {
+        captured = cap;
+        render();
+      }));
     }
   }
 
@@ -93,9 +100,15 @@ export function mountDebugHud(
   offs.push(() => window.removeEventListener('keydown', onKey));
 
   // Render-only poll: re-derive the visible tab each frame. Never writes
-  // view state.
+  // view state. The capture tab is EXCLUDED from the poll — it holds an
+  // interactive button and a user-taken snapshot, neither of which is
+  // live data, and a per-frame rebuild detaches the button faster than a
+  // click can land. It re-renders on dispatch (tab switch, toggle, take).
   let rafHandle = 0;
-  const tick = (): void => { render(); rafHandle = raf(tick); };
+  const tick = (): void => {
+    if (state.tab !== 'capture') render();
+    rafHandle = raf(tick);
+  };
   rafHandle = raf(tick);
   offs.push(() => caf(rafHandle));
 
@@ -156,6 +169,38 @@ function renderValidation(vm: ValidationVM | null): HTMLElement {
     `outcome ${vm.outcome} · outcomeAgrees ${vm.gpuOutcomeAgrees} ` +
     `· ftleΔ ${vm.gpuFtleDelta.toFixed(4)} · wordAgrees ${vm.gpuWordAgrees}`;
   return el;
+}
+
+function renderCaptureTab(
+  captured: FrameCaptureV2 | null,
+  take: (() => FrameCaptureV2 | null) | undefined,
+  onCaptured: (cap: FrameCaptureV2 | null) => void,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'devhud-capture-tab';
+
+  const btn = document.createElement('button');
+  btn.className = 'devhud-capture-take';
+  btn.textContent = 'capture now';
+  btn.disabled = take === undefined;
+  btn.title = take === undefined
+    ? 'no capture source wired' : 'snapshot the last dispatch inputs';
+  btn.addEventListener('click', () => onCaptured(take?.() ?? null));
+  wrap.appendChild(btn);
+
+  wrap.appendChild(renderCapture(captured));
+
+  if (captured) {
+    const dl = document.createElement('a');
+    dl.className = 'devhud-capture-download';
+    dl.textContent = 'download JSON';
+    // FrameCaptureV2 is plain JSON (uniforms/tile/chart/view/seeds).
+    dl.href = `data:application/json,${
+      encodeURIComponent(JSON.stringify(captured, null, 2))}`;
+    dl.download = `principia-capture-${captured.cacheKey.slice(0, 24)}.json`;
+    wrap.appendChild(dl);
+  }
+  return wrap;
 }
 
 function renderCapture(cap: FrameCaptureV2 | null): HTMLElement {

@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { mountDebugHud, type DebugHudDeps } from '@/devhud/mount.js';
+import { extendCapture } from '@/devhud/capture.js';
+import { defaultViewState } from '@/interact/view_state.js';
 import type { App } from '@/app/app.js';
 
 // happy-dom smoke mount, mirroring G12's shell_dom.test.ts. The HUD only
@@ -68,6 +70,33 @@ describe('mountDebugHud (happy-dom smoke)', () => {
     root.querySelector<HTMLButtonElement>('button[data-tab="perf"]')!.click();
     root.querySelector<HTMLButtonElement>('button[data-tab="capture"]')!.click();
     expect(root.querySelector('.devhud-capture')!.textContent).toMatch(/no captured frame/);
+    off();
+  });
+
+  it('the capture button takes a persistent snapshot with a download link', () => {
+    let takes = 0;
+    const fakeCap = extendCapture(
+      { version: 2, N: 16, M: 8, uniforms: {}, tile: {}, chart: {} } as any,
+      defaultViewState(), { E: 1, patternId: 0 });
+    const root = document.createElement('div');
+    const off = mountDebugHud(root, fakeApp(), deps({
+      capture: () => { takes++; return fakeCap; },
+    }));
+    root.querySelector<HTMLButtonElement>('button[data-tab="capture"]')!.click();
+    const take = root.querySelector<HTMLButtonElement>('.devhud-capture-take')!;
+    expect(take.disabled).toBe(false);
+    expect(takes).toBe(0);                       // never called on render
+    take.click();
+    expect(takes).toBe(1);                       // called exactly on click
+    expect(root.querySelector('.devhud-capture')!.textContent).toMatch(/16×8/);
+    const dl = root.querySelector<HTMLAnchorElement>('.devhud-capture-download')!;
+    expect(dl.download).toMatch(/principia-capture-/);
+    expect(dl.href).toMatch(/^data:application\/json,/);
+    // The snapshot persists across tab switches (stored, not re-derived).
+    root.querySelector<HTMLButtonElement>('button[data-tab="perf"]')!.click();
+    root.querySelector<HTMLButtonElement>('button[data-tab="capture"]')!.click();
+    expect(takes).toBe(1);
+    expect(root.querySelector('.devhud-capture')!.textContent).toMatch(/16×8/);
     off();
   });
 
