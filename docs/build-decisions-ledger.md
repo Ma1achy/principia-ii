@@ -9,6 +9,62 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G2 — Frame loop and orchestration
+
+Branch `feat/g2-frame-loop`. 502 passed / 7 skipped (22 new across
+store/input/gpu_jobs/app_frame_loop); typecheck + lint clean. CPU-only
+milestone (mocked GpuDispatcher — the production dispatcher wiring is
+G8/G12), so no gpu:check delta, same as G5.
+
+### DG2.1 — the draft passed ViewState where M4/M5 take QuadtreeView
+`visibleTiles`, `planFrame`, and `computePriority` all take M4's
+`QuadtreeView` (cacheKey + UV window + zBase/zMax + viewport pixels);
+the draft called them with M8's `ViewState` directly, which does not
+even carry a tile depth. Landed `src/app/view_bridge.ts`:
+`toQuadtreeView(v, viewport)` derives zBase via the camera's zoomLevel
+formula from the viewport's UV width (cap = v.maxDepth) and the cache
+key via viewStateToCacheKey; Viewport (800×600 @ tilePix 256 default)
+is a FrameLoop option.
+
+### DG2.2 — JobLedger must claim the cache entry BEFORE the GPU job
+The draft's ledger never touched the cache on dispatch. But M5's
+ingestReduction returns early when `cache.get(id, key)` misses —
+every completion would have been dropped on the floor — and planFrame
+only skips tiles whose lifecycle is queued/computing, so the same tile
+would be re-proposed every frame. Landed: dispatch() inserts the entry
+as 'computing' (or transitions an existing 'unseen'/'readyRefinable'
+entry) before calling the dispatcher; completion runs ingestReduction
+('computing' → 'ready', reduction attached).
+
+### DG2.3 — cancelled/failed jobs leaked the in-flight slot forever
+The draft's completion handler did `if (job.cancelled) return;` BEFORE
+deleting the in-flight map entry, and cancelOffscreen never deleted it
+either — each cancelled tile permanently ate a maxInFlight slot and
+left its cache entry 'computing' (which eviction refuses to touch).
+Landed: the handler always deletes the ledger entry; discarded and
+failed tiles transition back to 'unseen' so they can recompute.
+
+### DG2.4 — offscreen cancellation would have killed split children
+The draft cancelled every in-flight job whose tile key was not in the
+visible set — but planFrame's split jobs target CHILDREN one level
+below the visible frontier, so every child the scheduler just
+requested would be cancelled the same frame. Landed: a job survives if
+its tile is visible or a DESCENDANT of a visible tile
+(`contains(visibleTile, jobTile)`).
+
+### DG2.5 — the draft's start() was a no-op on first call
+`start() { if (!this.stopped) return; ... }` with `stopped = false`
+initial state returns immediately on the very first call — the loop
+could literally never start. Landed: a `running` flag with the obvious
+semantics. Also trimmed dead draft API (FrameDeps.rafId/randomJitter,
+render_dispatch.ts's identity function), and input handlers read the
+snapshot + setView only on ok (the draft's side-effecting
+store.update closures notified subscribers even on rejected ops).
+One behavioural note pinned in tests: with default knobs, decode
+totality (αMin/qMax clamps) makes `lookup` rejection unreachable —
+near-collisions come back clamped-ok; the rejection surface exists for
+M10's chart-specific validators.
+
 ## G9 — WebGPU capability detection & graceful degradation
 
 Branch `feat/g9-capability`. 480 passed / 7 skipped (16 in the gate
