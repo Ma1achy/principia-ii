@@ -29,6 +29,9 @@ export interface FrameLoopOpts {
 export class FrameLoop {
   readonly cache: TileCache;
   readonly ledger: JobLedger;
+  /** Stats of the most recent tick (null before the first). Read-only
+   *  telemetry for HUDs and headless checks. */
+  lastStats: FrameStats | null = null;
   private frameNum = 0;
   private running = false;
   private rafId = 0;
@@ -115,6 +118,7 @@ export class FrameLoop {
 
     stats.jobsCompleted = this.ledger.completedCount - completedBefore;
     stats.cpuMs = this.deps.now() - t0;
+    this.lastStats = stats;
     return stats;
   }
 

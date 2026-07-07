@@ -102,7 +102,7 @@ describe('bind-group layout compatibility across pipelines', () => {
       pass.setBindGroup(1, bgs.perTile);
       pass.setBindGroup(2, bgs.reduction);
       pass.setBindGroup(3, rg.bgRenderParams);
-      pass.draw(3, 1);
+      pass.draw(6, 1);   // G8: windowed quad
       pass.end();
     }
     device.queue.submit([enc.finish()]);

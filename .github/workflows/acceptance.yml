@@ -1,0 +1,41 @@
+name: acceptance
+on:
+  push:
+    branches: [webgpu-rewrite]
+  pull_request:
+    branches: [webgpu-rewrite]
+  schedule:
+    # Nightly: the same gate, catching drift from merged combinations.
+    - cron: '0 4 * * *'
+
+jobs:
+  spec_section_7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test -- --run test/integration/acceptance test/integration/ci_acceptance
+
+  webgpu_swiftshader_smoke:
+    # Runs on PRs labelled "needs-gpu" and on the nightly schedule —
+    # WebGPU-on-CI is slow (SwiftShader) so most PRs skip it; PRs that
+    # touch GPU code add the label and pay it once.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'needs-gpu'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:gpu
+      - run: npm run gpu:check

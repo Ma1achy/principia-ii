@@ -9,6 +9,88 @@ flagged here so it can be reviewed rather than buried in a diff.
 
 ---
 
+## G8 — UI shell, CI, performance baselines
+
+Branch `feat/g8-ui-ci-perf`. 513 passed / 7 skipped (+11: viewport_nav,
+ui_smoke, ci_acceptance, perf_baseline); typecheck + lint clean; real-GPU
+battery green (gpu:check all gates, g17/m5/m7/depth-stress page checks);
+Playwright shell spec passes headless (SwiftShader, ~2.5 min) **and headed
+on Metal (~5 s)** — the first interactive slippy-map. Milestone doc
+rewritten as-built.
+
+### DG8.1 — the draft had no dispatcher; the render plan was undrawable
+The doc hand-waved `makeRealDispatcher` and left M7's render graph
+painting one tile across the whole target, so G2's ancestor-stretch
+entries (the blank-screen defence) could not be drawn at all. Landed:
+(a) a `TileWindow` uniform (32 B: screen rect + tile-UV window) at
+`@group(3) @binding(1)` plus a 6-vertex quad / interpolated-UV rewrite
+of `render_graph.wgsl` (WGSL + packer + pin test in one commit); (b)
+`src/app/dispatcher.ts` — one shared staging `TileBuffers` set, jobs
+serialized on a promise chain, results `copyBufferToBuffer`'d into
+per-tile retained buffers (LRU 512) keyed
+`chart|z0|q1|q2|mag|tileKey`; render is a single pass with a pool of
+per-entry window-slot bind groups (all writeBuffers before submit).
+G6 linearisation (with kinked→full-decode fallback) and G7 ensembles
+are wired through the same path.
+
+### DG8.2 — wheel zoom is viewport navigation, not slice magnification
+The draft wired the mouse wheel to `mag` — a full slice recompute per
+scroll notch, which discards the cache and isn't "zoom" in the slippy-
+map sense. Landed `src/app/viewport_nav.ts`: pan/zoom on
+`(uvCentre, uvHalfWidth)` keeping the world point under the pointer
+fixed, half-width clamped to [2⁻²⁸, 0.5]. `mag` stays available as the
+explicit Slice ± control in the panel.
+
+### DG8.3 — LookupDialog/LegendOverlay/bindings deferred to G12
+The draft's file tree included them but G8's exit only needs the
+gesture loop. G12 (full UI shell) owns them; shipping stubs now would
+be fake surface.
+
+### DG8.4 — perf pooling patches rejected by measurement
+The draft prescribed `src/perf/pooled_buffers.ts` + patches to M1
+KDK / M9 DOPRI5 / M5 reduce / M6 metricsTick, promising ~3× — written
+against an allocation profile that never landed (M1 was flat-tuple
+monomorphic from day one). Measured: KDK macro step 0.75–0.82 µs vs
+the 50 µs budget; inspector to t=2 13.5 ms vs 250 ms. Landed: the
+regression-baseline test only; no perf module. (Also fixed while
+folding back: the baseline called `runInspector` with a nonexistent
+`tEnd` option — the field is `THorizon`; vitest passed because excess
+options are ignored at runtime, tsc caught it.)
+
+### DG8.5 — CI jobs run whole test trees, not the draft's phantom paths
+The draft's yaml referenced per-suite paths that don't exist in the
+landed tree. Landed `ci.yml` (unit / integration_no_gpu / golden on
+push+PR to webgpu-rewrite, Node 22 — GPU integration suites self-skip
+without an adapter) and `acceptance.yml` (`spec_section_7` un-gated +
+nightly; `webgpu_swiftshader_smoke` gated on the `needs-gpu` label or
+schedule, running `test:gpu` + `gpu:check`).
+
+### DG8.6 — headless rAF starvation needs a heartbeat
+Headless Chromium throttles rAF to ~zero until something presents,
+but the first present needs a tick — the frame loop sat at frame 4
+after 60 s. Landed in `dev/main.ts`: schedule races rAF against a
+250 ms setTimeout with a fire-once guard; stray timeouts after stop()
+are no-ops.
+
+### DG8.7 — pixel probes are best-effort; presentation proof is headed
+Headless Chromium never composites the WebGPU canvas (the known
+glitch every dev harness paints around), and even headed, `drawImage`
+from a WebGPU canvas can read the cleared current texture instead of
+the presented frame. The shell spec's first version passed on a blank
+canvas (PNG-byte-diversity gate — too weak); the landed spec asserts
+convergence via `lastStats` (visible>0 ∧ cacheHits==visible), binds
+in-page pixel assertions only when the 2D copy actually sees pixels,
+and takes compositor screenshots as the human proof. Automated pixel
+truth stays pinned offscreen by the M7 render check. A data-URI
+favicon was added to index.html because headed Chromium's
+/favicon.ico 404 tripped the zero-console-errors gate.
+
+### DG8.8 — URL knobs ?thorizon=&n= for CI horizons
+SwiftShader is ~100× slower than hardware; the spec-true horizon
+(T=80 ⇒ 80k macro steps/sample) is a minutes-long first paint there.
+The dev/CI entry accepts `?thorizon=20&n=16`; production defaults
+stay spec-true. Headed on Metal the full e2e runs in ~5 s.
+
 ## G2 — Frame loop and orchestration
 
 Branch `feat/g2-frame-loop`. 502 passed / 7 skipped (22 new across
