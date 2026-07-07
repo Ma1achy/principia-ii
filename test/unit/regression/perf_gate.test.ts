@@ -68,4 +68,20 @@ describe('checkPerf: regression classifier', () => {
     const r = checkPerf(snap({ gpuP95Ms: { reduce: 0.8 } }), baseline); // no `simulate`
     expect(r.passed).toBe(true);
   });
+
+  it('sub-ms pass jitter stays under a 0.5ms floor (DG15.7 flake pin)', () => {
+    // The live flake: reduce_spreads baseline 0.02ms observed at 0.236ms —
+    // an 11.8x factor that is pure scheduling noise on a sub-ms pass. With
+    // the perf spec's 0.5ms floor it must NOT regress...
+    const b: PerfBaseline = { cpuP95Ms: 14, gpuP95Ms: { reduce_spreads: 0.02 }, budget: 'ok' };
+    const jitter = checkPerf(
+      snap({ gpuP95Ms: { reduce_spreads: 0.236 } }), b,
+      { noiseFloorMs: 0.5, allowedRegression: 1.0 });
+    expect(jitter.passed).toBe(true);
+    // ...while a real blow-up past the floor still fails.
+    const real = checkPerf(
+      snap({ gpuP95Ms: { reduce_spreads: 0.8 } }), b,
+      { noiseFloorMs: 0.5, allowedRegression: 1.0 });
+    expect(real.passed).toBe(false);
+  });
 });
