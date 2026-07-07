@@ -26,7 +26,7 @@ describe('uniform packing', () => {
       N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 80,
       r_coll: 1e-4, R_esc: 10, k_esc: 8,
       eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
-      quality_tier: 1, checkpoint_count: 8, samples_per_axis: 16,
+      quality_tier: 1, checkpoint_count: 8, samples_per_axis: 16, integrator: 0,
     };
     const buf = packSimUniforms(u);
     expect(buf.byteLength).toBe(64);

@@ -70,10 +70,18 @@ export interface SimUniforms {
   quality_tier:    number;
   checkpoint_count:number;
   samples_per_axis:number;
+  integrator:      number;   // INTEGRATOR_INDEX value
 }
 
+/** ViewState.integrator → SimUniforms.integrator lane. Mirrors the WGSL
+ *  INTEG_* constants in integrate.wgsl (three-place rule: this map + those
+ *  constants + the pin in structs.test.ts change together). */
+export const INTEGRATOR_INDEX = {
+  kdk: 0, yoshida4: 1, yoshida6: 2, rk4: 3,
+} as const;
+
 export function packSimUniforms(u: SimUniforms): ArrayBuffer {
-  // 64-byte buffer: 15 scalar lanes (60 B) + one trailing pad lane.
+  // 64-byte buffer: 16 scalar lanes (fully occupied since integrator).
   const buf = new ArrayBuffer(64);
   const f32 = new Float32Array(buf);
   const u32 = new Uint32Array(buf);
@@ -88,7 +96,7 @@ export function packSimUniforms(u: SimUniforms): ArrayBuffer {
   u32[12] = u.quality_tier >>> 0;
   u32[13] = u.checkpoint_count >>> 0;
   u32[14] = u.samples_per_axis >>> 0;
-  // f32[15] trailing pad
+  u32[15] = u.integrator >>> 0;
   return buf;
 }
 

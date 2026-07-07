@@ -6,7 +6,7 @@ import type { TileID } from '@/quadtree/types.js';
 import type { TileReduction } from '@/quadtree/reduction_types.js';
 import type { SimUniforms, TileRequest } from '@/gpu/structs.js';
 import {
-  packSimUniforms, packTileRequest, TILE_REQUEST_FLAGS,
+  packSimUniforms, packTileRequest, TILE_REQUEST_FLAGS, INTEGRATOR_INDEX,
   sizeOfSimResult, sizeOfICDescriptor,
 } from '@/gpu/structs.js';
 import { createTileBuffers, createTileBindGroups, packTileWindow } from '@/gpu/buffers.js';
@@ -123,6 +123,7 @@ function simUniformsOf(view: ViewState): SimUniforms {
     // until the struct grows (three-place change, out of G8 scope).
     checkpoint_count: Math.min(view.checkpoints, M_STAGING),
     samples_per_axis: Math.min(view.samplesPerAxis, N_STAGING),
+    integrator: INTEGRATOR_INDEX[view.integrator],
   };
 }
 

@@ -28,6 +28,7 @@ struct SimUniforms {
   quality_tier:     u32,
   checkpoint_count: u32,
   samples_per_axis: u32,
+  integrator:       u32,   // INTEGRATOR_INDEX: 0 kdk, 1 yoshida4, 2 yoshida6, 3 rk4
 };
 
 struct SimResult {

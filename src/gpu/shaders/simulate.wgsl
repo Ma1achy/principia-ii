@@ -1,6 +1,6 @@
 // @import { decode_full, ICOut, ChartUniforms }           from "./decode.wgsl"
 // @import { decode_linear, LinearisedRef, TILE_REQ_DECODE_LINEAR } from "./decode_linear.wgsl"
-// @import { State, kdk_macro_step }                       from "./integrate.wgsl"
+// @import { State, integrator_macro_step }                       from "./integrate.wgsl"
 // @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
 // @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
 // @import { cross_z, EPS_BOLT }                           from "./helpers.wgsl"
@@ -28,6 +28,7 @@ struct SimUniforms {
   quality_tier:     u32,
   checkpoint_count: u32,
   samples_per_axis: u32,
+  integrator:       u32,   // INTEGRATOR_INDEX: 0 kdk, 1 yoshida4, 2 yoshida6, 3 rk4
 };
 
 struct TileRequest {
@@ -173,7 +174,7 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
 
   loop {
     if (s.t >= uniforms.T_horizon) { break; }
-    let nsub = kdk_macro_step(&s, uniforms);
+    let nsub = integrator_macro_step(&s, uniforms);
     totalSubsteps += nsub;
     maxSub = max(maxSub, nsub);
 
