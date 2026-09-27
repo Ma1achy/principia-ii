@@ -47,6 +47,9 @@ export interface InspectorResult {
   dMin:        number;
   deltaEMax:   number;
   ftle:        number;
+  /** Two-window frequency diffusion |ω2−ω1| (spec §freq_diffusion);
+   *  −1 sentinel for non-bounded runs or too-few window samples. */
+  diffusion:   number;
   freeGroupWord: string;
 
   /** Symbolic / metadata. */

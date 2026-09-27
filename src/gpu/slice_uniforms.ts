@@ -44,6 +44,40 @@ export const DEFAULT_SLICE: SliceUniformsValue = {
   mag: 3,
 };
 
+/**
+ * Fold a tile's centre/half-extent into the slice (f64, CPU-side) so the
+ * GPU evaluates a PURE TILE-LOCAL affine map:
+ *
+ *   z(t) = z0_tile + (2t−1)_x · q1_tile + (2t−1)_y · q2_tile
+ *
+ * Expansion of the global map z = z0 + (2u−1)·mag·q1 + … with
+ * u = c_u + h_u(2t−1):  the centre term (2c_u−1)·mag folds into z0, the
+ * half term 2·h_u·mag scales q1. Exact affine composition — unlike the
+ * old shader-side reconstruction (global uv rebuilt in f32, which
+ * catastrophically cancelled below tile widths of ~1e-7 and quantised
+ * adjacent samples between depth ~17 and the linearised switchover).
+ * The returned mag is 1 and unused by the shader.
+ */
+export function tileLocalSlice(
+  s: SliceUniformsValue,
+  centre: readonly [number, number], half: readonly [number, number],
+): SliceUniformsValue {
+  const suC = (2 * centre[0] - 1) * s.mag;
+  const svC = (2 * centre[1] - 1) * s.mag;
+  const suH = 2 * half[0] * s.mag;
+  const svH = 2 * half[1] * s.mag;
+  const z0 = new Array<number>(8);
+  const q1 = new Array<number>(8);
+  const q2 = new Array<number>(8);
+  for (let i = 0; i < 8; i++) {
+    z0[i] = s.z0[i]! + suC * s.q1[i]! + svC * s.q2[i]!;
+    q1[i] = suH * s.q1[i]!;
+    q2[i] = svH * s.q2[i]!;
+  }
+  return { z0: z0 as unknown as Vec8, q1: q1 as unknown as Vec8,
+           q2: q2 as unknown as Vec8, mag: 1 };
+}
+
 export function packSliceUniforms(s: SliceUniformsValue): ArrayBuffer {
   const buf = new ArrayBuffer(SLICE_UNIFORMS_SIZE);
   const f = new Float32Array(buf);

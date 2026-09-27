@@ -9,7 +9,7 @@ const COLOUR_MODE_INDEX: Record<RenderParams['colourMode'], number> = {
   close_encounters: 15, min_approach: 16, energy_drift_abs: 17,
   energy_drift_rel: 18, lz_drift_abs: 19, lz_drift_rel: 20,
   shape_sphere_vmf: 21, shape_sphere_okabe_ito: 22, stability_x_hue: 23,
-  none: 24,
+  none: 24, free_group_word: 25,
 };
 
 const BRIGHT_MODE_INDEX: Record<RenderParams['brightnessMode'], number> = {

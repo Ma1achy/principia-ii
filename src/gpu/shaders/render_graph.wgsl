@@ -6,7 +6,7 @@
 // and src/gpu/structs.ts.
 
 // @import { PI, linear_to_srgb }                       from "./render_helpers.wgsl"
-// @import { palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
+// @import { palette_seq, palette_div_symlog, vmf_blend6, stability_x_hue, colour_free_group_word, VMF_SCHEME_OKLAB, VMF_SCHEME_OKABE_ITO } from "./colour_modes.wgsl"
 // @import { brightness_time_to_event, brightness_diffusion, brightness_bc_proximity, brightness_energy_drift, brightness_ftle } from "./brightness_modes.wgsl"
 // @import { combine_replace_lightness, combine_modulate_lightness, combine_multiply_rgb } from "./combiner.wgsl"
 // @import { apply_cvd }                                from "./cvd.wgsl"
@@ -240,6 +240,7 @@ fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
     case 21u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKLAB); }
     case 22u: { rgb = vmf_blend6(n_last, rparams.vmf_kappa, rparams.vmf_chroma, rparams.vmf_lightness, VMF_SCHEME_OKABE_ITO); }
     case 23u: { rgb = stability_x_hue(n_last, r.diffusion, rparams.vmf_kappa, rparams.vmf_chroma); }
+    case 25u: { rgb = colour_free_group_word(r.free_group_word, rparams.vmf_chroma); }
     // 24 "none": constant mid-grey — the brightness node carries everything
     // (colour none + replace-lightness combiner = a pure greyscale map).
     default:  { rgb = vec3<f32>(0.5, 0.5, 0.5); }

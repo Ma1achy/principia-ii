@@ -21,7 +21,7 @@ const S = (f: string): string =>
 // Linked by wgslLink (G1; replaces the M3 hand concat), with the
 // G17-modified render module.
 const sources = Object.fromEntries(
-  ['helpers.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
+  ['helpers.wgsl', 'free_group.wgsl', 'observe.wgsl', 'events.wgsl', 'integrate.wgsl',
    'decode.wgsl', 'decode_linear.wgsl', 'simulate.wgsl'].map((f) => [f, S(f)]));
 const simulate = wgslLink({ entryPath: 'simulate.wgsl', sources }).module;
 const render = S('render_layer0.wgsl');
@@ -37,7 +37,7 @@ describe.skipIf(!hasWebGPU())('debug harness (real M3 dispatch)', () => {
     G: 1,
     dt_macro: 1e-3, N_max: 64, r_sub: 0.05, gamma_sub: 1.5, T_horizon: 50,
     r_coll: 1e-4, R_esc: 10, k_esc: 8, eps_E: 1e-6, eps_L: 1e-6, r_close: 0.01,
-    quality_tier: 1, checkpoint_count: M, samples_per_axis: N,
+    quality_tier: 1, checkpoint_count: M, samples_per_axis: N, integrator: 0,
   };
   const tile: TileRequest = {
     z: 0, tx: 0, ty: 0, level: 0, uv_centre: [0.5, 0.5], uv_half: [0.5, 0.5], flags: 0,

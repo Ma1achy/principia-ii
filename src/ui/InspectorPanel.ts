@@ -10,6 +10,8 @@ export function mountInspectorPanel(root: HTMLElement, app: App): () => void {
         <div>Outcome: <span class="outcome"></span></div>
         <div>t<sub>end</sub>: <span class="tEnd"></span></div>
         <div>Δ<i>E</i><sub>max</sub>: <span class="deltaE"></span></div>
+        <div>FTLE λ: <span class="ftle"></span></div>
+        <div>Diffusion: <span class="diffusion"></span></div>
         <div>Word: <code class="word"></code></div>
       </div>
       <button class="unlock" type="button">Unlock</button>
@@ -34,6 +36,10 @@ export function mountInspectorPanel(root: HTMLElement, app: App): () => void {
         insp.tEnd !== undefined ? insp.tEnd.toFixed(3) : '—';
       el.querySelector('.deltaE')!.textContent =
         insp.deltaEMax !== undefined ? insp.deltaEMax.toExponential(2) : '—';
+      el.querySelector('.ftle')!.textContent =
+        insp.ftle > 0 ? insp.ftle.toFixed(4) : '— (bounded only)';
+      el.querySelector('.diffusion')!.textContent =
+        insp.diffusion >= 0 ? insp.diffusion.toExponential(3) : '— (bounded only)';
       el.querySelector('.word')!.textContent = insp.freeGroupWord || '∅';
     });
   });

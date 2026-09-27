@@ -4,6 +4,7 @@
 // @import { collision_check, escape_tick, EscapeCounters } from "./events.wgsl"
 // @import { total_energy, ang_mom, shape_sphere }         from "./observe.wgsl"
 // @import { cross_z, EPS_BOLT, PI }                       from "./helpers.wgsl"
+// @import { FreeWord, empty_word, free_group_tick }       from "./free_group.wgsl"
 //
 // Entry-owned structs: SimUniforms / TileRequest / SimResult / ICDescriptor
 // are declared HERE and referenced by the imported units without an import
@@ -193,14 +194,15 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     ic_out.r[0] = up.r01.xy;  ic_out.r[1] = up.r01.zw;  ic_out.r[2] = up.r2p0.xy;
     ic_out.p[0] = up.r2p0.zw; ic_out.p[1] = up.p12.xy;  ic_out.p[2] = up.p12.zw;
   } else {
-    // Tile-local UV → global UV → 8D latent via the view's slice:
-    // z = z0 + mag·((2u−1)·q1 + (2v−1)·q2), the exact CPU map in
-    // chart_atlas/charts/latent_slice.ts.
-    let uv = tile_req.uv_centre + tile_req.uv_half * (2.0 * t - 1.0);
-    let su = (uv.x * 2.0 - 1.0) * slice.mag_pad.x;
-    let sv = (uv.y * 2.0 - 1.0) * slice.mag_pad.x;
-    let za = slice.z0a + su * slice.q1a + sv * slice.q2a;
-    let zb = slice.z0b + su * slice.q1b + sv * slice.q2b;
+    // TILE-LOCAL affine latent map (deep-zoom precision, spec
+    // §tile_local_precision): the CPU folds the tile centre into z0 and
+    // the tile half-extents (× mag) into q1/q2 at f64 (tileLocalSlice in
+    // slice_uniforms.ts), so this shader never reconstructs a global
+    // coordinate — the old global-uv rebuild cancelled catastrophically
+    // below tile widths of ~1e-7 (depth ~17) and quantised samples.
+    let d = 2.0 * t - 1.0;
+    let za = slice.z0a + d.x * slice.q1a + d.y * slice.q2a;
+    let zb = slice.z0b + d.x * slice.q1b + d.y * slice.q2b;
     var z: array<f32, 8>;
     z[0] = za.x; z[1] = za.y; z[2] = za.z; z[3] = za.w;
     z[4] = zb.x; z[5] = zb.y; z[6] = zb.z; z[7] = zb.w;
@@ -227,6 +229,18 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   var prev_phase = atan2(prev_n.y, prev_n.x);
   var theta_tilde: f32 = 0.0;
   var arc: f32 = 0.0;
+
+  // Free-group word (spec §free_group). Branch cuts at the equal-mass BC
+  // basepoints (TS twin: DEFAULT_BRANCH_CUTS in metrics/observe_extended.ts).
+  // ADR-0004: off the equal-mass ε band the word is computed-but-untrusted
+  // (WORD_UNCERTAIN, descriptor bit 9).
+  let FG_B1 = vec3<f32>(1.0, 0.0, 0.0);
+  let FG_B2 = vec3<f32>(-0.5, 0.8660254037844386, 0.0);
+  var word = empty_word();
+  let m_mean = (s.m.x + s.m.y + s.m.z) / 3.0;
+  let word_uncertain = select(0u, 1u,
+    abs(s.m.x - m_mean) > 1e-6 || abs(s.m.y - m_mean) > 1e-6
+    || abs(s.m.z - m_mean) > 1e-6);
 
   // Benettin shadow trajectory for FTLE (research tier only — it doubles
   // the integration cost). f32 CONSTRAINT: the CPU reference seeds at
@@ -305,6 +319,7 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     if (dph < -PI) { dph += 2.0 * PI; }
     theta_tilde += dph;
     arc += acos(clamp(dot(prev_n, n), -1.0, 1.0));
+    word = free_group_tick(word, prev_n, n, FG_B1, FG_B2);
     prev_n = n; prev_phase = ph;
 
     // Checkpoint capture: n(t_m) in .xyz, unwrapped phase θ̃(t_m) in .w
@@ -359,10 +374,12 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
     ftle_valid = 1u;
   }
 
-  // Write SimResult.
+  // Write SimResult. Word length rides in .w bits 26–31 (symbol slots
+  // reach only bit 19 of .w — spec §free_group packing).
   var r: SimResult;
   r.n_checkpoints   = checkpoints;
-  r.free_group_word = vec4<u32>(0u, 0u, 0u, 0u);     // Stage 5: symbolic dynamics
+  r.free_group_word = vec4<u32>(word.bits.x, word.bits.y, word.bits.z,
+                                word.bits.w | (min(word.length, 58u) << 26u));
   r.arc_length_n    = arc;
   r.t_end           = s.t;
   r.d_min           = dmin;
@@ -376,6 +393,8 @@ fn simulate(@builtin(global_invocation_id) gid : vec3<u32>) {
   r.sample_descriptor = (terminal_kind & 0x7u)
                        | ((terminal_detail & 0x3u) << 3u)
                        | (ftle_valid << 7u)
+                       | (word.truncated << 8u)         // WORD_TRUNCATED
+                       | (word_uncertain << 9u)         // WORD_UNCERTAIN (ADR-0004)
                        | (min(renorms, 127u) << 23u);
   r.trajectory_stats  = 0u;
   results[idx] = r;

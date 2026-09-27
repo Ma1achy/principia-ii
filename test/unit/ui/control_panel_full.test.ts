@@ -55,7 +55,7 @@ describe('ControlPanel — full ViewState + RenderParams exposure (Stage 1)', ()
 
   it('offers all 25 colour modes (incl. none) and 6/3 brightness/combiner modes', () => {
     const { root } = mount();
-    expect(root.querySelectorAll('#colourMode option')).toHaveLength(25);
+    expect(root.querySelectorAll('#colourMode option')).toHaveLength(26);
     expect(root.querySelector('#colourMode option[value="none"]')).not.toBeNull();
     expect(root.querySelectorAll('#brightness option')).toHaveLength(6);
     expect(root.querySelector('#brightness option[value="ftle"]')).not.toBeNull();

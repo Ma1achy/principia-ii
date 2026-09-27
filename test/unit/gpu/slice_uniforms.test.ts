@@ -51,16 +51,19 @@ describe('SliceUniforms packing (chart-decode fix)', () => {
     }
   });
 
-  it('the shader applies the slice: pin the affine map expressions', () => {
-    // The map z = z0 + mag((2u−1)q1 + (2v−1)q2) must actually be READ by
-    // simulate.wgsl's default decode path — this is the regression that
-    // motivated the fix (the M3 shader ignored the view's slice entirely).
+  it('the shader applies the slice: pin the TILE-LOCAL affine map expressions', () => {
+    // Stage 6: the shader must evaluate the PURE tile-local map
+    // z = z0_tile + (2t−1)·q_tile (centre/half folded on the CPU at f64 by
+    // tileLocalSlice) — and must NOT reconstruct the global uv, whose f32
+    // cancellation collapsed deep tiles near the slice centre.
     const src = readFileSync(
       new URL('../../../src/gpu/shaders/simulate.wgsl', import.meta.url),
       'utf8');
-    expect(src).toMatch(/\(uv\.x \* 2\.0 - 1\.0\) \* slice\.mag_pad\.x/);
-    expect(src).toMatch(/slice\.z0a \+ su \* slice\.q1a \+ sv \* slice\.q2a/);
-    expect(src).toMatch(/slice\.z0b \+ su \* slice\.q1b \+ sv \* slice\.q2b/);
+    expect(src).toMatch(/let d = 2\.0 \* t - 1\.0;/);
+    expect(src).toMatch(/slice\.z0a \+ d\.x \* slice\.q1a \+ d\.y \* slice\.q2a/);
+    expect(src).toMatch(/slice\.z0b \+ d\.x \* slice\.q1b \+ d\.y \* slice\.q2b/);
+    // The global-uv reconstruction must be gone from the affine branch.
+    expect(src).not.toMatch(/\(uv\.x \* 2\.0 - 1\.0\) \* slice\.mag_pad\.x/);
     // The old hard-coded default slice must be gone.
     expect(src).not.toMatch(/\* 3\.0;\s*\/\/ ±3 latent range/);
   });
